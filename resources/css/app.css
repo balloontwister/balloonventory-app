@@ -1,3 +1,68 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        --color-ink-primary:   #0A0A0A;
+        --color-ink-secondary: #52525B;
+        --color-ink-tertiary:  #A1A1AA;
+        --color-surface:       #FFFFFF;
+        --color-background:    #F4F4F5;
+        --color-border:        #E4E4E7;
+        --color-border-strong: #D4D4D8;
+        --color-accent:        #6D28D9;
+        --color-accent-hover:  #5B21B6;
+        --color-accent-soft:   #EDE9FE;
+        --color-accent-on:     #FFFFFF;
+        --color-success:       #16A34A;
+        --color-success-soft:  #DCFCE7;
+        --color-warning:       #EA580C;
+        --color-warning-soft:  #FFEDD5;
+        --color-danger:        #DC2626;
+        --color-danger-soft:   #FEE2E2;
+    }
+
+    .dark {
+        --color-ink-primary:   #FAFAFA;
+        --color-ink-secondary: #A1A1AA;
+        --color-ink-tertiary:  #71717A;
+        --color-surface:       #18181B;
+        --color-background:    #09090B;
+        --color-border:        #27272A;
+        --color-border-strong: #3F3F46;
+        --color-accent:        #8B5CF6;
+        --color-accent-hover:  #A78BFA;
+        --color-accent-soft:   #2E1065;
+        --color-accent-on:     #FFFFFF;
+        --color-success:       #16A34A;
+        --color-success-soft:  #DCFCE7;
+        --color-warning:       #EA580C;
+        --color-warning-soft:  #FFEDD5;
+        --color-danger:        #DC2626;
+        --color-danger-soft:   #FEE2E2;
+    }
+
+    html {
+        @apply antialiased;
+    }
+
+    body {
+        @apply bg-background text-ink-primary font-sans;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 767px) {
+        body {
+            font-size: 16px;
+        }
+    }
+}
+
+@layer utilities {
+    .font-numeric {
+        @apply font-mono;
+        font-variant-numeric: tabular-nums;
+    }
+}

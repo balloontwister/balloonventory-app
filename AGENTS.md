@@ -260,6 +260,8 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 | Marketing URL | https://balloonventory.com (placeholder; marketing site TBD) |
 | Server path | `/home/balloonventory/balloonventory-app/` |
 | Document root | `/home/balloonventory/balloonventory-app/public` |
+| SSH user | `balloonventory` |
+| SSH alias | `myvps` (configured in `~/.ssh/config`) |
 | Repository | https://github.com/balloontwister/balloonventory-app |
 | Hosting | cPanel/LiteSpeed/CloudLinux |
 | Edge | Cloudflare (DNS, WAF, caching, SSL) |

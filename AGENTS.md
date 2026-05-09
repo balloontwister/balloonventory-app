@@ -272,6 +272,43 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 
 ---
 
+## Scheduled tasks
+
+Laravel's task scheduler runs all scheduled commands. The server has a single cron entry that fires every minute and hands off to Laravel:
+
+```
+* * * * * cd /home/balloonventory/balloonventory-app && /opt/cpanel/ea-php84/root/usr/bin/php artisan schedule:run >> /dev/null 2>&1
+```
+
+**Never add individual cron entries for application tasks.** Register everything in `routes/console.php` using the `Schedule` facade instead. This keeps the full schedule visible in one place and version-controlled.
+
+### Adding a new scheduled task
+
+1. Create the command: `php artisan make:command YourCommandName`
+2. Implement `handle()` in `app/Console/Commands/YourCommandName.php`
+3. Register the schedule in `routes/console.php`:
+   ```php
+   Schedule::command('app:your-command')->dailyAt('03:00');
+   ```
+4. Test locally: `php artisan app:your-command --dry-run` (add a `--dry-run` option when destructive)
+5. Commit — the server picks it up automatically on next `git pull`
+
+### Current scheduled tasks
+
+| Command | Schedule | Purpose |
+|---|---|---|
+| `app:prune-unverified-users` | Daily at 03:00 | Delete accounts unverified for more than 24 hours |
+
+### Useful artisan schedule commands
+
+```bash
+php artisan schedule:list          # Show all registered tasks and next run time
+php artisan schedule:run           # Run tasks due right now (what cron calls)
+php artisan schedule:work          # Run scheduler in foreground (local dev only)
+```
+
+---
+
 ## Open decisions and known limits
 
 See the "Decisions deferred" sections of DATA.md and PERMISSIONS.md for the running list of v2 work and known v1 gaps. Don't implement these without an explicit user request — they're deferred on purpose.

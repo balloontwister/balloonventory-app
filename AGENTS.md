@@ -272,6 +272,49 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 
 ---
 
+## Transactional email
+
+All application email goes through Laravel's standard `Mail` facade with the `smtp` driver. There is no vendor-specific SDK in the codebase — switching providers is an `.env`-only change.
+
+**Current provider**: [Resend](https://resend.com) (SMTP relay)
+
+**From address**: `noreply@balloonventory.com` — must be a verified domain in the Resend dashboard.
+
+### Server `.env` settings for Resend
+
+```
+MAIL_MAILER=smtp
+MAIL_SCHEME=ssl
+MAIL_HOST=smtp.resend.com
+MAIL_PORT=465
+MAIL_USERNAME=resend
+MAIL_PASSWORD=<Resend API key>
+MAIL_FROM_ADDRESS=noreply@balloonventory.com
+MAIL_FROM_NAME=Balloonventory
+```
+
+### Switching providers
+
+Change only the `MAIL_*` variables above in `.env`. No code changes needed. Postmark, Mailgun, SendGrid, and any SMTP-capable provider can replace Resend by swapping credentials.
+
+### Local development
+
+Set `MAIL_MAILER=log` in your local `.env` to write all outgoing emails to `storage/logs/laravel.log` instead of sending them. Alternatively, use [Mailpit](https://mailpit.axllent.org/) on `localhost:1025` for a local SMTP inbox.
+
+### Adding new email types
+
+1. Create a Mailable in `app/Mail/` using `php artisan make:mail YourMailableName --markdown=mail.your-view`
+2. Add the Blade view in `resources/views/mail/`
+3. Send via `Mail::to($email)->send(new YourMailableName(...))` in the controller
+
+### Current mailables
+
+| Class | View | Trigger |
+|---|---|---|
+| `App\Mail\EmailVerificationCode` | `mail.verification-code` | Registration and resend on verify page |
+
+---
+
 ## Scheduled tasks
 
 Laravel's task scheduler runs all scheduled commands. The server has a single cron entry that fires every minute and hands off to Laravel:

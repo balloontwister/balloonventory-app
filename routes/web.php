@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ListsController;
@@ -58,6 +59,11 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/lists/create', [ListsController::class, 'create'])->name('lists.create');
     Route::get('/lists/{list}', [ListsController::class, 'show'])->name('lists.show');
     Route::get('/lists/{list}/edit', [ListsController::class, 'edit'])->name('lists.edit');
+});
+
+// ─── SuperAdmin ───────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified', App\Http\Middleware\RequireSuperAdmin::class])->group(function () {
+    Route::get('/super-admin', [SuperAdminController::class, 'dashboard'])->name('super-admin.dashboard');
 });
 
 require __DIR__.'/auth.php';

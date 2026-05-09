@@ -45,7 +45,9 @@ defineProps({
         </header>
 
         <!-- Hero -->
-        <main class="flex flex-1 flex-col items-center justify-center px-6 pb-24 pt-16 text-center sm:px-10">
+        <main
+            class="flex flex-1 flex-col items-center justify-center px-6 pb-24 pt-16 text-center sm:px-10"
+        >
             <h1
                 class="font-display text-[40px] font-semibold leading-[1.1] tracking-h1 text-ink-primary sm:text-[56px]"
             >
@@ -96,7 +98,9 @@ defineProps({
             </div>
         </main>
 
-        <footer class="py-6 text-center font-sans text-[13px] text-ink-tertiary">
+        <footer
+            class="py-6 text-center font-sans text-[13px] text-ink-tertiary"
+        >
             &copy; {{ new Date().getFullYear() }} Balloonventory
         </footer>
     </div>

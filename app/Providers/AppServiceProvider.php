@@ -19,6 +19,11 @@ use App\Policies\PendingUpcScanPolicy;
 use App\Policies\SkuErrorReportPolicy;
 use App\Policies\SkuPolicy;
 use App\Policies\UpcPolicy;
+use App\Listeners\LogSentEmail;
+use App\Listeners\RecordLastLogin;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -35,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
         Schema::defaultStringLength(191);
 
         Vite::prefetch(concurrency: 3);
+
+        Event::listen(MessageSent::class, LogSentEmail::class);
+        Event::listen(Login::class, RecordLastLogin::class);
 
         $this->registerModelPolicies();
         $this->registerNamedGates();

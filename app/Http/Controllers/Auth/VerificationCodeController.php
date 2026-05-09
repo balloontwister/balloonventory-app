@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\EmailVerificationCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,11 +61,20 @@ class VerificationCodeController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
+        $code = $this->generateCode();
+
         $user->forceFill([
-            'email_verification_code' => '123456',
+            'email_verification_code' => $code,
             'email_verification_code_expires_at' => Carbon::now()->addMinutes(15),
         ])->save();
 
+        Mail::to($user->email)->send(new EmailVerificationCode($code, $user->name));
+
         return back()->with('status', 'A new code has been sent.');
+    }
+
+    private function generateCode(): string
+    {
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 }

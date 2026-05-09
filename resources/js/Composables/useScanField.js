@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 const SCAN_MIN_LENGTH = 4;
 const SCAN_TIMEOUT_MS = 80; // scanners complete in <80ms; human typing is slower
@@ -24,7 +24,9 @@ export function useScanField(onScan) {
     function handleGlobalKeydown(e) {
         const isOtherInput =
             e.target !== inputRef.value &&
-            (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+            (e.target.tagName === 'INPUT' ||
+                e.target.tagName === 'TEXTAREA' ||
+                e.target.isContentEditable);
 
         if (e.key === 'Enter') {
             if (buffer.length >= SCAN_MIN_LENGTH) {

@@ -53,29 +53,29 @@ class AppServiceProvider extends ServiceProvider
     private function registerNamedGates(): void
     {
         $inventory = app(InventoryPolicy::class);
-        Gate::define('inventory.check_in',      fn ($u, $b) => $inventory->checkIn($u, $b));
-        Gate::define('inventory.check_out',     fn ($u, $b) => $inventory->checkOut($u, $b));
+        Gate::define('inventory.check_in', fn ($u, $b) => $inventory->checkIn($u, $b));
+        Gate::define('inventory.check_out', fn ($u, $b) => $inventory->checkOut($u, $b));
         Gate::define('inventory.manual_adjust', fn ($u, $b) => $inventory->manualAdjust($u, $b));
         Gate::define('inventory.override_count', fn ($u, $b) => $inventory->overrideCount($u, $b));
-        Gate::define('inventory.view_counts',   fn ($u, $b) => $inventory->viewCounts($u, $b));
+        Gate::define('inventory.view_counts', fn ($u, $b) => $inventory->viewCounts($u, $b));
         Gate::define('inventory.view_audit_log', fn ($u, $b) => $inventory->viewAuditLog($u, $b));
 
         $sku = app(SkuPolicy::class);
         Gate::define('sku.create_private', fn ($u, $b) => $sku->createPrivate($u, $b));
-        Gate::define('sku.edit_override',  fn ($u, $b) => $sku->editOverride($u, $b));
+        Gate::define('sku.edit_override', fn ($u, $b) => $sku->editOverride($u, $b));
 
         $upc = app(UpcPolicy::class);
-        Gate::define('upc.manage',          fn ($u, $b) => $upc->manage($u, $b));
+        Gate::define('upc.manage', fn ($u, $b) => $upc->manage($u, $b));
         Gate::define('upc.resolve_pending', fn ($u, $b) => $upc->resolvePending($u, $b));
-        Gate::define('upc.scan',            fn ($u, $b) => $upc->scan($u, $b));
+        Gate::define('upc.scan', fn ($u, $b) => $upc->scan($u, $b));
 
         $list = app(BalloonListPolicy::class);
-        Gate::define('list.view',       fn ($u, $b) => $list->viewAny($u, $b));
-        Gate::define('list.create',     fn ($u, $b) => $list->create($u, $b));
-        Gate::define('favorites.edit',  fn ($u, $b) => $list->editFavorites($u, $b));
+        Gate::define('list.view', fn ($u, $b) => $list->viewAny($u, $b));
+        Gate::define('list.create', fn ($u, $b) => $list->create($u, $b));
+        Gate::define('favorites.edit', fn ($u, $b) => $list->editFavorites($u, $b));
 
         $job = app(JobPolicy::class);
-        Gate::define('job.view',   fn ($u, $b) => $job->viewAny($u, $b));
+        Gate::define('job.view', fn ($u, $b) => $job->viewAny($u, $b));
         Gate::define('job.create', fn ($u, $b) => $job->create($u, $b));
 
         $lp = app(LocalPricePolicy::class);

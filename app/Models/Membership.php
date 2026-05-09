@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class Membership extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToBusiness;
+    use BelongsToBusiness, HasFactory, SoftDeletes;
 
     public $incrementing = false;
 

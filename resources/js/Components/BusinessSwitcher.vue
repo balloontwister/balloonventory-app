@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import RoleBadge from '@/Components/RoleBadge.vue';
 import { useBusiness } from '@/Composables/useBusiness';
@@ -10,7 +10,11 @@ const open = ref(false);
 
 function switchBusiness(id) {
     open.value = false;
-    router.post(route('business.switch', { business: id }), {}, { preserveScroll: false });
+    router.post(
+        route('business.switch', { business: id }),
+        {},
+        { preserveScroll: false },
+    );
 }
 </script>
 
@@ -24,15 +28,28 @@ function switchBusiness(id) {
             @click="open = !open"
         >
             <div class="min-w-0 pl-2">
-                <p class="truncate font-sans text-[15px] font-semibold leading-snug text-ink-primary">
+                <p
+                    class="truncate font-sans text-[15px] font-semibold leading-snug text-ink-primary"
+                >
                     {{ business?.name ?? 'No business selected' }}
                 </p>
-                <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <p
+                    class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
                     {{ userRole ?? '' }}
                 </p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-4 w-4 flex-shrink-0 text-ink-tertiary">
-                <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z" clip-rule="evenodd" />
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                class="h-4 w-4 flex-shrink-0 text-ink-tertiary"
+            >
+                <path
+                    fill-rule="evenodd"
+                    d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"
+                    clip-rule="evenodd"
+                />
             </svg>
         </button>
 
@@ -53,7 +70,9 @@ function switchBusiness(id) {
                     :style="{ backgroundColor: biz.color ?? '#A1A1AA' }"
                 />
                 <div class="min-w-0 flex-1">
-                    <p class="truncate font-sans text-[14px] text-ink-primary">{{ biz.name }}</p>
+                    <p class="truncate font-sans text-[14px] text-ink-primary">
+                        {{ biz.name }}
+                    </p>
                     <RoleBadge :role="biz.pivot?.role ?? 'guest'" />
                 </div>
                 <!-- checkmark for current -->
@@ -64,7 +83,11 @@ function switchBusiness(id) {
                     fill="currentColor"
                     class="h-4 w-4 flex-shrink-0 text-accent"
                 >
-                    <path fill-rule="evenodd" d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z" clip-rule="evenodd" />
+                    <path
+                        fill-rule="evenodd"
+                        d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z"
+                        clip-rule="evenodd"
+                    />
                 </svg>
             </button>
 

@@ -7,7 +7,9 @@ const props = defineProps({
     size: { type: Number, default: 24 },
 });
 
-const isMetallic = computed(() => ['metallic', 'chrome', 'pearl'].includes(props.finish));
+const isMetallic = computed(() =>
+    ['metallic', 'chrome', 'pearl'].includes(props.finish),
+);
 const isPrint = computed(() => ['confetti', 'print'].includes(props.finish));
 
 const containerStyle = computed(() => ({
@@ -31,13 +33,23 @@ const containerStyle = computed(() => ({
         <span
             v-if="isMetallic"
             class="absolute inset-0"
-            style="border-radius: 6px; background: linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.12) 100%)"
+            style="
+                border-radius: 6px;
+                background: linear-gradient(
+                    45deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.12) 100%
+                );
+            "
         />
 
         <!-- inner border for visibility on any surface -->
         <span
             class="absolute inset-0 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"
-            style="border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08)"
+            style="
+                border-radius: 6px;
+                box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+            "
         />
 
         <!-- print / confetti glyph -->

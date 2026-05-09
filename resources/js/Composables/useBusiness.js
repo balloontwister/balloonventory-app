@@ -1,5 +1,5 @@
-import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 export function useBusiness() {
     const page = usePage();
@@ -12,5 +12,12 @@ export function useBusiness() {
     const businessName = computed(() => business.value?.name ?? '');
     const userRole = computed(() => membership.value?.role ?? null);
 
-    return { business, businesses, membership, businessColor, businessName, userRole };
+    return {
+        business,
+        businesses,
+        membership,
+        businessColor,
+        businessName,
+        userRole,
+    };
 }

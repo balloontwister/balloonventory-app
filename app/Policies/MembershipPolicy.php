@@ -16,9 +16,9 @@ class MembershipPolicy
     {
         return match ($targetRole) {
             'owner', 'manager' => $this->userCan($user, $business, 'membership.invite_owner'),
-            'staff'            => $this->userCan($user, $business, 'membership.invite_staff'),
-            'guest'            => $this->userCan($user, $business, 'membership.invite_guest'),
-            default            => false,
+            'staff' => $this->userCan($user, $business, 'membership.invite_staff'),
+            'guest' => $this->userCan($user, $business, 'membership.invite_guest'),
+            default => false,
         };
     }
 
@@ -33,7 +33,7 @@ class MembershipPolicy
         // Guard: cannot demote the last owner.
         if ($currentRole === 'owner' && $newRole !== 'owner') {
             if ($this->ownerCount($business) <= 1) {
-                throw new LastOwnerGuardException();
+                throw new LastOwnerGuardException;
             }
         }
 
@@ -61,7 +61,7 @@ class MembershipPolicy
 
         if ($targetRole === 'owner') {
             if ($this->ownerCount($business) <= 1) {
-                throw new LastOwnerGuardException();
+                throw new LastOwnerGuardException;
             }
 
             return $this->userCan($user, $business, 'membership.remove_owner');

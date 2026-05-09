@@ -31,10 +31,15 @@ defineEmits(['update:modelValue']);
             :disabled="disabled"
             :required="required"
             class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
-            :class="{ 'border-danger focus:border-danger focus:ring-danger-soft': error }"
+            :class="{
+                'border-danger focus:border-danger focus:ring-danger-soft':
+                    error,
+            }"
             @input="$emit('update:modelValue', $event.target.value)"
         />
 
-        <p v-if="error" class="font-sans text-[13px] text-danger">{{ error }}</p>
+        <p v-if="error" class="font-sans text-[13px] text-danger">
+            {{ error }}
+        </p>
     </div>
 </template>

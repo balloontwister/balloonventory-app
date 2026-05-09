@@ -21,7 +21,7 @@ const label = computed(() => `${props.count} bags`);
         :class="{
             'bg-success-soft text-success': state === 'in',
             'bg-warning-soft text-warning': state === 'low',
-            'bg-danger-soft text-danger':   state === 'out',
+            'bg-danger-soft text-danger': state === 'out',
         }"
     >
         {{ label }}

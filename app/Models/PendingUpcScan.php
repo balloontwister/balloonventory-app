@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class PendingUpcScan extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToBusiness;
+    use BelongsToBusiness, HasFactory, SoftDeletes;
 
     public $incrementing = false;
 

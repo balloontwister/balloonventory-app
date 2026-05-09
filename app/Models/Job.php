@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 
 class Job extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToBusiness;
+    use BelongsToBusiness, HasFactory, SoftDeletes;
 
     public $incrementing = false;
 

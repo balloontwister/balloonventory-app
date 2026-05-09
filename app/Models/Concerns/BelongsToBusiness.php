@@ -8,6 +8,6 @@ trait BelongsToBusiness
 {
     public static function bootBelongsToBusiness(): void
     {
-        static::addGlobalScope(new BusinessScope());
+        static::addGlobalScope(new BusinessScope);
     }
 }

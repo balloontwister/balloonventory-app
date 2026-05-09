@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 // Named BalloonList because PHP reserves `list` as a language construct.
 class BalloonList extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToBusiness;
+    use BelongsToBusiness, HasFactory, SoftDeletes;
 
     protected $table = 'lists';
 

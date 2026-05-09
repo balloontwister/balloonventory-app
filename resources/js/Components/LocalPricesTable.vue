@@ -38,7 +38,8 @@ function addRow() {
         <!-- info banner -->
         <div class="rounded-md bg-accent-soft px-3 py-2.5">
             <p class="font-sans text-[13px] text-accent">
-                Local Prices are reference data. They are not currently applied to job estimates, proposals, or any other UI.
+                Local Prices are reference data. They are not currently applied
+                to job estimates, proposals, or any other UI.
             </p>
         </div>
 
@@ -47,10 +48,14 @@ function addRow() {
             <table class="w-full border-collapse">
                 <thead>
                     <tr class="bg-background">
-                        <th class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
                             Price Code
                         </th>
-                        <th class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
                             Local Price
                         </th>
                     </tr>
@@ -59,7 +64,7 @@ function addRow() {
                     <tr
                         v-for="price in prices"
                         :key="price.id"
-                        class="h-12 transition hover:bg-[color:var(--color-accent-soft)]/40"
+                        class="hover:bg-[color:var(--color-accent-soft)]/40 h-12 transition"
                     >
                         <td class="px-3 font-mono text-[14px] text-ink-primary">
                             {{ price.price_code }}
@@ -79,10 +84,18 @@ function addRow() {
                                 v-else
                                 type="button"
                                 class="font-mono text-[14px] text-ink-primary"
-                                :class="editable ? 'cursor-pointer hover:text-accent' : 'cursor-default'"
+                                :class="
+                                    editable
+                                        ? 'cursor-pointer hover:text-accent'
+                                        : 'cursor-default'
+                                "
                                 @click="startEdit(price)"
                             >
-                                {{ price.local_price ? `$${price.local_price}` : '—' }}
+                                {{
+                                    price.local_price
+                                        ? `$${price.local_price}`
+                                        : '—'
+                                }}
                             </button>
                         </td>
                     </tr>
@@ -96,8 +109,15 @@ function addRow() {
             class="flex items-center gap-1.5 font-sans text-[14px] text-accent hover:underline"
             @click="addRow"
         >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-4 w-4">
-                <path d="M8.75 3.75a.75.75 0 00-1.5 0v3.5h-3.5a.75.75 0 000 1.5h3.5v3.5a.75.75 0 001.5 0v-3.5h3.5a.75.75 0 000-1.5h-3.5v-3.5z" />
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                class="h-4 w-4"
+            >
+                <path
+                    d="M8.75 3.75a.75.75 0 00-1.5 0v3.5h-3.5a.75.75 0 000 1.5h3.5v3.5a.75.75 0 001.5 0v-3.5h3.5a.75.75 0 000-1.5h-3.5v-3.5z"
+                />
             </svg>
             Add row
         </button>

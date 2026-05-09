@@ -6,12 +6,13 @@ defineProps({
 
 <template>
     <span
-        class="inline-flex items-center rounded-pill px-2 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow leading-none"
+        class="inline-flex items-center rounded-pill px-2 py-0.5 font-sans text-[11px] font-semibold uppercase leading-none tracking-eyebrow"
         :class="{
-            'bg-ink-primary text-surface':                    role === 'owner',
-            'bg-accent-soft text-accent':                     role === 'manager',
-            'border border-border bg-surface text-ink-secondary': role === 'staff',
-            'text-ink-tertiary':                              role === 'guest',
+            'bg-ink-primary text-surface': role === 'owner',
+            'bg-accent-soft text-accent': role === 'manager',
+            'border border-border bg-surface text-ink-secondary':
+                role === 'staff',
+            'text-ink-tertiary': role === 'guest',
         }"
     >
         {{ role }}

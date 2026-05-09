@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 class StockMovement extends Model
 {
-    use HasFactory, BelongsToBusiness;
+    use BelongsToBusiness, HasFactory;
 
     public $incrementing = false;
 

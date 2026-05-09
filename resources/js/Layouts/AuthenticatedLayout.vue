@@ -3,6 +3,8 @@ import { Link } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import { useBusiness } from '@/Composables/useBusiness';
+import logoLight from '../../images/balloonventory-logo-light.png';
+import logoDark from '../../images/balloonventory-logo-dark.png';
 
 const { businessColor } = useBusiness();
 
@@ -35,11 +37,17 @@ function isActive(routeName) {
             >
                 <!-- logo area -->
                 <div class="flex h-16 flex-shrink-0 items-center px-4">
-                    <Link
-                        :href="route('dashboard')"
-                        class="font-display text-[18px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        Balloonventory
+                    <Link :href="route('dashboard')" class="block">
+                        <img
+                            :src="logoLight"
+                            alt="Balloonventory"
+                            class="h-7 w-auto dark:hidden"
+                        />
+                        <img
+                            :src="logoDark"
+                            alt="Balloonventory"
+                            class="hidden h-7 w-auto dark:block"
+                        />
                     </Link>
                 </div>
 

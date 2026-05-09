@@ -20,6 +20,7 @@ use App\Policies\SkuErrorReportPolicy;
 use App\Policies\SkuPolicy;
 use App\Policies\UpcPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Shared hosting MariaDB instances often cap index key length at 1000 bytes.
+        // utf8mb4 uses 4 bytes/char, so varchar(255) = 1020 bytes > 1000. Cap at 191.
+        Schema::defaultStringLength(191);
+
         Vite::prefetch(concurrency: 3);
 
         $this->registerModelPolicies();

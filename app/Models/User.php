@@ -55,6 +55,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 $model->id = (string) Str::uuid7();
             }
         });
+
+        static::deleting(function (self $model) {
+            if ($model->is_super_admin) {
+                throw new \RuntimeException('Super admin accounts cannot be deleted.');
+            }
+        });
     }
 
     // Suppress Laravel's default link-based verification email.

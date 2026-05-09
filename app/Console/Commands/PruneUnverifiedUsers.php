@@ -20,6 +20,7 @@ class PruneUnverifiedUsers extends Command
         $cutoff = Carbon::now()->subHours($hours);
 
         $query = User::whereNull('email_verified_at')
+            ->where('is_super_admin', false)
             ->where('created_at', '<', $cutoff);
 
         $count = $query->count();

@@ -1,7 +1,6 @@
 <script setup>
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -34,85 +33,87 @@ const updatePassword = () => {
 </script>
 
 <template>
-    <section>
-        <header>
-            <h2 class="text-lg font-medium text-gray-900">Update Password</h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                Ensure your account is using a long, random password to stay
-                secure.
+    <section class="flex flex-col gap-5">
+        <div>
+            <h2
+                class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+            >
+                Update password
+            </h2>
+            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                Use a long, random password to keep your account secure.
             </p>
-        </header>
+        </div>
 
-        <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
+        <form class="flex flex-col gap-4" @submit.prevent="updatePassword">
             <div>
-                <InputLabel for="current_password" value="Current Password" />
-
+                <InputLabel for="current_password" value="Current password" />
                 <TextInput
                     id="current_password"
                     ref="currentPasswordInput"
                     v-model="form.current_password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full max-w-sm"
                     autocomplete="current-password"
                 />
-
                 <InputError
                     :message="form.errors.current_password"
-                    class="mt-2"
+                    class="mt-1"
                 />
             </div>
 
             <div>
-                <InputLabel for="password" value="New Password" />
-
+                <InputLabel for="password" value="New password" />
                 <TextInput
                     id="password"
                     ref="passwordInput"
                     v-model="form.password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full max-w-sm"
                     autocomplete="new-password"
                 />
-
-                <InputError :message="form.errors.password" class="mt-2" />
+                <InputError :message="form.errors.password" class="mt-1" />
             </div>
 
             <div>
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    value="Confirm new password"
                 />
-
                 <TextInput
                     id="password_confirmation"
                     v-model="form.password_confirmation"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full max-w-sm"
                     autocomplete="new-password"
                 />
-
                 <InputError
                     :message="form.errors.password_confirmation"
-                    class="mt-2"
+                    class="mt-1"
                 />
             </div>
 
             <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+                <button
+                    type="submit"
+                    :disabled="form.processing"
+                    class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                >
+                    Update password
+                </button>
 
                 <Transition
-                    enter-active-class="transition ease-in-out"
+                    enter-active-class="transition-opacity duration-200"
                     enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out"
+                    leave-active-class="transition-opacity duration-200"
                     leave-to-class="opacity-0"
                 >
-                    <p
+                    <span
                         v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600"
+                        class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
                     >
-                        Saved.
-                    </p>
+                        Password updated.
+                    </span>
                 </Transition>
             </div>
         </form>

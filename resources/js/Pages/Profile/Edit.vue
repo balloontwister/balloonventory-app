@@ -6,12 +6,8 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 import { Head } from '@inertiajs/vue3';
 
 defineProps({
-    mustVerifyEmail: {
-        type: Boolean,
-    },
-    status: {
-        type: String,
-    },
+    mustVerifyEmail: { type: Boolean },
+    status: { type: String },
 });
 </script>
 
@@ -20,28 +16,33 @@ defineProps({
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h1
+                class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+            >
                 Profile
-            </h2>
+            </h1>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                    <UpdateProfileInformationForm
-                        :must-verify-email="mustVerifyEmail"
-                        :status="status"
-                        class="max-w-xl"
-                    />
-                </div>
+        <div class="flex flex-col gap-6 py-2">
+            <div
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <UpdateProfileInformationForm
+                    :must-verify-email="mustVerifyEmail"
+                    :status="status"
+                />
+            </div>
 
-                <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                    <UpdatePasswordForm class="max-w-xl" />
-                </div>
+            <div
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <UpdatePasswordForm />
+            </div>
 
-                <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                    <DeleteUserForm class="max-w-xl" />
-                </div>
+            <div
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <DeleteUserForm />
             </div>
         </div>
     </AuthenticatedLayout>

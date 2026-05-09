@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import { useBusiness } from '@/Composables/useBusiness';
@@ -7,6 +7,10 @@ import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
 
 const { businessColor } = useBusiness();
+
+function logout() {
+    router.post(route('logout'));
+}
 
 const nav = [
     { label: 'Inventory', icon: 'inventory', routeName: 'inventory.index' },
@@ -149,22 +153,50 @@ function isActive(routeName) {
 
                     <!-- user section -->
                     <div class="mt-auto border-t border-border pt-4">
-                        <Link
-                            :href="route('profile.edit')"
-                            class="flex items-center gap-2 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                class="h-4 w-4 flex-shrink-0"
+                        <div class="flex items-center gap-1">
+                            <Link
+                                :href="route('profile.edit')"
+                                class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                             >
-                                <path
-                                    d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
-                                />
-                            </svg>
-                            {{ $page.props.auth.user.name }}
-                        </Link>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4 flex-shrink-0"
+                                >
+                                    <path
+                                        d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
+                                    />
+                                </svg>
+                                <span class="truncate">{{
+                                    $page.props.auth.user.name
+                                }}</span>
+                            </Link>
+                            <button
+                                type="button"
+                                title="Log out"
+                                class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                                @click="logout"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
+                                        clip-rule="evenodd"
+                                    />
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.115l-2.5 2.569a.75.75 0 000 1.052l2.5 2.569a.75.75 0 101.004-1.115l-1.048-1.08h9.546A.75.75 0 0019 10z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </nav>
             </aside>
@@ -191,8 +223,34 @@ function isActive(routeName) {
             <header
                 class="sticky top-0.5 z-10 border-b border-border bg-surface"
             >
-                <div class="px-4 py-3">
-                    <BusinessSwitcher />
+                <div class="flex items-center gap-2 px-4 py-3">
+                    <div class="flex-1">
+                        <BusinessSwitcher />
+                    </div>
+                    <button
+                        type="button"
+                        title="Log out"
+                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                        @click="logout"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
+                                clip-rule="evenodd"
+                            />
+                            <path
+                                fill-rule="evenodd"
+                                d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.115l-2.5 2.569a.75.75 0 000 1.052l2.5 2.569a.75.75 0 101.004-1.115l-1.048-1.08h9.546A.75.75 0 0019 10z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
                 </div>
 
                 <!-- Page sub-header slot -->

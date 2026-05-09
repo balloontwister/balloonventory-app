@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class VerificationCodeController extends Controller
+{
+    public function show(Request $request): Response|RedirectResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
+        return Inertia::render('Auth/VerifyCode', [
+            'email' => $request->user()->email,
+        ]);
+    }
+
+    public function verify(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'code' => ['required', 'string', 'size:6'],
+        ]);
+
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
+        if ($user->email_verification_code_expires_at?->isPast()) {
+            return back()->withErrors(['code' => 'This code has expired. Please request a new one.']);
+        }
+
+        if ($request->code !== $user->email_verification_code) {
+            return back()->withErrors(['code' => 'That code is incorrect. Please try again.']);
+        }
+
+        $user->forceFill([
+            'email_verified_at' => Carbon::now(),
+            'email_verification_code' => null,
+            'email_verification_code_expires_at' => null,
+        ])->save();
+
+        return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    public function resend(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
+        $user->forceFill([
+            'email_verification_code' => '123456',
+            'email_verification_code_expires_at' => Carbon::now()->addMinutes(15),
+        ])->save();
+
+        return back()->with('status', 'A new code has been sent.');
+    }
+}

@@ -16,7 +16,7 @@ The product is intentionally narrow: it tracks inventory and supports planning. 
 
 ## Tech stack
 
-- **Runtime**: PHP 8.3.30
+- **Runtime**: PHP 8.5.5 (local), PHP 8.4 via EasyApache 4 on the server
 - **Framework**: Laravel 12 with Breeze starter kit (Inertia + Vue 3 + Tailwind)
 - **Frontend**: Vue 3, Inertia.js, Tailwind, Reka UI for accessible primitives
 - **Database**: MariaDB 10.11.16 (LTS)
@@ -265,7 +265,8 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 | Repository | https://github.com/balloontwister/balloonventory-app |
 | Hosting | cPanel/LiteSpeed/CloudLinux |
 | Edge | Cloudflare (DNS, WAF, caching, SSL) |
-| PHP version | 8.3.30 |
+| PHP (local) | 8.5.5 (Homebrew/Herd) |
+| PHP (server) | 8.4 via EasyApache 4 (`ea-php84`); declared in `public/.htaccess` with `AddHandler application/x-httpd-ea-php84 .php` |
 | Database | MariaDB 10.11.16 |
 | Cache/queue driver | `database` |
 

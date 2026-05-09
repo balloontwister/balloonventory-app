@@ -25,7 +25,7 @@ The product is intentionally narrow: it tracks inventory and supports planning. 
 - **Authorization**: `spatie/laravel-permission`
 - **Cache & queue driver**: `database` (Redis is unavailable on the current host)
 - **Object storage**: local cPanel filesystem at `storage/app/public`
-- **Hosting**: cPanel/LiteSpeed/CloudLinux at balloonventory.com
+- **Hosting**: cPanel/LiteSpeed/CloudLinux; app at `app.balloonventory.com`, server path `/home/balloonventory/balloonventory-app/`, document root `/home/balloonventory/balloonventory-app/public`
 - **Edge**: Cloudflare for DNS, WAF, DDoS, static asset caching, SSL
 - **Local dev path**: `/Users/todd/Documents/VS Code Projects/Balloonventory App`
 
@@ -256,7 +256,10 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 | Item | Value |
 |---|---|
 | Local dev path | `/Users/todd/Documents/VS Code Projects/Balloonventory App` |
-| Production URL | https://balloonventory.com |
+| Production URL | https://app.balloonventory.com |
+| Marketing URL | https://balloonventory.com (placeholder; marketing site TBD) |
+| Server path | `/home/balloonventory/balloonventory-app/` |
+| Document root | `/home/balloonventory/balloonventory-app/public` |
 | Repository | https://github.com/balloontwister/balloonventory-app |
 | Hosting | cPanel/LiteSpeed/CloudLinux |
 | Edge | Cloudflare (DNS, WAF, caching, SSL) |

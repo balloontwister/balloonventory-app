@@ -182,7 +182,7 @@ function formatMonth(val) {
                                 :class="{ 'opacity-50': user.deleted_at }"
                             >
                                 <td class="py-1.5 text-ink-primary" :class="{ 'line-through': user.deleted_at }">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ user.email }}</td>
+                                <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ user.original_email ?? user.email }}</td>
                                 <td class="py-1.5">
                                     <span v-if="user.deleted_at" class="text-ink-secondary italic">pruned</span>
                                     <span

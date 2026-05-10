@@ -44,7 +44,7 @@ class SuperAdminController extends Controller
         return User::withTrashed()
             ->orderByDesc('created_at')
             ->limit(10)
-            ->get(['id', 'name', 'email', 'email_verified_at', 'created_at', 'deleted_at'])
+            ->get(['id', 'name', 'email', 'original_email', 'email_verified_at', 'created_at', 'deleted_at'])
             ->toArray();
     }
 

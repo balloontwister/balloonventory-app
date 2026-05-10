@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'is_super_admin',
         'last_login_at',
+        'original_email',
         'email_verification_code',
         'email_verification_code_expires_at',
     ];

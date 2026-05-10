@@ -30,7 +30,14 @@ class PruneUnverifiedUsers extends Command
             return self::SUCCESS;
         }
 
-        $query->delete();
+        // Scramble email before soft-deleting so the address is immediately
+        // available for re-registration. original_email preserves it for the admin dashboard.
+        $query->each(function ($user) {
+            $user->original_email = $user->email;
+            $user->email = $user->id . '@pruned.invalid';
+            $user->save();
+            $user->delete();
+        });
 
         $this->info("Pruned {$count} unverified account(s) older than {$hours} hours.");
 

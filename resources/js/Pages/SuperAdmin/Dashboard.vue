@@ -303,7 +303,7 @@ function formatMonth(val) {
                                 class="border-b border-border/50 last:border-0 opacity-60"
                             >
                                 <td class="py-1.5 text-ink-primary line-through">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary line-through">{{ user.email }}</td>
+                                <td class="py-1.5 text-ink-secondary line-through">{{ user.original_email }}</td>
                                 <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
                                 <td class="py-1.5 text-danger">{{ formatDateTime(user.deleted_at) }}</td>
                             </tr>

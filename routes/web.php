@@ -55,6 +55,7 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/businesses', [SettingsController::class, 'businesses'])->name('settings.businesses');
+    Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
 
     Route::get('/lists/create', [ListsController::class, 'create'])->name('lists.create');
     Route::get('/lists/{list}', [ListsController::class, 'show'])->name('lists.show');

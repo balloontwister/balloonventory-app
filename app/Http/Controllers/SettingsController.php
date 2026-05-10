@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Business;
+use App\Support\BusinessContext;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,6 +19,46 @@ class SettingsController extends Controller
 
     public function businesses(): Response
     {
-        return Inertia::render('Settings/Businesses');
+        $business = Business::findOrFail(BusinessContext::currentId());
+
+        return Inertia::render('Settings/Businesses', [
+            'business' => [
+                'id'        => $business->id,
+                'name'      => $business->name,
+                'slug'      => $business->slug,
+                'logo_path' => $business->logo_path,
+            ],
+        ]);
+    }
+
+    public function updateBusiness(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $business = Business::findOrFail(BusinessContext::currentId());
+
+        $this->authorize('business.edit_settings', $business);
+
+        $business->update([
+            'name' => $request->name,
+            'slug' => $this->uniqueSlug($request->name, $business->id),
+        ]);
+
+        return back()->with('success', 'Business name updated.');
+    }
+
+    private function uniqueSlug(string $name, string $excludeId): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i = 2;
+
+        while (Business::where('slug', $slug)->where('id', '!=', $excludeId)->exists()) {
+            $slug = $base . '-' . $i++;
+        }
+
+        return $slug;
     }
 }

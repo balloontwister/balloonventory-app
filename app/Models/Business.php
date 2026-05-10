@@ -19,6 +19,7 @@ class Business extends Model
     protected $fillable = [
         'name',
         'slug',
+        'logo_path',
     ];
 
     protected static function boot(): void

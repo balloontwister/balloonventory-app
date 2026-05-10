@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,7 +40,7 @@ class SettingsController extends Controller
 
         $business = Business::findOrFail(BusinessContext::currentId());
 
-        $this->authorize('business.edit_settings', $business);
+        Gate::authorize('business.edit_settings', $business);
 
         $business->update([
             'name' => $request->name,

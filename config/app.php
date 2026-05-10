@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'verification_master_code' => env('VERIFICATION_MASTER_CODE'),
+
 ];

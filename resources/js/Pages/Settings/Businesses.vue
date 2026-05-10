@@ -11,7 +11,7 @@ const props = defineProps({
 });
 
 const page = usePage();
-const canEditSettings = computed(() => page.props.auth?.permissions?.includes('business.edit_settings'));
+const canEditSettings = computed(() => page.props.permissions?.includes('business.edit_settings'));
 
 const form = useForm({
     name: props.business.name,

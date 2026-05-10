@@ -274,28 +274,24 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 
 ## Transactional email
 
-All application email goes through Laravel's standard `Mail` facade with the `smtp` driver. There is no vendor-specific SDK in the codebase — switching providers is an `.env`-only change.
+All application email goes through Laravel's standard `Mail` facade. The current provider uses Laravel's built-in `resend` transport via the `resend/resend-laravel` HTTP API package — **not SMTP** (outbound SMTP on ports 587 and 465 is blocked by the hosting provider).
 
-**Current provider**: [Resend](https://resend.com) (SMTP relay)
+**Current provider**: [Resend](https://resend.com) (HTTP API via `resend/resend-laravel`)
 
 **From address**: `noreply@balloonventory.com` — must be a verified domain in the Resend dashboard.
 
 ### Server `.env` settings for Resend
 
 ```
-MAIL_MAILER=smtp
-MAIL_SCHEME=ssl
-MAIL_HOST=smtp.resend.com
-MAIL_PORT=465
-MAIL_USERNAME=resend
-MAIL_PASSWORD=<Resend API key>
+MAIL_MAILER=resend
+RESEND_API_KEY=<Resend API key>
 MAIL_FROM_ADDRESS=noreply@balloonventory.com
 MAIL_FROM_NAME=Balloonventory
 ```
 
 ### Switching providers
 
-Change only the `MAIL_*` variables above in `.env`. No code changes needed. Postmark, Mailgun, SendGrid, and any SMTP-capable provider can replace Resend by swapping credentials.
+Resend is wired via the HTTP API driver (`resend/resend-laravel`). Switching to another HTTP-API-capable provider (Postmark, Mailgun) requires installing their respective Laravel package and changing `MAIL_MAILER` plus the relevant API key env var. No Mailable class changes are needed.
 
 ### Local development
 

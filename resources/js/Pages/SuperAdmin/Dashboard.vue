@@ -8,6 +8,7 @@ const props = defineProps({
     recentUsers: { type: Array, required: true },
     recentlyActive: { type: Array, required: true },
     pendingVerification: { type: Array, required: true },
+    recentlyPruned: { type: Array, required: true },
     emailByDay: { type: Array, required: true },
     emailByMonth: { type: Array, required: true },
 });
@@ -178,19 +179,20 @@ function formatMonth(val) {
                                 v-for="user in recentUsers"
                                 :key="user.id"
                                 class="border-b border-border/50 last:border-0"
+                                :class="{ 'opacity-50': user.deleted_at }"
                             >
-                                <td class="py-1.5 text-ink-primary">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary">{{ user.email }}</td>
+                                <td class="py-1.5 text-ink-primary" :class="{ 'line-through': user.deleted_at }">{{ user.name }}</td>
+                                <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ user.email }}</td>
                                 <td class="py-1.5">
+                                    <span v-if="user.deleted_at" class="text-ink-secondary italic">pruned</span>
                                     <span
-                                        :class="user.email_verified_at
-                                            ? 'text-success'
-                                            : 'text-danger'"
+                                        v-else
+                                        :class="user.email_verified_at ? 'text-success' : 'text-danger'"
                                     >
                                         {{ user.email_verified_at ? 'Yes' : 'No' }}
                                     </span>
                                 </td>
-                                <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
+                                <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ formatDate(user.created_at) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -261,6 +263,49 @@ function formatMonth(val) {
                                 <td class="py-1.5 text-ink-primary">{{ user.name }}</td>
                                 <td class="py-1.5 text-ink-secondary">{{ user.email }}</td>
                                 <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── Recently pruned ───────────────────────────────────────── -->
+            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
+                <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
+                    Recently pruned
+                    <span
+                        v-if="recentlyPruned.length > 0"
+                        class="ml-2 rounded-full bg-danger-soft px-2 py-0.5 font-sans text-[12px] font-medium text-danger"
+                    >
+                        {{ recentlyPruned.length }}
+                    </span>
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    Accounts removed by the nightly prune for never verifying their email.
+                </p>
+                <div v-if="recentlyPruned.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
+                    No accounts pruned yet.
+                </div>
+                <div v-else class="mt-4 overflow-x-auto">
+                    <table class="w-full font-sans text-[13px]">
+                        <thead>
+                            <tr class="border-b border-border text-left text-ink-secondary">
+                                <th class="pb-2 font-medium">Name</th>
+                                <th class="pb-2 font-medium">Email</th>
+                                <th class="pb-2 font-medium">Registered</th>
+                                <th class="pb-2 font-medium">Pruned</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="user in recentlyPruned"
+                                :key="user.id"
+                                class="border-b border-border/50 last:border-0 opacity-60"
+                            >
+                                <td class="py-1.5 text-ink-primary line-through">{{ user.name }}</td>
+                                <td class="py-1.5 text-ink-secondary line-through">{{ user.email }}</td>
+                                <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
+                                <td class="py-1.5 text-danger">{{ formatDateTime(user.deleted_at) }}</td>
                             </tr>
                         </tbody>
                     </table>

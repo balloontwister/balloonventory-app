@@ -30,7 +30,7 @@ class PruneUnverifiedUsers extends Command
             return self::SUCCESS;
         }
 
-        $query->forceDelete();
+        $query->delete();
 
         $this->info("Pruned {$count} unverified account(s) older than {$hours} hours.");
 

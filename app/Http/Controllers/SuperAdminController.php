@@ -19,6 +19,7 @@ class SuperAdminController extends Controller
             'recentUsers' => $this->recentUsers(),
             'recentlyActive' => $this->recentlyActive(),
             'pendingVerification' => $this->pendingVerification(),
+            'recentlyPruned' => $this->recentlyPruned(),
             'emailByDay' => $this->emailByDay(),
             'emailByMonth' => $this->emailByMonth(),
         ]);
@@ -40,9 +41,19 @@ class SuperAdminController extends Controller
 
     private function recentUsers(): array
     {
-        return User::orderByDesc('created_at')
+        return User::withTrashed()
+            ->orderByDesc('created_at')
             ->limit(10)
-            ->get(['id', 'name', 'email', 'email_verified_at', 'created_at'])
+            ->get(['id', 'name', 'email', 'email_verified_at', 'created_at', 'deleted_at'])
+            ->toArray();
+    }
+
+    private function recentlyPruned(): array
+    {
+        return User::onlyTrashed()
+            ->orderByDesc('deleted_at')
+            ->limit(20)
+            ->get(['id', 'name', 'email', 'created_at', 'deleted_at'])
             ->toArray();
     }
 

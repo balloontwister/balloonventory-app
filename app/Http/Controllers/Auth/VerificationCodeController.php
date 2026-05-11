@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Mail\EmailVerificationCode;
+use App\Mail\TemplatedMailable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -53,6 +55,17 @@ class VerificationCodeController extends Controller
             'email_verification_code' => null,
             'email_verification_code_expires_at' => null,
         ])->save();
+
+        try {
+            if ($welcome = TemplatedMailable::forKey('welcome', [
+                'user_name' => $user->name,
+                'app_url' => config('app.url'),
+            ])) {
+                Mail::to($user->email)->send($welcome);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to send welcome email', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

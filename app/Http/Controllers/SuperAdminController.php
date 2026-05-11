@@ -13,8 +13,10 @@ use Inertia\Response;
 
 class SuperAdminController extends Controller
 {
-    public function dashboard(): Response
+    public function dashboard(Request $request): Response
     {
+        $showArchived = $request->boolean('showArchived');
+
         return Inertia::render('SuperAdmin/Dashboard', [
             'stats' => $this->stats(),
             'recentUsers' => $this->recentUsers(),
@@ -23,7 +25,8 @@ class SuperAdminController extends Controller
             'recentlyPruned' => $this->recentlyPruned(),
             'emailByDay' => $this->emailByDay(),
             'emailByMonth' => $this->emailByMonth(),
-            'supportTickets' => $this->supportTickets(),
+            'supportTickets' => $this->supportTickets($showArchived),
+            'showArchivedTickets' => $showArchived,
         ]);
     }
 
@@ -90,11 +93,17 @@ class SuperAdminController extends Controller
             ->toArray();
     }
 
-    private function supportTickets(): array
+    private function supportTickets(bool $showArchived = false): array
     {
-        return SupportTicket::orderByDesc('created_at')
+        return SupportTicket::with('replies')
+            ->when(
+                $showArchived,
+                fn ($q) => $q->whereNotNull('archived_at'),
+                fn ($q) => $q->whereNull('archived_at'),
+            )
+            ->orderByDesc('created_at')
             ->limit(50)
-            ->get(['id', 'user_id', 'user_name', 'user_email', 'subject', 'body', 'created_at'])
+            ->get(['id', 'user_id', 'user_name', 'user_email', 'subject', 'body', 'archived_at', 'created_at'])
             ->toArray();
     }
 

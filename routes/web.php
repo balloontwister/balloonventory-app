@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SupportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -70,6 +71,11 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
 // ─── SuperAdmin ───────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified', App\Http\Middleware\RequireSuperAdmin::class])->group(function () {
     Route::get('/super-admin', [SuperAdminController::class, 'dashboard'])->name('super-admin.dashboard');
+
+    Route::post('/super-admin/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('super-admin.tickets.reply');
+    Route::patch('/super-admin/tickets/{ticket}/archive', [SupportTicketController::class, 'archive'])->name('super-admin.tickets.archive');
+    Route::patch('/super-admin/tickets/{ticket}/unarchive', [SupportTicketController::class, 'unarchive'])->name('super-admin.tickets.unarchive');
+    Route::delete('/super-admin/tickets/{ticket}', [SupportTicketController::class, 'destroy'])->name('super-admin.tickets.destroy');
 });
 
 require __DIR__.'/auth.php';

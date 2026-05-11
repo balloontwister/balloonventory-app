@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -12,7 +12,60 @@ const props = defineProps({
     emailByDay: { type: Array, required: true },
     emailByMonth: { type: Array, required: true },
     supportTickets: { type: Array, required: true },
+    showArchivedTickets: { type: Boolean, default: false },
 });
+
+// ── Ticket actions ────────────────────────────────────────────────────────────
+const replyingTo = ref(null);
+const replyBody = ref('');
+const replyProcessing = ref(false);
+const confirmingDelete = ref(null);
+
+function openReply(ticketId) {
+    replyingTo.value = ticketId;
+    replyBody.value = '';
+    confirmingDelete.value = null;
+}
+
+function cancelReply() {
+    replyingTo.value = null;
+    replyBody.value = '';
+}
+
+function submitReply(ticket) {
+    replyProcessing.value = true;
+    router.post(route('super-admin.tickets.reply', ticket.id), { body: replyBody.value }, {
+        preserveScroll: true,
+        onSuccess: () => { replyingTo.value = null; replyBody.value = ''; replyProcessing.value = false; },
+        onError:   () => { replyProcessing.value = false; },
+    });
+}
+
+function archiveTicket(ticket) {
+    router.patch(route('super-admin.tickets.archive', ticket.id), {}, { preserveScroll: true });
+}
+
+function unarchiveTicket(ticket) {
+    router.patch(route('super-admin.tickets.unarchive', ticket.id), {}, { preserveScroll: true });
+}
+
+function confirmDelete(ticketId) {
+    confirmingDelete.value = ticketId;
+    replyingTo.value = null;
+}
+
+function cancelDelete() {
+    confirmingDelete.value = null;
+}
+
+function destroyTicket(ticket) {
+    router.delete(route('super-admin.tickets.destroy', ticket.id), { preserveScroll: true });
+    confirmingDelete.value = null;
+}
+
+function toggleArchived() {
+    router.get(route('super-admin.dashboard'), { showArchived: !props.showArchivedTickets }, { preserveScroll: true, preserveState: false });
+}
 
 const emailDailyTotals = computed(() => {
     const map = {};
@@ -463,23 +516,34 @@ function scrollToSection(id) {
 
             <!-- ══ Support Tickets ════════════════════════════════════════ -->
             <section id="support-tickets" class="flex scroll-mt-6 flex-col gap-4">
-                <div>
-                    <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                        Support Tickets
-                        <span
-                            v-if="supportTickets.length > 0"
-                            class="ml-2 rounded-full bg-accent-soft px-2 py-0.5 font-sans text-[12px] font-medium text-accent"
-                        >
-                            {{ supportTickets.length }}
-                        </span>
-                    </h2>
-                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                        User-submitted support requests. Reply directly from todd@twistedballoon.com.
-                    </p>
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
+                            Support Tickets
+                            <span
+                                v-if="!showArchivedTickets && supportTickets.length > 0"
+                                class="ml-2 rounded-full bg-accent-soft px-2 py-0.5 font-sans text-[12px] font-medium text-accent"
+                            >
+                                {{ supportTickets.length }}
+                            </span>
+                        </h2>
+                        <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                            {{ showArchivedTickets ? 'Archived tickets — replied to or manually dismissed.' : 'Open tickets awaiting a reply.' }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-md border border-border-strong px-3 py-1.5 font-sans text-[12px] font-medium text-ink-secondary transition hover:bg-background"
+                        @click="toggleArchived"
+                    >
+                        {{ showArchivedTickets ? 'Show open' : 'Show archived' }}
+                    </button>
                 </div>
 
                 <div v-if="supportTickets.length === 0" class="rounded-lg border border-dashed border-border-strong bg-surface p-12 text-center">
-                    <p class="font-sans text-[14px] font-medium text-ink-secondary">No support tickets yet.</p>
+                    <p class="font-sans text-[14px] font-medium text-ink-secondary">
+                        {{ showArchivedTickets ? 'No archived tickets.' : 'No open tickets. All clear.' }}
+                    </p>
                 </div>
 
                 <div v-else class="flex flex-col gap-3">
@@ -488,24 +552,122 @@ function scrollToSection(id) {
                         :key="ticket.id"
                         class="rounded-lg border border-border bg-surface p-5"
                     >
-                        <!-- Header row -->
+                        <!-- Header -->
                         <div class="flex items-start justify-between gap-4">
                             <div>
-                                <p class="font-sans text-[15px] font-semibold text-ink-primary">
-                                    {{ ticket.subject }}
-                                </p>
+                                <p class="font-sans text-[15px] font-semibold text-ink-primary">{{ ticket.subject }}</p>
                                 <p class="mt-0.5 font-sans text-[13px] text-ink-secondary">
                                     {{ ticket.user_name }}
                                     <span class="text-ink-tertiary">·</span>
                                     {{ ticket.user_email }}
                                 </p>
                             </div>
-                            <p class="shrink-0 font-sans text-[12px] text-ink-tertiary">
-                                {{ formatDateTime(ticket.created_at) }}
-                            </p>
+                            <p class="shrink-0 font-sans text-[12px] text-ink-tertiary">{{ formatDateTime(ticket.created_at) }}</p>
                         </div>
-                        <!-- Body -->
+
+                        <!-- Original message -->
                         <div class="mt-3 border-t border-border pt-3 font-sans text-[13px] leading-relaxed text-ink-primary" style="white-space: pre-wrap;">{{ ticket.body }}</div>
+
+                        <!-- Replies (archived view) -->
+                        <template v-if="ticket.replies && ticket.replies.length > 0">
+                            <div
+                                v-for="reply in ticket.replies"
+                                :key="reply.id"
+                                class="mt-3 rounded-md bg-accent-soft px-4 py-3"
+                            >
+                                <p class="mb-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent">Your reply · {{ formatDateTime(reply.created_at) }}</p>
+                                <div class="font-sans text-[13px] leading-relaxed text-ink-primary" style="white-space: pre-wrap;">{{ reply.body }}</div>
+                            </div>
+                        </template>
+
+                        <!-- Reply form -->
+                        <template v-if="replyingTo === ticket.id">
+                            <div class="mt-4 border-t border-border pt-4">
+                                <textarea
+                                    v-model="replyBody"
+                                    rows="4"
+                                    placeholder="Write your reply to {{ ticket.user_name }}…"
+                                    :disabled="replyProcessing"
+                                    class="w-full resize-y rounded-md border border-border-strong bg-background px-3 py-2.5 font-sans text-[13px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft disabled:opacity-50"
+                                />
+                                <div class="mt-2 flex gap-2">
+                                    <button
+                                        type="button"
+                                        :disabled="replyProcessing || !replyBody.trim()"
+                                        class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+                                        @click="submitReply(ticket)"
+                                    >
+                                        {{ replyProcessing ? 'Sending…' : 'Send reply' }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
+                                        @click="cancelReply"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <p class="self-center font-sans text-[12px] text-ink-tertiary">Sends from tallie@ · auto-archives on send</p>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Delete confirmation -->
+                        <template v-else-if="confirmingDelete === ticket.id">
+                            <div class="mt-4 flex items-center gap-3 border-t border-border pt-4">
+                                <p class="font-sans text-[13px] text-ink-secondary">Delete this ticket permanently?</p>
+                                <button
+                                    type="button"
+                                    class="rounded-md bg-danger px-3 py-1.5 font-sans text-[13px] font-semibold text-white transition hover:bg-red-700"
+                                    @click="destroyTicket(ticket)"
+                                >
+                                    Yes, delete
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
+                                    @click="cancelDelete"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </template>
+
+                        <!-- Action bar -->
+                        <template v-else>
+                            <div class="mt-4 flex gap-2 border-t border-border pt-4">
+                                <button
+                                    v-if="!showArchivedTickets"
+                                    type="button"
+                                    class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
+                                    @click="openReply(ticket.id)"
+                                >
+                                    Reply
+                                </button>
+                                <button
+                                    v-if="!showArchivedTickets"
+                                    type="button"
+                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
+                                    @click="archiveTicket(ticket)"
+                                >
+                                    Archive
+                                </button>
+                                <button
+                                    v-if="showArchivedTickets"
+                                    type="button"
+                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
+                                    @click="unarchiveTicket(ticket)"
+                                >
+                                    Unarchive
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-md px-3 py-1.5 font-sans text-[13px] font-medium text-danger transition hover:bg-danger-soft"
+                                    @click="confirmDelete(ticket.id)"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </section>

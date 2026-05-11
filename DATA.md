@@ -387,6 +387,25 @@ A user-submitted report of a problem with a SKU (wrong color hex, wrong size, wr
 
 This table is global-ish — a report against a shared SKU has no single business owner — but reads should still be tenant-scoped where possible. A business should only see reports it filed or that pertain to its private SKUs. SuperAdmin sees all reports.
 
+### `email_template`
+
+A database-stored email template editable via the super-admin UI. One row per named template key. See EMAIL.md for the full design, variable system, and authoring guidelines.
+
+- `id` (uuid, pk)
+- `key` (text, unique, idx) — machine name, e.g. `welcome`, `subscription_upgrade`. Set at seed time; never changes.
+- `label` (text) — human-readable name shown in the super-admin UI, e.g. `Welcome to Balloonventory`
+- `trigger_description` (text) — plain-English description of when the email fires, shown in the UI
+- `subject` (text) — email subject line; supports `{{variable}}` tokens
+- `body_html` (longtext) — HTML body fragment rendered inside the Blade chrome layout; supports `{{variable}}` tokens
+- `body_text` (text) — plain-text fallback; supports `{{variable}}` tokens
+- `is_active` (boolean, default false) — when `false` the trigger is a no-op; allows drafting before activating
+- `last_edited_by_user_id` (uuid, nullable, fk → user.id) — audit trail for super-admin edits
+- `created_at`, `updated_at` (no `deleted_at` — deactivate via `is_active = false`, never delete)
+
+Not tenant-scoped — templates are global platform configuration, not per-business data.
+
+Seeded at install time with one row per template key, all with `is_active = false` and empty body fields. The super-admin UI shows an "empty / not yet written" state when `body_html` is blank.
+
 ---
 
 ## Relationships at a glance

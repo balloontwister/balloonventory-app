@@ -38,7 +38,8 @@ The product is intentionally narrow: it tracks inventory and supports planning. 
 | Visual design, components, layout, color, typography | `DESIGN.md` |
 | Database schema, queries, migrations, multi-tenancy | `DATA.md` |
 | Roles, permissions, policies, notifications | `PERMISSIONS.md` |
-| Anything in this list at the same time | All three; cross-references between them are intentional |
+| Email templates, TemplatedMailable, Tallie persona, email chrome layout | `EMAIL.md` |
+| Anything in this list at the same time | All relevant files; cross-references between them are intentional |
 
 If a request seems to require changes across two or more of these files, update them in the same change set. A schema migration without a DATA.md update, or a policy change without a PERMISSIONS.md update, is incomplete.
 

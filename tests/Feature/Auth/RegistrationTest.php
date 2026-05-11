@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mail\EmailVerificationCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -18,6 +20,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        Mail::fake();
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -26,6 +30,10 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('verification.code', absolute: false));
+
+        // Code-based verification: the user receives a 6-digit code email,
+        // not Laravel's default link-based verification.
+        Mail::assertSent(EmailVerificationCode::class);
     }
 }

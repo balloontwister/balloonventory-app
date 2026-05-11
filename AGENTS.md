@@ -338,6 +338,7 @@ Laravel's task scheduler runs all scheduled commands. The server has a single cr
 | Command | Schedule | Purpose |
 |---|---|---|
 | `app:prune-unverified-users` | Daily at 03:00 | Delete accounts unverified for more than 24 hours |
+| `queue:work --stop-when-empty` | Every minute | Drain queued email jobs (TemplatedMailable). Exits when empty; withoutOverlapping() prevents stacking. |
 
 ### Useful artisan schedule commands
 

@@ -4,15 +4,19 @@ namespace App\Mail;
 
 use App\Models\EmailTemplate;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class TemplatedMailable extends Mailable
+class TemplatedMailable extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
+
+    public int $tries = 3;
+    public int $backoff = 60;
 
     private function __construct(
         private readonly EmailTemplate $template,

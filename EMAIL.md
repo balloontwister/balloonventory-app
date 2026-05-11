@@ -139,6 +139,27 @@ All templates must be documented here before the code is written. If a template 
 
 ---
 
+## Queuing policy
+
+Emails are split into two categories based on whether the user is waiting on them.
+
+| Category | Queued? | Examples |
+|---|---|---|
+| **Time-critical** | No — sent synchronously | Verification code, password reset |
+| **Non-urgent** | Yes — dispatched to the queue | Welcome email, subscription confirmation, future newsletters |
+
+**Why queue non-urgent emails:**
+- The web request completes instantly; the user is never waiting on Resend's API
+- If Resend has a transient blip, the job retries automatically (3 attempts, 60-second backoff) instead of being silently lost
+- "Batch sending every few minutes" is a marketing-email concept; here it just means the job runs within ~60 seconds of being dispatched, which is fine for a welcome email
+
+**How it works on this server:**
+The database queue driver is used (Redis is unavailable on the cPanel host). A Laravel scheduler entry runs `queue:work --stop-when-empty` every minute via the existing cron entry. The worker drains all pending jobs and exits cleanly. `withoutOverlapping()` prevents a second worker from starting if a batch runs long.
+
+**`TemplatedMailable` is always queued** — it implements `ShouldQueue` with 3 retries and a 60-second backoff. Calling `Mail::to()->send(new TemplatedMailable(...))` dispatches to the queue automatically.
+
+**Standalone Mailables (`EmailVerificationCode`)** do NOT implement `ShouldQueue` and send synchronously. Never add `ShouldQueue` to time-critical Mailables.
+
 ## Sending guidelines
 
 - **Always wrap Mail::send in try/catch.** A failed email must never throw to the user or block a flow. Log the error and continue.

@@ -102,9 +102,21 @@ Standard Laravel layout with these project-specific callouts:
 
 ```
 app/
+├── Http/Controllers/
+│   ├── SuperAdmin/
+│   │   ├── CatalogController.php          # Shared SKU CRUD
+│   │   ├── CatalogColorController.php     # Color CRUD
+│   │   ├── CatalogBrandController.php     # Brand list + update
+│   │   ├── CatalogReferenceController.php # Generic reference data (sizes/shapes/etc.)
+│   │   └── SupportTicketController.php
+│   └── ...
 ├── Models/                    # Eloquent models, all use HasUuids + SoftDeletes
-├── Models/Concerns/
-│   └── BelongsToBusiness.php  # Tenancy trait with global scope
+│   ├── Concerns/
+│   │   └── BelongsToBusiness.php  # Tenancy trait with global scope
+│   ├── Brand.php, Sku.php          # Core catalog models
+│   ├── Size.php, Shape.php, Texture.php, Material.php  # Reference lookup tables
+│   ├── Color.php, ColorFamily.php  # Two-level color taxonomy
+│   └── Theme.php                   # Many-to-many with Sku via sku_themes pivot
 ├── Services/                  # Domain services (StockService, JobService, etc.)
 ├── Policies/                  # Laravel policies, one per model
 ├── Notifications/             # Laravel notifications for unknown UPC, errors
@@ -116,11 +128,25 @@ database/
 ├── migrations/                # Schema migrations; reflect DATA.md
 └── seeders/
     ├── PermissionSeeder.php   # Seeds Spatie roles and permissions from PERMISSIONS.md
-    ├── BrandSeeder.php        # Seeds the brand table
-    └── SharedSkuSeeder.php    # Seeds the shared SKU catalog (SuperAdmin-curated)
+    ├── BrandSeeder.php        # 7 brands (QTX, STX, BET, KAL, TTX, DCX, FSN)
+    ├── SizeSeeder.php         # 14 sizes with size_category groupings
+    ├── ShapeSeeder.php        # 9 shapes
+    ├── TextureSeeder.php      # 9 textures in 5 families
+    ├── ColorFamilySeeder.php  # 13 color families (Reds, Blues, etc.)
+    ├── ThemeSeeder.php        # 9 themes (Holiday, Christmas, etc.)
+    └── MaterialSeeder.php     # 5 materials (Latex, Foil, etc.)
 
 resources/js/
-├── Pages/                     # Inertia page components (one per route)
+├── Pages/
+│   ├── SuperAdmin/
+│   │   ├── Dashboard.vue
+│   │   └── Catalog/
+│   │       ├── Index.vue      # SKU list with filters + pagination
+│   │       ├── SkuForm.vue    # Create/edit SKU — brand-driven color filter, theme pills
+│   │       ├── Colors.vue     # Colors grouped by family, inline edit
+│   │       ├── Brands.vue     # Brand list, inline edit
+│   │       └── Reference.vue  # Sub-tabbed reference data (sizes/shapes/textures/etc.)
+│   └── ...
 ├── Components/                # Design-system components from DESIGN.md
 │   ├── BalloonSwatch.vue
 │   ├── ScanField.vue

@@ -11,6 +11,7 @@ const props = defineProps({
     recentlyPruned: { type: Array, required: true },
     emailByDay: { type: Array, required: true },
     emailByMonth: { type: Array, required: true },
+    supportTickets: { type: Array, required: true },
 });
 
 const emailDailyTotals = computed(() => {
@@ -465,14 +466,47 @@ function scrollToSection(id) {
                 <div>
                     <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
                         Support Tickets
+                        <span
+                            v-if="supportTickets.length > 0"
+                            class="ml-2 rounded-full bg-accent-soft px-2 py-0.5 font-sans text-[12px] font-medium text-accent"
+                        >
+                            {{ supportTickets.length }}
+                        </span>
                     </h2>
                     <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                        User-submitted support requests.
+                        User-submitted support requests. Reply directly from todd@twistedballoon.com.
                     </p>
                 </div>
-                <div class="rounded-lg border border-dashed border-border-strong bg-surface p-12 text-center">
-                    <p class="font-sans text-[14px] font-medium text-ink-secondary">Support ticket management</p>
-                    <p class="mt-1 font-sans text-[13px] text-ink-tertiary">Coming soon.</p>
+
+                <div v-if="supportTickets.length === 0" class="rounded-lg border border-dashed border-border-strong bg-surface p-12 text-center">
+                    <p class="font-sans text-[14px] font-medium text-ink-secondary">No support tickets yet.</p>
+                </div>
+
+                <div v-else class="flex flex-col gap-3">
+                    <div
+                        v-for="ticket in supportTickets"
+                        :key="ticket.id"
+                        class="rounded-lg border border-border bg-surface p-5"
+                    >
+                        <!-- Header row -->
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="font-sans text-[15px] font-semibold text-ink-primary">
+                                    {{ ticket.subject }}
+                                </p>
+                                <p class="mt-0.5 font-sans text-[13px] text-ink-secondary">
+                                    {{ ticket.user_name }}
+                                    <span class="text-ink-tertiary">·</span>
+                                    {{ ticket.user_email }}
+                                </p>
+                            </div>
+                            <p class="shrink-0 font-sans text-[12px] text-ink-tertiary">
+                                {{ formatDateTime(ticket.created_at) }}
+                            </p>
+                        </div>
+                        <!-- Body -->
+                        <div class="mt-3 border-t border-border pt-3 font-sans text-[13px] leading-relaxed text-ink-primary" style="white-space: pre-wrap;">{{ ticket.body }}</div>
+                    </div>
                 </div>
             </section>
 

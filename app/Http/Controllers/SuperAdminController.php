@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EmailLog;
 use App\Models\Sku;
+use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class SuperAdminController extends Controller
             'recentlyPruned' => $this->recentlyPruned(),
             'emailByDay' => $this->emailByDay(),
             'emailByMonth' => $this->emailByMonth(),
+            'supportTickets' => $this->supportTickets(),
         ]);
     }
 
@@ -85,6 +87,14 @@ class SuperAdminController extends Controller
             ->groupBy('date', 'mailable')
             ->orderBy('date')
             ->get()
+            ->toArray();
+    }
+
+    private function supportTickets(): array
+    {
+        return SupportTicket::orderByDesc('created_at')
+            ->limit(50)
+            ->get(['id', 'user_id', 'user_name', 'user_email', 'subject', 'body', 'created_at'])
             ->toArray();
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\SupportRequestMail;
+use App\Models\SupportTicket;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -34,6 +35,14 @@ class SupportController extends Controller
 
             return back()->with('support_error', 'Something went wrong sending your message. Please try again.');
         }
+
+        SupportTicket::create([
+            'user_id'    => $user->id,
+            'user_name'  => $user->name,
+            'user_email' => $user->email,
+            'subject'    => $request->subject,
+            'body'       => $request->message,
+        ]);
 
         return back()->with('support_sent', true);
     }

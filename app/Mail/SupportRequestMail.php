@@ -16,14 +16,14 @@ class SupportRequestMail extends Mailable
 
     public function __construct(
         public readonly User $user,
-        public readonly string $subject,
+        public readonly string $userSubject,
         public readonly string $body,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[Support] '.$this->subject,
+            subject: '[Support] '.$this->userSubject,
             // Reply-To is the user so Todd can reply directly to them from Gmail.
             replyTo: [new Address($this->user->email, $this->user->name)],
         );

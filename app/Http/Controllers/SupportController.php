@@ -23,7 +23,7 @@ class SupportController extends Controller
             Mail::to(config('mail.support_address'))
                 ->send(new SupportRequestMail(
                     user: $user,
-                    subject: $request->subject,
+                    userSubject: $request->subject,
                     body: $request->message,
                 ));
         } catch (\Throwable $e) {

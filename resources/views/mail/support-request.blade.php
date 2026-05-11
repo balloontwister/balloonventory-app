@@ -36,7 +36,7 @@
 
 {{-- Subject --}}
 <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#A1A1AA;text-transform:uppercase;letter-spacing:0.06em;">Subject</p>
-<p style="margin:0 0 20px;font-size:16px;font-weight:600;color:#0A0A0A;">{{ $subject }}</p>
+<p style="margin:0 0 20px;font-size:16px;font-weight:600;color:#0A0A0A;">{{ $userSubject }}</p>
 
 {{-- Message --}}
 <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#A1A1AA;text-transform:uppercase;letter-spacing:0.06em;">Message</p>

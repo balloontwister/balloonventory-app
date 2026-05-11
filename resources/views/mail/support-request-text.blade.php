@@ -7,7 +7,7 @@ Member since: {{ $user->created_at->format('M j, Y') }}
 Business: {{ $user->memberships->map(fn($m) => $m->business->name.' ('.$m->role.')')->implode(', ') }}
 @endif
 
-Subject: {{ $subject }}
+Subject: {{ $userSubject }}
 
 ---
 

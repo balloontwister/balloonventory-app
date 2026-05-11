@@ -90,13 +90,13 @@ function close() {
                         <p
                             class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
                         >
-                            Support
+                            Balloonventory Support
                         </p>
                         <h2 class="mt-0.5 font-sans text-[18px] font-semibold text-ink-primary">
-                            Contact us
+                            Contact Tallie and the team
                         </h2>
                         <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                            Send us a message and we'll reply to your email.
+                            Send a message and we will help you as soon as we can.
                         </p>
                     </div>
                     <button
@@ -167,7 +167,7 @@ function close() {
                         <AppButton
                             variant="primary"
                             type="submit"
-                            :disabled="form.processing || !form.subject.trim() || !form.message.trim()"
+                            :disabled="form.processing"
                         >
                             {{ form.processing ? 'Sending…' : 'Send message' }}
                         </AppButton>

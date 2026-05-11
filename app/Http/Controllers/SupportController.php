@@ -6,8 +6,8 @@ use App\Mail\SupportRequestMail;
 use App\Models\SupportTicket;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SupportController extends Controller
 {
@@ -19,6 +19,16 @@ class SupportController extends Controller
         ]);
 
         $user = $request->user()->load('memberships.business');
+
+        // Save the ticket first so it survives a Resend outage. The admin can
+        // see and follow up even if the notification email never reaches Todd.
+        SupportTicket::create([
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'subject' => $request->subject,
+            'body' => $request->message,
+        ]);
 
         try {
             Mail::to(config('mail.support_address'))
@@ -32,17 +42,9 @@ class SupportController extends Controller
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
-
-            return back()->with('support_error', 'Something went wrong sending your message. Please try again.');
+            // Ticket is already persisted; surface success to the user and rely
+            // on the super-admin dashboard to surface the unread ticket.
         }
-
-        SupportTicket::create([
-            'user_id'    => $user->id,
-            'user_name'  => $user->name,
-            'user_email' => $user->email,
-            'subject'    => $request->subject,
-            'body'       => $request->message,
-        ]);
 
         return back()->with('support_sent', true);
     }

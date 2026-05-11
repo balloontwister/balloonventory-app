@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
     stats: { type: Object, required: true },
@@ -13,7 +13,6 @@ const props = defineProps({
     emailByMonth: { type: Array, required: true },
 });
 
-// Roll up email totals by date (combining mailable types)
 const emailDailyTotals = computed(() => {
     const map = {};
     for (const row of props.emailByDay) {
@@ -60,6 +59,40 @@ function formatMonth(val) {
         year: 'numeric',
     });
 }
+
+// Section nav
+const navItems = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'email-templates', label: 'Email Templates' },
+    { id: 'support-tickets', label: 'Support Tickets' },
+    { id: 'catalog', label: 'Catalog' },
+];
+
+const activeSection = ref('overview');
+let observer = null;
+
+onMounted(() => {
+    observer = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    activeSection.value = entry.target.id;
+                }
+            }
+        },
+        { rootMargin: '-30% 0px -60% 0px' },
+    );
+    for (const item of navItems) {
+        const el = document.getElementById(item.id);
+        if (el) observer.observe(el);
+    }
+});
+
+onUnmounted(() => observer?.disconnect());
+
+function scrollToSection(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 </script>
 
 <template>
@@ -67,270 +100,403 @@ function formatMonth(val) {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1
-                class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
-            >
-                Super Admin
-            </h1>
+            <!-- Title flush-left, section nav centered, spacer mirrors title col for balance -->
+            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+                <h1 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary">
+                    Super Admin
+                </h1>
+                <nav class="flex gap-1">
+                    <button
+                        v-for="item in navItems"
+                        :key="item.id"
+                        type="button"
+                        class="rounded-md px-3 py-1.5 font-sans text-[13px] font-medium transition"
+                        :class="
+                            activeSection === item.id
+                                ? 'bg-accent-soft text-accent'
+                                : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                        "
+                        @click="scrollToSection(item.id)"
+                    >
+                        {{ item.label }}
+                    </button>
+                </nav>
+                <div />
+            </div>
         </template>
 
-        <div class="flex flex-col gap-6 py-2">
+        <div class="flex flex-col gap-12 py-2">
 
-            <!-- ── Key stats ─────────────────────────────────────────────── -->
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div
-                    v-for="(value, label) in {
-                        'Total users': stats.total_users,
-                        'Verified': stats.verified_users,
-                        'Unverified': stats.unverified_users,
-                        'New (7d)': stats.new_users_7d,
-                        'New (30d)': stats.new_users_30d,
-                        'Shared SKUs': stats.shared_skus,
-                        'Emails today': stats.emails_sent_today,
-                        'Emails (30d)': stats.emails_sent_30d,
-                    }"
-                    :key="label"
-                    class="rounded-lg border border-border bg-surface p-4 shadow-pop"
-                >
-                    <p class="font-sans text-[12px] text-ink-secondary">{{ label }}</p>
-                    <p class="mt-1 font-display text-[28px] font-semibold text-ink-primary">
-                        {{ value }}
-                    </p>
-                </div>
-            </div>
-
-            <!-- ── Email volume: last 30 days ────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
+            <!-- ══ Overview ════════════════════════════════════════════════ -->
+            <section id="overview" class="flex scroll-mt-6 flex-col gap-6">
                 <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                    Email sends — last 30 days
+                    Overview
                 </h2>
-                <div v-if="emailDailyTotals.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
-                    No emails sent yet.
-                </div>
-                <div v-else class="mt-4 overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="pb-2 font-medium">Date</th>
-                                <th class="pb-2 text-right font-medium">Emails sent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="row in emailDailyTotals"
-                                :key="row.date"
-                                class="border-b border-border/50 last:border-0"
-                            >
-                                <td class="py-1.5 text-ink-primary">{{ formatDate(row.date) }}</td>
-                                <td class="py-1.5 text-right tabular-nums text-ink-primary">{{ row.count }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <!-- ── Email volume: by month ─────────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                    Email sends — by month
-                </h2>
-                <div v-if="emailMonthlyTotals.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
-                    No emails sent yet.
-                </div>
-                <div v-else class="mt-4 overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="pb-2 font-medium">Month</th>
-                                <th class="pb-2 text-right font-medium">Emails sent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="row in emailMonthlyTotals"
-                                :key="row.month"
-                                class="border-b border-border/50 last:border-0"
-                            >
-                                <td class="py-1.5 text-ink-primary">{{ formatMonth(row.month) }}</td>
-                                <td class="py-1.5 text-right tabular-nums text-ink-primary">{{ row.count }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ── Recently registered ───────────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                    Recently registered
-                </h2>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="pb-2 font-medium">Name</th>
-                                <th class="pb-2 font-medium">Email</th>
-                                <th class="pb-2 font-medium">Verified</th>
-                                <th class="pb-2 font-medium">Registered</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="user in recentUsers"
-                                :key="user.id"
-                                class="border-b border-border/50 last:border-0"
-                                :class="{ 'opacity-50': user.deleted_at }"
-                            >
-                                <td class="py-1.5 text-ink-primary" :class="{ 'line-through': user.deleted_at }">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ user.original_email ?? user.email }}</td>
-                                <td class="py-1.5">
-                                    <span v-if="user.deleted_at" class="text-ink-secondary italic">pruned</span>
-                                    <span
-                                        v-else
-                                        :class="user.email_verified_at ? 'text-success' : 'text-danger'"
-                                    >
-                                        {{ user.email_verified_at ? 'Yes' : 'No' }}
-                                    </span>
-                                </td>
-                                <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ formatDate(user.created_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ── Recently active ───────────────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                    Recently active
-                </h2>
-                <div v-if="recentlyActive.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
-                    No login activity recorded yet.
-                </div>
-                <div v-else class="mt-4 overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="pb-2 font-medium">Name</th>
-                                <th class="pb-2 font-medium">Email</th>
-                                <th class="pb-2 font-medium">Last login</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="user in recentlyActive"
-                                :key="user.id"
-                                class="border-b border-border/50 last:border-0"
-                            >
-                                <td class="py-1.5 text-ink-primary">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary">{{ user.email }}</td>
-                                <td class="py-1.5 text-ink-secondary">{{ formatDateTime(user.last_login_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ── Pending verification ──────────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                    Pending email verification
-                    <span
-                        v-if="pendingVerification.length > 0"
-                        class="ml-2 rounded-full bg-warning-soft px-2 py-0.5 font-sans text-[12px] font-medium text-ink-primary"
+                <!-- Key stats -->
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div
+                        v-for="(value, label) in {
+                            'Total users': stats.total_users,
+                            'Verified': stats.verified_users,
+                            'Unverified': stats.unverified_users,
+                            'New (7d)': stats.new_users_7d,
+                            'New (30d)': stats.new_users_30d,
+                            'Shared SKUs': stats.shared_skus,
+                            'Emails today': stats.emails_sent_today,
+                            'Emails (30d)': stats.emails_sent_30d,
+                        }"
+                        :key="label"
+                        class="rounded-lg border border-border bg-surface p-4"
                     >
-                        {{ pendingVerification.length }}
-                    </span>
-                </h2>
-                <div v-if="pendingVerification.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
-                    No accounts pending verification.
-                </div>
-                <div v-else class="mt-4 overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="pb-2 font-medium">Name</th>
-                                <th class="pb-2 font-medium">Email</th>
-                                <th class="pb-2 font-medium">Registered</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="user in pendingVerification"
-                                :key="user.id"
-                                class="border-b border-border/50 last:border-0"
-                            >
-                                <td class="py-1.5 text-ink-primary">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary">{{ user.email }}</td>
-                                <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ── Recently pruned ───────────────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                    Recently pruned
-                    <span
-                        v-if="recentlyPruned.length > 0"
-                        class="ml-2 rounded-full bg-danger-soft px-2 py-0.5 font-sans text-[12px] font-medium text-danger"
-                    >
-                        {{ recentlyPruned.length }}
-                    </span>
-                </h2>
-                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                    Accounts removed by the nightly prune for never verifying their email.
-                </p>
-                <div v-if="recentlyPruned.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
-                    No accounts pruned yet.
-                </div>
-                <div v-else class="mt-4 overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="pb-2 font-medium">Name</th>
-                                <th class="pb-2 font-medium">Email</th>
-                                <th class="pb-2 font-medium">Registered</th>
-                                <th class="pb-2 font-medium">Pruned</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="user in recentlyPruned"
-                                :key="user.id"
-                                class="border-b border-border/50 last:border-0 opacity-60"
-                            >
-                                <td class="py-1.5 text-ink-primary line-through">{{ user.name }}</td>
-                                <td class="py-1.5 text-ink-secondary line-through">{{ user.original_email }}</td>
-                                <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
-                                <td class="py-1.5 text-danger">{{ formatDateTime(user.deleted_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ── Shared catalog ────────────────────────────────────────── -->
-            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
-                            Shared balloon catalog
-                        </h2>
-                        <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                            {{ stats.shared_skus }} SKUs in the master catalog.
+                        <p class="font-sans text-[12px] text-ink-secondary">{{ label }}</p>
+                        <p class="mt-1 font-display text-[28px] font-semibold text-ink-primary">
+                            {{ value }}
                         </p>
                     </div>
-                    <a
-                        href="/super-admin/catalog"
-                        class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                    >
-                        Manage catalog
-                    </a>
                 </div>
-            </div>
+
+                <!-- Email volume: last 30 days -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <h3 class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary">
+                        Email sends — last 30 days
+                    </h3>
+                    <div v-if="emailDailyTotals.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
+                        No emails sent yet.
+                    </div>
+                    <div v-else class="mt-4 overflow-x-auto">
+                        <table class="w-full font-sans text-[13px]">
+                            <thead>
+                                <tr class="border-b border-border text-left text-ink-secondary">
+                                    <th class="pb-2 font-medium">Date</th>
+                                    <th class="pb-2 text-right font-medium">Emails sent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in emailDailyTotals"
+                                    :key="row.date"
+                                    class="border-b border-border/50 last:border-0"
+                                >
+                                    <td class="py-1.5 text-ink-primary">{{ formatDate(row.date) }}</td>
+                                    <td class="py-1.5 text-right tabular-nums text-ink-primary">{{ row.count }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Email volume: by month -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <h3 class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary">
+                        Email sends — by month
+                    </h3>
+                    <div v-if="emailMonthlyTotals.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
+                        No emails sent yet.
+                    </div>
+                    <div v-else class="mt-4 overflow-x-auto">
+                        <table class="w-full font-sans text-[13px]">
+                            <thead>
+                                <tr class="border-b border-border text-left text-ink-secondary">
+                                    <th class="pb-2 font-medium">Month</th>
+                                    <th class="pb-2 text-right font-medium">Emails sent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in emailMonthlyTotals"
+                                    :key="row.month"
+                                    class="border-b border-border/50 last:border-0"
+                                >
+                                    <td class="py-1.5 text-ink-primary">{{ formatMonth(row.month) }}</td>
+                                    <td class="py-1.5 text-right tabular-nums text-ink-primary">{{ row.count }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recently registered -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <h3 class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary">
+                        Recently registered
+                    </h3>
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="w-full font-sans text-[13px]">
+                            <thead>
+                                <tr class="border-b border-border text-left text-ink-secondary">
+                                    <th class="pb-2 font-medium">Name</th>
+                                    <th class="pb-2 font-medium">Email</th>
+                                    <th class="pb-2 font-medium">Verified</th>
+                                    <th class="pb-2 font-medium">Registered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="user in recentUsers"
+                                    :key="user.id"
+                                    class="border-b border-border/50 last:border-0"
+                                    :class="{ 'opacity-50': user.deleted_at }"
+                                >
+                                    <td class="py-1.5 text-ink-primary" :class="{ 'line-through': user.deleted_at }">{{ user.name }}</td>
+                                    <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ user.original_email ?? user.email }}</td>
+                                    <td class="py-1.5">
+                                        <span v-if="user.deleted_at" class="italic text-ink-secondary">pruned</span>
+                                        <span
+                                            v-else
+                                            :class="user.email_verified_at ? 'text-success' : 'text-danger'"
+                                        >
+                                            {{ user.email_verified_at ? 'Yes' : 'No' }}
+                                        </span>
+                                    </td>
+                                    <td class="py-1.5 text-ink-secondary" :class="{ 'line-through': user.deleted_at }">{{ formatDate(user.created_at) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recently active -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <h3 class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary">
+                        Recently active
+                    </h3>
+                    <div v-if="recentlyActive.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
+                        No login activity recorded yet.
+                    </div>
+                    <div v-else class="mt-4 overflow-x-auto">
+                        <table class="w-full font-sans text-[13px]">
+                            <thead>
+                                <tr class="border-b border-border text-left text-ink-secondary">
+                                    <th class="pb-2 font-medium">Name</th>
+                                    <th class="pb-2 font-medium">Email</th>
+                                    <th class="pb-2 font-medium">Last login</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="user in recentlyActive"
+                                    :key="user.id"
+                                    class="border-b border-border/50 last:border-0"
+                                >
+                                    <td class="py-1.5 text-ink-primary">{{ user.name }}</td>
+                                    <td class="py-1.5 text-ink-secondary">{{ user.email }}</td>
+                                    <td class="py-1.5 text-ink-secondary">{{ formatDateTime(user.last_login_at) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pending verification -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <h3 class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary">
+                        Pending email verification
+                        <span
+                            v-if="pendingVerification.length > 0"
+                            class="ml-2 rounded-full bg-warning-soft px-2 py-0.5 font-sans text-[12px] font-medium text-ink-primary"
+                        >
+                            {{ pendingVerification.length }}
+                        </span>
+                    </h3>
+                    <div v-if="pendingVerification.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
+                        No accounts pending verification.
+                    </div>
+                    <div v-else class="mt-4 overflow-x-auto">
+                        <table class="w-full font-sans text-[13px]">
+                            <thead>
+                                <tr class="border-b border-border text-left text-ink-secondary">
+                                    <th class="pb-2 font-medium">Name</th>
+                                    <th class="pb-2 font-medium">Email</th>
+                                    <th class="pb-2 font-medium">Registered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="user in pendingVerification"
+                                    :key="user.id"
+                                    class="border-b border-border/50 last:border-0"
+                                >
+                                    <td class="py-1.5 text-ink-primary">{{ user.name }}</td>
+                                    <td class="py-1.5 text-ink-secondary">{{ user.email }}</td>
+                                    <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recently pruned -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <h3 class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary">
+                        Recently pruned
+                        <span
+                            v-if="recentlyPruned.length > 0"
+                            class="ml-2 rounded-full bg-danger-soft px-2 py-0.5 font-sans text-[12px] font-medium text-danger"
+                        >
+                            {{ recentlyPruned.length }}
+                        </span>
+                    </h3>
+                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                        Accounts removed by the nightly prune for never verifying their email.
+                    </p>
+                    <div v-if="recentlyPruned.length === 0" class="mt-4 font-sans text-[13px] text-ink-secondary">
+                        No accounts pruned yet.
+                    </div>
+                    <div v-else class="mt-4 overflow-x-auto">
+                        <table class="w-full font-sans text-[13px]">
+                            <thead>
+                                <tr class="border-b border-border text-left text-ink-secondary">
+                                    <th class="pb-2 font-medium">Name</th>
+                                    <th class="pb-2 font-medium">Email</th>
+                                    <th class="pb-2 font-medium">Registered</th>
+                                    <th class="pb-2 font-medium">Pruned</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="user in recentlyPruned"
+                                    :key="user.id"
+                                    class="border-b border-border/50 last:border-0 opacity-60"
+                                >
+                                    <td class="py-1.5 text-ink-primary line-through">{{ user.name }}</td>
+                                    <td class="py-1.5 text-ink-secondary line-through">{{ user.original_email }}</td>
+                                    <td class="py-1.5 text-ink-secondary">{{ formatDate(user.created_at) }}</td>
+                                    <td class="py-1.5 text-danger">{{ formatDateTime(user.deleted_at) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══ Email Templates ════════════════════════════════════════ -->
+            <section id="email-templates" class="flex scroll-mt-6 flex-col gap-4">
+                <div>
+                    <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
+                        Email Templates
+                    </h2>
+                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                        Emails sent by Tallie on behalf of Balloonventory. Compose and save templates here; each one fires automatically on the trigger described below.
+                    </p>
+                </div>
+
+                <!-- Welcome email -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
+                                Trigger · Email verified
+                            </p>
+                            <h3 class="mt-1 font-sans text-[15px] font-semibold text-ink-primary">
+                                Welcome to Balloonventory
+                            </h3>
+                            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                                Sent automatically after a new user verifies their email address. Sets the tone and introduces Tallie as the friendly face of the product.
+                            </p>
+                        </div>
+                        <span class="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent">
+                            Not yet active
+                        </span>
+                    </div>
+                    <div class="mt-5 rounded-md border border-dashed border-border-strong bg-background p-5 font-sans text-[13px] text-ink-tertiary">
+                        Template editor coming soon. The composed email will appear here and can be previewed before activating.
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button
+                            type="button"
+                            disabled
+                            class="cursor-not-allowed rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on opacity-40"
+                        >
+                            Edit template
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            class="cursor-not-allowed rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-semibold text-ink-tertiary opacity-40"
+                        >
+                            Send preview
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subscription confirmation -->
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
+                                Trigger · Subscription upgraded
+                            </p>
+                            <h3 class="mt-1 font-sans text-[15px] font-semibold text-ink-primary">
+                                Subscription Upgrade Confirmation
+                            </h3>
+                            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                                Sent when a user upgrades their subscription plan. Will be activated once subscription tiers are wired in.
+                            </p>
+                        </div>
+                        <span class="shrink-0 rounded-full bg-background px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border">
+                            Deferred
+                        </span>
+                    </div>
+                    <div class="mt-5 rounded-md border border-dashed border-border-strong bg-background p-5 font-sans text-[13px] text-ink-tertiary">
+                        Template editor coming soon. Will be enabled when subscription management is implemented.
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button
+                            type="button"
+                            disabled
+                            class="cursor-not-allowed rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on opacity-40"
+                        >
+                            Edit template
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            class="cursor-not-allowed rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-semibold text-ink-tertiary opacity-40"
+                        >
+                            Send preview
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══ Support Tickets ════════════════════════════════════════ -->
+            <section id="support-tickets" class="flex scroll-mt-6 flex-col gap-4">
+                <div>
+                    <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
+                        Support Tickets
+                    </h2>
+                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                        User-submitted support requests.
+                    </p>
+                </div>
+                <div class="rounded-lg border border-dashed border-border-strong bg-surface p-12 text-center">
+                    <p class="font-sans text-[14px] font-medium text-ink-secondary">Support ticket management</p>
+                    <p class="mt-1 font-sans text-[13px] text-ink-tertiary">Coming soon.</p>
+                </div>
+            </section>
+
+            <!-- ══ Catalog ════════════════════════════════════════════════ -->
+            <section id="catalog" class="scroll-mt-6">
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary">
+                                Shared balloon catalog
+                            </h2>
+                            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                                {{ stats.shared_skus }} SKUs in the master catalog.
+                            </p>
+                        </div>
+                        <a
+                            href="/super-admin/catalog"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover"
+                        >
+                            Manage catalog
+                        </a>
+                    </div>
+                </div>
+            </section>
 
         </div>
     </AuthenticatedLayout>

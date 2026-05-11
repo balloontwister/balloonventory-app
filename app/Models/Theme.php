@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Brand extends Model
+class Theme extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -18,10 +18,8 @@ class Brand extends Model
 
     protected $fillable = [
         'name',
-        'abbreviation',
-        'brand_color_hex',
-        'logo_path',
         'sort_order',
+        'description',
     ];
 
     protected static function boot(): void
@@ -35,8 +33,8 @@ class Brand extends Model
         });
     }
 
-    public function skus(): HasMany
+    public function skus(): BelongsToMany
     {
-        return $this->hasMany(Sku::class);
+        return $this->belongsToMany(Sku::class, 'sku_themes');
     }
 }

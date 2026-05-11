@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import ContactSupportModal from '@/Components/ContactSupportModal.vue';
@@ -9,8 +9,11 @@ import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
 
 const { businessColor } = useBusiness();
+const page = usePage();
 
 const showSupportModal = ref(false);
+
+const isSuperAdmin = page.props.auth?.user?.is_super_admin ?? false;
 
 function logout() {
     router.post(route('logout'));
@@ -160,6 +163,38 @@ function isActive(routeName) {
                         {{ item.label }}
                     </Link>
 
+                    <!-- Super Admin section -->
+                    <template v-if="isSuperAdmin">
+                        <p
+                            class="mb-1 mt-6 px-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            Super Admin
+                        </p>
+                        <Link
+                            :href="route('super-admin.dashboard')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.533.533 0 01.479.533c0 5.448-3.299 10.116-8 11.932a.535.535 0 01-.372 0c-4.701-1.816-8-6.484-8-11.932a.533.533 0 01.479-.533 11.947 11.947 0 007.078-2.749z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            Admin
+                        </Link>
+                    </template>
+
                     <!-- user section -->
                     <div class="mt-auto border-t border-border pt-4">
                         <!-- Get help -->
@@ -257,6 +292,30 @@ function isActive(routeName) {
                     <div class="flex-1">
                         <BusinessSwitcher />
                     </div>
+                    <Link
+                        v-if="isSuperAdmin"
+                        :href="route('super-admin.dashboard')"
+                        title="Super Admin"
+                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition"
+                        :class="
+                            route().current('super-admin.*')
+                                ? 'text-accent'
+                                : 'text-ink-tertiary hover:bg-background hover:text-ink-primary'
+                        "
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.533.533 0 01.479.533c0 5.448-3.299 10.116-8 11.932a.535.535 0 01-.372 0c-4.701-1.816-8-6.484-8-11.932a.533.533 0 01.479-.533 11.947 11.947 0 007.078-2.749z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </Link>
                     <button
                         type="button"
                         title="Get help"

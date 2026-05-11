@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('label');
             $table->text('trigger_description');
             $table->string('subject')->default('');
-            $table->longText('body_html')->default('');
-            $table->text('body_text')->default('');
+            $table->longText('body_html')->nullable();
+            $table->text('body_text')->nullable();
             $table->boolean('is_active')->default(false)->index();
             $table->foreignUuid('last_edited_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

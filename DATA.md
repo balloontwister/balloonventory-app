@@ -78,6 +78,7 @@ Global / shared (rows are visible to all businesses; no `business_id` filter req
 - `user`
 - `business` (a user can only see businesses they have a `membership` row for)
 - `brand`
+- `size`, `shape`, `texture`, `color_family`, `color`, `theme`, `material` (catalog reference data)
 - `sku` where `owned_by_business_id IS NULL` (the shared catalog)
 - `upc` (visibility is inherited from the SKU it points to)
 
@@ -185,10 +186,72 @@ Roles are documented in `PERMISSIONS.md`. The role enum lives here, but the acti
 A balloon manufacturer. Shared globally, not tenant-scoped.
 
 - `id` (uuid, pk)
-- `name` (text, unique) — e.g. `Qualatex`, `Sempertex`, `Tuftex`, `Betallic`, `Kalisan`
-- `abbreviation` (text, unique) — short tag shown in BrandTag, e.g. `QLX`, `SMP`
-- `brand_color_hex` (text) — the dot color in BrandTag
+- `name` (text, unique) — e.g. `Qualatex`, `Sempertex`, `TufTex`, `Betallic`, `Kalisan`, `Decomex`, `Funsational`
+- `abbreviation` (text, unique) — short tag shown in BrandTag, e.g. `QTX`, `STX`
+- `brand_color_hex` (text, nullable) — the dot color in BrandTag; optional
+- `logo_path` (text, nullable) — path to brand logo image in local storage
+- `sort_order` (integer, default 0) — display order in dropdowns and tables
 - `created_at`, `updated_at`, `deleted_at`
+
+### `size`
+
+A balloon size. Shared globally. All lookup tables follow this pattern: `id`, `name` (unique), `sort_order`, `description` (nullable), `deleted_at`, timestamps.
+
+- `id` (uuid, pk)
+- `name` (text, unique) — e.g. `5-inch`, `11-inch`, `260`, `646`
+- `size_category` (enum: `small`, `medium`, `large`, `giant`, `small_modeling`, `large_modeling`) — groups similar sizes for browsing and filtering
+- `sort_order` (integer, default 0)
+- `description` (text, nullable)
+- `created_at`, `updated_at`, `deleted_at`
+
+### `shape`
+
+A balloon shape. Shared globally. Values: Round, Link, Non-round, Heart, Circle, Star, Shaped, SuperShape, Other. Same structure as `size` minus `size_category`.
+
+### `texture`
+
+A balloon surface finish. Shared globally.
+
+- `name` (text, unique) — e.g. `Crystal`, `Metallic`, `Satin`, `Glow-in-the-dark`
+- `texture_family` (text) — groups textures for filtering: `Crystal`, `Standard`, `Metallic`, `Neon`, `Chrome`
+- (plus standard lookup columns)
+
+### `color_family`
+
+A cross-brand color grouping. Examples: `Blacks`, `Reds`, `Pinks`, `Blues`, `Golds`.
+
+- `name` (text, unique)
+- `color_hex` (text, nullable) — canonical representative hex for the family swatch
+- (plus standard lookup columns)
+
+### `color`
+
+A brand-specific color name. Each brand names their colors independently; `color_family` links them cross-brand.
+
+- `name` (text) — e.g. `Deluxe Black` (STX), `Onyx Black` (QTX), `Black` (TTX)
+- `color_family_id` (uuid, fk → color_family.id, idx)
+- `brand_id` (uuid, nullable, fk → brand.id, idx) — null for generic/unbranded colors
+- `color_hex` (text, nullable) — specific hex for this color variant; used by BalloonSwatch
+- `sort_order`, `description`
+- `unique(name, brand_id, deleted_at)` — a brand cannot have two active colors with the same name
+
+### `theme`
+
+A printed-balloon theme tag. Examples: Holiday, Christmas, Halloween, Star Wars, Princess. Applied to SKUs via the `sku_themes` many-to-many pivot.
+
+### `material`
+
+The balloon substrate. Values: Latex, Foil, Plastic, Chloroprene, Stretchy. Same structure as `shape`.
+
+### `sku_themes` (pivot)
+
+Many-to-many between `sku` and `theme`. A SKU can belong to multiple themes (e.g. a Halloween Star Wars balloon).
+
+- `sku_id` (uuid, fk → sku.id, cascade delete)
+- `theme_id` (uuid, fk → theme.id, cascade delete)
+- `primary(sku_id, theme_id)`
+
+No timestamps, no soft delete — themes are tags; removing a theme from a SKU hard-deletes the pivot row.
 
 ### `sku`
 
@@ -197,16 +260,22 @@ A balloon SKU. The hybrid catalog lives here. A row is either **shared** (visibl
 - `id` (uuid, pk)
 - `name` (text) — canonical product name, e.g. `Wild Berry`
 - `brand_id` (uuid, fk → brand.id, idx)
-- `size` (text) — e.g. `5"`, `11"`, `16"`, `260`, `350`, `Geo Blossom`. Free text rather than enum because the long tail is real.
-- `color_name` (text, nullable) — e.g. `Wild Berry`
-- `color_hex` (text, nullable) — `#A52A2A`. Used by BalloonSwatch.
-- `finish` (enum, nullable: `matte`, `standard`, `metallic`, `chrome`, `pearl`, `confetti`, `mosaic`, `agate`)
+- `size_id` (uuid, nullable, fk → size.id, idx)
+- `shape_id` (uuid, nullable, fk → shape.id, idx)
+- `texture_id` (uuid, nullable, fk → texture.id, idx)
+- `color_id` (uuid, nullable, fk → color.id, idx)
+- `material_id` (uuid, nullable, fk → material.id, idx)
+- `is_printed` (boolean, default false) — true for printed/themed balloons; glow-in-the-dark and satin are textures, not a separate flag
 - `default_count_per_bag` (integer, nullable) — typical bag size, e.g. 100 for 11" latex
 - `manufacturer_sku` (text, nullable) — official product number from the brand, e.g. `43734`
-- `price_code` (text, nullable, idx) — pricing variable shared across SKUs that price together (e.g., all standard 5" latex regardless of color). The set of valid price codes is emergent from this column; there's no separate dictionary table in v1. For shared catalog SKUs, only catalog curators can set this. For private SKUs, the owning business's Owner/Manager can set it.
+- `price_code` (text, nullable, idx) — pricing variable shared across SKUs that price together. Emergent from this column; no dictionary table in v1.
 - `image_url` (text, nullable) — points at object storage
 - `owned_by_business_id` (uuid, nullable, fk → business.id) — `NULL` means shared catalog. Set means private to that business.
 - `created_at`, `updated_at`, `deleted_at`
+
+All attribute FK columns are nullable. Conditional validation (e.g. foil SKUs have no `size_id`) is deferred to a later phase.
+
+Themes are many-to-many via the `sku_themes` pivot (a SKU can belong to multiple themes). All other attributes are single-value per SKU.
 
 Visibility rule for any user in business X:
 
@@ -414,6 +483,12 @@ Seeded at install time with one row per template key, all with `is_active = fals
 user ──< membership >── business
                           │
                           ├──< stock_level >── sku ──> brand
+                          │                    │   ──> size (→ size_category)
+                          │                    │   ──> shape
+                          │                    │   ──> texture (→ texture_family)
+                          │                    │   ──> color (→ color_family)
+                          │                    │   ──> material
+                          │                    │   ──< sku_themes >── theme
                           │                    │
                           │                    ├──< upc
                           │                    │

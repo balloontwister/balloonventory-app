@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Brand extends Model
+class Shape extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -18,10 +18,8 @@ class Brand extends Model
 
     protected $fillable = [
         'name',
-        'abbreviation',
-        'brand_color_hex',
-        'logo_path',
         'sort_order',
+        'description',
     ];
 
     protected static function boot(): void

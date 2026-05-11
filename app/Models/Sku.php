@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -20,10 +21,12 @@ class Sku extends Model
     protected $fillable = [
         'name',
         'brand_id',
-        'size',
-        'color_name',
-        'color_hex',
-        'finish',
+        'size_id',
+        'shape_id',
+        'texture_id',
+        'color_id',
+        'material_id',
+        'is_printed',
         'default_count_per_bag',
         'manufacturer_sku',
         'price_code',
@@ -45,6 +48,36 @@ class Sku extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function size(): BelongsTo
+    {
+        return $this->belongsTo(Size::class);
+    }
+
+    public function shape(): BelongsTo
+    {
+        return $this->belongsTo(Shape::class);
+    }
+
+    public function texture(): BelongsTo
+    {
+        return $this->belongsTo(Texture::class);
+    }
+
+    public function color(): BelongsTo
+    {
+        return $this->belongsTo(Color::class);
+    }
+
+    public function material(): BelongsTo
+    {
+        return $this->belongsTo(Material::class);
+    }
+
+    public function themes(): BelongsToMany
+    {
+        return $this->belongsToMany(Theme::class, 'sku_themes');
     }
 
     public function owningBusiness(): BelongsTo

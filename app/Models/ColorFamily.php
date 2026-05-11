@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Brand extends Model
+class ColorFamily extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -18,10 +18,9 @@ class Brand extends Model
 
     protected $fillable = [
         'name',
-        'abbreviation',
-        'brand_color_hex',
-        'logo_path',
+        'color_hex',
         'sort_order',
+        'description',
     ];
 
     protected static function boot(): void
@@ -35,8 +34,8 @@ class Brand extends Model
         });
     }
 
-    public function skus(): HasMany
+    public function colors(): HasMany
     {
-        return $this->hasMany(Sku::class);
+        return $this->hasMany(Color::class);
     }
 }

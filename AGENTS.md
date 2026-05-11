@@ -301,40 +301,44 @@ The agent writes commits scoped tightly to a single change. If a task spans two 
 
 ## Transactional email
 
-All application email goes through Laravel's standard `Mail` facade. The current provider uses Laravel's built-in `resend` transport via the `resend/resend-laravel` HTTP API package — **not SMTP** (outbound SMTP on ports 587 and 465 is blocked by the hosting provider).
+See **EMAIL.md** for the full email system design — Tallie persona, hybrid template model, database-driven templates, support ticket flow, queuing policy, and the chrome layout. The summary below is for orientation; EMAIL.md is source of truth.
 
-**Current provider**: [Resend](https://resend.com) (HTTP API via `resend/resend-laravel`)
+**Provider**: [Resend](https://resend.com) HTTP API via `resend/resend-laravel`. SMTP is not an option — the host blocks outbound ports 25/465/587.
 
-**From address**: `noreply@balloonventory.com` — must be a verified domain in the Resend dashboard.
+**From / Reply-To**: `tallie@balloonventory.com` ("Tallie at Balloonventory") with Reply-To routed per Mailable (see EMAIL.md "Reply-To strategy"). Inbound for `@balloonventory.com` is handled by Cloudflare Email Routing.
 
-### Server `.env` settings for Resend
+### Server `.env`
 
 ```
 MAIL_MAILER=resend
 RESEND_API_KEY=<Resend API key>
-MAIL_FROM_ADDRESS=noreply@balloonventory.com
-MAIL_FROM_NAME=Balloonventory
+MAIL_FROM_ADDRESS=tallie@balloonventory.com
+MAIL_FROM_NAME="Tallie at Balloonventory"
+MAIL_SUPPORT_ADDRESS=support@balloonventory.com
 ```
-
-### Switching providers
-
-Resend is wired via the HTTP API driver (`resend/resend-laravel`). Switching to another HTTP-API-capable provider (Postmark, Mailgun) requires installing their respective Laravel package and changing `MAIL_MAILER` plus the relevant API key env var. No Mailable class changes are needed.
 
 ### Local development
 
-Set `MAIL_MAILER=log` in your local `.env` to write all outgoing emails to `storage/logs/laravel.log` instead of sending them. Alternatively, use [Mailpit](https://mailpit.axllent.org/) on `localhost:1025` for a local SMTP inbox.
+Set `MAIL_MAILER=log` to write outgoing emails to `storage/logs/laravel.log`, or run Mailpit on `localhost:1025`.
 
-### Adding new email types
+### Adding email types
 
-1. Create a Mailable in `app/Mail/` using `php artisan make:mail YourMailableName --markdown=mail.your-view`
-2. Add the Blade view in `resources/views/mail/`
-3. Send via `Mail::to($email)->send(new YourMailableName(...))` in the controller
+Database-driven (admin-editable): add an `email_templates` row + register the trigger via `TemplatedMailable::forKey()`. See EMAIL.md "Adding a new email type."
 
-### Current mailables
+Standalone (developer-owned, never user-editable): create a new `Mailable` class in `app/Mail/` and matching Blade views under `resources/views/mail/` extending `mail.layout`.
 
-| Class | View | Trigger |
-|---|---|---|
-| `App\Mail\EmailVerificationCode` | `mail.verification-code` | Registration and resend on verify page |
+### Current Mailables
+
+| Class | View | Trigger | Queued |
+|---|---|---|---|
+| `App\Mail\EmailVerificationCode` | `mail.verification-code` | Registration + resend on verify page | No (time-critical) |
+| `App\Mail\SupportRequestMail` | `mail.support-request` | User submits contact form → sent to `support@` | No |
+| `App\Mail\SupportReplyMail` | `mail.support-reply` | Super-admin replies to a ticket → sent to user | No |
+| `App\Mail\TemplatedMailable` | `mail.templated` | Database-driven templates (e.g. `welcome`) | Yes (`ShouldQueue`) |
+
+### Email observability
+
+Every successful send is recorded in `email_logs` via the `App\Listeners\LogSentEmail` listener on `Illuminate\Mail\Events\MessageSent`. Listeners in `app/Listeners/` are auto-discovered — do not register them with `Event::listen()` in `AppServiceProvider` or they will fire twice. The Super Admin dashboard reads from `email_logs` for the "Emails by day / month" charts.
 
 ---
 

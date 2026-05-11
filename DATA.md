@@ -475,6 +475,47 @@ Not tenant-scoped — templates are global platform configuration, not per-busin
 
 Seeded at install time with one row per template key, all with `is_active = false` and empty body fields. The super-admin UI shows an "empty / not yet written" state when `body_html` is blank.
 
+### `email_log`
+
+A write-once observability log of every outbound email the application sends. Populated by the `App\Listeners\LogSentEmail` listener on Laravel's `MessageSent` event. Read by the Super Admin dashboard for the "Emails by day / month" panels.
+
+- `id` (bigint auto-increment, pk) — intentionally not UUID because this table is high-volume, append-only, and never referenced from elsewhere
+- `to` (string) — recipient email address (from the Symfony `Address`, not the array key)
+- `subject` (string) — Symfony message subject
+- `mailable` (string) — `class_basename()` of the `Mailable` class, or `unknown` for `Mail::raw()` / framework notifications that don't set `__laravel_mailable`
+- `user_id` (uuid, nullable, fk → user.id, null on delete) — best-effort lookup of the recipient by email at send time
+- `sent_at` (timestamp, default current, idx) — when the send completed
+
+No `created_at` / `updated_at`. Not tenant-scoped — platform-level observability data.
+
+### `support_ticket`
+
+A user-submitted support request from the in-app contact form (`Get help` button). One row per submission; replies live in `support_ticket_reply`. See EMAIL.md "Support ticket system" for the full flow.
+
+- `id` (uuid, pk)
+- `user_id` (uuid, nullable, fk → user.id, null on delete) — who submitted; null after the user is hard-deleted
+- `user_name` (string) — snapshotted at submission time so the ticket survives the user's account being deleted
+- `user_email` (string) — snapshotted at submission time
+- `subject` (string, max 150)
+- `body` (text, max 5000 at validation)
+- `archived_at` (timestamp, nullable) — null = open ticket awaiting reply; non-null = replied-to or dismissed
+- `created_at`, `updated_at`
+
+The ticket row is created *before* the notification email is attempted in `SupportController`, so a Resend outage does not lose the user's submission. Submission is throttled to 3 per 60 minutes per user.
+
+Not tenant-scoped — support is platform-level. SuperAdmin sees all tickets.
+
+### `support_ticket_reply`
+
+The admin's outbound reply to a `support_ticket`. One row per reply; the corresponding email is sent at the same moment via `SupportReplyMail`.
+
+- `id` (uuid, pk)
+- `support_ticket_id` (uuid, fk → support_ticket.id, cascade on delete)
+- `body` (text, max 10000 at validation)
+- `created_at`, `updated_at`
+
+Creating a reply auto-archives the parent ticket (`archived_at = now()`).
+
 ---
 
 ## Relationships at a glance

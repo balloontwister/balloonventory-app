@@ -14,6 +14,88 @@ The guiding tension: copy needs to be editable by a non-developer (the platform 
 
 ---
 
+## Email infrastructure
+
+### Sending — Resend HTTP API
+
+All outbound email is sent via **Resend** using the `resend/resend-laravel` package. The host (cPanel/LiteSpeed) blocks outbound SMTP on port 25, so SMTP is not an option. Resend's HTTP API bypasses this restriction.
+
+| `.env` key | Value |
+|---|---|
+| `MAIL_MAILER` | `resend` |
+| `RESEND_API_KEY` | Resend API key (in server `.env` only — never commit) |
+| `MAIL_FROM_ADDRESS` | `tallie@balloonventory.com` |
+| `MAIL_FROM_NAME` | `Tallie at Balloonventory` |
+| `MAIL_SUPPORT_ADDRESS` | `support@balloonventory.com` |
+
+The sending domain `balloonventory.com` is verified in Resend with DKIM (`resend._domainkey.balloonventory.com`) and SPF on the `send.balloonventory.com` subdomain (Resend uses Amazon SES infrastructure).
+
+### Inbound email — Cloudflare Email Routing
+
+The cPanel mail server cannot receive inbound SMTP from the internet (port 25 is blocked externally). Inbound email is handled by **Cloudflare Email Routing**, which receives for `@balloonventory.com` and forwards to external addresses.
+
+**Current routing rules (managed in Cloudflare dashboard / API):**
+
+| To | Forwards to | Purpose |
+|---|---|---|
+| `support@balloonventory.com` | `todd@twistedballoon.com` | Support tickets, inbound replies |
+| `tallie@balloonventory.com` | `todd@twistedballoon.com` | Direct emails to Tallie's sending address |
+
+**DNS records required for Cloudflare Email Routing:**
+- MX records: `route1/2/3.mx.cloudflare.net` on `@`
+- SPF TXT: `v=spf1 include:_spf.mx.cloudflare.net ~all` on `@`
+- DKIM TXT: `cf2024-1._domainkey.balloonventory.com`
+
+Do NOT add a cPanel MX record — the server cannot accept inbound SMTP.
+
+### Reply-To strategy
+
+All outbound emails set `Reply-To` so that replies route to the right place:
+
+| Mailable | From | Reply-To |
+|---|---|---|
+| `TemplatedMailable` (welcome, etc.) | `tallie@balloonventory.com` | `support@balloonventory.com` |
+| `EmailVerificationCode` | `tallie@balloonventory.com` | `support@balloonventory.com` |
+| `SupportRequestMail` (ticket to admin) | `tallie@balloonventory.com` | User's own email |
+| `SupportReplyMail` (reply to user) | `tallie@balloonventory.com` | `support@balloonventory.com` |
+
+This means hitting Reply on any email from Balloonventory reaches Todd via the Cloudflare forwarding chain.
+
+### Switching support@ to Gmail (future)
+
+When you move support@ from forwarding to a dedicated Gmail inbox:
+1. Update both Cloudflare Email Routing rules (`support@` and `tallie@`) to point to `balloonventory@gmail.com`
+2. Verify `balloonventory@gmail.com` as a destination in Cloudflare if not already done
+3. No code changes required — the `MAIL_SUPPORT_ADDRESS` env var and Reply-To headers stay the same
+
+---
+
+## Support ticket system
+
+User-submitted support requests are stored in the `support_tickets` table and managed from the Super Admin dashboard (`/super-admin` → Support Tickets section).
+
+**Flow:**
+1. Logged-in user submits the contact form (Get help button in sidebar/mobile header)
+2. `SupportController::send()` validates, sends `SupportRequestMail` to `support@` via Resend, saves a `SupportTicket` record
+3. The email arrives at todd@twistedballoon.com via Cloudflare forwarding
+4. Todd replies from `/super-admin` — the reply form sends `SupportReplyMail` via Resend and auto-archives the ticket
+
+**Ticket states:**
+- **Open** (`archived_at IS NULL`) — awaiting reply
+- **Archived** (`archived_at IS NOT NULL`) — replied to or manually dismissed
+
+**Actions available in super-admin:**
+- **Reply** — sends `SupportReplyMail` to the user, stores reply in `support_ticket_replies`, auto-archives
+- **Archive** — dismisses without replying (spam, duplicate, already handled)
+- **Unarchive** — moves back to open if needed
+- **Delete** — hard delete, permanent
+
+**Tables:** `support_tickets`, `support_ticket_replies` — see DATA.md for schema.
+
+**Throttling:** The contact form route (`POST /support/contact`) is throttled to 3 requests per 60 minutes per user.
+
+---
+
 ## Architecture: hybrid template model
 
 ### What lives in the database (editable via super-admin)
@@ -240,7 +322,9 @@ These are developer-owned, not editable via the super-admin UI. They are Blade-o
 
 | Class | View | Trigger | Editable via UI |
 |---|---|---|---|
-| `App\Mail\EmailVerificationCode` | `mail.verification-code` | Registration and resend on verify page | No — subject to frequent UX iteration; keeping in code for now |
+| `App\Mail\EmailVerificationCode` | `mail.verification-code` | Registration and resend on verify page | No |
+| `App\Mail\SupportRequestMail` | `mail.support-request` | User submits in-app contact form → sent TO `support@` | No |
+| `App\Mail\SupportReplyMail` | `mail.support-reply` | Admin replies to a ticket from super-admin dashboard → sent TO user | No |
 
 ---
 

@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -9,28 +10,30 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class EmailVerificationCode extends Mailable
+class SupportRequestMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public readonly string $code,
-        public readonly string $userName,
+        public readonly User $user,
+        public readonly string $subject,
+        public readonly string $body,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Balloonventory verification code',
-            replyTo: [new Address(config('mail.support_address'), 'Balloonventory Support')],
+            subject: '[Support] '.$this->subject,
+            // Reply-To is the user so Todd can reply directly to them from Gmail.
+            replyTo: [new Address($this->user->email, $this->user->name)],
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'mail.verification-code',
-            text: 'mail.verification-code-text',
+            view: 'mail.support-request',
+            text: 'mail.support-request-text',
         );
     }
 }

@@ -6,6 +6,7 @@ use App\Models\EmailTemplate;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -58,6 +59,7 @@ class TemplatedMailable extends Mailable implements ShouldQueue
     {
         return new Envelope(
             subject: $this->interpolate($this->template->subject),
+            replyTo: [new Address(config('mail.support_address'), 'Balloonventory Support')],
         );
     }
 

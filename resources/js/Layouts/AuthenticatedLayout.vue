@@ -1,12 +1,16 @@
 <script setup>
+import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
+import ContactSupportModal from '@/Components/ContactSupportModal.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
 
 const { businessColor } = useBusiness();
+
+const showSupportModal = ref(false);
 
 function logout() {
     router.post(route('logout'));
@@ -32,6 +36,11 @@ function isActive(routeName) {
     <div class="min-h-screen bg-background">
         <!-- 2px BusinessBadge color bar pinned above everything -->
         <BusinessBadge :color="businessColor" />
+
+        <ContactSupportModal
+            :show="showSupportModal"
+            @close="showSupportModal = false"
+        />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
         <div class="hidden min-h-screen pt-0.5 lg:flex">
@@ -153,6 +162,27 @@ function isActive(routeName) {
 
                     <!-- user section -->
                     <div class="mt-auto border-t border-border pt-4">
+                        <!-- Get help -->
+                        <button
+                            type="button"
+                            class="mb-1 flex w-full items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
+                            @click="showSupportModal = true"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            Get help
+                        </button>
+
                         <div class="flex items-center gap-1">
                             <Link
                                 :href="route('profile.edit')"
@@ -227,6 +257,25 @@ function isActive(routeName) {
                     <div class="flex-1">
                         <BusinessSwitcher />
                     </div>
+                    <button
+                        type="button"
+                        title="Get help"
+                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                        @click="showSupportModal = true"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
                     <button
                         type="button"
                         title="Log out"

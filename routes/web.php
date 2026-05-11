@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SupportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -40,6 +41,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/support/contact', [SupportController::class, 'send'])
+        ->middleware('throttle:3,60')
+        ->name('support.contact');
 });
 
 // ─── Authenticated + verified + business-gated routes ────────────────────────

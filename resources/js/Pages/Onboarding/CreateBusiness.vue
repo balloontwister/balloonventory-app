@@ -13,7 +13,7 @@ function submit() {
 </script>
 
 <template>
-    <Head title="Create your business" />
+    <Head :title="$t('onboarding.meta_title')" />
 
     <GuestLayout>
         <div class="mx-auto w-full max-w-md px-4 py-12">
@@ -22,10 +22,10 @@ function submit() {
                 <p
                     class="font-display text-[28px] font-semibold tracking-tight text-ink-primary"
                 >
-                    Balloonventory
+                    {{ $t('onboarding.wordmark') }}
                 </p>
                 <p class="mt-2 font-sans text-[15px] text-ink-secondary">
-                    Let's set up your first business.
+                    {{ $t('onboarding.lead') }}
                 </p>
             </div>
 
@@ -33,11 +33,10 @@ function submit() {
                 <h1
                     class="mb-1 font-display text-[22px] font-semibold text-ink-primary"
                 >
-                    Create your business
+                    {{ $t('onboarding.heading') }}
                 </h1>
                 <p class="mb-6 font-sans text-[14px] text-ink-secondary">
-                    You'll be the Owner. You can invite team members after
-                    setup.
+                    {{ $t('onboarding.subheading') }}
                 </p>
 
                 <form @submit.prevent="submit" class="space-y-5">
@@ -46,7 +45,7 @@ function submit() {
                             for="name"
                             class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-secondary"
                         >
-                            Business name
+                            {{ $t('onboarding.name_label') }}
                         </label>
                         <input
                             id="name"
@@ -54,7 +53,7 @@ function submit() {
                             type="text"
                             required
                             autofocus
-                            placeholder="e.g. Acme Balloons"
+                            :placeholder="$t('onboarding.name_placeholder')"
                             class="focus:ring-3 w-full rounded-[10px] border border-border-strong bg-surface px-3 py-2.5 font-sans text-[15px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-accent-soft"
                         />
                         <p
@@ -70,7 +69,11 @@ function submit() {
                         :disabled="form.processing || !form.name.trim()"
                         class="w-full rounded-[10px] bg-accent px-4 py-2.5 font-sans text-[14px] font-medium text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {{ form.processing ? 'Creating…' : 'Create business' }}
+                        {{
+                            form.processing
+                                ? $t('onboarding.submitting')
+                                : $t('onboarding.submit')
+                        }}
                     </button>
                 </form>
             </div>

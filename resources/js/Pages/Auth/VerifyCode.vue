@@ -88,19 +88,20 @@ function startCooldown() {
 
 <template>
     <GuestLayout>
-        <Head title="Verify your email" />
+        <Head :title="$t('auth.verify_code.meta_title')" />
 
         <div class="flex flex-col gap-5">
             <div>
                 <h1
                     class="font-display text-[20px] font-semibold tracking-h3 text-ink-primary"
                 >
-                    Check your email
+                    {{ $t('auth.verify_code.heading') }}
                 </h1>
                 <p class="mt-1 font-sans text-[14px] text-ink-secondary">
-                    We sent a 6-digit code to
-                    <span class="font-medium text-ink-primary">{{ email }}</span
-                    >. Enter it below to verify your account.
+                    {{ $t('auth.verify_code.lead_before') }}
+                    <span class="font-medium text-ink-primary">{{
+                        email
+                    }}</span>{{ $t('auth.verify_code.lead_after') }}
                 </p>
             </div>
 
@@ -146,12 +147,16 @@ function startCooldown() {
                 class="w-full rounded-md bg-accent py-2.5 font-sans text-[15px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
                 @click="submit"
             >
-                {{ form.processing ? 'Verifying…' : 'Verify account' }}
+                {{
+                    form.processing
+                        ? $t('auth.verify_code.submitting')
+                        : $t('auth.verify_code.submit')
+                }}
             </button>
 
             <!-- Resend -->
             <p class="text-center font-sans text-[13px] text-ink-secondary">
-                Didn't receive it?
+                {{ $t('auth.verify_code.not_received') }}
                 <button
                     type="button"
                     :disabled="resendCooldown > 0"
@@ -160,8 +165,10 @@ function startCooldown() {
                 >
                     {{
                         resendCooldown > 0
-                            ? `Resend in ${resendCooldown}s`
-                            : 'Resend code'
+                            ? $t('auth.verify_code.resend_cooldown', {
+                                  seconds: resendCooldown,
+                              })
+                            : $t('auth.verify_code.resend')
                     }}
                 </button>
             </p>

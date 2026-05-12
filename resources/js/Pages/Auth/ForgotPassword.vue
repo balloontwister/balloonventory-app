@@ -20,11 +20,11 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Forgot Password" />
+        <Head :title="$t('auth.forgot_password.meta_title')" />
 
         <div class="flex flex-col gap-4">
             <p class="font-sans text-[13px] text-ink-secondary">
-                Enter your email address and we'll send you a link to reset your password.
+                {{ $t('auth.forgot_password.lead') }}
             </p>
 
             <div
@@ -36,7 +36,10 @@ const submit = () => {
 
             <form class="flex flex-col gap-4" @submit.prevent="submit">
                 <div>
-                    <InputLabel for="email" value="Email" />
+                    <InputLabel
+                        for="email"
+                        :value="$t('auth.forgot_password.email_label')"
+                    />
                     <TextInput
                         id="email"
                         type="email"
@@ -54,14 +57,17 @@ const submit = () => {
                     :disabled="form.processing"
                     class="w-full rounded-md bg-accent py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
                 >
-                    Send reset link
+                    {{ $t('auth.forgot_password.submit') }}
                 </button>
             </form>
 
             <p class="text-center font-sans text-[13px] text-ink-secondary">
-                Remember your password?
-                <Link :href="route('login')" class="font-semibold text-accent hover:underline">
-                    Log in
+                {{ $t('auth.forgot_password.remember_question') }}
+                <Link
+                    :href="route('login')"
+                    class="font-semibold text-accent hover:underline"
+                >
+                    {{ $t('auth.forgot_password.log_in') }}
                 </Link>
             </p>
         </div>

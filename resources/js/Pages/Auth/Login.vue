@@ -27,7 +27,7 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head :title="$t('auth.login.meta_title')" />
 
         <div
             v-if="status"
@@ -38,7 +38,7 @@ const submit = () => {
 
         <form class="flex flex-col gap-4" @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="$t('auth.login.email_label')" />
                 <TextInput
                     id="email"
                     type="email"
@@ -52,7 +52,10 @@ const submit = () => {
             </div>
 
             <div>
-                <InputLabel for="password" value="Password" />
+                <InputLabel
+                    for="password"
+                    :value="$t('auth.login.password_label')"
+                />
                 <TextInput
                     id="password"
                     type="password"
@@ -67,9 +70,9 @@ const submit = () => {
             <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="font-sans text-[13px] text-ink-secondary"
-                        >Remember me</span
-                    >
+                    <span class="font-sans text-[13px] text-ink-secondary">{{
+                        $t('auth.login.remember_me')
+                    }}</span>
                 </label>
 
                 <Link
@@ -77,7 +80,7 @@ const submit = () => {
                     :href="route('password.request')"
                     class="font-sans text-[13px] text-ink-secondary underline hover:text-ink-primary"
                 >
-                    Forgot password?
+                    {{ $t('auth.login.forgot_password') }}
                 </Link>
             </div>
 
@@ -86,16 +89,16 @@ const submit = () => {
                 :disabled="form.processing"
                 class="w-full rounded-md bg-accent py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
             >
-                Log in
+                {{ $t('auth.login.submit') }}
             </button>
 
             <p class="text-center font-sans text-[13px] text-ink-secondary">
-                Don't have an account?
+                {{ $t('auth.login.no_account') }}
                 <Link
                     :href="route('register')"
                     class="font-semibold text-accent hover:underline"
                 >
-                    Create one
+                    {{ $t('auth.login.create_one') }}
                 </Link>
             </p>
         </form>

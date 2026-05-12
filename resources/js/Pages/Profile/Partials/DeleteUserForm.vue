@@ -37,11 +37,10 @@ const deleteUser = () => {
             <h2
                 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
             >
-                Delete account
+                {{ $t('profile.delete.heading') }}
             </h2>
             <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                Permanently delete your account and all associated data. This
-                cannot be undone.
+                {{ $t('profile.delete.subheading') }}
             </p>
         </div>
 
@@ -51,7 +50,7 @@ const deleteUser = () => {
                 class="rounded-md border border-danger px-4 py-2 font-sans text-[14px] font-semibold text-danger transition hover:bg-danger-soft"
                 @click="openConfirm"
             >
-                Delete account
+                {{ $t('profile.delete.open_button') }}
             </button>
         </div>
 
@@ -73,17 +72,16 @@ const deleteUser = () => {
                     <h3
                         class="font-display text-[18px] font-semibold tracking-h3 text-ink-primary"
                     >
-                        Are you sure?
+                        {{ $t('profile.delete.confirm_heading') }}
                     </h3>
                     <p class="mt-2 font-sans text-[13px] text-ink-secondary">
-                        This will permanently delete your account and all your
-                        data. Enter your password to confirm.
+                        {{ $t('profile.delete.confirm_body') }}
                     </p>
 
                     <div class="mt-5">
                         <InputLabel
                             for="delete-password"
-                            value="Password"
+                            :value="$t('profile.delete.password_label')"
                             class="sr-only"
                         />
                         <TextInput
@@ -92,7 +90,7 @@ const deleteUser = () => {
                             v-model="form.password"
                             type="password"
                             class="block w-full"
-                            placeholder="Your password"
+                            :placeholder="$t('profile.delete.password_placeholder')"
                             @keyup.enter="deleteUser"
                         />
                         <InputError
@@ -107,7 +105,7 @@ const deleteUser = () => {
                             class="rounded-md border border-border px-4 py-2 font-sans text-[14px] font-medium text-ink-secondary transition hover:bg-background"
                             @click="closeConfirm"
                         >
-                            Cancel
+                            {{ $t('profile.delete.cancel') }}
                         </button>
                         <button
                             type="button"
@@ -115,7 +113,7 @@ const deleteUser = () => {
                             class="rounded-md bg-danger px-4 py-2 font-sans text-[14px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
                             @click="deleteUser"
                         >
-                            Delete my account
+                            {{ $t('profile.delete.submit') }}
                         </button>
                     </div>
                 </div>

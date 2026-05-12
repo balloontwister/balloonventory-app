@@ -23,10 +23,10 @@ const form = useForm({
             <h2
                 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
             >
-                Profile information
+                {{ $t('profile.information.heading') }}
             </h2>
             <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                Update your name and email address.
+                {{ $t('profile.information.subheading') }}
             </p>
         </div>
 
@@ -35,7 +35,10 @@ const form = useForm({
             @submit.prevent="form.patch(route('profile.update'))"
         >
             <div>
-                <InputLabel for="name" value="Name" />
+                <InputLabel
+                    for="name"
+                    :value="$t('profile.information.name_label')"
+                />
                 <TextInput
                     id="name"
                     v-model="form.name"
@@ -49,7 +52,10 @@ const form = useForm({
             </div>
 
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel
+                    for="email"
+                    :value="$t('profile.information.email_label')"
+                />
                 <TextInput
                     id="email"
                     v-model="form.email"
@@ -67,7 +73,7 @@ const form = useForm({
                     :disabled="form.processing"
                     class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
                 >
-                    Save changes
+                    {{ $t('profile.information.submit') }}
                 </button>
 
                 <Transition
@@ -80,7 +86,7 @@ const form = useForm({
                         v-if="form.recentlySuccessful"
                         class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
                     >
-                        Profile updated.
+                        {{ $t('profile.information.saved') }}
                     </span>
                 </Transition>
             </div>

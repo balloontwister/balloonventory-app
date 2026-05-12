@@ -38,16 +38,19 @@ const updatePassword = () => {
             <h2
                 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
             >
-                Update password
+                {{ $t('profile.password.heading') }}
             </h2>
             <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                Use a long, random password to keep your account secure.
+                {{ $t('profile.password.subheading') }}
             </p>
         </div>
 
         <form class="flex flex-col gap-4" @submit.prevent="updatePassword">
             <div>
-                <InputLabel for="current_password" value="Current password" />
+                <InputLabel
+                    for="current_password"
+                    :value="$t('profile.password.current_password_label')"
+                />
                 <TextInput
                     id="current_password"
                     ref="currentPasswordInput"
@@ -63,7 +66,10 @@ const updatePassword = () => {
             </div>
 
             <div>
-                <InputLabel for="password" value="New password" />
+                <InputLabel
+                    for="password"
+                    :value="$t('profile.password.new_password_label')"
+                />
                 <TextInput
                     id="password"
                     ref="passwordInput"
@@ -78,7 +84,7 @@ const updatePassword = () => {
             <div>
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm new password"
+                    :value="$t('profile.password.confirm_password_label')"
                 />
                 <TextInput
                     id="password_confirmation"
@@ -99,7 +105,7 @@ const updatePassword = () => {
                     :disabled="form.processing"
                     class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
                 >
-                    Update password
+                    {{ $t('profile.password.submit') }}
                 </button>
 
                 <Transition
@@ -112,7 +118,7 @@ const updatePassword = () => {
                         v-if="form.recentlySuccessful"
                         class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
                     >
-                        Password updated.
+                        {{ $t('profile.password.saved') }}
                     </span>
                 </Transition>
             </div>

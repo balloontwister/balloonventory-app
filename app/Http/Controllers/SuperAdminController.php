@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EmailLog;
+use App\Models\EmailTemplate;
 use App\Models\Sku;
 use App\Models\SupportTicket;
 use App\Models\User;
@@ -25,6 +26,7 @@ class SuperAdminController extends Controller
             'recentlyPruned' => $this->recentlyPruned(),
             'emailByDay' => $this->emailByDay(),
             'emailByMonth' => $this->emailByMonth(),
+            'emailTemplates' => $this->emailTemplates(),
             'supportTickets' => $this->supportTickets($showArchived),
             'showArchivedTickets' => $showArchived,
         ]);
@@ -82,10 +84,10 @@ class SuperAdminController extends Controller
     private function emailByDay(): array
     {
         return EmailLog::select(
-                DB::raw('DATE(sent_at) as date'),
-                DB::raw('COUNT(*) as count'),
-                'mailable'
-            )
+            DB::raw('DATE(sent_at) as date'),
+            DB::raw('COUNT(*) as count'),
+            'mailable'
+        )
             ->where('sent_at', '>=', now()->subDays(30))
             ->groupBy('date', 'mailable')
             ->orderBy('date')
@@ -107,13 +109,31 @@ class SuperAdminController extends Controller
             ->toArray();
     }
 
+    private function emailTemplates(): array
+    {
+        return EmailTemplate::with('lastEditedBy:id,name')
+            ->orderBy('label')
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'key' => $t->key,
+                'label' => $t->label,
+                'trigger_description' => $t->trigger_description,
+                'is_active' => $t->is_active,
+                'has_body' => filled($t->body_html),
+                'updated_at' => $t->updated_at,
+                'last_edited_by' => $t->lastEditedBy?->only(['id', 'name']),
+            ])
+            ->toArray();
+    }
+
     private function emailByMonth(): array
     {
         return EmailLog::select(
-                DB::raw("DATE_FORMAT(sent_at, '%Y-%m') as month"),
-                DB::raw('COUNT(*) as count'),
-                'mailable'
-            )
+            DB::raw("DATE_FORMAT(sent_at, '%Y-%m') as month"),
+            DB::raw('COUNT(*) as count'),
+            'mailable'
+        )
             ->where('sent_at', '>=', now()->subMonths(12))
             ->groupBy('month', 'mailable')
             ->orderBy('month')

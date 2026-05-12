@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -11,6 +11,7 @@ const props = defineProps({
     recentlyPruned: { type: Array, required: true },
     emailByDay: { type: Array, required: true },
     emailByMonth: { type: Array, required: true },
+    emailTemplates: { type: Array, required: true },
     supportTickets: { type: Array, required: true },
     showArchivedTickets: { type: Boolean, default: false },
 });
@@ -435,81 +436,53 @@ function scrollToSection(id) {
                     </p>
                 </div>
 
-                <!-- Welcome email -->
-                <div class="rounded-lg border border-border bg-surface p-6">
+                <div
+                    v-for="template in emailTemplates"
+                    :key="template.id"
+                    class="rounded-lg border border-border bg-surface p-6"
+                >
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
-                                Trigger · Email verified
+                                {{ template.trigger_description }}
                             </p>
                             <h3 class="mt-1 font-sans text-[15px] font-semibold text-ink-primary">
-                                Welcome to Balloonventory
+                                {{ template.label }}
                             </h3>
-                            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                                Sent automatically after a new user verifies their email address. Sets the tone and introduces Tallie as the friendly face of the product.
+                            <p
+                                v-if="template.last_edited_by"
+                                class="mt-1 font-sans text-[12px] text-ink-tertiary"
+                            >
+                                Last edited {{ formatDateTime(template.updated_at) }} by {{ template.last_edited_by.name }}
                             </p>
                         </div>
-                        <span class="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent">
-                            Not yet active
+                        <span
+                            v-if="template.is_active"
+                            class="shrink-0 rounded-full bg-success-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-success"
+                        >
+                            Live
+                        </span>
+                        <span
+                            v-else-if="!template.has_body"
+                            class="shrink-0 rounded-full bg-background px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border"
+                        >
+                            Not yet written
+                        </span>
+                        <span
+                            v-else
+                            class="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
+                        >
+                            Draft
                         </span>
                     </div>
-                    <div class="mt-5 rounded-md border border-dashed border-border-strong bg-background p-5 font-sans text-[13px] text-ink-tertiary">
-                        Template editor coming soon. The composed email will appear here and can be previewed before activating.
-                    </div>
-                    <div class="mt-4 flex gap-2">
-                        <button
-                            type="button"
-                            disabled
-                            class="cursor-not-allowed rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on opacity-40"
-                        >
-                            Edit template
-                        </button>
-                        <button
-                            type="button"
-                            disabled
-                            class="cursor-not-allowed rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-semibold text-ink-tertiary opacity-40"
-                        >
-                            Send preview
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Subscription confirmation -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
-                                Trigger · Subscription upgraded
-                            </p>
-                            <h3 class="mt-1 font-sans text-[15px] font-semibold text-ink-primary">
-                                Subscription Upgrade Confirmation
-                            </h3>
-                            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                                Sent when a user upgrades their subscription plan. Will be activated once subscription tiers are wired in.
-                            </p>
-                        </div>
-                        <span class="shrink-0 rounded-full bg-background px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border">
-                            Deferred
-                        </span>
-                    </div>
-                    <div class="mt-5 rounded-md border border-dashed border-border-strong bg-background p-5 font-sans text-[13px] text-ink-tertiary">
-                        Template editor coming soon. Will be enabled when subscription management is implemented.
-                    </div>
                     <div class="mt-4 flex gap-2">
-                        <button
-                            type="button"
-                            disabled
-                            class="cursor-not-allowed rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on opacity-40"
+                        <Link
+                            :href="route('super-admin.email-templates.edit', template.id)"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
                         >
                             Edit template
-                        </button>
-                        <button
-                            type="button"
-                            disabled
-                            class="cursor-not-allowed rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-semibold text-ink-tertiary opacity-40"
-                        >
-                            Send preview
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>

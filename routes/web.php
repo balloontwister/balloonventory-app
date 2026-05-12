@@ -12,6 +12,7 @@ use App\Http\Controllers\SuperAdmin\CatalogBrandController;
 use App\Http\Controllers\SuperAdmin\CatalogColorController;
 use App\Http\Controllers\SuperAdmin\CatalogController;
 use App\Http\Controllers\SuperAdmin\CatalogReferenceController;
+use App\Http\Controllers\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SupportController;
@@ -98,6 +99,11 @@ Route::middleware(['auth', 'verified', RequireSuperAdmin::class])->group(functio
     Route::post('/super-admin/catalog/reference/{table}', [CatalogReferenceController::class, 'store'])->name('super-admin.catalog.reference.store');
     Route::patch('/super-admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'update'])->name('super-admin.catalog.reference.update');
     Route::delete('/super-admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'destroy'])->name('super-admin.catalog.reference.destroy');
+
+    // ── Email templates ───────────────────────────────────────────────────────
+    Route::get('/super-admin/email-templates/{template}/edit', [EmailTemplateController::class, 'edit'])->name('super-admin.email-templates.edit');
+    Route::patch('/super-admin/email-templates/{template}', [EmailTemplateController::class, 'update'])->name('super-admin.email-templates.update');
+    Route::post('/super-admin/email-templates/{template}/preview', [EmailTemplateController::class, 'preview'])->name('super-admin.email-templates.preview');
 
     // ── Support tickets ───────────────────────────────────────────────────────
     Route::post('/super-admin/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('super-admin.tickets.reply');

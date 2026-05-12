@@ -17,6 +17,7 @@ class TemplatedMailable extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 60;
 
     private function __construct(
@@ -39,16 +40,34 @@ class TemplatedMailable extends Mailable implements ShouldQueue
 
         if (! $template) {
             Log::warning("TemplatedMailable: template key [{$key}] not found — skipping.");
+
             return null;
         }
 
         if (! $template->is_active) {
             Log::info("TemplatedMailable: template key [{$key}] is inactive — skipping.");
+
             return null;
         }
 
         if (blank($template->body_html)) {
             Log::warning("TemplatedMailable: template key [{$key}] has an empty body — skipping.");
+
+            return null;
+        }
+
+        return new self($template, $variables);
+    }
+
+    /**
+     * Build a Mailable for the super-admin preview flow. Skips the is_active
+     * check (preview by definition is for drafts) but still requires the row
+     * to exist and have a non-empty HTML body — there's nothing to preview
+     * otherwise.
+     */
+    public static function forPreview(EmailTemplate $template, array $variables = []): ?self
+    {
+        if (blank($template->body_html)) {
             return null;
         }
 
@@ -85,6 +104,7 @@ class TemplatedMailable extends Mailable implements ShouldQueue
                 $text,
             );
         }
+
         return $text;
     }
 
@@ -94,6 +114,7 @@ class TemplatedMailable extends Mailable implements ShouldQueue
         foreach ($this->variables as $key => $value) {
             $text = str_replace('{{'.$key.'}}', (string) $value, $text);
         }
+
         return $text;
     }
 }

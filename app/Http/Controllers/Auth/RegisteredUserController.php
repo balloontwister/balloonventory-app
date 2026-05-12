@@ -44,10 +44,14 @@ class RegisteredUserController extends Controller
 
         $code = $this->generateCode();
 
+        $timezone = (string) $request->input('timezone', '');
+        $timezone = in_array($timezone, timezone_identifiers_list(), true) ? $timezone : null;
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'timezone' => $timezone,
             'email_verification_code' => $code,
             'email_verification_code_expires_at' => Carbon::now()->addMinutes(15),
         ]);

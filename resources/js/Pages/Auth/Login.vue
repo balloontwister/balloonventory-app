@@ -15,6 +15,7 @@ const form = useForm({
     email: '',
     password: '',
     remember: false,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 });
 
 const submit = () => {
@@ -66,7 +67,9 @@ const submit = () => {
             <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="font-sans text-[13px] text-ink-secondary">Remember me</span>
+                    <span class="font-sans text-[13px] text-ink-secondary"
+                        >Remember me</span
+                    >
                 </label>
 
                 <Link
@@ -88,7 +91,10 @@ const submit = () => {
 
             <p class="text-center font-sans text-[13px] text-ink-secondary">
                 Don't have an account?
-                <Link :href="route('register')" class="font-semibold text-accent hover:underline">
+                <Link
+                    :href="route('register')"
+                    class="font-semibold text-accent hover:underline"
+                >
                     Create one
                 </Link>
             </p>

@@ -33,7 +33,31 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $this->captureTimezone($request);
+
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Persist the browser-reported IANA timezone on first login so that
+     * the user does not have to set it manually. Re-detection on every
+     * login would clobber an explicit user choice from Preferences.
+     */
+    private function captureTimezone(Request $request): void
+    {
+        $user = $request->user();
+
+        if (! $user || $user->timezone) {
+            return;
+        }
+
+        $timezone = (string) $request->input('timezone', '');
+
+        if ($timezone === '' || ! in_array($timezone, timezone_identifiers_list(), true)) {
+            return;
+        }
+
+        $user->forceFill(['timezone' => $timezone])->save();
     }
 
     /**

@@ -18,9 +18,16 @@ class Size extends Model
 
     protected $fillable = [
         'name',
+        'alt_imperial_name',
+        'diameter_cm',
         'size_category',
         'sort_order',
         'description',
+    ];
+
+    protected $casts = [
+        'diameter_cm' => 'integer',
+        'sort_order' => 'integer',
     ];
 
     protected static function boot(): void

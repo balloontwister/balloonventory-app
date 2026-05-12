@@ -200,11 +200,17 @@ Brands intentionally have no `description` column — the seven seeded entries c
 A balloon size. Shared globally. All lookup tables follow this pattern: `id`, `name` (unique), `sort_order`, `description` (nullable), `deleted_at`, timestamps.
 
 - `id` (uuid, pk)
-- `name` (text, unique) — e.g. `5-inch`, `11-inch`, `260`, `646`
+- `name` (text, unique) — primary imperial label, e.g. `5-inch`, `11-inch`, `16-inch`, `260`, `646`
+- `alt_imperial_name` (text, nullable) — secondary imperial label for the same physical balloon. Used where manufacturers ship one product under two names in different regions. Examples: `5-inch` has alt `6-inch`; `11-inch` has alt `12-inch`. Larger and modeling sizes leave this NULL.
+- `diameter_cm` (unsigned smallint, nullable) — canonical metric diameter for round-latex sizes. Rendered alongside the imperial label as a hybrid display (e.g. `5" / 6" (13 cm)`). Modeling sizes (260, 350, etc.) leave this NULL because the name itself is the spec.
 - `size_category` (enum: `small`, `medium`, `large`, `giant`, `small_modeling`, `large_modeling`) — groups similar sizes for browsing and filtering
 - `sort_order` (integer, default 0)
 - `description` (text, nullable)
 - `created_at`, `updated_at`, `deleted_at`
+
+**Display rule:** the UI renders sizes as `"{name} / {alt_imperial_name} ({diameter_cm} cm)"` when all three are set, `"{name} ({diameter_cm} cm)"` when only diameter is set, and just `"{name}"` otherwise. The hybrid label is intentional — balloon supply is a cross-region market and the same SKU is referenced by either notation depending on supplier paperwork.
+
+**Why 11" and 12" are one row:** Industry quirk. Both ship as the same physical 30 cm balloon under different historical naming. Sempertex's `R-12` product code is the same product, sold as 11" in the US and 12" in Europe. The 5"/6" pair has the same story. Sort order falls out naturally from `diameter_cm` for round sizes; modeling sizes follow their own numeric series.
 
 ### `shape`
 

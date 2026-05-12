@@ -58,14 +58,14 @@ const submit = () => form.patch(route('settings.preferences.update'));
 </script>
 
 <template>
-    <Head title="Settings" />
+    <Head :title="$t('settings.meta_title')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >
-                Settings
+                {{ $t('settings.heading') }}
             </h1>
         </template>
 
@@ -77,10 +77,10 @@ const submit = () => form.patch(route('settings.preferences.update'));
                 <h2
                     class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
                 >
-                    Preferences
+                    {{ $t('settings.preferences.heading') }}
                 </h2>
                 <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                    Choose the language and timezone Balloonventory uses for you.
+                    {{ $t('settings.preferences.subheading') }}
                 </p>
 
                 <form
@@ -88,7 +88,10 @@ const submit = () => form.patch(route('settings.preferences.update'));
                     @submit.prevent="submit"
                 >
                     <div class="max-w-sm">
-                        <InputLabel for="locale" value="Language" />
+                        <InputLabel
+                            for="locale"
+                            :value="$t('settings.preferences.language_label')"
+                        />
                         <select
                             id="locale"
                             v-model="form.locale"
@@ -106,18 +109,23 @@ const submit = () => form.patch(route('settings.preferences.update'));
                             v-if="supportedLocales.length === 1"
                             class="mt-1 font-sans text-[12px] text-ink-tertiary"
                         >
-                            More languages coming soon.
+                            {{ $t('settings.preferences.more_languages_coming') }}
                         </p>
                     </div>
 
                     <div class="max-w-sm">
-                        <InputLabel for="timezone" value="Timezone" />
+                        <InputLabel
+                            for="timezone"
+                            :value="$t('settings.preferences.timezone_label')"
+                        />
                         <select
                             id="timezone"
                             v-model="form.timezone"
                             class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                         >
-                            <option value="">Not set</option>
+                            <option value="">
+                                {{ $t('settings.preferences.timezone_unset') }}
+                            </option>
                             <option
                                 v-for="tz in timezoneOptions"
                                 :key="tz"
@@ -127,8 +135,7 @@ const submit = () => form.patch(route('settings.preferences.update'));
                             </option>
                         </select>
                         <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
-                            Dates and times in the app are shown in this
-                            timezone.
+                            {{ $t('settings.preferences.timezone_help') }}
                         </p>
                     </div>
 
@@ -138,7 +145,7 @@ const submit = () => form.patch(route('settings.preferences.update'));
                             :disabled="form.processing"
                             class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
                         >
-                            Save preferences
+                            {{ $t('settings.preferences.submit') }}
                         </button>
 
                         <Transition
@@ -151,7 +158,7 @@ const submit = () => form.patch(route('settings.preferences.update'));
                                 v-if="form.recentlySuccessful"
                                 class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
                             >
-                                Preferences saved.
+                                {{ $t('settings.preferences.saved') }}
                             </span>
                         </Transition>
                     </div>

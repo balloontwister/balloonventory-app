@@ -20,6 +20,7 @@
         "eslint": "^8.57.0",
         "eslint-plugin-vue": "^9.23.0",
         "laravel-vite-plugin": "^2.0.0",
+        "laravel-vue-i18n": "^2.8.0",
         "postcss": "^8.4.31",
         "prettier": "^3.3.0",
         "prettier-plugin-organize-imports": "^4.0.0",

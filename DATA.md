@@ -151,9 +151,11 @@ A person. The standard Laravel `users` table extended with our display field. Au
 - `password` (text) — Laravel default field; hashed by the framework
 - `remember_token` (text, nullable) — Laravel default field
 - `is_super_admin` (boolean, default false) — platform-level admin flag. Grants edit access to the shared catalog, the `pending_upc_scan` queue, and platform actions like business deletion. Does NOT grant access to any business's tenant-scoped data; SuperAdmin still needs a `membership` row to act inside a specific business. See PERMISSIONS.md.
+- `locale` (string(8), default `'en'`) — BCP-47 short tag selecting the UI language for this user. `'en'` and `'es'` are the supported values; the column is wide enough for future region tags like `'pt-BR'`. Honored by `SetUserLocale` middleware on every request and by `TemplatedMailable::forKey()` when picking an email template variant.
+- `timezone` (string(64), nullable) — IANA tz database identifier (e.g. `'America/Chicago'`). Captured from the browser via `Intl.DateTimeFormat().resolvedOptions().timeZone` on first login if NULL. Used for client-side date/time formatting; the server keeps storing UTC.
 - `created_at`, `updated_at`, `deleted_at`
 
-Custom application fields can be added later as needs emerge. Don't store user-level UI preferences here; those belong on `membership` so they can vary per business context.
+`locale` and `timezone` are user-level (not membership-level) because a person's language preference and physical location follow them across businesses. UI preferences that genuinely vary per business context still belong on `membership`.
 
 ### `business`
 

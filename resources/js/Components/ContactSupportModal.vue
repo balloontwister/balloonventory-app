@@ -69,16 +69,23 @@ function close() {
                         </svg>
                     </div>
                     <div>
-                        <p class="font-sans text-[16px] font-semibold text-ink-primary">
-                            Message sent!
+                        <p
+                            class="font-sans text-[16px] font-semibold text-ink-primary"
+                        >
+                            {{ $t('support.sent.title') }}
                         </p>
-                        <p class="mt-1 font-sans text-[14px] text-ink-secondary">
-                            We'll get back to you at
-                            <span class="font-medium">{{ $page.props.auth.user.email }}</span>.
+                        <p
+                            class="mt-1 font-sans text-[14px] text-ink-secondary"
+                        >
+                            {{ $t('support.sent.reply_to_before') }}
+                            <span class="font-medium">{{
+                                $page.props.auth.user.email
+                            }}</span
+                            >{{ $t('support.sent.reply_to_after') }}
                         </p>
                     </div>
                     <AppButton variant="secondary" size="sm" @click="close">
-                        Close
+                        {{ $t('support.sent.close') }}
                     </AppButton>
                 </div>
             </template>
@@ -90,13 +97,17 @@ function close() {
                         <p
                             class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
                         >
-                            Balloonventory Support
+                            {{ $t('support.eyebrow') }}
                         </p>
-                        <h2 class="mt-0.5 font-sans text-[18px] font-semibold text-ink-primary">
-                            Contact Tallie and the team
+                        <h2
+                            class="mt-0.5 font-sans text-[18px] font-semibold text-ink-primary"
+                        >
+                            {{ $t('support.heading') }}
                         </h2>
-                        <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                            Send a message and we will help you as soon as we can.
+                        <p
+                            class="mt-1 font-sans text-[13px] text-ink-secondary"
+                        >
+                            {{ $t('support.subheading') }}
                         </p>
                     </div>
                     <button
@@ -120,10 +131,10 @@ function close() {
                 <form @submit.prevent="submit" class="flex flex-col gap-4">
                     <AppInput
                         id="support-subject"
-                        label="Subject"
+                        :label="$t('support.subject_label')"
                         :required="true"
                         v-model="form.subject"
-                        placeholder="What can we help with?"
+                        :placeholder="$t('support.subject_placeholder')"
                         :error="form.errors.subject"
                         :disabled="form.processing"
                     />
@@ -133,13 +144,14 @@ function close() {
                             for="support-message"
                             class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
-                            Message<span class="ml-0.5 text-danger">*</span>
+                            {{ $t('support.message_label')
+                            }}<span class="ml-0.5 text-danger">*</span>
                         </label>
                         <textarea
                             id="support-message"
                             v-model="form.message"
                             rows="5"
-                            placeholder="Describe your issue or question..."
+                            :placeholder="$t('support.message_placeholder')"
                             :disabled="form.processing"
                             class="w-full resize-y rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
                             :class="{
@@ -162,14 +174,18 @@ function close() {
                             :disabled="form.processing"
                             @click="close"
                         >
-                            Cancel
+                            {{ $t('support.cancel') }}
                         </AppButton>
                         <AppButton
                             variant="primary"
                             type="submit"
                             :disabled="form.processing"
                         >
-                            {{ form.processing ? 'Sending…' : 'Send message' }}
+                            {{
+                                form.processing
+                                    ? $t('support.submitting')
+                                    : $t('support.submit')
+                            }}
                         </AppButton>
                     </div>
                 </form>

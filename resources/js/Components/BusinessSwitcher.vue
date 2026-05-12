@@ -31,7 +31,7 @@ function switchBusiness(id) {
                 <p
                     class="truncate font-sans text-[15px] font-semibold leading-snug text-ink-primary"
                 >
-                    {{ business?.name ?? 'No business selected' }}
+                    {{ business?.name ?? $t('nav.no_business_selected') }}
                 </p>
                 <p
                     class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
@@ -96,7 +96,7 @@ function switchBusiness(id) {
                     :href="route('settings.businesses')"
                     class="block font-sans text-[13px] text-ink-secondary hover:text-accent"
                 >
-                    Manage businesses
+                    {{ $t('nav.manage_businesses') }}
                 </a>
             </div>
         </div>

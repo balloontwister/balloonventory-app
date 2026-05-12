@@ -20,10 +20,10 @@ function logout() {
 }
 
 const nav = [
-    { label: 'Inventory', icon: 'inventory', routeName: 'inventory.index' },
-    { label: 'Jobs', icon: 'jobs', routeName: 'jobs.index' },
-    { label: 'Reorder', icon: 'reorder', routeName: 'reorder.index' },
-    { label: 'Settings', icon: 'settings', routeName: 'settings.index' },
+    { labelKey: 'nav.inventory', icon: 'inventory', routeName: 'inventory.index' },
+    { labelKey: 'nav.jobs', icon: 'jobs', routeName: 'jobs.index' },
+    { labelKey: 'nav.reorder', icon: 'reorder', routeName: 'reorder.index' },
+    { labelKey: 'nav.settings', icon: 'settings', routeName: 'settings.index' },
 ];
 
 function isActive(routeName) {
@@ -79,7 +79,7 @@ function isActive(routeName) {
                     <p
                         class="mb-1 px-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
                     >
-                        Main
+                        {{ $t('nav.main') }}
                     </p>
 
                     <Link
@@ -160,7 +160,7 @@ function isActive(routeName) {
                             </svg>
                         </template>
 
-                        {{ item.label }}
+                        {{ $t(item.labelKey) }}
                     </Link>
 
                     <!-- Super Admin section -->
@@ -168,7 +168,7 @@ function isActive(routeName) {
                         <p
                             class="mb-1 mt-6 px-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
                         >
-                            Super Admin
+                            {{ $t('nav.super_admin_section') }}
                         </p>
                         <Link
                             :href="route('super-admin.dashboard')"
@@ -191,7 +191,7 @@ function isActive(routeName) {
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            Admin
+                            {{ $t('nav.admin') }}
                         </Link>
                     </template>
 
@@ -215,7 +215,7 @@ function isActive(routeName) {
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            Get help
+                            {{ $t('nav.get_help') }}
                         </button>
 
                         <div class="flex items-center gap-1">
@@ -239,7 +239,7 @@ function isActive(routeName) {
                             </Link>
                             <button
                                 type="button"
-                                title="Log out"
+                                :title="$t('nav.log_out')"
                                 class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
                                 @click="logout"
                             >
@@ -295,7 +295,7 @@ function isActive(routeName) {
                     <Link
                         v-if="isSuperAdmin"
                         :href="route('super-admin.dashboard')"
-                        title="Super Admin"
+                        :title="$t('nav.super_admin_section')"
                         class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition"
                         :class="
                             route().current('super-admin.*')
@@ -318,7 +318,7 @@ function isActive(routeName) {
                     </Link>
                     <button
                         type="button"
-                        title="Get help"
+                        :title="$t('nav.get_help')"
                         class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
                         @click="showSupportModal = true"
                     >
@@ -337,7 +337,7 @@ function isActive(routeName) {
                     </button>
                     <button
                         type="button"
-                        title="Log out"
+                        :title="$t('nav.log_out')"
                         class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
                         @click="logout"
                     >
@@ -401,9 +401,9 @@ function isActive(routeName) {
                             clip-rule="evenodd"
                         />
                     </svg>
-                    <span class="font-sans text-[10px] font-medium"
-                        >Inventory</span
-                    >
+                    <span class="font-sans text-[10px] font-medium">{{
+                        $t('nav.inventory')
+                    }}</span>
                 </Link>
 
                 <!-- Jobs -->
@@ -428,7 +428,9 @@ function isActive(routeName) {
                             clip-rule="evenodd"
                         />
                     </svg>
-                    <span class="font-sans text-[10px] font-medium">Jobs</span>
+                    <span class="font-sans text-[10px] font-medium">{{
+                        $t('nav.jobs')
+                    }}</span>
                 </Link>
 
                 <!-- Center Scan button (elevated) -->
@@ -436,7 +438,7 @@ function isActive(routeName) {
                     <Link
                         :href="route('scan.index')"
                         class="absolute -top-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent shadow-pop transition hover:bg-accent-hover"
-                        aria-label="Scan"
+                        :aria-label="$t('nav.scan')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -482,9 +484,9 @@ function isActive(routeName) {
                             clip-rule="evenodd"
                         />
                     </svg>
-                    <span class="font-sans text-[10px] font-medium"
-                        >Reorder</span
-                    >
+                    <span class="font-sans text-[10px] font-medium">{{
+                        $t('nav.reorder')
+                    }}</span>
                 </Link>
 
                 <!-- Settings -->
@@ -509,9 +511,9 @@ function isActive(routeName) {
                             clip-rule="evenodd"
                         />
                     </svg>
-                    <span class="font-sans text-[10px] font-medium"
-                        >Settings</span
-                    >
+                    <span class="font-sans text-[10px] font-medium">{{
+                        $t('nav.settings')
+                    }}</span>
                 </Link>
             </nav>
         </div>

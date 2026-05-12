@@ -13,9 +13,35 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
-    public function index(): Response
+    /**
+     * Locales the UI is currently translated into. Update when a new
+     * `lang/<locale>/` directory is added.
+     */
+    private const SUPPORTED_LOCALES = ['en'];
+
+    public function index(Request $request): Response
     {
-        return Inertia::render('Settings/Index');
+        $user = $request->user();
+
+        return Inertia::render('Settings/Index', [
+            'preferences' => [
+                'locale' => $user->locale ?? 'en',
+                'timezone' => $user->timezone,
+            ],
+            'supportedLocales' => self::SUPPORTED_LOCALES,
+        ]);
+    }
+
+    public function updatePreferences(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'locale' => ['required', 'string', 'in:'.implode(',', self::SUPPORTED_LOCALES)],
+            'timezone' => ['nullable', 'string', 'in:'.implode(',', timezone_identifiers_list())],
+        ]);
+
+        $request->user()->forceFill($validated)->save();
+
+        return back()->with('success', 'Preferences updated.');
     }
 
     public function businesses(): Response
@@ -24,9 +50,9 @@ class SettingsController extends Controller
 
         return Inertia::render('Settings/Businesses', [
             'business' => [
-                'id'        => $business->id,
-                'name'      => $business->name,
-                'slug'      => $business->slug,
+                'id' => $business->id,
+                'name' => $business->name,
+                'slug' => $business->slug,
                 'logo_path' => $business->logo_path,
             ],
         ]);
@@ -57,7 +83,7 @@ class SettingsController extends Controller
         $i = 2;
 
         while (Business::where('slug', $slug)->where('id', '!=', $excludeId)->exists()) {
-            $slug = $base . '-' . $i++;
+            $slug = $base.'-'.$i++;
         }
 
         return $slug;

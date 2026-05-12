@@ -66,6 +66,7 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/reorder', [ReorderController::class, 'index'])->name('reorder.index');
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
     Route::get('/settings/businesses', [SettingsController::class, 'businesses'])->name('settings.businesses');
     Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
 

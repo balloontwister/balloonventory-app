@@ -1,6 +1,60 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import InputLabel from '@/Components/InputLabel.vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const props = defineProps({
+    preferences: { type: Object, required: true },
+    supportedLocales: { type: Array, required: true },
+});
+
+const form = useForm({
+    locale: props.preferences.locale,
+    timezone: props.preferences.timezone ?? '',
+});
+
+const localeLabels = {
+    en: 'English',
+    es: 'Español',
+};
+
+const localeOptions = computed(() =>
+    props.supportedLocales.map((code) => ({
+        value: code,
+        label: localeLabels[code] ?? code,
+    })),
+);
+
+const timezoneOptions = computed(() => {
+    const list =
+        typeof Intl.supportedValuesOf === 'function'
+            ? Intl.supportedValuesOf('timeZone')
+            : [
+                  'UTC',
+                  'America/New_York',
+                  'America/Chicago',
+                  'America/Denver',
+                  'America/Los_Angeles',
+                  'America/Phoenix',
+                  'America/Anchorage',
+                  'Pacific/Honolulu',
+                  'Europe/London',
+                  'Europe/Madrid',
+                  'Europe/Paris',
+                  'Europe/Berlin',
+                  'Asia/Tokyo',
+                  'Australia/Sydney',
+              ];
+
+    if (form.timezone && !list.includes(form.timezone)) {
+        return [form.timezone, ...list];
+    }
+
+    return list;
+});
+
+const submit = () => form.patch(route('settings.preferences.update'));
 </script>
 
 <template>
@@ -8,13 +62,101 @@ import { Head } from '@inertiajs/vue3';
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="font-display text-[22px] font-semibold text-ink-primary">
+            <h1
+                class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+            >
                 Settings
             </h1>
         </template>
 
-        <div class="flex items-center justify-center py-24">
-            <p class="font-sans text-[15px] text-ink-tertiary">Coming soon</p>
+        <div class="flex flex-col gap-6 py-2">
+            <!-- ── Preferences ───────────────────────────────────────────── -->
+            <div
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    Preferences
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    Choose the language and timezone Balloonventory uses for you.
+                </p>
+
+                <form
+                    class="mt-5 flex flex-col gap-4"
+                    @submit.prevent="submit"
+                >
+                    <div class="max-w-sm">
+                        <InputLabel for="locale" value="Language" />
+                        <select
+                            id="locale"
+                            v-model="form.locale"
+                            class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        >
+                            <option
+                                v-for="opt in localeOptions"
+                                :key="opt.value"
+                                :value="opt.value"
+                            >
+                                {{ opt.label }}
+                            </option>
+                        </select>
+                        <p
+                            v-if="supportedLocales.length === 1"
+                            class="mt-1 font-sans text-[12px] text-ink-tertiary"
+                        >
+                            More languages coming soon.
+                        </p>
+                    </div>
+
+                    <div class="max-w-sm">
+                        <InputLabel for="timezone" value="Timezone" />
+                        <select
+                            id="timezone"
+                            v-model="form.timezone"
+                            class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        >
+                            <option value="">Not set</option>
+                            <option
+                                v-for="tz in timezoneOptions"
+                                :key="tz"
+                                :value="tz"
+                            >
+                                {{ tz }}
+                            </option>
+                        </select>
+                        <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
+                            Dates and times in the app are shown in this
+                            timezone.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-4 pt-1">
+                        <button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                        >
+                            Save preferences
+                        </button>
+
+                        <Transition
+                            enter-active-class="transition-opacity duration-200"
+                            enter-from-class="opacity-0"
+                            leave-active-class="transition-opacity duration-200"
+                            leave-to-class="opacity-0"
+                        >
+                            <span
+                                v-if="form.recentlySuccessful"
+                                class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
+                            >
+                                Preferences saved.
+                            </span>
+                        </Transition>
+                    </div>
+                </form>
+            </div>
         </div>
     </AuthenticatedLayout>
 </template>

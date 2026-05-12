@@ -34,6 +34,11 @@ class Sku extends Model
         'owned_by_business_id',
     ];
 
+    protected $casts = [
+        'is_printed' => 'boolean',
+        'default_count_per_bag' => 'integer',
+    ];
+
     protected static function boot(): void
     {
         parent::boot();

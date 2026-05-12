@@ -189,9 +189,11 @@ A balloon manufacturer. Shared globally, not tenant-scoped.
 - `name` (text, unique) — e.g. `Qualatex`, `Sempertex`, `TufTex`, `Betallic`, `Kalisan`, `Decomex`, `Funsational`
 - `abbreviation` (text, unique) — short tag shown in BrandTag, e.g. `QTX`, `STX`
 - `brand_color_hex` (text, nullable) — the dot color in BrandTag; optional
-- `logo_path` (text, nullable) — path to brand logo image in local storage
+- `logo_path` (text, nullable) — path inside the `public` disk (resolves to `storage/app/public/<path>`). Use `Storage::disk('public')->url($logo_path)` to render. New uploads land in `brand-logos/`.
 - `sort_order` (integer, default 0) — display order in dropdowns and tables
 - `created_at`, `updated_at`, `deleted_at`
+
+Brands intentionally have no `description` column — the seven seeded entries cover the market and the abbreviation already serves as the short label. If a future need emerges, add the column in a migration and surface it on the Brands page.
 
 ### `size`
 
@@ -212,8 +214,8 @@ A balloon shape. Shared globally. Values: Round, Link, Non-round, Heart, Circle,
 
 A balloon surface finish. Shared globally.
 
-- `name` (text, unique) — e.g. `Crystal`, `Metallic`, `Satin`, `Glow-in-the-dark`
-- `texture_family` (text) — groups textures for filtering: `Crystal`, `Standard`, `Metallic`, `Neon`, `Chrome`
+- `name` (text, unique) — seeded values: `Crystal`, `Standard`, `Matte`, `Glow-in-the-dark`, `Metallic`, `Pearl`, `Neon`, `Chrome`, `Satin`
+- `texture_family` (text, idx) — groups textures for filtering. Current families: `Crystal`, `Standard`, `Metallic`, `Neon`, `Chrome` (the `Chrome` family also covers `Satin` for now)
 - (plus standard lookup columns)
 
 ### `color_family`
@@ -237,7 +239,9 @@ A brand-specific color name. Each brand names their colors independently; `color
 
 ### `theme`
 
-A printed-balloon theme tag. Examples: Holiday, Christmas, Halloween, Star Wars, Princess. Applied to SKUs via the `sku_themes` many-to-many pivot.
+A printed-balloon theme tag. Seeded values: `Holiday`, `Christmas`, `Halloween`, `Stars`, `Animal`, `Star Wars`, `Princess`, `Cartoon`, `Jungle`. Same structure as `shape`. Applied to SKUs via the `sku_themes` many-to-many pivot.
+
+The Themes panel on the SKU form is hidden unless `sku.is_printed = true` (UX nudge — themes are mostly meaningful for printed balloons). The server-side does not enforce this rule; if a non-printed SKU has themes attached, they're stored but not surfaced.
 
 ### `material`
 
@@ -267,15 +271,17 @@ A balloon SKU. The hybrid catalog lives here. A row is either **shared** (visibl
 - `material_id` (uuid, nullable, fk → material.id, idx)
 - `is_printed` (boolean, default false) — true for printed/themed balloons; glow-in-the-dark and satin are textures, not a separate flag
 - `default_count_per_bag` (integer, nullable) — typical bag size, e.g. 100 for 11" latex
-- `manufacturer_sku` (text, nullable) — official product number from the brand, e.g. `43734`
+- `manufacturer_sku` (text, nullable) — official product number from the brand, e.g. `43734`. Enforced unique per `(brand_id, manufacturer_sku, deleted_at)` at the validation layer when non-null; the catalog admin may leave it blank for variants without product numbers, in which case multiple matching rows are permitted.
 - `price_code` (text, nullable, idx) — pricing variable shared across SKUs that price together. Emergent from this column; no dictionary table in v1.
-- `image_url` (text, nullable) — points at object storage
+- `image_url` (text, nullable) — points at object storage. Currently no upload UI; future SKU image upload will land in `storage/app/public/sku-images/` and follow the same `public` disk pattern as brand logos.
 - `owned_by_business_id` (uuid, nullable, fk → business.id) — `NULL` means shared catalog. Set means private to that business.
 - `created_at`, `updated_at`, `deleted_at`
 
 All attribute FK columns are nullable. Conditional validation (e.g. foil SKUs have no `size_id`) is deferred to a later phase.
 
 Themes are many-to-many via the `sku_themes` pivot (a SKU can belong to multiple themes). All other attributes are single-value per SKU.
+
+**Color images (deferred):** `color` will eventually grow an `image_path` column (same shape as `brand.logo_path`) so each brand-color can show a photo on top of the swatch. Not yet added — when implemented, files will land in `storage/app/public/color-images/`.
 
 Visibility rule for any user in business X:
 

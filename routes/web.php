@@ -93,6 +93,7 @@ Route::middleware(['auth', 'verified', RequireSuperAdmin::class])->group(functio
     Route::delete('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'destroy'])->name('super-admin.catalog.colors.destroy');
 
     Route::get('/super-admin/catalog/brands', [CatalogBrandController::class, 'index'])->name('super-admin.catalog.brands');
+    Route::post('/super-admin/catalog/brands', [CatalogBrandController::class, 'store'])->name('super-admin.catalog.brands.store');
     Route::patch('/super-admin/catalog/brands/{brand}', [CatalogBrandController::class, 'update'])->name('super-admin.catalog.brands.update');
 
     Route::get('/super-admin/catalog/reference', [CatalogReferenceController::class, 'index'])->name('super-admin.catalog.reference');

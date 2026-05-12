@@ -8,6 +8,7 @@ use App\Models\Color;
 use App\Models\ColorFamily;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,7 +28,7 @@ class CatalogColorController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request));
 
         Color::create($data);
 
@@ -37,7 +38,7 @@ class CatalogColorController extends Controller
 
     public function update(Request $request, Color $color): RedirectResponse
     {
-        $data = $request->validate($this->rules($color->id));
+        $data = $request->validate($this->rules($request, $color->id));
 
         $color->update($data);
 
@@ -53,10 +54,16 @@ class CatalogColorController extends Controller
             ->with('success', 'Color deleted.');
     }
 
-    private function rules(?string $ignoreId = null): array
+    private function rules(Request $request, ?string $ignoreId = null): array
     {
+        // Uniqueness: a brand cannot have two active colors with the same name.
+        // For generic (null brand) colors we still enforce name uniqueness across all generics.
+        $uniqueRule = Rule::unique('colors', 'name')
+            ->where(fn ($q) => $q->where('brand_id', $request->input('brand_id'))->whereNull('deleted_at'))
+            ->ignore($ignoreId);
+
         return [
-            'name' => ['required', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:100', $uniqueRule],
             'color_family_id' => ['required', 'uuid', 'exists:color_families,id'],
             'brand_id' => ['nullable', 'uuid', 'exists:brands,id'],
             'color_hex' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],

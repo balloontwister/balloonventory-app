@@ -13,6 +13,7 @@ use App\Models\Texture;
 use App\Models\Theme;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -76,7 +77,7 @@ class CatalogController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request));
 
         $sku = Sku::create($data);
 
@@ -109,7 +110,7 @@ class CatalogController extends Controller
     {
         abort_if($sku->owned_by_business_id !== null, 403);
 
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request, $sku->id));
 
         $sku->update($data);
         $sku->themes()->sync($data['theme_ids'] ?? []);
@@ -128,8 +129,15 @@ class CatalogController extends Controller
             ->with('success', 'SKU deleted.');
     }
 
-    private function rules(): array
+    private function rules(Request $request, ?string $ignoreId = null): array
     {
+        // (brand_id, manufacturer_sku) must be unique among active SKUs when
+        // manufacturer_sku is filled. Multiple NULL-manufacturer_sku rows are
+        // allowed — the admin may not have product numbers for every variant.
+        $mfrSkuUnique = Rule::unique('skus', 'manufacturer_sku')
+            ->where(fn ($q) => $q->where('brand_id', $request->input('brand_id'))->whereNull('deleted_at'))
+            ->ignore($ignoreId);
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'brand_id' => ['required', 'uuid', 'exists:brands,id'],
@@ -139,8 +147,8 @@ class CatalogController extends Controller
             'color_id' => ['nullable', 'uuid', 'exists:colors,id'],
             'material_id' => ['nullable', 'uuid', 'exists:materials,id'],
             'is_printed' => ['boolean'],
-            'default_count_per_bag' => ['nullable', 'integer', 'min:1'],
-            'manufacturer_sku' => ['nullable', 'string', 'max:100'],
+            'default_count_per_bag' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'manufacturer_sku' => ['nullable', 'string', 'max:100', $mfrSkuUnique],
             'price_code' => ['nullable', 'string', 'max:50'],
             'theme_ids' => ['nullable', 'array'],
             'theme_ids.*' => ['uuid', 'exists:themes,id'],

@@ -6,17 +6,19 @@ defineProps({ listId: String });
 </script>
 
 <template>
-    <Head title="Edit List" />
+    <Head :title="$t('lists.edit.meta_title')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h1 class="font-display text-[22px] font-semibold text-ink-primary">
-                Edit List
+                {{ $t('lists.edit.heading') }}
             </h1>
         </template>
 
         <div class="flex items-center justify-center py-24">
-            <p class="font-sans text-[15px] text-ink-tertiary">Coming soon</p>
+            <p class="font-sans text-[15px] text-ink-tertiary">
+                {{ $t('common.coming_soon') }}
+            </p>
         </div>
     </AuthenticatedLayout>
 </template>

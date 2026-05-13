@@ -4,17 +4,19 @@ import { Head } from '@inertiajs/vue3';
 </script>
 
 <template>
-    <Head title="New List" />
+    <Head :title="$t('lists.create.meta_title')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h1 class="font-display text-[22px] font-semibold text-ink-primary">
-                New List
+                {{ $t('lists.create.heading') }}
             </h1>
         </template>
 
         <div class="flex items-center justify-center py-24">
-            <p class="font-sans text-[15px] text-ink-tertiary">Coming soon</p>
+            <p class="font-sans text-[15px] text-ink-tertiary">
+                {{ $t('common.coming_soon') }}
+            </p>
         </div>
     </AuthenticatedLayout>
 </template>

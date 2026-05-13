@@ -115,7 +115,9 @@ function cancelEdit() {
 }
 
 function destroy(item) {
-    if (!confirm(trans('catalog.reference.delete_confirm', { name: item.name })))
+    if (
+        !confirm(trans('catalog.reference.delete_confirm', { name: item.name }))
+    )
         return;
     router.delete(
         route('super-admin.catalog.reference.destroy', {
@@ -434,7 +436,9 @@ const selectClass =
                                     <div class="w-52">
                                         <AppInput
                                             :label="
-                                                $t('catalog.reference.name_label')
+                                                $t(
+                                                    'catalog.reference.name_label',
+                                                )
                                             "
                                             v-model="editForm.name"
                                             :error="editForm.errors.name"

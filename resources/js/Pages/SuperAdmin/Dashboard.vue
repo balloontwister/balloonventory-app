@@ -142,8 +142,14 @@ function formatMonth(val) {
 // Section nav — labels resolve via $t() in the template using these keys.
 const navItems = [
     { id: 'overview', labelKey: 'super_admin.dashboard.nav.overview' },
-    { id: 'email-templates', labelKey: 'super_admin.dashboard.nav.email_templates' },
-    { id: 'support-tickets', labelKey: 'super_admin.dashboard.nav.support_tickets' },
+    {
+        id: 'email-templates',
+        labelKey: 'super_admin.dashboard.nav.email_templates',
+    },
+    {
+        id: 'support-tickets',
+        labelKey: 'super_admin.dashboard.nav.support_tickets',
+    },
     { id: 'catalog', labelKey: 'super_admin.dashboard.nav.catalog' },
 ];
 
@@ -273,7 +279,9 @@ function scrollToSection(id) {
                                     class="border-b border-border text-left text-ink-secondary"
                                 >
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_date') }}
+                                        {{
+                                            $t('super_admin.dashboard.col_date')
+                                        }}
                                     </th>
                                     <th class="pb-2 text-right font-medium">
                                         {{
@@ -324,7 +332,11 @@ function scrollToSection(id) {
                                     class="border-b border-border text-left text-ink-secondary"
                                 >
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_month') }}
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.col_month',
+                                            )
+                                        }}
                                     </th>
                                     <th class="pb-2 text-right font-medium">
                                         {{
@@ -369,10 +381,16 @@ function scrollToSection(id) {
                                     class="border-b border-border text-left text-ink-secondary"
                                 >
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_name') }}
+                                        {{
+                                            $t('super_admin.dashboard.col_name')
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_email') }}
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.col_email',
+                                            )
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
                                         {{
@@ -462,7 +480,9 @@ function scrollToSection(id) {
                     <h3
                         class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
                     >
-                        {{ $t('super_admin.dashboard.recently_active_heading') }}
+                        {{
+                            $t('super_admin.dashboard.recently_active_heading')
+                        }}
                     </h3>
                     <div
                         v-if="recentlyActive.length === 0"
@@ -477,10 +497,16 @@ function scrollToSection(id) {
                                     class="border-b border-border text-left text-ink-secondary"
                                 >
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_name') }}
+                                        {{
+                                            $t('super_admin.dashboard.col_name')
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_email') }}
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.col_email',
+                                            )
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
                                         {{
@@ -546,10 +572,16 @@ function scrollToSection(id) {
                                     class="border-b border-border text-left text-ink-secondary"
                                 >
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_name') }}
+                                        {{
+                                            $t('super_admin.dashboard.col_name')
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_email') }}
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.col_email',
+                                            )
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
                                         {{
@@ -586,7 +618,9 @@ function scrollToSection(id) {
                     <h3
                         class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
                     >
-                        {{ $t('super_admin.dashboard.recently_pruned_heading') }}
+                        {{
+                            $t('super_admin.dashboard.recently_pruned_heading')
+                        }}
                         <span
                             v-if="recentlyPruned.length > 0"
                             class="ml-2 rounded-full bg-danger-soft px-2 py-0.5 font-sans text-[12px] font-medium text-danger"
@@ -614,10 +648,16 @@ function scrollToSection(id) {
                                     class="border-b border-border text-left text-ink-secondary"
                                 >
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_name') }}
+                                        {{
+                                            $t('super_admin.dashboard.col_name')
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
-                                        {{ $t('super_admin.dashboard.col_email') }}
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.col_email',
+                                            )
+                                        }}
                                     </th>
                                     <th class="pb-2 font-medium">
                                         {{
@@ -628,7 +668,9 @@ function scrollToSection(id) {
                                     </th>
                                     <th class="pb-2 font-medium">
                                         {{
-                                            $t('super_admin.dashboard.col_pruned')
+                                            $t(
+                                                'super_admin.dashboard.col_pruned',
+                                            )
                                         }}
                                     </th>
                                 </tr>
@@ -716,21 +758,29 @@ function scrollToSection(id) {
                             v-if="template.is_active"
                             class="shrink-0 rounded-full bg-success-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-success"
                         >
-                            {{ $t('super_admin.dashboard.template_status_live') }}
+                            {{
+                                $t('super_admin.dashboard.template_status_live')
+                            }}
                         </span>
                         <span
                             v-else-if="!template.has_body"
                             class="shrink-0 rounded-full bg-background px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border"
                         >
                             {{
-                                $t('super_admin.dashboard.template_status_unwritten')
+                                $t(
+                                    'super_admin.dashboard.template_status_unwritten',
+                                )
                             }}
                         </span>
                         <span
                             v-else
                             class="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
                         >
-                            {{ $t('super_admin.dashboard.template_status_draft') }}
+                            {{
+                                $t(
+                                    'super_admin.dashboard.template_status_draft',
+                                )
+                            }}
                         </span>
                     </div>
 
@@ -744,7 +794,9 @@ function scrollToSection(id) {
                             "
                             class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
                         >
-                            {{ $t('super_admin.dashboard.template_edit_button') }}
+                            {{
+                                $t('super_admin.dashboard.template_edit_button')
+                            }}
                         </Link>
                     </div>
                 </div>
@@ -1049,7 +1101,9 @@ function scrollToSection(id) {
                             <h2
                                 class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
                             >
-                                {{ $t('super_admin.dashboard.catalog_heading') }}
+                                {{
+                                    $t('super_admin.dashboard.catalog_heading')
+                                }}
                             </h2>
                             <p
                                 class="mt-1 font-sans text-[13px] text-ink-secondary"

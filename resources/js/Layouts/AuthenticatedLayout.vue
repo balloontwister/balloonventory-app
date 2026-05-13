@@ -20,7 +20,11 @@ function logout() {
 }
 
 const nav = [
-    { labelKey: 'nav.inventory', icon: 'inventory', routeName: 'inventory.index' },
+    {
+        labelKey: 'nav.inventory',
+        icon: 'inventory',
+        routeName: 'inventory.index',
+    },
     { labelKey: 'nav.jobs', icon: 'jobs', routeName: 'jobs.index' },
     { labelKey: 'nav.reorder', icon: 'reorder', routeName: 'reorder.index' },
     { labelKey: 'nav.settings', icon: 'settings', routeName: 'settings.index' },

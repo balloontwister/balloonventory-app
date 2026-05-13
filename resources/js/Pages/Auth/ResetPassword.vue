@@ -76,7 +76,9 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel
                     for="password_confirmation"
-                    :value="$t('auth.reset_password.password_confirmation_label')"
+                    :value="
+                        $t('auth.reset_password.password_confirmation_label')
+                    "
                 />
 
                 <TextInput

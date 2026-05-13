@@ -90,7 +90,9 @@ const deleteUser = () => {
                             v-model="form.password"
                             type="password"
                             class="block w-full"
-                            :placeholder="$t('profile.delete.password_placeholder')"
+                            :placeholder="
+                                $t('profile.delete.password_placeholder')
+                            "
                             @keyup.enter="deleteUser"
                         />
                         <InputError

@@ -475,7 +475,9 @@ const selectClass =
                                                     "
                                                 >
                                                     {{
-                                                        $t('catalog.actions.save')
+                                                        $t(
+                                                            'catalog.actions.save',
+                                                        )
                                                     }}
                                                 </AppButton>
                                                 <AppButton

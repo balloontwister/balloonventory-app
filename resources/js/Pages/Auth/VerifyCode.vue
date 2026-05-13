@@ -99,9 +99,8 @@ function startCooldown() {
                 </h1>
                 <p class="mt-1 font-sans text-[14px] text-ink-secondary">
                     {{ $t('auth.verify_code.lead_before') }}
-                    <span class="font-medium text-ink-primary">{{
-                        email
-                    }}</span>{{ $t('auth.verify_code.lead_after') }}
+                    <span class="font-medium text-ink-primary">{{ email }}</span
+                    >{{ $t('auth.verify_code.lead_after') }}
                 </p>
             </div>
 

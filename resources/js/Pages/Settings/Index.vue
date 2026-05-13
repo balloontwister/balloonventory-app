@@ -83,10 +83,7 @@ const submit = () => form.patch(route('settings.preferences.update'));
                     {{ $t('settings.preferences.subheading') }}
                 </p>
 
-                <form
-                    class="mt-5 flex flex-col gap-4"
-                    @submit.prevent="submit"
-                >
+                <form class="mt-5 flex flex-col gap-4" @submit.prevent="submit">
                     <div class="max-w-sm">
                         <InputLabel
                             for="locale"
@@ -109,7 +106,9 @@ const submit = () => form.patch(route('settings.preferences.update'));
                             v-if="supportedLocales.length === 1"
                             class="mt-1 font-sans text-[12px] text-ink-tertiary"
                         >
-                            {{ $t('settings.preferences.more_languages_coming') }}
+                            {{
+                                $t('settings.preferences.more_languages_coming')
+                            }}
                         </p>
                     </div>
 

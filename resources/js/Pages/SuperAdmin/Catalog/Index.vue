@@ -127,7 +127,9 @@ function sizeCategoryLabel(key) {
                 v-model="brand"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">{{ $t('catalog.skus.filter_all_brands') }}</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_brands') }}
+                </option>
                 <option v-for="b in brands" :key="b.id" :value="b.id">
                     {{ b.abbreviation }} — {{ b.name }}
                 </option>
@@ -137,7 +139,9 @@ function sizeCategoryLabel(key) {
                 v-model="size"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">{{ $t('catalog.skus.filter_all_sizes') }}</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_sizes') }}
+                </option>
                 <option v-for="s in sizes" :key="s.id" :value="s.id">
                     {{ s.name }} ({{ sizeCategoryLabel(s.size_category) }})
                 </option>

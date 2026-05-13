@@ -366,7 +366,9 @@ function cancelEdit() {
                                         <div class="w-44">
                                             <AppInput
                                                 :label="
-                                                    $t('catalog.brands.name_label')
+                                                    $t(
+                                                        'catalog.brands.name_label',
+                                                    )
                                                 "
                                                 v-model="editForm.name"
                                                 :error="editForm.errors.name"
@@ -392,7 +394,9 @@ function cancelEdit() {
                                                 class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                                             >
                                                 {{
-                                                    $t('catalog.brands.color_label')
+                                                    $t(
+                                                        'catalog.brands.color_label',
+                                                    )
                                                 }}
                                             </label>
                                             <div
@@ -446,7 +450,11 @@ function cancelEdit() {
                                             <label
                                                 class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                                             >
-                                                {{ $t('catalog.brands.logo_label') }}
+                                                {{
+                                                    $t(
+                                                        'catalog.brands.logo_label',
+                                                    )
+                                                }}
                                                 <span
                                                     v-if="brand.logo_url"
                                                     class="normal-case tracking-normal text-ink-tertiary"
@@ -512,7 +520,9 @@ function cancelEdit() {
                                                         ? $t(
                                                               'catalog.actions.saving',
                                                           )
-                                                        : $t('catalog.actions.save')
+                                                        : $t(
+                                                              'catalog.actions.save',
+                                                          )
                                                 }}
                                             </AppButton>
                                             <AppButton
@@ -521,7 +531,9 @@ function cancelEdit() {
                                                 size="sm"
                                                 @click="cancelEdit"
                                             >
-                                                {{ $t('catalog.actions.cancel') }}
+                                                {{
+                                                    $t('catalog.actions.cancel')
+                                                }}
                                             </AppButton>
                                         </div>
                                     </div>

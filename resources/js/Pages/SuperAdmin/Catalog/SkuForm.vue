@@ -190,7 +190,9 @@ const selectClass =
                                 >
                                     <option value="">
                                         {{
-                                            $t('catalog.sku_form.brand_placeholder')
+                                            $t(
+                                                'catalog.sku_form.brand_placeholder',
+                                            )
                                         }}
                                     </option>
                                     <option
@@ -389,7 +391,9 @@ const selectClass =
                                     >
                                         <option value="">
                                             {{
-                                                $t('catalog.sku_form.none_option')
+                                                $t(
+                                                    'catalog.sku_form.none_option',
+                                                )
                                             }}
                                         </option>
                                         <optgroup
@@ -441,7 +445,9 @@ const selectClass =
                                         class="font-sans text-[14px] text-ink-primary"
                                     >
                                         {{
-                                            $t('catalog.sku_form.printed_checkbox')
+                                            $t(
+                                                'catalog.sku_form.printed_checkbox',
+                                            )
                                         }}
                                     </span>
                                 </label>
@@ -503,7 +509,9 @@ const selectClass =
                                 id="price_code"
                                 v-model="form.price_code"
                                 :placeholder="
-                                    $t('catalog.sku_form.price_code_placeholder')
+                                    $t(
+                                        'catalog.sku_form.price_code_placeholder',
+                                    )
                                 "
                                 :error="form.errors.price_code"
                             />

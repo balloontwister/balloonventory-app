@@ -27,7 +27,10 @@ const submit = () => {
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="name" :value="$t('auth.register.name_label')" />
+                <InputLabel
+                    for="name"
+                    :value="$t('auth.register.name_label')"
+                />
 
                 <TextInput
                     id="name"

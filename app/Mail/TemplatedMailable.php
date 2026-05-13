@@ -78,7 +78,7 @@ class TemplatedMailable extends Mailable implements ShouldQueue
     {
         return new Envelope(
             subject: $this->interpolate($this->template->subject),
-            replyTo: [new Address(config('mail.support_address'), 'Balloonventory Support')],
+            replyTo: [new Address(config('mail.support_address'), __('email.reply_to_name'))],
         );
     }
 

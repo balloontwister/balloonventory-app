@@ -22,8 +22,8 @@ class SupportReplyMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Re: [Support] '.$this->ticket->subject,
-            replyTo: [new Address(config('mail.support_address'), 'Balloonventory Support')],
+            subject: __('email.subjects.support_reply', ['subject' => $this->ticket->subject]),
+            replyTo: [new Address(config('mail.support_address'), __('email.reply_to_name'))],
         );
     }
 

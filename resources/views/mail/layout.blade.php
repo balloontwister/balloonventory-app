@@ -41,8 +41,8 @@
                 <!-- ── Header ───────────────────────────────────────────── -->
                 <tr>
                     <td class="header-pad" style="background-color:#FFFFFF;border-radius:14px 14px 0 0;padding:28px 40px 20px;border-bottom:1px solid #E4E4E7;">
-                        <p style="margin:0;font-size:20px;font-weight:700;color:#0A0A0A;letter-spacing:-0.02em;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">Balloonventory</p>
-                        <p style="margin:4px 0 0;font-size:11px;font-weight:600;color:#A1A1AA;text-transform:uppercase;letter-spacing:0.08em;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">From Tallie at Balloonventory</p>
+                        <p style="margin:0;font-size:20px;font-weight:700;color:#0A0A0A;letter-spacing:-0.02em;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">{{ __('email.brand') }}</p>
+                        <p style="margin:4px 0 0;font-size:11px;font-weight:600;color:#A1A1AA;text-transform:uppercase;letter-spacing:0.08em;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">{{ __('email.from_tallie') }}</p>
                     </td>
                 </tr>
 
@@ -57,8 +57,8 @@
                 <tr>
                     <td class="footer-pad" style="background-color:#FFFFFF;border-radius:0 0 14px 14px;padding:20px 40px 28px;border-top:1px solid #E4E4E7;">
                         <p style="margin:0;font-size:12px;line-height:1.6;color:#A1A1AA;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-                            You're receiving this because you have an account at Balloonventory.<br>
-                            &copy; {{ date('Y') }} Balloonventory. All rights reserved.
+                            {{ __('email.footer_account') }}<br>
+                            {{ __('email.footer_rights', ['year' => date('Y')]) }}
                         </p>
                     </td>
                 </tr>

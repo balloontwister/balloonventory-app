@@ -21,8 +21,8 @@ class EmailVerificationCode extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Balloonventory verification code',
-            replyTo: [new Address(config('mail.support_address'), 'Balloonventory Support')],
+            subject: __('email.subjects.verification_code'),
+            replyTo: [new Address(config('mail.support_address'), __('email.reply_to_name'))],
         );
     }
 

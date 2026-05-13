@@ -23,7 +23,7 @@ class SupportRequestMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[Support] '.$this->userSubject,
+            subject: __('email.subjects.support_request', ['subject' => $this->userSubject]),
             // Reply-To is the user so Todd can reply directly to them from Gmail.
             replyTo: [new Address($this->user->email, $this->user->name)],
         );

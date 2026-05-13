@@ -25,7 +25,7 @@ class SupportTicketController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('ticket_error', 'Failed to send reply. Please try again.');
+            return back()->with('ticket_error', __('flash.support.reply_failed'));
         }
 
         $ticket->replies()->create(['body' => $request->body]);

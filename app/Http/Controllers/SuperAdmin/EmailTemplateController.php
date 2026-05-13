@@ -65,9 +65,9 @@ class EmailTemplateController extends Controller
         $template->save();
 
         $flash = match ($data['action']) {
-            'activate' => 'Template saved and activated. It will now fire on its trigger.',
-            'deactivate' => 'Template saved and deactivated. It will not fire until activated.',
-            default => 'Template saved as a draft.',
+            'activate' => __('flash.email_template.saved_activated'),
+            'deactivate' => __('flash.email_template.saved_deactivated'),
+            default => __('flash.email_template.saved_draft'),
         };
 
         return redirect()
@@ -97,7 +97,7 @@ class EmailTemplateController extends Controller
         );
 
         if (! $mailable) {
-            return back()->with('error', 'Cannot preview a template with an empty HTML body.');
+            return back()->with('error', __('flash.email_template.preview_empty_body'));
         }
 
         try {
@@ -109,10 +109,10 @@ class EmailTemplateController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Failed to send preview. Check the application log for details.');
+            return back()->with('error', __('flash.email_template.preview_failed'));
         }
 
-        return back()->with('success', "Preview sent to {$request->user()->email}.");
+        return back()->with('success', __('flash.email_template.preview_sent', ['email' => $request->user()->email]));
     }
 
     /**

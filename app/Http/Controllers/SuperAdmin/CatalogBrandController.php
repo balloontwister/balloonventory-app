@@ -47,7 +47,7 @@ class CatalogBrandController extends Controller
         Brand::create($data);
 
         return redirect()->route('super-admin.catalog.brands')
-            ->with('success', 'Brand "'.$data['name'].'" added.');
+            ->with('success', __('flash.catalog.brand.added', ['name' => $data['name']]));
     }
 
     public function update(Request $request, Brand $brand): RedirectResponse
@@ -67,7 +67,7 @@ class CatalogBrandController extends Controller
         $brand->update($data);
 
         return redirect()->route('super-admin.catalog.brands')
-            ->with('success', 'Brand "'.$brand->name.'" updated.');
+            ->with('success', __('flash.catalog.brand.updated', ['name' => $brand->name]));
     }
 
     /**

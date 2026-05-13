@@ -86,7 +86,7 @@ class CatalogController extends Controller
         }
 
         return redirect()->route('super-admin.catalog.skus')
-            ->with('success', 'SKU "'.$sku->name.'" created.');
+            ->with('success', __('flash.catalog.sku.created', ['name' => $sku->name]));
     }
 
     public function edit(Sku $sku): Response
@@ -116,7 +116,7 @@ class CatalogController extends Controller
         $sku->themes()->sync($data['theme_ids'] ?? []);
 
         return redirect()->route('super-admin.catalog.skus')
-            ->with('success', 'SKU "'.$sku->name.'" updated.');
+            ->with('success', __('flash.catalog.sku.updated', ['name' => $sku->name]));
     }
 
     public function destroy(Sku $sku): RedirectResponse
@@ -126,7 +126,7 @@ class CatalogController extends Controller
         $sku->delete();
 
         return redirect()->route('super-admin.catalog.skus')
-            ->with('success', 'SKU deleted.');
+            ->with('success', __('flash.catalog.sku.deleted'));
     }
 
     private function rules(Request $request, ?string $ignoreId = null): array

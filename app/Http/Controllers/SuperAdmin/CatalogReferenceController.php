@@ -48,7 +48,7 @@ class CatalogReferenceController extends Controller
         $modelClass::create($data);
 
         return redirect()->route('super-admin.catalog.reference')
-            ->with('success', 'Item added.');
+            ->with('success', __('flash.catalog.reference.added'));
     }
 
     public function update(Request $request, string $table, string $item): RedirectResponse
@@ -61,7 +61,7 @@ class CatalogReferenceController extends Controller
         $record->update($data);
 
         return redirect()->route('super-admin.catalog.reference')
-            ->with('success', 'Item updated.');
+            ->with('success', __('flash.catalog.reference.updated'));
     }
 
     public function destroy(string $table, string $item): RedirectResponse
@@ -71,7 +71,7 @@ class CatalogReferenceController extends Controller
         $modelClass::findOrFail($item)->delete();
 
         return redirect()->route('super-admin.catalog.reference')
-            ->with('success', 'Item deleted.');
+            ->with('success', __('flash.catalog.reference.deleted'));
     }
 
     private function resolveTable(string $table): array

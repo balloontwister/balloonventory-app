@@ -77,7 +77,7 @@ class VerificationCodeController extends Controller
 
         Mail::to($user->email)->send(new EmailVerificationCode($code, $user->name));
 
-        return back()->with('status', 'A new code has been sent.');
+        return back()->with('status', __('flash.auth.verification_code_resent'));
     }
 
     private function generateCode(): string

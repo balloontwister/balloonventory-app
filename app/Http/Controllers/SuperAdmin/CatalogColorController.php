@@ -33,7 +33,7 @@ class CatalogColorController extends Controller
         Color::create($data);
 
         return redirect()->route('super-admin.catalog.colors')
-            ->with('success', 'Color "'.$data['name'].'" added.');
+            ->with('success', __('flash.catalog.color.added', ['name' => $data['name']]));
     }
 
     public function update(Request $request, Color $color): RedirectResponse
@@ -43,7 +43,7 @@ class CatalogColorController extends Controller
         $color->update($data);
 
         return redirect()->route('super-admin.catalog.colors')
-            ->with('success', 'Color "'.$color->name.'" updated.');
+            ->with('success', __('flash.catalog.color.updated', ['name' => $color->name]));
     }
 
     public function destroy(Color $color): RedirectResponse
@@ -51,7 +51,7 @@ class CatalogColorController extends Controller
         $color->delete();
 
         return redirect()->route('super-admin.catalog.colors')
-            ->with('success', 'Color deleted.');
+            ->with('success', __('flash.catalog.color.deleted'));
     }
 
     private function rules(Request $request, ?string $ignoreId = null): array

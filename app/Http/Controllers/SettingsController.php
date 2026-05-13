@@ -41,7 +41,7 @@ class SettingsController extends Controller
 
         $request->user()->forceFill($validated)->save();
 
-        return back()->with('success', 'Preferences updated.');
+        return back()->with('success', __('flash.settings.preferences_updated'));
     }
 
     public function businesses(): Response
@@ -73,7 +73,7 @@ class SettingsController extends Controller
             'slug' => $this->uniqueSlug($request->name, $business->id),
         ]);
 
-        return back()->with('success', 'Business name updated.');
+        return back()->with('success', __('flash.settings.business_name_updated'));
     }
 
     private function uniqueSlug(string $name, string $excludeId): string

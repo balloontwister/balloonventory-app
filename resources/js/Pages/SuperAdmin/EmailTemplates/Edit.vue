@@ -36,12 +36,16 @@ function trackFocus(field) {
 
 function insertToken(token) {
     const placeholder = `{{${token}}}`;
-    const refMap = { subject: subjectRef, body_html: bodyHtmlRef, body_text: bodyTextRef };
+    const refMap = {
+        subject: subjectRef,
+        body_html: bodyHtmlRef,
+        body_text: bodyTextRef,
+    };
     const fieldRef = refMap[focusedField.value]?.value;
     // AppInput exposes an <input>; native ref points to the wrapper div, so query inside.
     const el =
         focusedField.value === 'subject'
-            ? fieldRef?.querySelector?.('input') ?? fieldRef
+            ? (fieldRef?.querySelector?.('input') ?? fieldRef)
             : fieldRef;
     if (!el || typeof el.selectionStart !== 'number') {
         form[focusedField.value] += placeholder;
@@ -50,7 +54,8 @@ function insertToken(token) {
     const start = el.selectionStart;
     const end = el.selectionEnd;
     const current = form[focusedField.value];
-    form[focusedField.value] = current.slice(0, start) + placeholder + current.slice(end);
+    form[focusedField.value] =
+        current.slice(0, start) + placeholder + current.slice(end);
     requestAnimationFrame(() => {
         el.focus();
         const pos = start + placeholder.length;
@@ -124,7 +129,13 @@ function tokenLabel(name) {
 </script>
 
 <template>
-    <Head :title="`Edit · ${template.label}`" />
+    <Head
+        :title="
+            $t('super_admin.email_templates.meta_title', {
+                label: template.label,
+            })
+        "
+    />
 
     <AuthenticatedLayout>
         <template #header>
@@ -133,23 +144,25 @@ function tokenLabel(name) {
                     :href="route('super-admin.dashboard')"
                     class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                 >
-                    ← Super Admin
+                    {{ $t('super_admin.email_templates.back_to_super_admin') }}
                 </Link>
                 <span class="text-ink-tertiary">/</span>
-                <h1 class="font-display text-[20px] font-semibold tracking-h2 text-ink-primary">
+                <h1
+                    class="font-display text-[20px] font-semibold tracking-h2 text-ink-primary"
+                >
                     {{ template.label }}
                 </h1>
                 <span
                     v-if="template.is_active"
                     class="rounded-full bg-success-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-success"
                 >
-                    Live
+                    {{ $t('super_admin.email_templates.status_live') }}
                 </span>
                 <span
                     v-else
                     class="rounded-full bg-accent-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
                 >
-                    Draft
+                    {{ $t('super_admin.email_templates.status_draft') }}
                 </span>
             </div>
         </template>
@@ -172,7 +185,7 @@ function tokenLabel(name) {
                 v-if="hasErrors"
                 class="mb-4 rounded-md border border-danger bg-danger-soft px-4 py-3 font-sans text-[13px] text-danger"
             >
-                Fix the errors below before saving.
+                {{ $t('super_admin.email_templates.errors_banner') }}
             </div>
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
@@ -180,7 +193,13 @@ function tokenLabel(name) {
                 <div class="flex flex-col gap-5">
                     <div class="rounded-lg border border-border bg-surface p-6">
                         <p class="font-sans text-[12px] text-ink-secondary">
-                            <span class="font-medium text-ink-primary">Trigger:</span>
+                            <span class="font-medium text-ink-primary">
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.trigger_label',
+                                    )
+                                }}
+                            </span>
                             {{ template.trigger_description }}
                         </p>
                     </div>
@@ -190,15 +209,28 @@ function tokenLabel(name) {
                         <div ref="subjectRef" @focusin="trackFocus('subject')">
                             <AppInput
                                 id="email-subject"
-                                label="Subject"
+                                :label="
+                                    $t(
+                                        'super_admin.email_templates.subject_label',
+                                    )
+                                "
                                 v-model="form.subject"
-                                placeholder="Welcome to Balloonventory, {{user_name}}!"
+                                :placeholder="
+                                    $t(
+                                        'super_admin.email_templates.subject_placeholder',
+                                    )
+                                "
                                 :error="form.errors.subject"
                                 :required="true"
                             />
                         </div>
                         <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
-                            {{ form.subject.length }}/255 characters
+                            {{
+                                $t(
+                                    'super_admin.email_templates.subject_counter',
+                                    { length: form.subject.length },
+                                )
+                            }}
                         </p>
                     </div>
 
@@ -209,10 +241,18 @@ function tokenLabel(name) {
                                 for="body-html"
                                 class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                             >
-                                HTML body<span class="ml-0.5 text-danger">*</span>
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.body_html_label',
+                                    )
+                                }}<span class="ml-0.5 text-danger">*</span>
                             </label>
                             <p class="font-sans text-[12px] text-ink-tertiary">
-                                Renders inside the standard Balloonventory chrome (header + footer).
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.body_html_help',
+                                    )
+                                }}
                             </p>
                         </div>
                         <textarea
@@ -220,7 +260,11 @@ function tokenLabel(name) {
                             ref="bodyHtmlRef"
                             v-model="form.body_html"
                             rows="16"
-                            placeholder='<p>Hi {{user_name}},</p><p>Welcome to Balloonventory…</p>'
+                            :placeholder="
+                                $t(
+                                    'super_admin.email_templates.body_html_placeholder',
+                                )
+                            "
                             class="mt-2 w-full resize-y rounded-md border border-border-strong bg-surface px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                             :class="{
                                 'border-danger focus:border-danger focus:ring-danger-soft':
@@ -243,14 +287,22 @@ function tokenLabel(name) {
                                 for="body-text"
                                 class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                             >
-                                Plain-text body<span class="ml-0.5 text-danger">*</span>
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.body_text_label',
+                                    )
+                                }}<span class="ml-0.5 text-danger">*</span>
                             </label>
                             <button
                                 type="button"
                                 class="rounded-md px-2 py-1 font-sans text-[12px] font-medium text-accent transition hover:bg-accent-soft"
                                 @click="generatePlainText"
                             >
-                                Generate from HTML
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.generate_plain_text',
+                                    )
+                                }}
                             </button>
                         </div>
                         <textarea
@@ -258,7 +310,11 @@ function tokenLabel(name) {
                             ref="bodyTextRef"
                             v-model="form.body_text"
                             rows="10"
-                            placeholder="Hi {{user_name}}, Welcome to Balloonventory…"
+                            :placeholder="
+                                $t(
+                                    'super_admin.email_templates.body_text_placeholder',
+                                )
+                            "
                             class="mt-2 w-full resize-y rounded-md border border-border-strong bg-surface px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                             :class="{
                                 'border-danger focus:border-danger focus:ring-danger-soft':
@@ -275,11 +331,25 @@ function tokenLabel(name) {
                     </div>
 
                     <!-- Action bar -->
-                    <div class="sticky bottom-0 z-10 rounded-lg border border-border bg-surface p-4 shadow-md">
+                    <div
+                        class="sticky bottom-0 z-10 rounded-lg border border-border bg-surface p-4 shadow-md"
+                    >
                         <template v-if="deactivating">
                             <div class="flex items-center gap-3">
-                                <p class="flex-1 font-sans text-[13px] text-ink-primary">
-                                    Deactivate <strong>{{ template.label }}</strong>? This will stop sending the email immediately.
+                                <p
+                                    class="flex-1 font-sans text-[13px] text-ink-primary"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.email_templates.deactivate_confirm_before',
+                                        )
+                                    }}
+                                    <strong>{{ template.label }}</strong
+                                    >{{
+                                        $t(
+                                            'super_admin.email_templates.deactivate_confirm_after',
+                                        )
+                                    }}
                                 </p>
                                 <button
                                     type="button"
@@ -287,14 +357,22 @@ function tokenLabel(name) {
                                     :disabled="form.processing"
                                     @click="confirmDeactivate"
                                 >
-                                    Yes, deactivate
+                                    {{
+                                        $t(
+                                            'super_admin.email_templates.deactivate_yes',
+                                        )
+                                    }}
                                 </button>
                                 <button
                                     type="button"
                                     class="rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
                                     @click="cancelDeactivate"
                                 >
-                                    Cancel
+                                    {{
+                                        $t(
+                                            'super_admin.email_templates.deactivate_cancel',
+                                        )
+                                    }}
                                 </button>
                             </div>
                         </template>
@@ -306,7 +384,16 @@ function tokenLabel(name) {
                                     :disabled="form.processing"
                                     @click="save('save')"
                                 >
-                                    {{ form.processing && form.action === 'save' ? 'Saving…' : 'Save draft' }}
+                                    {{
+                                        form.processing &&
+                                        form.action === 'save'
+                                            ? $t(
+                                                  'super_admin.email_templates.save_draft_saving',
+                                              )
+                                            : $t(
+                                                  'super_admin.email_templates.save_draft',
+                                              )
+                                    }}
                                 </button>
 
                                 <button
@@ -316,7 +403,16 @@ function tokenLabel(name) {
                                     :disabled="form.processing"
                                     @click="save('activate')"
                                 >
-                                    {{ form.processing && form.action === 'activate' ? 'Activating…' : 'Save & activate' }}
+                                    {{
+                                        form.processing &&
+                                        form.action === 'activate'
+                                            ? $t(
+                                                  'super_admin.email_templates.save_activate_saving',
+                                              )
+                                            : $t(
+                                                  'super_admin.email_templates.save_activate',
+                                              )
+                                    }}
                                 </button>
 
                                 <button
@@ -326,17 +422,33 @@ function tokenLabel(name) {
                                     :disabled="form.processing"
                                     @click="deactivate"
                                 >
-                                    Deactivate
+                                    {{
+                                        $t(
+                                            'super_admin.email_templates.deactivate_button',
+                                        )
+                                    }}
                                 </button>
 
                                 <div class="ml-auto flex items-center gap-2">
                                     <button
                                         type="button"
                                         class="rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
-                                        :disabled="form.processing || !form.body_html.trim() || !form.subject.trim()"
+                                        :disabled="
+                                            form.processing ||
+                                            !form.body_html.trim() ||
+                                            !form.subject.trim()
+                                        "
                                         @click="sendPreview"
                                     >
-                                        {{ previewing ? 'Sending…' : 'Send preview to me' }}
+                                        {{
+                                            previewing
+                                                ? $t(
+                                                      'super_admin.email_templates.send_preview_sending',
+                                                  )
+                                                : $t(
+                                                      'super_admin.email_templates.send_preview',
+                                                  )
+                                        }}
                                     </button>
                                 </div>
                             </div>
@@ -347,11 +459,21 @@ function tokenLabel(name) {
                 <!-- ── Sidebar ──────────────────────────────────────────── -->
                 <aside class="flex flex-col gap-4">
                     <div class="rounded-lg border border-border bg-surface p-5">
-                        <h3 class="font-sans text-[13px] font-semibold text-ink-primary">
-                            Available variables
+                        <h3
+                            class="font-sans text-[13px] font-semibold text-ink-primary"
+                        >
+                            {{
+                                $t(
+                                    'super_admin.email_templates.variables_heading',
+                                )
+                            }}
                         </h3>
-                        <p class="mt-1 font-sans text-[12px] text-ink-secondary">
-                            Click a token to insert it at the cursor in the focused field.
+                        <p
+                            class="mt-1 font-sans text-[12px] text-ink-secondary"
+                        >
+                            {{
+                                $t('super_admin.email_templates.variables_help')
+                            }}
                         </p>
 
                         <ul class="mt-4 flex flex-col gap-3">
@@ -363,25 +485,66 @@ function tokenLabel(name) {
                                 >
                                     {{ tokenLabel(name) }}
                                 </button>
-                                <p class="mt-1 font-sans text-[12px] text-ink-secondary">
+                                <p
+                                    class="mt-1 font-sans text-[12px] text-ink-secondary"
+                                >
                                     {{ def.description }}
                                 </p>
-                                <p class="font-sans text-[11px] text-ink-tertiary">
-                                    Preview value: <span class="font-mono">{{ def.sample }}</span>
+                                <p
+                                    class="font-sans text-[11px] text-ink-tertiary"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.email_templates.variables_preview_label',
+                                        )
+                                    }}
+                                    <span class="font-mono">{{
+                                        def.sample
+                                    }}</span>
                                 </p>
                             </li>
                         </ul>
                     </div>
 
-                    <div class="rounded-lg border border-dashed border-border-strong bg-background p-4">
-                        <h4 class="font-sans text-[12px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
-                            Tips
+                    <div
+                        class="rounded-lg border border-dashed border-border-strong bg-background p-4"
+                    >
+                        <h4
+                            class="font-sans text-[12px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('super_admin.email_templates.tips_heading') }}
                         </h4>
-                        <ul class="mt-2 list-disc pl-4 font-sans text-[12px] leading-relaxed text-ink-secondary">
-                            <li>The standard Balloonventory header (logo + "From Tallie") and footer wrap your body automatically — don't add them.</li>
-                            <li>Use plain HTML. The body is rendered as-is inside the chrome.</li>
-                            <li>Preview send uses your account email with sample values listed at right.</li>
-                            <li>Activate only when both bodies are filled in and all tokens are recognised.</li>
+                        <ul
+                            class="mt-2 list-disc pl-4 font-sans text-[12px] leading-relaxed text-ink-secondary"
+                        >
+                            <li>
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.tips.chrome',
+                                    )
+                                }}
+                            </li>
+                            <li>
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.tips.plain_html',
+                                    )
+                                }}
+                            </li>
+                            <li>
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.tips.preview',
+                                    )
+                                }}
+                            </li>
+                            <li>
+                                {{
+                                    $t(
+                                        'super_admin.email_templates.tips.activate',
+                                    )
+                                }}
+                            </li>
                         </ul>
                     </div>
                 </aside>

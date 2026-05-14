@@ -16,9 +16,23 @@ class CatalogColorController extends Controller
 {
     public function index(): Response
     {
+        $locale = app()->getLocale();
+
         $colorFamilies = ColorFamily::with([
             'colors' => fn ($q) => $q->with('brand')->orderBy('sort_order')->orderBy('name'),
         ])->orderBy('sort_order')->get();
+
+        if ($locale !== 'en') {
+            $colorFamilies->each(function (ColorFamily $family) use ($locale) {
+                $family->loadTranslations($locale);
+                $family->name = $family->translated('name');
+
+                $family->colors->each(function (Color $color) use ($locale) {
+                    $color->loadTranslations($locale);
+                    $color->name = $color->translated('name');
+                });
+            });
+        }
 
         return Inertia::render('SuperAdmin/Catalog/Colors', [
             'colorFamilies' => $colorFamilies,

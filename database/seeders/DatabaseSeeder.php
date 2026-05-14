@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ColorFamilySeeder::class,
             ThemeSeeder::class,
             MaterialSeeder::class,
+            CatalogTranslationSeeder::class,
         ]);
     }
 }

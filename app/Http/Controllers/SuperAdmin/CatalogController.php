@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
+use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Material;
 use App\Models\Shape;
@@ -13,6 +14,7 @@ use App\Models\Texture;
 use App\Models\Theme;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -56,22 +58,36 @@ class CatalogController extends Controller
             'filters' => $request->only(['brand', 'size', 'texture', 'material', 'search']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
-            'textures' => Texture::orderBy('sort_order')->get(['id', 'name', 'texture_family']),
-            'materials' => Material::orderBy('sort_order')->get(['id', 'name']),
+            'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family'])),
+            'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
         ]);
     }
 
     public function create(): Response
     {
+        $locale = app()->getLocale();
+
+        $colorFamilies = ColorFamily::with(['colors' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get();
+        if ($locale !== 'en') {
+            $colorFamilies->each(function (ColorFamily $family) use ($locale) {
+                $family->loadTranslations($locale);
+                $family->name = $family->translated('name');
+                $family->colors->each(function (Color $color) use ($locale) {
+                    $color->loadTranslations($locale);
+                    $color->name = $color->translated('name');
+                });
+            });
+        }
+
         return Inertia::render('SuperAdmin/Catalog/SkuForm', [
             'sku' => null,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
-            'shapes' => Shape::orderBy('sort_order')->get(['id', 'name']),
-            'textures' => Texture::orderBy('sort_order')->get(['id', 'name', 'texture_family']),
-            'colorFamilies' => ColorFamily::with(['colors' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get(),
-            'themes' => Theme::orderBy('sort_order')->get(['id', 'name']),
-            'materials' => Material::orderBy('sort_order')->get(['id', 'name']),
+            'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
+            'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family'])),
+            'colorFamilies' => $colorFamilies,
+            'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
+            'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
         ]);
     }
 
@@ -94,15 +110,29 @@ class CatalogController extends Controller
         // Only allow editing shared catalog SKUs from this controller.
         abort_if($sku->owned_by_business_id !== null, 403);
 
+        $locale = app()->getLocale();
+
+        $colorFamilies = ColorFamily::with(['colors' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get();
+        if ($locale !== 'en') {
+            $colorFamilies->each(function (ColorFamily $family) use ($locale) {
+                $family->loadTranslations($locale);
+                $family->name = $family->translated('name');
+                $family->colors->each(function (Color $color) use ($locale) {
+                    $color->loadTranslations($locale);
+                    $color->name = $color->translated('name');
+                });
+            });
+        }
+
         return Inertia::render('SuperAdmin/Catalog/SkuForm', [
             'sku' => $sku->load(['brand', 'size', 'shape', 'texture', 'color', 'material', 'themes']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
-            'shapes' => Shape::orderBy('sort_order')->get(['id', 'name']),
-            'textures' => Texture::orderBy('sort_order')->get(['id', 'name', 'texture_family']),
-            'colorFamilies' => ColorFamily::with(['colors' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get(),
-            'themes' => Theme::orderBy('sort_order')->get(['id', 'name']),
-            'materials' => Material::orderBy('sort_order')->get(['id', 'name']),
+            'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
+            'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family'])),
+            'colorFamilies' => $colorFamilies,
+            'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
+            'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
         ]);
     }
 
@@ -127,6 +157,22 @@ class CatalogController extends Controller
 
         return redirect()->route('super-admin.catalog.skus')
             ->with('success', __('flash.catalog.sku.deleted'));
+    }
+
+    private function translated(Collection $items): Collection
+    {
+        if (app()->getLocale() === 'en') {
+            return $items;
+        }
+
+        return $items->map(function ($item) {
+            $item->name = $item->translated('name');
+            if (array_key_exists('description', $item->getAttributes())) {
+                $item->description = $item->translated('description');
+            }
+
+            return $item;
+        });
     }
 
     private function rules(Request $request, ?string $ignoreId = null): array

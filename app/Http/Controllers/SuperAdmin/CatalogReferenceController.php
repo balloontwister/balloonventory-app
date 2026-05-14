@@ -12,6 +12,7 @@ use App\Models\Theme;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,12 +32,28 @@ class CatalogReferenceController extends Controller
     {
         return Inertia::render('SuperAdmin/Catalog/Reference', [
             'sizes' => Size::orderBy('sort_order')->orderBy('name')->get(),
-            'shapes' => Shape::orderBy('sort_order')->orderBy('name')->get(),
-            'textures' => Texture::orderBy('sort_order')->orderBy('name')->get(),
-            'colorFamilies' => ColorFamily::orderBy('sort_order')->orderBy('name')->get(),
-            'themes' => Theme::orderBy('sort_order')->orderBy('name')->get(),
-            'materials' => Material::orderBy('sort_order')->orderBy('name')->get(),
+            'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
+            'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
+            'colorFamilies' => $this->translated(ColorFamily::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
+            'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
+            'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
         ]);
+    }
+
+    private function translated(Collection $items): Collection
+    {
+        if (app()->getLocale() === 'en') {
+            return $items;
+        }
+
+        return $items->map(function ($item) {
+            $item->name = $item->translated('name');
+            if (array_key_exists('description', $item->getAttributes())) {
+                $item->description = $item->translated('description');
+            }
+
+            return $item;
+        });
     }
 
     public function store(Request $request, string $table): RedirectResponse

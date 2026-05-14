@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTranslations;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Support\Str;
 
 class Color extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasTranslations, SoftDeletes;
 
     public $incrementing = false;
 
@@ -35,6 +36,11 @@ class Color extends Model
                 $model->id = (string) Str::uuid7();
             }
         });
+    }
+
+    public function translations(): HasMany
+    {
+        return $this->hasMany(ColorTranslation::class);
     }
 
     public function colorFamily(): BelongsTo

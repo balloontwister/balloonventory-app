@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTranslations;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Theme extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasTranslations, SoftDeletes;
 
     public $incrementing = false;
 
@@ -31,6 +33,11 @@ class Theme extends Model
                 $model->id = (string) Str::uuid7();
             }
         });
+    }
+
+    public function translations(): HasMany
+    {
+        return $this->hasMany(ThemeTranslation::class);
     }
 
     public function skus(): BelongsToMany

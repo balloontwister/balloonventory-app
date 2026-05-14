@@ -109,14 +109,17 @@ app/
 │   │   ├── CatalogBrandController.php     # Brand list + update
 │   │   ├── CatalogReferenceController.php # Generic reference data (sizes/shapes/etc.)
 │   │   └── SupportTicketController.php
+│   ├── LocaleController.php               # POST /locale/switch — auth + guest locale changes
 │   └── ...
 ├── Models/                    # Eloquent models, all use HasUuids + SoftDeletes
 │   ├── Concerns/
-│   │   └── BelongsToBusiness.php  # Tenancy trait with global scope
+│   │   ├── BelongsToBusiness.php  # Tenancy trait with global scope
+│   │   └── HasTranslations.php    # i18n trait — translated(), withTranslations(), loadTranslations()
 │   ├── Brand.php, Sku.php          # Core catalog models
 │   ├── Size.php, Shape.php, Texture.php, Material.php  # Reference lookup tables
 │   ├── Color.php, ColorFamily.php  # Two-level color taxonomy
-│   └── Theme.php                   # Many-to-many with Sku via sku_themes pivot
+│   ├── Theme.php                   # Many-to-many with Sku via sku_themes pivot
+│   └── *Translation.php           # 6 translation models (ShapeTranslation, MaterialTranslation, etc.)
 ├── Services/                  # Domain services (StockService, JobService, etc.)
 ├── Policies/                  # Laravel policies, one per model
 ├── Notifications/             # Laravel notifications for unknown UPC, errors
@@ -134,7 +137,8 @@ database/
     ├── TextureSeeder.php      # 9 textures in 5 families
     ├── ColorFamilySeeder.php  # 13 color families (Reds, Blues, etc.)
     ├── ThemeSeeder.php        # 9 themes (Holiday, Christmas, etc.)
-    └── MaterialSeeder.php     # 5 materials (Latex, Foil, etc.)
+    ├── MaterialSeeder.php     # 5 materials (Latex, Foil, etc.)
+    └── CatalogTranslationSeeder.php  # Spanish translations for all reference data
 
 resources/js/
 ├── Pages/
@@ -151,6 +155,7 @@ resources/js/
 │   ├── BalloonSwatch.vue
 │   ├── ScanField.vue
 │   ├── BusinessSwitcher.vue
+│   ├── LocaleSwitcher.vue       # Globe icon dropdown — server-driven locale list
 │   └── ...
 └── Composables/               # Vue composables (useBusiness, usePermissions, etc.)
 
@@ -164,6 +169,20 @@ tests/
 ```
 
 Anything not listed is standard Laravel; you already know where it goes.
+
+---
+
+## i18n & locale system
+
+The app supports multiple UI locales. The current system:
+
+- **Source of truth**: `config('app.supported_locales')` — an associative map of locale code → display label (e.g. `'es' => 'Español'`). Adding a language means adding it here and creating `lang/{code}/` — zero JS changes.
+- **Backend**: `SetUserLocale` middleware (global web) reads `users.locale` for auth users, falls back to `session('locale')` for guests. Every page render gets `app()->getLocale()`.
+- **Frontend i18n**: `laravel-vue-i18n` compiles `lang/*.php` to JSON bundles at build time. `$t()` is available globally in Vue templates. The `LocaleController` + `POST /locale/switch` persists locale changes; the frontend forces a full page reload after switching because the i18n plugin initializes once at app boot.
+- **Shared prop**: `HandleInertiaRequests` shares `supportedLocales` (structured `[{code, label}]`) and `locale` (current code) to every Inertia page.
+- **Catalog translations**: 6 `*_translations` tables store per-locale names/descriptions for reference data (shapes, materials, textures, color_families, colors, themes). Models use the `HasTranslations` trait. Controllers resolve translated values before passing to Inertia.
+- **LocaleSwitcher.vue**: Globe icon dropdown usable in any layout. Reads `supportedLocales` and `locale` from `$page.props`. Posts to `/locale/switch` and reloads.
+- **Guest users**: Locale stored in session, not DB. Lost on login (acceptable v1 limitation).
 
 ---
 

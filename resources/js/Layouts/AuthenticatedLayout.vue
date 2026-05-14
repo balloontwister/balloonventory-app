@@ -4,6 +4,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import ContactSupportModal from '@/Components/ContactSupportModal.vue';
+import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
@@ -222,6 +223,11 @@ function isActive(routeName) {
                             {{ $t('nav.get_help') }}
                         </button>
 
+                        <LocaleSwitcher
+                            class="mb-1"
+                            button-class="flex w-full items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
+                        />
+
                         <div class="flex items-center gap-1">
                             <Link
                                 :href="route('profile.edit')"
@@ -339,6 +345,9 @@ function isActive(routeName) {
                             />
                         </svg>
                     </button>
+                    <LocaleSwitcher
+                        button-class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                    />
                     <button
                         type="button"
                         :title="$t('nav.log_out')"

@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import logoLight from '../../images/balloonventory-logo-light.png';
 
 defineProps({
@@ -16,7 +17,11 @@ defineProps({
         <header class="flex items-center justify-between px-6 py-5 sm:px-10">
             <img :src="logoLight" alt="Balloonventory" class="h-8 w-auto" />
 
-            <nav v-if="canLogin" class="flex items-center gap-3">
+            <div class="flex items-center gap-3">
+                <LocaleSwitcher
+                    button-class="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                />
+                <nav v-if="canLogin" class="flex items-center gap-3">
                 <Link
                     v-if="$page.props.auth.user"
                     :href="route('dashboard')"
@@ -42,6 +47,7 @@ defineProps({
                     </Link>
                 </template>
             </nav>
+            </div>
         </header>
 
         <!-- Hero -->

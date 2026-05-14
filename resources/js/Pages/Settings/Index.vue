@@ -6,7 +6,7 @@ import { computed } from 'vue';
 
 const props = defineProps({
     preferences: { type: Object, required: true },
-    supportedLocales: { type: Array, required: true },
+    supportedLocales: { type: Object, required: true },
 });
 
 const form = useForm({
@@ -14,15 +14,10 @@ const form = useForm({
     timezone: props.preferences.timezone ?? '',
 });
 
-const localeLabels = {
-    en: 'English',
-    es: 'Español',
-};
-
 const localeOptions = computed(() =>
-    props.supportedLocales.map((code) => ({
+    Object.entries(props.supportedLocales).map(([code, label]) => ({
         value: code,
-        label: localeLabels[code] ?? code,
+        label,
     })),
 );
 
@@ -103,7 +98,7 @@ const submit = () => form.patch(route('settings.preferences.update'));
                             </option>
                         </select>
                         <p
-                            v-if="supportedLocales.length === 1"
+                            v-if="Object.keys(supportedLocales).length === 1"
                             class="mt-1 font-sans text-[12px] text-ink-tertiary"
                         >
                             {{

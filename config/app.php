@@ -86,6 +86,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Supported Locales
+    |--------------------------------------------------------------------------
+    |
+    | Locales the application UI is translated into. The keys are locale codes,
+    | the values are display labels shown in the language switcher. When adding
+    | a new language, add it here and create the corresponding lang/<code>/
+    | directory — no frontend changes are needed.
+    |
+    */
+
+    'supported_locales' => [
+        'en' => 'English',
+        'es' => 'Español',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

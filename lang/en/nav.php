@@ -10,6 +10,7 @@ return [
     'settings' => 'Settings',
     'scan' => 'Scan',
     'get_help' => 'Get help',
+    'language' => 'Language',
     'log_out' => 'Log out',
     'no_business_selected' => 'No business selected',
     'manage_businesses' => 'Manage businesses',

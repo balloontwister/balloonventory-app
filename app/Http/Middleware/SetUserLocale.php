@@ -14,6 +14,8 @@ class SetUserLocale
 
         if ($user && $user->locale) {
             app()->setLocale($user->locale);
+        } elseif ($sessionLocale = $request->session()->get('locale')) {
+            app()->setLocale($sessionLocale);
         }
 
         return $next($request);

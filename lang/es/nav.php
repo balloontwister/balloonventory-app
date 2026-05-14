@@ -10,6 +10,7 @@ return [
     'settings' => 'Configuración',
     'scan' => 'Escanear',
     'get_help' => 'Ayuda',
+    'language' => 'Idioma',
     'log_out' => 'Cerrar sesión',
     'no_business_selected' => 'Sin negocio seleccionado',
     'manage_businesses' => 'Gestionar negocios',

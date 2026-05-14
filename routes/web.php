@@ -4,6 +4,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ListsController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
@@ -29,6 +30,9 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+
+// ─── Locale ────────────────────────────────────────────────────────────────────
+Route::post('/locale/switch', [LocaleController::class, 'switch'])->name('locale.switch');
 
 // ─── Onboarding (auth required, no business required) ────────────────────────
 Route::middleware('auth')->group(function () {

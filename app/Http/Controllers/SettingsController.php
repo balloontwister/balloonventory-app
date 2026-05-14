@@ -13,12 +13,6 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
-    /**
-     * Locales the UI is currently translated into. Update when a new
-     * `lang/<locale>/` directory is added.
-     */
-    private const SUPPORTED_LOCALES = ['en', 'es'];
-
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -28,14 +22,14 @@ class SettingsController extends Controller
                 'locale' => $user->locale ?? 'en',
                 'timezone' => $user->timezone,
             ],
-            'supportedLocales' => self::SUPPORTED_LOCALES,
+            'supportedLocales' => config('app.supported_locales'),
         ]);
     }
 
     public function updatePreferences(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'locale' => ['required', 'string', 'in:'.implode(',', self::SUPPORTED_LOCALES)],
+            'locale' => ['required', 'string', 'in:'.implode(',', array_keys(config('app.supported_locales')))],
             'timezone' => ['nullable', 'string', 'in:'.implode(',', timezone_identifiers_list())],
         ]);
 

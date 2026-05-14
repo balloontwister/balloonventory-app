@@ -25,6 +25,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'locale' => fn () => app()->getLocale(),
+            'supportedLocales' => fn () => collect(config('app.supported_locales'))
+                ->map(fn ($label, $code) => ['code' => $code, 'label' => $label])
+                ->values(),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

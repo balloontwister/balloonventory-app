@@ -17,7 +17,7 @@ class SettingsController extends Controller
      * Locales the UI is currently translated into. Update when a new
      * `lang/<locale>/` directory is added.
      */
-    private const SUPPORTED_LOCALES = ['en'];
+    private const SUPPORTED_LOCALES = ['en', 'es'];
 
     public function index(Request $request): Response
     {

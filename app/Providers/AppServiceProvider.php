@@ -18,7 +18,6 @@ use App\Policies\MembershipPolicy;
 use App\Policies\PendingUpcScanPolicy;
 use App\Policies\SkuErrorReportPolicy;
 use App\Policies\SkuPolicy;
-use App\Policies\UpcPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -68,11 +67,6 @@ class AppServiceProvider extends ServiceProvider
         $sku = app(SkuPolicy::class);
         Gate::define('sku.create_private', fn ($u, $b) => $sku->createPrivate($u, $b));
         Gate::define('sku.edit_override', fn ($u, $b) => $sku->editOverride($u, $b));
-
-        $upc = app(UpcPolicy::class);
-        Gate::define('upc.manage', fn ($u, $b) => $upc->manage($u, $b));
-        Gate::define('upc.resolve_pending', fn ($u, $b) => $upc->resolvePending($u, $b));
-        Gate::define('upc.scan', fn ($u, $b) => $upc->scan($u, $b));
 
         $list = app(BalloonListPolicy::class);
         Gate::define('list.view', fn ($u, $b) => $list->viewAny($u, $b));

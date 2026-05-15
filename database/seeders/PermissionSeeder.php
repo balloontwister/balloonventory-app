@@ -30,10 +30,8 @@ class PermissionSeeder extends Seeder
             'sku.edit_override',
             'sku.report_error',
 
-            // Catalog — UPCs
-            'upc.manage',
+            // Pending UPC scans (still in use; the old `upcs` catalog table is gone)
             'upc.resolve_pending',
-            'upc.scan',
 
             // Lists and Favorites
             'list.view',
@@ -93,9 +91,7 @@ class PermissionSeeder extends Seeder
             'sku.delete_private',
             'sku.edit_override',
             'sku.report_error',
-            'upc.manage',
             'upc.resolve_pending',
-            'upc.scan',
             'list.view',
             'list.create',
             'list.edit',
@@ -136,9 +132,7 @@ class PermissionSeeder extends Seeder
             'sku.delete_private',
             'sku.edit_override',
             'sku.report_error',
-            'upc.manage',
             'upc.resolve_pending',
-            'upc.scan',
             'list.view',
             'list.create',
             'list.edit',
@@ -172,8 +166,6 @@ class PermissionSeeder extends Seeder
             'sku.create_private',
             'sku.edit_private',
             'sku.report_error',
-            'upc.manage',
-            'upc.scan',
             'list.view',
             'list.create',
             'list.edit',

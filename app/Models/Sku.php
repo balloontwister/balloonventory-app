@@ -20,23 +20,35 @@ class Sku extends Model
 
     protected $fillable = [
         'name',
+        'description',
         'brand_id',
-        'size_id',
+        'material_id',
+        'balloon_size_id',
         'shape_id',
         'texture_id',
         'color_id',
-        'material_id',
         'is_printed',
         'default_count_per_bag',
-        'manufacturer_sku',
-        'price_code',
-        'image_url',
+        'warehouse_sku',
+        'upc',
+        'ean',
+        'asin',
+        'mfg_no',
+        'packaging_id',
+        'single_image_file_path',
+        'cluster_image_file_path',
+        'price_code_id',
+        'is_active',
+        'discontinued_at',
+        'product_version',
         'owned_by_business_id',
     ];
 
     protected $casts = [
         'is_printed' => 'boolean',
+        'is_active' => 'boolean',
         'default_count_per_bag' => 'integer',
+        'discontinued_at' => 'datetime',
     ];
 
     protected static function boot(): void
@@ -48,6 +60,53 @@ class Sku extends Model
                 $model->id = (string) Str::uuid7();
             }
         });
+
+        static::saving(function (self $model) {
+            if ($model->isDirty(['brand_id', 'color_id', 'shape_id', 'default_count_per_bag', 'balloon_size_id'])) {
+                $model->computed_name = $model->generateComputedName();
+            }
+
+            if ($model->isDirty(['upc', 'brand_id'])) {
+                $model->gs1_prefix = self::deriveGs1Prefix($model->upc, $model->brand_id);
+            }
+
+            if ($model->isDirty('is_active')) {
+                $model->discontinued_at = $model->is_active
+                    ? null
+                    : ($model->discontinued_at ?: now());
+            }
+        });
+    }
+
+    public function setUpcAttribute(?string $value): void
+    {
+        $normalized = strtolower(trim((string) $value));
+        $this->attributes['upc'] = in_array($normalized, ['', 'na', 'n/a'], true) ? null : $value;
+    }
+
+    private static function deriveGs1Prefix(?string $upc, ?string $brandId): ?string
+    {
+        if (! $upc || ! $brandId) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $upc);
+
+        if ($digits === '') {
+            return null;
+        }
+
+        $prefixes = BrandGs1Prefix::where('brand_id', $brandId)
+            ->orderByRaw('LENGTH(prefix) DESC')
+            ->pluck('prefix');
+
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($digits, $prefix)) {
+                return $prefix;
+            }
+        }
+
+        return null;
     }
 
     public function brand(): BelongsTo
@@ -55,9 +114,14 @@ class Sku extends Model
         return $this->belongsTo(Brand::class);
     }
 
-    public function size(): BelongsTo
+    public function material(): BelongsTo
     {
-        return $this->belongsTo(Size::class);
+        return $this->belongsTo(Material::class);
+    }
+
+    public function balloonSize(): BelongsTo
+    {
+        return $this->belongsTo(BalloonSize::class);
     }
 
     public function shape(): BelongsTo
@@ -75,9 +139,14 @@ class Sku extends Model
         return $this->belongsTo(Color::class);
     }
 
-    public function material(): BelongsTo
+    public function packagingType(): BelongsTo
     {
-        return $this->belongsTo(Material::class);
+        return $this->belongsTo(PackagingType::class, 'packaging_id');
+    }
+
+    public function priceCode(): BelongsTo
+    {
+        return $this->belongsTo(PriceCode::class);
     }
 
     public function themes(): BelongsToMany
@@ -85,14 +154,45 @@ class Sku extends Model
         return $this->belongsToMany(Theme::class, 'sku_themes');
     }
 
+    public function printColors(): BelongsToMany
+    {
+        return $this->belongsToMany(PrintColor::class, 'sku_print_colors');
+    }
+
+    public function printSides(): BelongsToMany
+    {
+        return $this->belongsToMany(PrintSide::class, 'sku_print_sides');
+    }
+
+    public function identicalSkus(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'identical_skus',
+            'sku_id',
+            'identical_sku_id',
+        );
+    }
+
+    public function linkIdentical(self $other): void
+    {
+        if ($other->id === $this->id) {
+            throw new \InvalidArgumentException('A SKU cannot be marked as identical to itself.');
+        }
+
+        $this->identicalSkus()->syncWithoutDetaching([$other->id]);
+        $other->identicalSkus()->syncWithoutDetaching([$this->id]);
+    }
+
+    public function unlinkIdentical(self $other): void
+    {
+        $this->identicalSkus()->detach($other->id);
+        $other->identicalSkus()->detach($this->id);
+    }
+
     public function owningBusiness(): BelongsTo
     {
         return $this->belongsTo(Business::class, 'owned_by_business_id');
-    }
-
-    public function upcs(): HasMany
-    {
-        return $this->hasMany(Upc::class);
     }
 
     public function stockLevels(): HasMany
@@ -108,5 +208,20 @@ class Sku extends Model
     public function isShared(): bool
     {
         return $this->owned_by_business_id === null;
+    }
+
+    private function generateComputedName(): string
+    {
+        $this->loadMissing(['balloonSize', 'color', 'brand', 'shape']);
+
+        $parts = array_filter([
+            $this->balloonSize?->name,
+            $this->color?->name,
+            $this->brand?->abbreviation,
+            $this->shape?->name,
+            $this->default_count_per_bag ? $this->default_count_per_bag.'ct' : null,
+        ]);
+
+        return implode(' ', $parts);
     }
 }

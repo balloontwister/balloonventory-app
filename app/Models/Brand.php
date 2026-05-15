@@ -19,9 +19,19 @@ class Brand extends Model
     protected $fillable = [
         'name',
         'abbreviation',
-        'brand_color_hex',
+        'description',
+        'url_1',
+        'url_2',
+        'logo_url',
         'logo_path',
+        'primary_color_hex',
+        'secondary_color_hex',
+        'is_active',
         'sort_order',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     protected static function boot(): void
@@ -38,5 +48,10 @@ class Brand extends Model
     public function skus(): HasMany
     {
         return $this->hasMany(Sku::class);
+    }
+
+    public function gs1Prefixes(): HasMany
+    {
+        return $this->hasMany(BrandGs1Prefix::class);
     }
 }

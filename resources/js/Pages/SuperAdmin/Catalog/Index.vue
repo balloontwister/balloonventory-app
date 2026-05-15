@@ -219,7 +219,7 @@ function sizeCategoryLabel(key) {
                         <th
                             class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
-                            {{ $t('catalog.skus.col_mfr_sku') }}
+                            {{ $t('catalog.skus.col_warehouse_sku') }}
                         </th>
                         <th class="w-24 px-3 py-2.5"></th>
                     </tr>
@@ -275,7 +275,7 @@ function sizeCategoryLabel(key) {
                         <td
                             class="px-3 py-3 font-mono text-[13px] text-ink-secondary"
                         >
-                            {{ sku.size?.name ?? '—' }}
+                            {{ sku.balloon_size?.name ?? '—' }}
                         </td>
                         <td
                             class="px-3 py-3 font-sans text-[13px] text-ink-secondary"
@@ -295,7 +295,7 @@ function sizeCategoryLabel(key) {
                         <td
                             class="px-3 py-3 font-mono text-[13px] text-ink-secondary"
                         >
-                            {{ sku.manufacturer_sku ?? '—' }}
+                            {{ sku.warehouse_sku ?? '—' }}
                         </td>
                         <td class="px-3 py-3">
                             <div

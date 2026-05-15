@@ -15,33 +15,51 @@ const props = defineProps({
     colorFamilies: { type: Array, required: true },
     themes: { type: Array, required: true },
     materials: { type: Array, required: true },
+    balloonSizes: { type: Array, required: true },
+    packagingTypes: { type: Array, required: true },
+    priceCodes: { type: Array, required: true },
+    printColors: { type: Array, required: true },
+    printSides: { type: Array, required: true },
 });
 
 const isEdit = computed(() => !!props.sku);
 
 const form = useForm({
     name: props.sku?.name ?? '',
+    description: props.sku?.description ?? '',
     brand_id: props.sku?.brand_id ?? '',
-    size_id: props.sku?.size_id ?? '',
+    material_id: props.sku?.material_id ?? '',
+    balloon_size_id: props.sku?.balloon_size_id ?? '',
     shape_id: props.sku?.shape_id ?? '',
     texture_id: props.sku?.texture_id ?? '',
     color_id: props.sku?.color_id ?? '',
-    material_id: props.sku?.material_id ?? '',
     is_printed: props.sku?.is_printed ?? false,
     default_count_per_bag: props.sku?.default_count_per_bag ?? '',
-    manufacturer_sku: props.sku?.manufacturer_sku ?? '',
-    price_code: props.sku?.price_code ?? '',
+    warehouse_sku: props.sku?.warehouse_sku ?? '',
+    upc: props.sku?.upc ?? '',
+    ean: props.sku?.ean ?? '',
+    asin: props.sku?.asin ?? '',
+    mfg_no: props.sku?.mfg_no ?? '',
+    packaging_id: props.sku?.packaging_id ?? '',
+    single_image_file_path: props.sku?.single_image_file_path ?? '',
+    cluster_image_file_path: props.sku?.cluster_image_file_path ?? '',
+    price_code_id: props.sku?.price_code_id ?? '',
+    is_active: props.sku?.is_active ?? true,
+    discontinued_at: props.sku?.discontinued_at ?? '',
+    product_version: props.sku?.product_version ?? '',
     theme_ids: props.sku?.themes?.map((t) => t.id) ?? [],
+    print_color_ids: props.sku?.print_colors?.map((c) => c.id) ?? [],
+    print_side_ids: props.sku?.print_sides?.map((s) => s.id) ?? [],
 });
 
-// When brand changes, clear color selection if the color belongs to a different brand.
+// When brand changes, clear every brand-scoped attribute whose previously
+// selected value no longer matches the new brand. We always clear balloon_size,
+// price_code, and texture (which can be brand-scoped); color is cleared only
+// when it actually points at a different brand (unbranded colors are kept).
 watch(
     () => form.brand_id,
     (newBrand) => {
-        if (!form.color_id) return;
-        const selectedColor = allColors.value.find(
-            (c) => c.id === form.color_id,
-        );
+        const selectedColor = allColors.value.find((c) => c.id === form.color_id);
         if (
             selectedColor &&
             selectedColor.brand_id &&
@@ -49,6 +67,20 @@ watch(
         ) {
             form.color_id = '';
         }
+
+        form.balloon_size_id = '';
+        form.price_code_id = '';
+        form.texture_id = '';
+    },
+);
+
+// When material changes, clear every material-scoped attribute.
+watch(
+    () => form.material_id,
+    () => {
+        form.balloon_size_id = '';
+        form.shape_id = '';
+        form.texture_id = '';
     },
 );
 
@@ -70,6 +102,37 @@ const filteredColorFamilies = computed(() => {
         .filter((family) => family.colors.length > 0);
 });
 
+// Filter balloon sizes by brand + material.
+const filteredBalloonSizes = computed(() => {
+    return props.balloonSizes.filter((bs) => {
+        if (form.brand_id && bs.brand_id !== form.brand_id) return false;
+        if (form.material_id && bs.material_id !== form.material_id) return false;
+        return true;
+    });
+});
+
+// Filter shapes by material.
+const filteredShapes = computed(() => {
+    if (!form.material_id) return props.shapes;
+    return props.shapes.filter(
+        (s) => !s.material_id || s.material_id === form.material_id,
+    );
+});
+
+// Filter textures by material.
+const filteredTextures = computed(() => {
+    if (!form.material_id) return props.textures;
+    return props.textures.filter(
+        (t) => !t.material_id || t.material_id === form.material_id,
+    );
+});
+
+// Filter price codes by brand.
+const filteredPriceCodes = computed(() => {
+    if (!form.brand_id) return props.priceCodes;
+    return props.priceCodes.filter((pc) => pc.brand_id === form.brand_id);
+});
+
 // Group sizes by category for optgroup display.
 const sizeGroups = computed(() => {
     const groups = {};
@@ -86,9 +149,21 @@ const sizeGroups = computed(() => {
 // Group textures by family for optgroup display.
 const textureGroups = computed(() => {
     const groups = {};
-    for (const t of props.textures) {
-        if (!groups[t.texture_family]) groups[t.texture_family] = [];
-        groups[t.texture_family].push(t);
+    for (const t of filteredTextures.value) {
+        const family = t.texture_family?.name ?? '';
+        if (!groups[family]) groups[family] = [];
+        groups[family].push(t);
+    }
+    return groups;
+});
+
+// Balloon sizes grouped by size family.
+const balloonSizeGroups = computed(() => {
+    const groups = {};
+    for (const bs of filteredBalloonSizes.value) {
+        const label = bs.size?.name || '';
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(bs);
     }
     return groups;
 });
@@ -97,6 +172,18 @@ function toggleTheme(themeId) {
     const idx = form.theme_ids.indexOf(themeId);
     if (idx === -1) form.theme_ids.push(themeId);
     else form.theme_ids.splice(idx, 1);
+}
+
+function togglePrintColor(colorId) {
+    const idx = form.print_color_ids.indexOf(colorId);
+    if (idx === -1) form.print_color_ids.push(colorId);
+    else form.print_color_ids.splice(idx, 1);
+}
+
+function togglePrintSide(sideId) {
+    const idx = form.print_side_ids.indexOf(sideId);
+    if (idx === -1) form.print_side_ids.push(sideId);
+    else form.print_side_ids.splice(idx, 1);
 }
 
 function submit() {
@@ -154,7 +241,7 @@ const selectClass =
 
         <form @submit.prevent="submit">
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <!-- ── Left: main attributes (2/3 width) ───────────────────── -->
+                <!-- Left: main attributes (2/3 width) -->
                 <div class="flex flex-col gap-6 lg:col-span-2">
                     <!-- Identity -->
                     <div class="rounded-lg border border-border bg-surface p-5">
@@ -215,19 +302,66 @@ const selectClass =
                                 <AppInput
                                     :label="
                                         $t(
-                                            'catalog.sku_form.manufacturer_sku_label',
+                                            'catalog.sku_form.warehouse_sku_label',
                                         )
                                     "
-                                    id="manufacturer_sku"
-                                    v-model="form.manufacturer_sku"
+                                    id="warehouse_sku"
+                                    v-model="form.warehouse_sku"
                                     :placeholder="
                                         $t(
-                                            'catalog.sku_form.manufacturer_sku_placeholder',
+                                            'catalog.sku_form.warehouse_sku_placeholder',
                                         )
                                     "
-                                    :error="form.errors.manufacturer_sku"
+                                    :error="form.errors.warehouse_sku"
                                 />
                             </div>
+
+                            <!-- UPC / EAN / ASIN -->
+                            <div>
+                                <AppInput
+                                    :label="$t('catalog.sku_form.upc_label')"
+                                    id="upc"
+                                    v-model="form.upc"
+                                    :placeholder="
+                                        $t('catalog.sku_form.upc_placeholder')
+                                    "
+                                    :error="form.errors.upc"
+                                />
+                            </div>
+                            <div>
+                                <AppInput
+                                    :label="$t('catalog.sku_form.ean_label')"
+                                    id="ean"
+                                    v-model="form.ean"
+                                    :placeholder="
+                                        $t('catalog.sku_form.ean_placeholder')
+                                    "
+                                    :error="form.errors.ean"
+                                />
+                            </div>
+                            <div>
+                                <AppInput
+                                    :label="$t('catalog.sku_form.asin_label')"
+                                    id="asin"
+                                    v-model="form.asin"
+                                    :placeholder="
+                                        $t('catalog.sku_form.asin_placeholder')
+                                    "
+                                    :error="form.errors.asin"
+                                />
+                            </div>
+                            <div>
+                                <AppInput
+                                    :label="$t('catalog.sku_form.mfg_no_label')"
+                                    id="mfg_no"
+                                    v-model="form.mfg_no"
+                                    :placeholder="
+                                        $t('catalog.sku_form.mfg_no_placeholder')
+                                    "
+                                    :error="form.errors.mfg_no"
+                                />
+                            </div>
+
                         </div>
                     </div>
 
@@ -239,70 +373,7 @@ const selectClass =
                             {{ $t('catalog.sku_form.physical_heading') }}
                         </h2>
                         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <div>
-                                <label
-                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                >
-                                    {{ $t('catalog.sku_form.size_label') }}
-                                </label>
-                                <select
-                                    v-model="form.size_id"
-                                    :class="selectClass"
-                                >
-                                    <option value="">
-                                        {{ $t('catalog.sku_form.none_option') }}
-                                    </option>
-                                    <optgroup
-                                        v-for="(group, label) in sizeGroups"
-                                        :key="label"
-                                        :label="label"
-                                    >
-                                        <option
-                                            v-for="s in group"
-                                            :key="s.id"
-                                            :value="s.id"
-                                        >
-                                            {{ s.name }}
-                                        </option>
-                                    </optgroup>
-                                </select>
-                                <p
-                                    v-if="form.errors.size_id"
-                                    class="mt-1 font-sans text-[13px] text-danger"
-                                >
-                                    {{ form.errors.size_id }}
-                                </p>
-                            </div>
-
-                            <div>
-                                <label
-                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                >
-                                    {{ $t('catalog.sku_form.shape_label') }}
-                                </label>
-                                <select
-                                    v-model="form.shape_id"
-                                    :class="selectClass"
-                                >
-                                    <option value="">
-                                        {{ $t('catalog.sku_form.none_option') }}
-                                    </option>
-                                    <option
-                                        v-for="s in shapes"
-                                        :key="s.id"
-                                        :value="s.id"
-                                    >
-                                        {{ s.name }}
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="form.errors.shape_id"
-                                    class="mt-1 font-sans text-[13px] text-danger"
-                                >
-                                    {{ form.errors.shape_id }}
-                                </p>
-                            </div>
-
+                            <!-- Material (first, because it filters shapes/textures/balloon sizes) -->
                             <div>
                                 <label
                                     class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
@@ -329,6 +400,80 @@ const selectClass =
                                     class="mt-1 font-sans text-[13px] text-danger"
                                 >
                                     {{ form.errors.material_id }}
+                                </p>
+                            </div>
+
+                            <!-- Balloon size (replaces old size dropdown) -->
+                            <div>
+                                <label
+                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{ $t('catalog.sku_form.balloon_size_label') }}
+                                </label>
+                                <select
+                                    v-model="form.balloon_size_id"
+                                    :disabled="!form.brand_id || !form.material_id"
+                                    :class="selectClass"
+                                >
+                                    <option value="">
+                                        {{
+                                            !form.brand_id || !form.material_id
+                                                ? $t(
+                                                      'catalog.sku_form.select_brand_and_material_first',
+                                                  )
+                                                : $t(
+                                                      'catalog.sku_form.none_option',
+                                                  )
+                                        }}
+                                    </option>
+                                    <optgroup
+                                        v-for="(group, label) in balloonSizeGroups"
+                                        :key="label"
+                                        :label="label"
+                                    >
+                                        <option
+                                            v-for="bs in group"
+                                            :key="bs.id"
+                                            :value="bs.id"
+                                        >
+                                            {{ bs.name }}
+                                        </option>
+                                    </optgroup>
+                                </select>
+                                <p
+                                    v-if="form.errors.balloon_size_id"
+                                    class="mt-1 font-sans text-[13px] text-danger"
+                                >
+                                    {{ form.errors.balloon_size_id }}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{ $t('catalog.sku_form.shape_label') }}
+                                </label>
+                                <select
+                                    v-model="form.shape_id"
+                                    :class="selectClass"
+                                >
+                                    <option value="">
+                                        {{ $t('catalog.sku_form.none_option') }}
+                                    </option>
+                                    <option
+                                        v-for="s in filteredShapes"
+                                        :key="s.id"
+                                        :value="s.id"
+                                    >
+                                        {{ s.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.shape_id"
+                                    class="mt-1 font-sans text-[13px] text-danger"
+                                >
+                                    {{ form.errors.shape_id }}
                                 </p>
                             </div>
 
@@ -410,7 +555,6 @@ const selectClass =
                                             </option>
                                         </optgroup>
                                     </select>
-                                    <!-- Live color swatch -->
                                     <span
                                         v-if="selectedColorHex"
                                         class="h-8 w-8 shrink-0 rounded-md ring-1 ring-inset ring-black/10"
@@ -455,47 +599,130 @@ const selectClass =
                         </div>
                     </div>
 
-                    <!-- Themes (multi-select) -->
+                    <!-- Print details (conditional on is_printed) -->
                     <div
                         v-if="form.is_printed"
                         class="rounded-lg border border-border bg-surface p-5"
                     >
                         <h2
-                            class="mb-1 font-sans text-[15px] font-semibold text-ink-primary"
+                            class="mb-4 font-sans text-[15px] font-semibold text-ink-primary"
                         >
-                            {{ $t('catalog.sku_form.themes_heading') }}
+                            {{ $t('catalog.sku_form.print_details_heading') }}
                         </h2>
-                        <p
-                            class="mb-4 font-sans text-[13px] text-ink-secondary"
-                        >
-                            {{ $t('catalog.sku_form.themes_subheading') }}
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-for="theme in themes"
-                                :key="theme.id"
-                                type="button"
-                                class="rounded-full border px-3 py-1.5 font-sans text-[13px] font-medium transition"
-                                :class="
-                                    form.theme_ids.includes(theme.id)
-                                        ? 'border-accent bg-accent-soft text-accent'
-                                        : 'border-border bg-surface text-ink-secondary hover:border-border-strong'
-                                "
-                                @click="toggleTheme(theme.id)"
+
+                        <!-- Themes -->
+                        <div class="mb-5">
+                            <h3
+                                class="mb-1 font-sans text-[13px] font-semibold text-ink-primary"
                             >
-                                {{ theme.name }}
-                            </button>
+                                {{ $t('catalog.sku_form.themes_heading') }}
+                            </h3>
+                            <p
+                                class="mb-3 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{ $t('catalog.sku_form.themes_subheading') }}
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="theme in themes"
+                                    :key="theme.id"
+                                    type="button"
+                                    class="rounded-full border px-3 py-1.5 font-sans text-[13px] font-medium transition"
+                                    :class="
+                                        form.theme_ids.includes(theme.id)
+                                            ? 'border-accent bg-accent-soft text-accent'
+                                            : 'border-border bg-surface text-ink-secondary hover:border-border-strong'
+                                    "
+                                    @click="toggleTheme(theme.id)"
+                                >
+                                    {{ theme.name }}
+                                </button>
+                            </div>
                         </div>
-                        <p
-                            v-if="form.errors.theme_ids"
-                            class="mt-2 font-sans text-[13px] text-danger"
-                        >
-                            {{ form.errors.theme_ids }}
-                        </p>
+
+                        <!-- Print colors -->
+                        <div class="mb-5">
+                            <h3
+                                class="mb-1 font-sans text-[13px] font-semibold text-ink-primary"
+                            >
+                                {{ $t('catalog.sku_form.print_colors_heading') }}
+                            </h3>
+                            <p
+                                class="mb-3 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{
+                                    $t(
+                                        'catalog.sku_form.print_colors_subheading',
+                                    )
+                                }}
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="color in printColors"
+                                    :key="color.id"
+                                    type="button"
+                                    class="rounded-full border px-3 py-1.5 font-sans text-[13px] font-medium transition"
+                                    :class="
+                                        form.print_color_ids.includes(color.id)
+                                            ? 'border-accent bg-accent-soft text-accent'
+                                            : 'border-border bg-surface text-ink-secondary hover:border-border-strong'
+                                    "
+                                    @click="togglePrintColor(color.id)"
+                                >
+                                    {{ color.name }}
+                                </button>
+                            </div>
+                            <p
+                                v-if="form.errors.print_color_ids"
+                                class="mt-2 font-sans text-[13px] text-danger"
+                            >
+                                {{ form.errors.print_color_ids }}
+                            </p>
+                        </div>
+
+                        <!-- Print sides -->
+                        <div>
+                            <h3
+                                class="mb-1 font-sans text-[13px] font-semibold text-ink-primary"
+                            >
+                                {{ $t('catalog.sku_form.print_sides_heading') }}
+                            </h3>
+                            <p
+                                class="mb-3 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{
+                                    $t(
+                                        'catalog.sku_form.print_sides_subheading',
+                                    )
+                                }}
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="side in printSides"
+                                    :key="side.id"
+                                    type="button"
+                                    class="rounded-full border px-3 py-1.5 font-sans text-[13px] font-medium transition"
+                                    :class="
+                                        form.print_side_ids.includes(side.id)
+                                            ? 'border-accent bg-accent-soft text-accent'
+                                            : 'border-border bg-surface text-ink-secondary hover:border-border-strong'
+                                    "
+                                    @click="togglePrintSide(side.id)"
+                                >
+                                    {{ side.name }}
+                                </button>
+                            </div>
+                            <p
+                                v-if="form.errors.print_side_ids"
+                                class="mt-2 font-sans text-[13px] text-danger"
+                            >
+                                {{ form.errors.print_side_ids }}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── Right: metadata (1/3 width) ─────────────────────────── -->
+                <!-- Right: metadata (1/3 width) -->
                 <div class="flex flex-col gap-6">
                     <div class="rounded-lg border border-border bg-surface p-5">
                         <h2
@@ -504,17 +731,40 @@ const selectClass =
                             {{ $t('catalog.sku_form.metadata_heading') }}
                         </h2>
                         <div class="flex flex-col gap-4">
-                            <AppInput
-                                :label="$t('catalog.sku_form.price_code_label')"
-                                id="price_code"
-                                v-model="form.price_code"
-                                :placeholder="
-                                    $t(
-                                        'catalog.sku_form.price_code_placeholder',
-                                    )
-                                "
-                                :error="form.errors.price_code"
-                            />
+                            <!-- Price code -->
+                            <div>
+                                <label
+                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{
+                                        $t(
+                                            'catalog.sku_form.price_code_label',
+                                        )
+                                    }}
+                                </label>
+                                <select
+                                    v-model="form.price_code_id"
+                                    :class="selectClass"
+                                >
+                                    <option value="">
+                                        {{ $t('catalog.sku_form.none_option') }}
+                                    </option>
+                                    <option
+                                        v-for="pc in filteredPriceCodes"
+                                        :key="pc.id"
+                                        :value="pc.id"
+                                    >
+                                        {{ pc.code }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.price_code_id"
+                                    class="mt-1 font-sans text-[13px] text-danger"
+                                >
+                                    {{ form.errors.price_code_id }}
+                                </p>
+                            </div>
+
                             <AppInput
                                 :label="
                                     $t('catalog.sku_form.default_count_label')
@@ -528,6 +778,162 @@ const selectClass =
                                     )
                                 "
                                 :error="form.errors.default_count_per_bag"
+                            />
+
+                            <!-- Packaging -->
+                            <div>
+                                <label
+                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{
+                                        $t(
+                                            'catalog.sku_form.packaging_label',
+                                        )
+                                    }}
+                                </label>
+                                <select
+                                    v-model="form.packaging_id"
+                                    :class="selectClass"
+                                >
+                                    <option value="">
+                                        {{ $t('catalog.sku_form.none_option') }}
+                                    </option>
+                                    <option
+                                        v-for="pt in packagingTypes"
+                                        :key="pt.id"
+                                        :value="pt.id"
+                                    >
+                                        {{ pt.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.packaging_id"
+                                    class="mt-1 font-sans text-[13px] text-danger"
+                                >
+                                    {{ form.errors.packaging_id }}
+                                </p>
+                            </div>
+
+                            <!-- Product version -->
+                            <AppInput
+                                :label="
+                                    $t(
+                                        'catalog.sku_form.product_version_label',
+                                    )
+                                "
+                                id="product_version"
+                                v-model="form.product_version"
+                                :placeholder="
+                                    $t(
+                                        'catalog.sku_form.product_version_placeholder',
+                                    )
+                                "
+                                :error="form.errors.product_version"
+                            />
+
+                            <!-- Active toggle -->
+                            <div class="flex flex-col gap-1">
+                                <label
+                                    class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{ $t('catalog.sku_form.status_label') }}
+                                </label>
+                                <label
+                                    class="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-[10px]"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        v-model="form.is_active"
+                                        class="h-4 w-4 accent-accent"
+                                    />
+                                    <span
+                                        class="font-sans text-[14px] text-ink-primary"
+                                    >
+                                        {{
+                                            $t(
+                                                'catalog.sku_form.active_checkbox',
+                                            )
+                                        }}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="rounded-lg border border-border bg-surface p-5">
+                        <h2
+                            class="mb-4 font-sans text-[15px] font-semibold text-ink-primary"
+                        >
+                            {{ $t('catalog.sku_form.description_heading') }}
+                        </h2>
+                        <div>
+                            <label
+                                class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                            >
+                                {{
+                                    $t(
+                                        'catalog.sku_form.description_label',
+                                    )
+                                }}
+                            </label>
+                            <textarea
+                                id="description"
+                                v-model="form.description"
+                                rows="3"
+                                :placeholder="
+                                    $t(
+                                        'catalog.sku_form.description_placeholder',
+                                    )
+                                "
+                                :class="selectClass"
+                            />
+                            <p
+                                v-if="form.errors.description"
+                                class="mt-1 font-sans text-[13px] text-danger"
+                            >
+                                {{ form.errors.description }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Image paths -->
+                    <div class="rounded-lg border border-border bg-surface p-5">
+                        <h2
+                            class="mb-4 font-sans text-[15px] font-semibold text-ink-primary"
+                        >
+                            {{ $t('catalog.sku_form.images_heading') }}
+                        </h2>
+                        <div class="flex flex-col gap-4">
+                            <AppInput
+                                :label="
+                                    $t(
+                                        'catalog.sku_form.single_image_label',
+                                    )
+                                "
+                                id="single_image_file_path"
+                                v-model="form.single_image_file_path"
+                                :placeholder="
+                                    $t(
+                                        'catalog.sku_form.single_image_placeholder',
+                                    )
+                                "
+                                :error="form.errors.single_image_file_path"
+                            />
+                            <AppInput
+                                :label="
+                                    $t(
+                                        'catalog.sku_form.cluster_image_label',
+                                    )
+                                "
+                                id="cluster_image_file_path"
+                                v-model="form.cluster_image_file_path"
+                                :placeholder="
+                                    $t(
+                                        'catalog.sku_form.cluster_image_placeholder',
+                                    )
+                                "
+                                :error="form.errors.cluster_image_file_path"
                             />
                         </div>
                     </div>

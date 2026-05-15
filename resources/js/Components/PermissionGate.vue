@@ -15,8 +15,6 @@ const roleForPermission = {
     'inventory.view_audit_log': 'Manager',
     'sku.create_private': 'Manager',
     'sku.edit_override': 'Manager',
-    'upc.manage': 'Manager',
-    'upc.resolve_pending': 'Manager',
     'business.edit_settings': 'Owner',
 };
 

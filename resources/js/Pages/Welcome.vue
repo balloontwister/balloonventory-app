@@ -90,7 +90,6 @@ defineProps({
             <div class="mt-16 flex flex-wrap items-center justify-center gap-2">
                 <span
                     v-for="featureKey in [
-                        'upc_barcode_scanning',
                         'multi_business_accounts',
                         'job_planning',
                         'favorites_and_lists',

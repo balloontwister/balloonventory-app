@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Material;
 use App\Models\Shape;
 use Illuminate\Database\Seeder;
 
@@ -9,6 +10,8 @@ class ShapeSeeder extends Seeder
 {
     public function run(): void
     {
+        $latex = Material::where('name', 'Latex')->first();
+
         $shapes = [
             ['name' => 'Round',       'sort_order' => 10],
             ['name' => 'Link',        'sort_order' => 20],
@@ -22,7 +25,11 @@ class ShapeSeeder extends Seeder
         ];
 
         foreach ($shapes as $data) {
-            Shape::firstOrCreate(['name' => $data['name']], $data);
+            $data['material_id'] = $latex?->id;
+            Shape::firstOrCreate(
+                ['name' => $data['name'], 'material_id' => $data['material_id']],
+                $data,
+            );
         }
     }
 }

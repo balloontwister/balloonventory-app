@@ -22,7 +22,13 @@ class Color extends Model
         'name',
         'color_family_id',
         'brand_id',
+        'material_id',
         'color_hex',
+        'color_code',
+        'pms_value',
+        'texture_id',
+        'single_image_file_path',
+        'cluster_image_file_path',
         'sort_order',
         'description',
     ];
@@ -51,6 +57,16 @@ class Color extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function material(): BelongsTo
+    {
+        return $this->belongsTo(Material::class);
+    }
+
+    public function texture(): BelongsTo
+    {
+        return $this->belongsTo(Texture::class);
     }
 
     public function skus(): HasMany

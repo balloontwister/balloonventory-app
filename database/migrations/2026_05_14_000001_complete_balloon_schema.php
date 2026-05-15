@@ -45,7 +45,9 @@ return new class extends Migration
 
             $table->foreign('brand_id')->references('id')->on('brands');
             $table->index('brand_id');
-            $table->index(['brand_id', 'code']);
+            // No composite (brand_id, code) index: MySQL's 1000-byte InnoDB key
+            // limit rejects char(36)+varchar(255) under utf8mb4. Uniqueness is
+            // enforced in seeders (firstOrCreate) and FormRequest validation.
         });
 
         Schema::create('balloon_sizes', function (Blueprint $table) {
@@ -69,7 +71,8 @@ return new class extends Migration
             $table->index('material_id');
             $table->index('size_id');
             $table->index('sort_order');
-            $table->index(['brand_id', 'material_id', 'name']);
+            // No composite (brand_id, material_id, name) index: see note on
+            // price_codes above. Uniqueness is enforced in app code.
         });
 
         Schema::create('print_colors', function (Blueprint $table) {
@@ -95,7 +98,10 @@ return new class extends Migration
         Schema::create('brand_gs1_prefixes', function (Blueprint $table) {
             $table->char('id', 36)->primary();
             $table->char('brand_id', 36);
-            $table->string('prefix');
+            // Real GS1 prefixes are short numeric strings (~6-12 digits); keep
+            // the column small so the (brand_id, prefix) unique fits under
+            // MySQL's InnoDB key length limit.
+            $table->string('prefix', 20);
             $table->timestamps();
 
             $table->foreign('brand_id')->references('id')->on('brands');
@@ -146,9 +152,9 @@ return new class extends Migration
 
             // Per the rework: uniqueness on (name, brand_id, material_id) is enforced
             // in seeders (firstOrCreate) and FormRequest validation, not at the DB level.
-            // The NULL-aware DB approach doesn't work portably across MySQL/SQLite.
+            // No composite index here: MySQL's 1000-byte InnoDB key limit rejects
+            // multi-column indexes that include varchar(255) under utf8mb4.
             $table->dropUnique(['name', 'brand_id', 'deleted_at']);
-            $table->index(['name', 'brand_id', 'material_id']);
         });
 
         Schema::table('color_families', function (Blueprint $table) {
@@ -162,7 +168,6 @@ return new class extends Migration
             $table->index('material_id');
 
             $table->dropUnique(['name']);
-            $table->index(['name', 'material_id']);
         });
 
         // Pre-existing color_hex represents a solid fallback (no gradient). Rename
@@ -186,7 +191,6 @@ return new class extends Migration
             $table->index('texture_family_id');
 
             $table->dropUnique(['name']);
-            $table->index(['name', 'material_id', 'brand_id']);
 
             // Replace the free-text texture_family with the FK above.
             $table->dropIndex(['texture_family']);
@@ -201,7 +205,6 @@ return new class extends Migration
             $table->index('material_id');
 
             $table->dropUnique(['name']);
-            $table->index(['name', 'material_id']);
         });
 
         Schema::table('sizes', function (Blueprint $table) {
@@ -389,7 +392,6 @@ return new class extends Migration
         });
 
         Schema::table('shapes', function (Blueprint $table) {
-            $table->dropIndex(['name', 'material_id']);
             $table->unique('name');
 
             $table->dropForeign(['material_id']);
@@ -401,7 +403,6 @@ return new class extends Migration
             $table->string('texture_family')->nullable()->after('name');
             $table->index('texture_family');
 
-            $table->dropIndex(['name', 'material_id', 'brand_id']);
             $table->unique('name');
 
             $table->dropForeign(['material_id']);
@@ -418,7 +419,6 @@ return new class extends Migration
         });
 
         Schema::table('color_families', function (Blueprint $table) {
-            $table->dropIndex(['name', 'material_id']);
             $table->unique('name');
 
             $table->dropForeign(['material_id']);
@@ -427,7 +427,6 @@ return new class extends Migration
         });
 
         Schema::table('colors', function (Blueprint $table) {
-            $table->dropIndex(['name', 'brand_id', 'material_id']);
             $table->unique(['name', 'brand_id', 'deleted_at']);
 
             $table->dropForeign(['material_id']);

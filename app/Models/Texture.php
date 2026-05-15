@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasTranslations;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -19,7 +20,10 @@ class Texture extends Model
 
     protected $fillable = [
         'name',
-        'texture_family',
+        'material_id',
+        'brand_id',
+        'texture_family_id',
+        'image_path',
         'sort_order',
         'description',
     ];
@@ -38,6 +42,21 @@ class Texture extends Model
     public function translations(): HasMany
     {
         return $this->hasMany(TextureTranslation::class);
+    }
+
+    public function material(): BelongsTo
+    {
+        return $this->belongsTo(Material::class);
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function textureFamily(): BelongsTo
+    {
+        return $this->belongsTo(TextureFamily::class);
     }
 
     public function skus(): HasMany

@@ -21,6 +21,8 @@ class Size extends Model
         'alt_imperial_name',
         'diameter_cm',
         'size_category',
+        'single_image_file_path',
+        'cluster_image_file_path',
         'sort_order',
         'description',
     ];
@@ -41,8 +43,8 @@ class Size extends Model
         });
     }
 
-    public function skus(): HasMany
+    public function balloonSizes(): HasMany
     {
-        return $this->hasMany(Sku::class);
+        return $this->hasMany(BalloonSize::class);
     }
 }

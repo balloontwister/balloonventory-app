@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Brand extends Model
+class BalloonSize extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -17,22 +18,14 @@ class Brand extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'brand_id',
+        'material_id',
+        'size_id',
         'name',
-        'abbreviation',
         'description',
-        'url_1',
-        'url_2',
-        'logo_url',
-        'primary_color_hex',
-        'secondary_color_hex',
-        'is_active',
-        'brand_color_hex',
-        'logo_path',
+        'single_image_path',
+        'cluster_image_path',
         'sort_order',
-    ];
-
-    protected $casts = [
-        'is_active' => 'boolean',
     ];
 
     protected static function boot(): void
@@ -46,13 +39,23 @@ class Brand extends Model
         });
     }
 
-    public function skus(): HasMany
+    public function brand(): BelongsTo
     {
-        return $this->hasMany(Sku::class);
+        return $this->belongsTo(Brand::class);
     }
 
-    public function gs1Prefixes(): HasMany
+    public function material(): BelongsTo
     {
-        return $this->hasMany(BrandGs1Prefix::class);
+        return $this->belongsTo(Material::class);
+    }
+
+    public function size(): BelongsTo
+    {
+        return $this->belongsTo(Size::class);
+    }
+
+    public function skus(): HasMany
+    {
+        return $this->hasMany(Sku::class, 'balloon_size_id');
     }
 }

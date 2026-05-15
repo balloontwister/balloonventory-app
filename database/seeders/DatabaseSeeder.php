@@ -12,14 +12,20 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             SuperAdminSeeder::class,
             EmailTemplateSeeder::class,
-            // Catalog reference data — order matters: color families before colors
+            // Catalog reference data — order matters: families before children.
             BrandSeeder::class,
+            MaterialSeeder::class,
             SizeSeeder::class,
-            ShapeSeeder::class,
+            TextureFamilySeeder::class,
             TextureSeeder::class,
             ColorFamilySeeder::class,
+            ShapeSeeder::class,
             ThemeSeeder::class,
-            MaterialSeeder::class,
+            PackagingTypeSeeder::class,
+            PrintColorSeeder::class,
+            PrintSideSeeder::class,
+            PriceCodeSeeder::class,
+            BalloonSizeSeeder::class,
             CatalogTranslationSeeder::class,
         ]);
     }

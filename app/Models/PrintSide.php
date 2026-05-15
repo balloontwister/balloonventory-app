@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Upc extends Model
+class PrintSide extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -17,10 +17,8 @@ class Upc extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'upc_string',
-        'sku_id',
-        'first_added_by_business_id',
-        'first_added_by_user_id',
+        'name',
+        'sort_order',
     ];
 
     protected static function boot(): void
@@ -34,18 +32,8 @@ class Upc extends Model
         });
     }
 
-    public function sku(): BelongsTo
+    public function skus(): BelongsToMany
     {
-        return $this->belongsTo(Sku::class);
-    }
-
-    public function firstAddedByBusiness(): BelongsTo
-    {
-        return $this->belongsTo(Business::class, 'first_added_by_business_id');
-    }
-
-    public function firstAddedByUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'first_added_by_user_id');
+        return $this->belongsToMany(Sku::class, 'sku_print_sides');
     }
 }

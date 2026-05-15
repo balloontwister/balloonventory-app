@@ -2,27 +2,22 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasTranslations;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class Material extends Model
+class BrandGs1Prefix extends Model
 {
-    use HasFactory, HasTranslations, SoftDeletes;
+    use HasFactory;
 
     public $incrementing = false;
 
     protected $keyType = 'string';
 
     protected $fillable = [
-        'name',
-        'url',
-        'image_path',
-        'sort_order',
-        'description',
+        'brand_id',
+        'prefix',
     ];
 
     protected static function boot(): void
@@ -36,13 +31,8 @@ class Material extends Model
         });
     }
 
-    public function translations(): HasMany
+    public function brand(): BelongsTo
     {
-        return $this->hasMany(MaterialTranslation::class);
-    }
-
-    public function skus(): HasMany
-    {
-        return $this->hasMany(Sku::class);
+        return $this->belongsTo(Brand::class);
     }
 }

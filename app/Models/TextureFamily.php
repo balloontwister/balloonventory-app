@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Brand extends Model
+class TextureFamily extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -18,21 +18,9 @@ class Brand extends Model
 
     protected $fillable = [
         'name',
-        'abbreviation',
         'description',
-        'url_1',
-        'url_2',
-        'logo_url',
-        'primary_color_hex',
-        'secondary_color_hex',
-        'is_active',
-        'brand_color_hex',
-        'logo_path',
+        'image_path',
         'sort_order',
-    ];
-
-    protected $casts = [
-        'is_active' => 'boolean',
     ];
 
     protected static function boot(): void
@@ -46,13 +34,8 @@ class Brand extends Model
         });
     }
 
-    public function skus(): HasMany
+    public function textures(): HasMany
     {
-        return $this->hasMany(Sku::class);
-    }
-
-    public function gs1Prefixes(): HasMany
-    {
-        return $this->hasMany(BrandGs1Prefix::class);
+        return $this->hasMany(Texture::class);
     }
 }

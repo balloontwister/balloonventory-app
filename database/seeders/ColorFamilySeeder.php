@@ -3,14 +3,15 @@
 namespace Database\Seeders;
 
 use App\Models\ColorFamily;
+use App\Models\Material;
 use Illuminate\Database\Seeder;
 
 class ColorFamilySeeder extends Seeder
 {
     public function run(): void
     {
-        // Representative hex per family — the swatch shown in the Colors page
-        // family header. Admin can fine-tune later via the Reference Data UI.
+        $latex = Material::where('name', 'Latex')->first();
+
         $families = [
             ['name' => 'Reds',     'sort_order' => 10,  'color_hex' => '#DC2626'],
             ['name' => 'Pinks',    'sort_order' => 20,  'color_hex' => '#EC4899'],
@@ -28,8 +29,7 @@ class ColorFamilySeeder extends Seeder
         ];
 
         foreach ($families as $data) {
-            // updateOrCreate (not firstOrCreate) so re-running the seeder fills
-            // in new fields like color_hex even on existing rows.
+            $data['material_id'] = $latex?->id;
             ColorFamily::updateOrCreate(['name' => $data['name']], $data);
         }
     }

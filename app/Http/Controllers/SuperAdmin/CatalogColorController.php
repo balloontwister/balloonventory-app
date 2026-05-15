@@ -43,6 +43,7 @@ class CatalogColorController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate($this->rules($request));
+        $data['sort_order'] ??= 0;
 
         Color::create($data);
 
@@ -53,6 +54,7 @@ class CatalogColorController extends Controller
     public function update(Request $request, Color $color): RedirectResponse
     {
         $data = $request->validate($this->rules($request, $color->id));
+        $data['sort_order'] ??= 0;
 
         $color->update($data);
 

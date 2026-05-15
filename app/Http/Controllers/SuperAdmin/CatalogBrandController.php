@@ -43,6 +43,7 @@ class CatalogBrandController extends Controller
 
         // logo file is not a column; drop it after extracting the path.
         unset($data['logo']);
+        $data['sort_order'] ??= 0;
 
         Brand::create($data);
 
@@ -63,6 +64,7 @@ class CatalogBrandController extends Controller
         }
 
         unset($data['logo'], $data['logo_clear']);
+        $data['sort_order'] ??= 0;
 
         $brand->update($data);
 

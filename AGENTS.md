@@ -19,7 +19,7 @@ The product is intentionally narrow: it tracks inventory and supports planning. 
 - **Runtime**: PHP 8.5.5 (local), PHP 8.4 via EasyApache 4 on the server
 - **Framework**: Laravel 12 with Breeze starter kit (Inertia + Vue 3 + Tailwind)
 - **Frontend**: Vue 3, Inertia.js, Tailwind, Reka UI for accessible primitives
-- **Database**: MariaDB 10.11.16 (LTS)
+- **Database**: MariaDB 10.11.16 (LTS). All tables are **InnoDB** with `utf8mb4_unicode_ci`. `config/database.php` pins `engine => InnoDB` on the mysql + mariadb connections so future migrations follow suit. Foreign keys declared in migrations are enforced at the DB level — verify with `SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND CONSTRAINT_TYPE = 'FOREIGN KEY'` (~64 currently). The host's default engine was MyISAM until 2026-05-15; see `database/migrations/2026_05_15_154811_convert_tables_to_innodb_and_restore_fks.php` for the conversion and FK restoration.
 - **ORM**: Eloquent
 - **Auth**: Laravel built-in via Breeze
 - **Authorization**: `spatie/laravel-permission`

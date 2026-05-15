@@ -89,7 +89,7 @@ class CatalogBrandController extends Controller
             ],
             'primary_color_hex' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
-            'logo' => ['nullable', 'file', 'image', 'max:10240'],
+            'logo' => ['nullable', 'file', 'image:allow_svg', 'max:10240'],
             'logo_clear' => ['nullable', 'boolean'],
         ];
     }

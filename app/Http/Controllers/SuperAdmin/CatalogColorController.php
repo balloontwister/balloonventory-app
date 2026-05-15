@@ -126,9 +126,9 @@ class CatalogColorController extends Controller
             'color_hex' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'description' => ['nullable', 'string', 'max:500'],
-            'single_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'single_image' => ['nullable', 'file', 'image:allow_svg', 'max:10240'],
             'single_image_clear' => ['nullable', 'boolean'],
-            'cluster_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'cluster_image' => ['nullable', 'file', 'image:allow_svg', 'max:10240'],
             'cluster_image_clear' => ['nullable', 'boolean'],
         ];
     }

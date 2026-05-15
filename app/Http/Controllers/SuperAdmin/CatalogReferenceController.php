@@ -61,6 +61,7 @@ class CatalogReferenceController extends Controller
         [$modelClass, $fields] = $this->resolveTable($table);
 
         $data = $request->validate($this->rules($table, $fields));
+        $data['sort_order'] ??= 0;
 
         $modelClass::create($data);
 
@@ -75,6 +76,7 @@ class CatalogReferenceController extends Controller
         /** @var Model $record */
         $record = $modelClass::findOrFail($item);
         $data = $request->validate($this->rules($table, $fields));
+        $data['sort_order'] ??= 0;
         $record->update($data);
 
         return redirect()->route('super-admin.catalog.reference')

@@ -2,9 +2,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
+import ImageGallery from '@/Components/ImageGallery.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     sizes: { type: Array, required: true },
@@ -27,23 +29,19 @@ const tabKeys = [
     'materials',
 ];
 
-// Map tab key → props key + fields
+// Map tab key → props key + image slots. Slots correspond to keys configured
+// in CatalogImageService (single/cluster for dual-image entities, 'image' for
+// single-image entities, empty array for themes).
 const tabConfig = {
-    sizes: {
-        items: () => props.sizes,
-        fields: ['name', 'size_category', 'sort_order'],
-    },
-    shapes: { items: () => props.shapes, fields: ['name', 'sort_order'] },
-    textures: {
-        items: () => props.textures,
-        fields: ['name', 'texture_family_id', 'sort_order'],
-    },
+    sizes: { items: () => props.sizes, imageSlots: ['single', 'cluster'] },
+    shapes: { items: () => props.shapes, imageSlots: ['image'] },
+    textures: { items: () => props.textures, imageSlots: ['image'] },
     'color-families': {
         items: () => props.colorFamilies,
-        fields: ['name', 'fallback_color_hex', 'sort_order'],
+        imageSlots: ['single', 'cluster'],
     },
-    themes: { items: () => props.themes, fields: ['name', 'sort_order'] },
-    materials: { items: () => props.materials, fields: ['name', 'sort_order'] },
+    themes: { items: () => props.themes, imageSlots: [] },
+    materials: { items: () => props.materials, imageSlots: ['image'] },
 };
 
 const sizeCategories = [
@@ -55,6 +53,11 @@ const sizeCategories = [
     'large_modeling',
 ];
 
+const activeSlots = computed(() => tabConfig[activeTab.value].imageSlots);
+const hasSingle = computed(() => activeSlots.value.includes('single'));
+const hasCluster = computed(() => activeSlots.value.includes('cluster'));
+const hasImage = computed(() => activeSlots.value.includes('image'));
+
 // ── Add form ──────────────────────────────────────────────────────────────────
 const showAdd = ref(false);
 const addForm = useForm({
@@ -63,12 +66,16 @@ const addForm = useForm({
     texture_family_id: '',
     fallback_color_hex: '',
     sort_order: '',
+    single_image: null,
+    cluster_image: null,
+    image: null,
 });
 
 function submitAdd() {
     addForm.post(
         route('super-admin.catalog.reference.store', activeTab.value),
         {
+            forceFormData: true,
             onSuccess: () => {
                 addForm.reset();
                 showAdd.value = false;
@@ -85,6 +92,13 @@ const editForm = useForm({
     texture_family_id: '',
     fallback_color_hex: '',
     sort_order: '',
+    single_image: null,
+    single_image_clear: false,
+    cluster_image: null,
+    cluster_image_clear: false,
+    image: null,
+    image_clear: false,
+    _method: 'patch',
 });
 
 function startEdit(item) {
@@ -94,20 +108,34 @@ function startEdit(item) {
     editForm.texture_family_id = item.texture_family_id ?? '';
     editForm.fallback_color_hex = item.fallback_color_hex ?? '';
     editForm.sort_order = item.sort_order ?? '';
+    editForm.single_image = null;
+    editForm.single_image_clear = false;
+    editForm.cluster_image = null;
+    editForm.cluster_image_clear = false;
+    editForm.image = null;
+    editForm.image_clear = false;
 }
 
 function submitEdit(item) {
-    editForm.patch(
+    // POST + _method spoofing so multipart uploads survive the PATCH route.
+    editForm.post(
         route('super-admin.catalog.reference.update', {
             table: activeTab.value,
             item: item.id,
         }),
         {
+            forceFormData: true,
             onSuccess: () => {
                 editingId.value = null;
             },
         },
     );
+}
+
+function itemThumbnails(item) {
+    const slots = activeSlots.value;
+    if (!item.images) return [];
+    return slots.map((slot) => item.images[slot]).filter(Boolean);
 }
 
 function cancelEdit() {
@@ -305,6 +333,28 @@ const selectClass =
                     />
                 </div>
 
+                <div v-if="hasImage" class="w-72">
+                    <ImageUpload
+                        label="Image"
+                        v-model:file="addForm.image"
+                        :error="addForm.errors.image"
+                    />
+                </div>
+                <div v-if="hasSingle" class="w-72">
+                    <ImageUpload
+                        label="Single balloon"
+                        v-model:file="addForm.single_image"
+                        :error="addForm.errors.single_image"
+                    />
+                </div>
+                <div v-if="hasCluster" class="w-72">
+                    <ImageUpload
+                        label="Cluster"
+                        v-model:file="addForm.cluster_image"
+                        :error="addForm.errors.cluster_image"
+                    />
+                </div>
+
                 <AppButton
                     type="submit"
                     variant="primary"
@@ -342,6 +392,12 @@ const selectClass =
                             class="px-4 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
                             {{ $t('catalog.reference.col_hex') }}
+                        </th>
+                        <th
+                            v-if="activeSlots.length"
+                            class="px-4 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            Images
                         </th>
                         <th
                             class="px-4 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
@@ -406,6 +462,13 @@ const selectClass =
                                         }}</span
                                     >
                                 </div>
+                            </td>
+                            <td v-if="activeSlots.length" class="px-4 py-3">
+                                <ImageGallery
+                                    :urls="itemThumbnails(item)"
+                                    size="sm"
+                                    :alt="item.name"
+                                />
                             </td>
                             <td
                                 class="px-4 py-3 text-right font-mono text-[13px] text-ink-tertiary"
@@ -563,6 +626,41 @@ const selectClass =
                                             "
                                             type="number"
                                             v-model="editForm.sort_order"
+                                        />
+                                    </div>
+                                    <div v-if="hasImage" class="w-72">
+                                        <ImageUpload
+                                            label="Image"
+                                            v-model:file="editForm.image"
+                                            v-model:clear="editForm.image_clear"
+                                            :current-url="item.images?.image"
+                                            :error="editForm.errors.image"
+                                        />
+                                    </div>
+                                    <div v-if="hasSingle" class="w-72">
+                                        <ImageUpload
+                                            label="Single balloon"
+                                            v-model:file="editForm.single_image"
+                                            v-model:clear="
+                                                editForm.single_image_clear
+                                            "
+                                            :current-url="item.images?.single"
+                                            :error="
+                                                editForm.errors.single_image
+                                            "
+                                        />
+                                    </div>
+                                    <div v-if="hasCluster" class="w-72">
+                                        <ImageUpload
+                                            label="Cluster"
+                                            v-model:file="editForm.cluster_image"
+                                            v-model:clear="
+                                                editForm.cluster_image_clear
+                                            "
+                                            :current-url="item.images?.cluster"
+                                            :error="
+                                                editForm.errors.cluster_image
+                                            "
                                         />
                                     </div>
                                     <div class="flex gap-2">

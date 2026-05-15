@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\ColorFamily;
+use App\Services\Catalog\CatalogImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class CatalogColorController extends Controller
 {
+    public function __construct(private readonly CatalogImageService $images) {}
+
     public function index(): Response
     {
         $locale = app()->getLocale();
@@ -34,6 +37,15 @@ class CatalogColorController extends Controller
             });
         }
 
+        // Attach image URLs to every color so Vue can render thumbnails.
+        $colorFamilies->each(function (ColorFamily $family) {
+            $family->colors->each(function (Color $color) {
+                $urls = $this->images->urls($color);
+                $color->single_image_url = $urls['single'] ?? null;
+                $color->cluster_image_url = $urls['cluster'] ?? null;
+            });
+        });
+
         return Inertia::render('SuperAdmin/Catalog/Colors', [
             'colorFamilies' => $colorFamilies,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
@@ -45,10 +57,19 @@ class CatalogColorController extends Controller
         $data = $request->validate($this->rules($request));
         $data['sort_order'] ??= 0;
 
-        Color::create($data);
+        $color = Color::create([
+            'name' => $data['name'],
+            'color_family_id' => $data['color_family_id'],
+            'brand_id' => $data['brand_id'] ?? null,
+            'color_hex' => $data['color_hex'] ?? null,
+            'sort_order' => $data['sort_order'],
+            'description' => $data['description'] ?? null,
+        ]);
+
+        $this->syncImages($request, $color);
 
         return redirect()->route('super-admin.catalog.colors')
-            ->with('success', __('flash.catalog.color.added', ['name' => $data['name']]));
+            ->with('success', __('flash.catalog.color.added', ['name' => $color->name]));
     }
 
     public function update(Request $request, Color $color): RedirectResponse
@@ -56,7 +77,16 @@ class CatalogColorController extends Controller
         $data = $request->validate($this->rules($request, $color->id));
         $data['sort_order'] ??= 0;
 
-        $color->update($data);
+        $color->update([
+            'name' => $data['name'],
+            'color_family_id' => $data['color_family_id'],
+            'brand_id' => $data['brand_id'] ?? null,
+            'color_hex' => $data['color_hex'] ?? null,
+            'sort_order' => $data['sort_order'],
+            'description' => $data['description'] ?? null,
+        ]);
+
+        $this->syncImages($request, $color);
 
         return redirect()->route('super-admin.catalog.colors')
             ->with('success', __('flash.catalog.color.updated', ['name' => $color->name]));
@@ -68,6 +98,17 @@ class CatalogColorController extends Controller
 
         return redirect()->route('super-admin.catalog.colors')
             ->with('success', __('flash.catalog.color.deleted'));
+    }
+
+    private function syncImages(Request $request, Color $color): void
+    {
+        foreach (['single', 'cluster'] as $slot) {
+            if ($request->hasFile("{$slot}_image")) {
+                $this->images->set($color, $slot, $request->file("{$slot}_image"));
+            } elseif ($request->boolean("{$slot}_image_clear")) {
+                $this->images->clear($color, $slot);
+            }
+        }
     }
 
     private function rules(Request $request, ?string $ignoreId = null): array
@@ -85,6 +126,10 @@ class CatalogColorController extends Controller
             'color_hex' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'description' => ['nullable', 'string', 'max:500'],
+            'single_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'single_image_clear' => ['nullable', 'boolean'],
+            'cluster_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'cluster_image_clear' => ['nullable', 'boolean'],
         ];
     }
 }

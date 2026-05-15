@@ -186,6 +186,20 @@ The app supports multiple UI locales. The current system:
 
 ---
 
+## Image uploads
+
+All catalog image uploads go through `App\Services\Catalog\CatalogImageService` — a single chokepoint that resizes oversized source files down to `MAX_WIDTH` (currently 1200px, preserving aspect, stripping EXIF), stores them under `storage/app/public/<entity-folder>/<hashed-filename>.<ext>`, deletes the previously stored file when replacing, and provides URL helpers for Inertia responses. The driver is Imagick on prod (auto-falls back to GD when the extension isn't available — e.g. local dev / CI).
+
+Per-entity folder + slot configuration lives in a `CONFIG` map at the top of the service. Controllers never know paths or column names — they call `$service->set($model, $slot, $file)`, `$service->clear($model, $slot)`, or `$service->urls($model)`. To add image upload support to a new entity (e.g. `User::class` for profile pictures or `Business::class` for business logos), append an entry to that map with its folder + slot map and call the service from the controller — no other changes needed.
+
+The user-facing form layer uses two reusable components: `<ImageUpload>` for the input (file picker + preview + clear toggle, with `v-model:file` and `v-model:clear`) and `<ImageGallery>` for display (accepts an array of URLs, filters falsy entries, so today's 1–2-slot entities and a future multi-image gallery use the same prop shape). Forms that include an `<ImageUpload>` must submit with `forceFormData: true` so multipart reaches PHP, and use `_method` spoofing on PATCH routes (Inertia v2's `useForm` does this automatically when forceFormData is set).
+
+If we later migrate to `spatie/laravel-medialibrary` for gallery-style multi-image, the service is the only file that changes; controllers and Vue components keep their current API.
+
+**Future entities** — when adding profile pictures (`users.avatar_path`) or business logos (`businesses.logo_path`), follow the same pattern: column on the model, slot in `CatalogImageService` config (rename the service if it stops being catalog-only), `<ImageUpload>` on the form, `<ImageGallery>` for display. Do not create a parallel upload path.
+
+---
+
 ## Conventions
 
 Detail lives in DATA.md (schema) and DESIGN.md (visual). High-level rules:

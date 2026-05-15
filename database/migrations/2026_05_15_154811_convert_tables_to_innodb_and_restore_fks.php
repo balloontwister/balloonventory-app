@@ -1,9 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * The production database was created on a host whose default storage engine
@@ -11,11 +9,14 @@ use Illuminate\Support\Facades\Schema;
  * CREATE TABLE time, so the FKs every prior migration declared do not exist
  * in production at all. This migration:
  *
- *   1. Converts every MyISAM table in the schema to InnoDB.
+ *   1. Converts every MyISAM table to InnoDB.
  *   2. Re-asserts every FK the original migrations declared.
  *
- * Idempotent on MySQL via dropForeignIfExists. Skipped entirely on SQLite,
- * which honors FK declarations from the original create migrations.
+ * Idempotent on MySQL: each FK is added only if it doesn't already exist,
+ * so the migration is safe to run on either prod (where no FKs exist) or a
+ * future fresh InnoDB install (where the original create migrations would
+ * have established them). Skipped entirely on SQLite — the test env honors
+ * FK declarations from the original create migrations.
  */
 return new class extends Migration
 {
@@ -34,7 +35,93 @@ return new class extends Migration
             DB::statement("ALTER TABLE `{$row->TABLE_NAME}` ENGINE=InnoDB");
         }
 
-        $this->restoreForeignKeys();
+        $this->addFk('memberships', 'user_id', 'users');
+        $this->addFk('memberships', 'business_id', 'businesses');
+
+        $this->addFk('skus', 'brand_id', 'brands');
+        $this->addFk('skus', 'owned_by_business_id', 'businesses');
+        $this->addFk('skus', 'shape_id', 'shapes');
+        $this->addFk('skus', 'texture_id', 'textures');
+        $this->addFk('skus', 'color_id', 'colors');
+        $this->addFk('skus', 'material_id', 'materials');
+        $this->addFk('skus', 'balloon_size_id', 'balloon_sizes');
+        $this->addFk('skus', 'packaging_id', 'packaging_types');
+        $this->addFk('skus', 'price_code_id', 'price_codes');
+
+        $this->addFk('shapes', 'material_id', 'materials');
+
+        $this->addFk('textures', 'material_id', 'materials');
+        $this->addFk('textures', 'brand_id', 'brands');
+        $this->addFk('textures', 'texture_family_id', 'texture_families');
+
+        $this->addFk('color_families', 'material_id', 'materials');
+
+        $this->addFk('colors', 'color_family_id', 'color_families');
+        $this->addFk('colors', 'brand_id', 'brands');
+        $this->addFk('colors', 'material_id', 'materials');
+        $this->addFk('colors', 'texture_id', 'textures');
+
+        $this->addFk('balloon_sizes', 'brand_id', 'brands');
+        $this->addFk('balloon_sizes', 'material_id', 'materials');
+        $this->addFk('balloon_sizes', 'size_id', 'sizes');
+
+        $this->addFk('price_codes', 'brand_id', 'brands');
+
+        $this->addFk('brand_gs1_prefixes', 'brand_id', 'brands');
+
+        $this->addFk('sku_themes', 'sku_id', 'skus', onDelete: 'CASCADE');
+        $this->addFk('sku_themes', 'theme_id', 'themes', onDelete: 'CASCADE');
+
+        $this->addFk('sku_print_colors', 'sku_id', 'skus', onDelete: 'CASCADE');
+        $this->addFk('sku_print_colors', 'print_color_id', 'print_colors', onDelete: 'CASCADE');
+
+        $this->addFk('sku_print_sides', 'sku_id', 'skus', onDelete: 'CASCADE');
+        $this->addFk('sku_print_sides', 'print_side_id', 'print_sides', onDelete: 'CASCADE');
+
+        $this->addFk('identical_skus', 'sku_id', 'skus', onDelete: 'CASCADE');
+        $this->addFk('identical_skus', 'identical_sku_id', 'skus', onDelete: 'CASCADE');
+
+        $this->addFk('business_sku_overrides', 'business_id', 'businesses');
+        $this->addFk('business_sku_overrides', 'sku_id', 'skus');
+
+        $this->addFk('material_translations', 'material_id', 'materials', onDelete: 'CASCADE');
+        $this->addFk('shape_translations', 'shape_id', 'shapes', onDelete: 'CASCADE');
+        $this->addFk('texture_translations', 'texture_id', 'textures', onDelete: 'CASCADE');
+        $this->addFk('color_family_translations', 'color_family_id', 'color_families', onDelete: 'CASCADE');
+        $this->addFk('color_translations', 'color_id', 'colors', onDelete: 'CASCADE');
+        $this->addFk('theme_translations', 'theme_id', 'themes', onDelete: 'CASCADE');
+
+        $this->addFk('jobs', 'business_id', 'businesses');
+        $this->addFk('jobs', 'created_by_user_id', 'users');
+
+        $this->addFk('job_line_items', 'job_id', 'jobs');
+        $this->addFk('job_line_items', 'sku_id', 'skus');
+
+        $this->addFk('lists', 'business_id', 'businesses');
+        $this->addFk('lists', 'created_by_user_id', 'users');
+
+        $this->addFk('list_items', 'list_id', 'lists');
+        $this->addFk('list_items', 'sku_id', 'skus');
+
+        $this->addFk('local_prices', 'business_id', 'businesses');
+
+        $this->addFk('stock_levels', 'business_id', 'businesses');
+        $this->addFk('stock_levels', 'sku_id', 'skus');
+
+        $this->addFk('stock_movements', 'business_id', 'businesses');
+        $this->addFk('stock_movements', 'sku_id', 'skus');
+        $this->addFk('stock_movements', 'user_id', 'users');
+        $this->addFk('stock_movements', 'job_id', 'jobs');
+
+        $this->addFk('pending_upc_scans', 'business_id', 'businesses');
+        $this->addFk('pending_upc_scans', 'scanned_by_user_id', 'users');
+        $this->addFk('pending_upc_scans', 'resolved_by_user_id', 'users');
+        $this->addFk('pending_upc_scans', 'resolved_to_sku_id', 'skus');
+
+        $this->addFk('sku_error_reports', 'sku_id', 'skus');
+        $this->addFk('sku_error_reports', 'reported_by_user_id', 'users');
+        $this->addFk('sku_error_reports', 'reported_from_business_id', 'businesses');
+        $this->addFk('sku_error_reports', 'resolved_by_user_id', 'users');
     }
 
     public function down(): void
@@ -44,221 +131,33 @@ return new class extends Migration
         // problems. If a rollback is ever truly needed, do it manually.
     }
 
-    private function restoreForeignKeys(): void
-    {
-        Schema::table('memberships', function (Blueprint $table) {
-            $table->dropForeignIfExists(['user_id']);
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-        });
+    private function addFk(
+        string $table,
+        string $column,
+        string $refTable,
+        string $refColumn = 'id',
+        ?string $onDelete = null,
+    ): void {
+        $fkName = "{$table}_{$column}_foreign";
 
-        Schema::table('skus', function (Blueprint $table) {
-            $table->dropForeignIfExists(['brand_id']);
-            $table->foreign('brand_id')->references('id')->on('brands');
-            $table->dropForeignIfExists(['owned_by_business_id']);
-            $table->foreign('owned_by_business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['shape_id']);
-            $table->foreign('shape_id')->references('id')->on('shapes');
-            $table->dropForeignIfExists(['texture_id']);
-            $table->foreign('texture_id')->references('id')->on('textures');
-            $table->dropForeignIfExists(['color_id']);
-            $table->foreign('color_id')->references('id')->on('colors');
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials');
-            $table->dropForeignIfExists(['balloon_size_id']);
-            $table->foreign('balloon_size_id')->references('id')->on('balloon_sizes');
-            $table->dropForeignIfExists(['packaging_id']);
-            $table->foreign('packaging_id')->references('id')->on('packaging_types');
-            $table->dropForeignIfExists(['price_code_id']);
-            $table->foreign('price_code_id')->references('id')->on('price_codes');
-        });
+        $exists = DB::table('information_schema.TABLE_CONSTRAINTS')
+            ->where('TABLE_SCHEMA', DB::raw('DATABASE()'))
+            ->where('TABLE_NAME', $table)
+            ->where('CONSTRAINT_NAME', $fkName)
+            ->where('CONSTRAINT_TYPE', 'FOREIGN KEY')
+            ->exists();
 
-        Schema::table('shapes', function (Blueprint $table) {
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials');
-        });
+        if ($exists) {
+            return;
+        }
 
-        Schema::table('textures', function (Blueprint $table) {
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials');
-            $table->dropForeignIfExists(['brand_id']);
-            $table->foreign('brand_id')->references('id')->on('brands');
-            $table->dropForeignIfExists(['texture_family_id']);
-            $table->foreign('texture_family_id')->references('id')->on('texture_families');
-        });
+        $sql = "ALTER TABLE `{$table}` ADD CONSTRAINT `{$fkName}` "
+            ."FOREIGN KEY (`{$column}`) REFERENCES `{$refTable}` (`{$refColumn}`)";
 
-        Schema::table('color_families', function (Blueprint $table) {
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials');
-        });
+        if ($onDelete !== null) {
+            $sql .= " ON DELETE {$onDelete}";
+        }
 
-        Schema::table('colors', function (Blueprint $table) {
-            $table->dropForeignIfExists(['color_family_id']);
-            $table->foreign('color_family_id')->references('id')->on('color_families');
-            $table->dropForeignIfExists(['brand_id']);
-            $table->foreign('brand_id')->references('id')->on('brands');
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials');
-            $table->dropForeignIfExists(['texture_id']);
-            $table->foreign('texture_id')->references('id')->on('textures');
-        });
-
-        Schema::table('balloon_sizes', function (Blueprint $table) {
-            $table->dropForeignIfExists(['brand_id']);
-            $table->foreign('brand_id')->references('id')->on('brands');
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials');
-            $table->dropForeignIfExists(['size_id']);
-            $table->foreign('size_id')->references('id')->on('sizes');
-        });
-
-        Schema::table('price_codes', function (Blueprint $table) {
-            $table->dropForeignIfExists(['brand_id']);
-            $table->foreign('brand_id')->references('id')->on('brands');
-        });
-
-        Schema::table('brand_gs1_prefixes', function (Blueprint $table) {
-            $table->dropForeignIfExists(['brand_id']);
-            $table->foreign('brand_id')->references('id')->on('brands');
-        });
-
-        Schema::table('sku_themes', function (Blueprint $table) {
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus')->cascadeOnDelete();
-            $table->dropForeignIfExists(['theme_id']);
-            $table->foreign('theme_id')->references('id')->on('themes')->cascadeOnDelete();
-        });
-
-        Schema::table('sku_print_colors', function (Blueprint $table) {
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus')->cascadeOnDelete();
-            $table->dropForeignIfExists(['print_color_id']);
-            $table->foreign('print_color_id')->references('id')->on('print_colors')->cascadeOnDelete();
-        });
-
-        Schema::table('sku_print_sides', function (Blueprint $table) {
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus')->cascadeOnDelete();
-            $table->dropForeignIfExists(['print_side_id']);
-            $table->foreign('print_side_id')->references('id')->on('print_sides')->cascadeOnDelete();
-        });
-
-        Schema::table('identical_skus', function (Blueprint $table) {
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus')->cascadeOnDelete();
-            $table->dropForeignIfExists(['identical_sku_id']);
-            $table->foreign('identical_sku_id')->references('id')->on('skus')->cascadeOnDelete();
-        });
-
-        Schema::table('business_sku_overrides', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus');
-        });
-
-        Schema::table('material_translations', function (Blueprint $table) {
-            $table->dropForeignIfExists(['material_id']);
-            $table->foreign('material_id')->references('id')->on('materials')->cascadeOnDelete();
-        });
-
-        Schema::table('shape_translations', function (Blueprint $table) {
-            $table->dropForeignIfExists(['shape_id']);
-            $table->foreign('shape_id')->references('id')->on('shapes')->cascadeOnDelete();
-        });
-
-        Schema::table('texture_translations', function (Blueprint $table) {
-            $table->dropForeignIfExists(['texture_id']);
-            $table->foreign('texture_id')->references('id')->on('textures')->cascadeOnDelete();
-        });
-
-        Schema::table('color_family_translations', function (Blueprint $table) {
-            $table->dropForeignIfExists(['color_family_id']);
-            $table->foreign('color_family_id')->references('id')->on('color_families')->cascadeOnDelete();
-        });
-
-        Schema::table('color_translations', function (Blueprint $table) {
-            $table->dropForeignIfExists(['color_id']);
-            $table->foreign('color_id')->references('id')->on('colors')->cascadeOnDelete();
-        });
-
-        Schema::table('theme_translations', function (Blueprint $table) {
-            $table->dropForeignIfExists(['theme_id']);
-            $table->foreign('theme_id')->references('id')->on('themes')->cascadeOnDelete();
-        });
-
-        Schema::table('jobs', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['created_by_user_id']);
-            $table->foreign('created_by_user_id')->references('id')->on('users');
-        });
-
-        Schema::table('job_line_items', function (Blueprint $table) {
-            $table->dropForeignIfExists(['job_id']);
-            $table->foreign('job_id')->references('id')->on('jobs');
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus');
-        });
-
-        Schema::table('lists', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['created_by_user_id']);
-            $table->foreign('created_by_user_id')->references('id')->on('users');
-        });
-
-        Schema::table('list_items', function (Blueprint $table) {
-            $table->dropForeignIfExists(['list_id']);
-            $table->foreign('list_id')->references('id')->on('lists');
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus');
-        });
-
-        Schema::table('local_prices', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-        });
-
-        Schema::table('stock_levels', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus');
-        });
-
-        Schema::table('stock_movements', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus');
-            $table->dropForeignIfExists(['user_id']);
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->dropForeignIfExists(['job_id']);
-            $table->foreign('job_id')->references('id')->on('jobs');
-        });
-
-        Schema::table('pending_upc_scans', function (Blueprint $table) {
-            $table->dropForeignIfExists(['business_id']);
-            $table->foreign('business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['scanned_by_user_id']);
-            $table->foreign('scanned_by_user_id')->references('id')->on('users');
-            $table->dropForeignIfExists(['resolved_by_user_id']);
-            $table->foreign('resolved_by_user_id')->references('id')->on('users');
-            $table->dropForeignIfExists(['resolved_to_sku_id']);
-            $table->foreign('resolved_to_sku_id')->references('id')->on('skus');
-        });
-
-        Schema::table('sku_error_reports', function (Blueprint $table) {
-            $table->dropForeignIfExists(['sku_id']);
-            $table->foreign('sku_id')->references('id')->on('skus');
-            $table->dropForeignIfExists(['reported_by_user_id']);
-            $table->foreign('reported_by_user_id')->references('id')->on('users');
-            $table->dropForeignIfExists(['reported_from_business_id']);
-            $table->foreign('reported_from_business_id')->references('id')->on('businesses');
-            $table->dropForeignIfExists(['resolved_by_user_id']);
-            $table->foreign('resolved_by_user_id')->references('id')->on('users');
-        });
+        DB::statement($sql);
     }
 };

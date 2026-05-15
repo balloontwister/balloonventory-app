@@ -138,6 +138,32 @@ class CatalogImageUploadTest extends TestCase
         $this->assertStringStartsWith('brand-logos/', $brand->logo_path);
     }
 
+    public function test_brand_store_accepts_svg_logo(): void
+    {
+        // Laravel 11+ excludes SVG from the `image` rule by default; the
+        // controller must opt in with `image:allow_svg` for vector vendor
+        // logos to validate.
+        $svg = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f00"/></svg>';
+        $file = UploadedFile::fake()->createWithContent('logo.svg', $svg);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->post(route('super-admin.catalog.brands.store'), [
+                'name' => 'Anagram',
+                'abbreviation' => 'ANG',
+                'sort_order' => 1,
+                'logo' => $file,
+            ]);
+
+        $response->assertSessionDoesntHaveErrors('logo');
+        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $brand = Brand::where('name', 'Anagram')->firstOrFail();
+        $this->assertNotNull($brand->logo_path);
+        $this->assertStringEndsWith('.svg', $brand->logo_path);
+
+        // SVGs must pass through unmodified — they're vector, no resize.
+        $this->assertSame($svg, Storage::disk('public')->get($brand->logo_path));
+    }
+
     public function test_color_store_uploads_single_and_cluster_through_service(): void
     {
         $family = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);

@@ -186,7 +186,7 @@ class CatalogReferenceController extends Controller
 
         foreach ($slots as $slot) {
             $fileField = $this->fileFieldForSlot($slot);
-            $rules[$fileField] = ['nullable', 'file', 'image', 'max:10240'];
+            $rules[$fileField] = ['nullable', 'file', 'image:allow_svg', 'max:10240'];
             $rules[$fileField.'_clear'] = ['nullable', 'boolean'];
         }
 

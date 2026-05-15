@@ -21,7 +21,7 @@ class ColorFamily extends Model
     protected $fillable = [
         'name',
         'material_id',
-        'color_hex',
+        'fallback_color_hex',
         'hex_color_start',
         'hex_color_end',
         'single_image_file_path',

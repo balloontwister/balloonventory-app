@@ -33,7 +33,10 @@ class TextureSeeder extends Seeder
         ];
 
         foreach ($textures as $data) {
-            Texture::firstOrCreate(['name' => $data['name']], $data);
+            Texture::firstOrCreate(
+                ['name' => $data['name'], 'material_id' => $data['material_id'], 'brand_id' => null],
+                $data,
+            );
         }
     }
 }

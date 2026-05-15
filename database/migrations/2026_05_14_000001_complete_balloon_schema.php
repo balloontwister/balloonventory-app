@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -44,7 +45,7 @@ return new class extends Migration
 
             $table->foreign('brand_id')->references('id')->on('brands');
             $table->index('brand_id');
-            $table->unique(['brand_id', 'code', 'deleted_at']);
+            $table->index(['brand_id', 'code']);
         });
 
         Schema::create('balloon_sizes', function (Blueprint $table) {
@@ -54,8 +55,8 @@ return new class extends Migration
             $table->char('size_id', 36);
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('single_image_path')->nullable();
-            $table->string('cluster_image_path')->nullable();
+            $table->string('single_image_file_path')->nullable();
+            $table->string('cluster_image_file_path')->nullable();
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();
             $table->softDeletes();
@@ -68,7 +69,7 @@ return new class extends Migration
             $table->index('material_id');
             $table->index('size_id');
             $table->index('sort_order');
-            $table->unique(['brand_id', 'material_id', 'name', 'deleted_at']);
+            $table->index(['brand_id', 'material_id', 'name']);
         });
 
         Schema::create('print_colors', function (Blueprint $table) {
@@ -116,6 +117,14 @@ return new class extends Migration
             $table->boolean('is_active')->default(true)->after('secondary_color_hex');
         });
 
+        // The original brands table had `brand_color_hex`; the spec replaces it
+        // with separate primary/secondary fields. Copy any existing value into
+        // primary_color_hex before dropping.
+        if (Schema::hasColumn('brands', 'brand_color_hex')) {
+            DB::statement('UPDATE brands SET primary_color_hex = brand_color_hex WHERE primary_color_hex IS NULL AND brand_color_hex IS NOT NULL');
+            DB::statement('ALTER TABLE brands DROP COLUMN brand_color_hex');
+        }
+
         Schema::table('materials', function (Blueprint $table) {
             $table->string('url')->nullable()->after('name');
             $table->string('image_path')->nullable()->after('url');
@@ -134,6 +143,12 @@ return new class extends Migration
 
             $table->index('material_id');
             $table->index('texture_id');
+
+            // Per the rework: uniqueness on (name, brand_id, material_id) is enforced
+            // in seeders (firstOrCreate) and FormRequest validation, not at the DB level.
+            // The NULL-aware DB approach doesn't work portably across MySQL/SQLite.
+            $table->dropUnique(['name', 'brand_id', 'deleted_at']);
+            $table->index(['name', 'brand_id', 'material_id']);
         });
 
         Schema::table('color_families', function (Blueprint $table) {
@@ -145,6 +160,15 @@ return new class extends Migration
 
             $table->foreign('material_id')->references('id')->on('materials');
             $table->index('material_id');
+
+            $table->dropUnique(['name']);
+            $table->index(['name', 'material_id']);
+        });
+
+        // Pre-existing color_hex represents a solid fallback (no gradient). Rename
+        // for clarity since the spec uses hex_color_start/end for gradients.
+        Schema::table('color_families', function (Blueprint $table) {
+            $table->renameColumn('color_hex', 'fallback_color_hex');
         });
 
         Schema::table('textures', function (Blueprint $table) {
@@ -161,6 +185,9 @@ return new class extends Migration
             $table->index('brand_id');
             $table->index('texture_family_id');
 
+            $table->dropUnique(['name']);
+            $table->index(['name', 'material_id', 'brand_id']);
+
             // Replace the free-text texture_family with the FK above.
             $table->dropIndex(['texture_family']);
             $table->dropColumn('texture_family');
@@ -172,6 +199,9 @@ return new class extends Migration
 
             $table->foreign('material_id')->references('id')->on('materials');
             $table->index('material_id');
+
+            $table->dropUnique(['name']);
+            $table->index(['name', 'material_id']);
         });
 
         Schema::table('sizes', function (Blueprint $table) {
@@ -242,7 +272,7 @@ return new class extends Migration
 
             // Indexes.
             $table->index('warehouse_sku');
-            $table->index('upc');
+            $table->unique('upc');
             $table->index('balloon_size_id');
             $table->index('packaging_id');
             $table->index('price_code_id');
@@ -322,7 +352,7 @@ return new class extends Migration
             $table->dropForeign(['price_code_id']);
 
             $table->dropIndex(['warehouse_sku']);
-            $table->dropIndex(['upc']);
+            $table->dropUnique(['upc']);
             $table->dropIndex(['balloon_size_id']);
             $table->dropIndex(['packaging_id']);
             $table->dropIndex(['price_code_id']);
@@ -359,6 +389,9 @@ return new class extends Migration
         });
 
         Schema::table('shapes', function (Blueprint $table) {
+            $table->dropIndex(['name', 'material_id']);
+            $table->unique('name');
+
             $table->dropForeign(['material_id']);
             $table->dropIndex(['material_id']);
             $table->dropColumn(['material_id', 'image_path']);
@@ -367,6 +400,9 @@ return new class extends Migration
         Schema::table('textures', function (Blueprint $table) {
             $table->string('texture_family')->nullable()->after('name');
             $table->index('texture_family');
+
+            $table->dropIndex(['name', 'material_id', 'brand_id']);
+            $table->unique('name');
 
             $table->dropForeign(['material_id']);
             $table->dropForeign(['brand_id']);
@@ -378,12 +414,22 @@ return new class extends Migration
         });
 
         Schema::table('color_families', function (Blueprint $table) {
+            $table->renameColumn('fallback_color_hex', 'color_hex');
+        });
+
+        Schema::table('color_families', function (Blueprint $table) {
+            $table->dropIndex(['name', 'material_id']);
+            $table->unique('name');
+
             $table->dropForeign(['material_id']);
             $table->dropIndex(['material_id']);
             $table->dropColumn(['material_id', 'hex_color_start', 'hex_color_end', 'single_image_file_path', 'cluster_image_file_path']);
         });
 
         Schema::table('colors', function (Blueprint $table) {
+            $table->dropIndex(['name', 'brand_id', 'material_id']);
+            $table->unique(['name', 'brand_id', 'deleted_at']);
+
             $table->dropForeign(['material_id']);
             $table->dropForeign(['texture_id']);
             $table->dropIndex(['material_id']);
@@ -396,6 +442,8 @@ return new class extends Migration
         });
 
         Schema::table('brands', function (Blueprint $table) {
+            // Restore the original brand_color_hex (nullable per the 2026_05_11 alter).
+            $table->string('brand_color_hex', 7)->nullable()->after('abbreviation');
             $table->dropColumn(['description', 'url_1', 'url_2', 'logo_url', 'primary_color_hex', 'secondary_color_hex', 'is_active']);
         });
 

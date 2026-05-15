@@ -37,9 +37,7 @@ class Sku extends Model
         'packaging_id',
         'single_image_file_path',
         'cluster_image_file_path',
-        'computed_name',
         'price_code_id',
-        'gs1_prefix',
         'is_active',
         'discontinued_at',
         'product_version',
@@ -67,7 +65,48 @@ class Sku extends Model
             if ($model->isDirty(['brand_id', 'color_id', 'shape_id', 'default_count_per_bag', 'balloon_size_id'])) {
                 $model->computed_name = $model->generateComputedName();
             }
+
+            if ($model->isDirty(['upc', 'brand_id'])) {
+                $model->gs1_prefix = self::deriveGs1Prefix($model->upc, $model->brand_id);
+            }
+
+            if ($model->isDirty('is_active')) {
+                $model->discontinued_at = $model->is_active
+                    ? null
+                    : ($model->discontinued_at ?: now());
+            }
         });
+    }
+
+    public function setUpcAttribute(?string $value): void
+    {
+        $normalized = strtolower(trim((string) $value));
+        $this->attributes['upc'] = in_array($normalized, ['', 'na', 'n/a'], true) ? null : $value;
+    }
+
+    private static function deriveGs1Prefix(?string $upc, ?string $brandId): ?string
+    {
+        if (! $upc || ! $brandId) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $upc);
+
+        if ($digits === '') {
+            return null;
+        }
+
+        $prefixes = BrandGs1Prefix::where('brand_id', $brandId)
+            ->orderByRaw('LENGTH(prefix) DESC')
+            ->pluck('prefix');
+
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($digits, $prefix)) {
+                return $prefix;
+            }
+        }
+
+        return null;
     }
 
     public function brand(): BelongsTo
@@ -135,6 +174,22 @@ class Sku extends Model
         );
     }
 
+    public function linkIdentical(self $other): void
+    {
+        if ($other->id === $this->id) {
+            throw new \InvalidArgumentException('A SKU cannot be marked as identical to itself.');
+        }
+
+        $this->identicalSkus()->syncWithoutDetaching([$other->id]);
+        $other->identicalSkus()->syncWithoutDetaching([$this->id]);
+    }
+
+    public function unlinkIdentical(self $other): void
+    {
+        $this->identicalSkus()->detach($other->id);
+        $other->identicalSkus()->detach($this->id);
+    }
+
     public function owningBusiness(): BelongsTo
     {
         return $this->belongsTo(Business::class, 'owned_by_business_id');
@@ -157,24 +212,15 @@ class Sku extends Model
 
     private function generateComputedName(): string
     {
-        $parts = [];
+        $this->loadMissing(['balloonSize', 'color', 'brand', 'shape']);
 
-        // Load relations if not already loaded so we can use their names.
-        if ($this->relationLoaded('balloonSize') && $this->balloonSize) {
-            $parts[] = $this->balloonSize->name;
-        }
-        if ($this->relationLoaded('color') && $this->color) {
-            $parts[] = $this->color->name;
-        }
-        if ($this->relationLoaded('brand') && $this->brand) {
-            $parts[] = $this->brand->abbreviation;
-        }
-        if ($this->relationLoaded('shape') && $this->shape) {
-            $parts[] = $this->shape->name;
-        }
-        if ($this->default_count_per_bag) {
-            $parts[] = $this->default_count_per_bag.'ct';
-        }
+        $parts = array_filter([
+            $this->balloonSize?->name,
+            $this->color?->name,
+            $this->brand?->abbreviation,
+            $this->shape?->name,
+            $this->default_count_per_bag ? $this->default_count_per_bag.'ct' : null,
+        ]);
 
         return implode(' ', $parts);
     }

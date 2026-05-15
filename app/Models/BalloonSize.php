@@ -23,8 +23,8 @@ class BalloonSize extends Model
         'size_id',
         'name',
         'description',
-        'single_image_path',
-        'cluster_image_path',
+        'single_image_file_path',
+        'cluster_image_file_path',
         'sort_order',
     ];
 

@@ -23,11 +23,10 @@ class Brand extends Model
         'url_1',
         'url_2',
         'logo_url',
+        'logo_path',
         'primary_color_hex',
         'secondary_color_hex',
         'is_active',
-        'brand_color_hex',
-        'logo_path',
         'sort_order',
     ];
 

@@ -26,7 +26,10 @@ class ShapeSeeder extends Seeder
 
         foreach ($shapes as $data) {
             $data['material_id'] = $latex?->id;
-            Shape::firstOrCreate(['name' => $data['name']], $data);
+            Shape::firstOrCreate(
+                ['name' => $data['name'], 'material_id' => $data['material_id']],
+                $data,
+            );
         }
     }
 }

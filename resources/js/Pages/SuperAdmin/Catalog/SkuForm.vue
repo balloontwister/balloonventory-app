@@ -43,7 +43,6 @@ const form = useForm({
     packaging_id: props.sku?.packaging_id ?? '',
     single_image_file_path: props.sku?.single_image_file_path ?? '',
     cluster_image_file_path: props.sku?.cluster_image_file_path ?? '',
-    gs1_prefix: props.sku?.gs1_prefix ?? '',
     price_code_id: props.sku?.price_code_id ?? '',
     is_active: props.sku?.is_active ?? true,
     discontinued_at: props.sku?.discontinued_at ?? '',
@@ -53,14 +52,14 @@ const form = useForm({
     print_side_ids: props.sku?.print_sides?.map((s) => s.id) ?? [],
 });
 
-// When brand changes, clear color if it belongs to a different brand.
+// When brand changes, clear every brand-scoped attribute whose previously
+// selected value no longer matches the new brand. We always clear balloon_size,
+// price_code, and texture (which can be brand-scoped); color is cleared only
+// when it actually points at a different brand (unbranded colors are kept).
 watch(
     () => form.brand_id,
     (newBrand) => {
-        if (!form.color_id) return;
-        const selectedColor = allColors.value.find(
-            (c) => c.id === form.color_id,
-        );
+        const selectedColor = allColors.value.find((c) => c.id === form.color_id);
         if (
             selectedColor &&
             selectedColor.brand_id &&
@@ -68,6 +67,20 @@ watch(
         ) {
             form.color_id = '';
         }
+
+        form.balloon_size_id = '';
+        form.price_code_id = '';
+        form.texture_id = '';
+    },
+);
+
+// When material changes, clear every material-scoped attribute.
+watch(
+    () => form.material_id,
+    () => {
+        form.balloon_size_id = '';
+        form.shape_id = '';
+        form.texture_id = '';
     },
 );
 
@@ -137,7 +150,7 @@ const sizeGroups = computed(() => {
 const textureGroups = computed(() => {
     const groups = {};
     for (const t of filteredTextures.value) {
-        const family = t.texture_family || '';
+        const family = t.texture_family?.name ?? '';
         if (!groups[family]) groups[family] = [];
         groups[family].push(t);
     }
@@ -349,22 +362,6 @@ const selectClass =
                                 />
                             </div>
 
-                            <!-- GS1 prefix -->
-                            <div>
-                                <AppInput
-                                    :label="
-                                        $t('catalog.sku_form.gs1_prefix_label')
-                                    "
-                                    id="gs1_prefix"
-                                    v-model="form.gs1_prefix"
-                                    :placeholder="
-                                        $t(
-                                            'catalog.sku_form.gs1_prefix_placeholder',
-                                        )
-                                    "
-                                    :error="form.errors.gs1_prefix"
-                                />
-                            </div>
                         </div>
                     </div>
 

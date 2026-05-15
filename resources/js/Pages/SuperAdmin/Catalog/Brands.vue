@@ -14,7 +14,7 @@ const showAdd = ref(false);
 const addForm = useForm({
     name: '',
     abbreviation: '',
-    brand_color_hex: '',
+    primary_color_hex: '',
     sort_order: '',
     logo: null,
 });
@@ -38,7 +38,7 @@ const editingId = ref(null);
 const editForm = useForm({
     name: '',
     abbreviation: '',
-    brand_color_hex: '',
+    primary_color_hex: '',
     sort_order: '',
     logo: null,
     logo_clear: false,
@@ -49,7 +49,7 @@ function startEdit(brand) {
     editingId.value = brand.id;
     editForm.name = brand.name;
     editForm.abbreviation = brand.abbreviation;
-    editForm.brand_color_hex = brand.brand_color_hex ?? '';
+    editForm.primary_color_hex = brand.primary_color_hex ?? '';
     editForm.sort_order = brand.sort_order ?? '';
     editForm.logo = null;
     editForm.logo_clear = false;
@@ -179,22 +179,22 @@ function cancelEdit() {
                         <div class="flex items-center gap-2">
                             <input
                                 type="color"
-                                v-model="addForm.brand_color_hex"
+                                v-model="addForm.primary_color_hex"
                                 class="h-[42px] w-10 cursor-pointer rounded border border-border-strong bg-surface"
                             />
                             <input
                                 type="text"
-                                v-model="addForm.brand_color_hex"
+                                v-model="addForm.primary_color_hex"
                                 placeholder="#000000"
                                 maxlength="7"
                                 class="w-28 rounded-md border border-border-strong bg-surface px-3 py-[10px] font-mono text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                             />
                         </div>
                         <p
-                            v-if="addForm.errors.brand_color_hex"
+                            v-if="addForm.errors.primary_color_hex"
                             class="mt-1 font-sans text-[13px] text-danger"
                         >
-                            {{ addForm.errors.brand_color_hex }}
+                            {{ addForm.errors.primary_color_hex }}
                         </p>
                     </div>
                     <div class="w-24">
@@ -312,19 +312,19 @@ function cancelEdit() {
                             </td>
                             <td class="px-4 py-3">
                                 <div
-                                    v-if="brand.brand_color_hex"
+                                    v-if="brand.primary_color_hex"
                                     class="flex items-center gap-2"
                                 >
                                     <span
                                         class="h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
                                         :style="{
                                             backgroundColor:
-                                                brand.brand_color_hex,
+                                                brand.primary_color_hex,
                                         }"
                                     />
                                     <span
                                         class="font-mono text-[12px] text-ink-tertiary"
-                                        >{{ brand.brand_color_hex }}</span
+                                        >{{ brand.primary_color_hex }}</span
                                     >
                                 </div>
                                 <span
@@ -405,14 +405,14 @@ function cancelEdit() {
                                                 <input
                                                     type="color"
                                                     v-model="
-                                                        editForm.brand_color_hex
+                                                        editForm.primary_color_hex
                                                     "
                                                     class="h-[42px] w-10 cursor-pointer rounded border border-border-strong bg-surface"
                                                 />
                                                 <input
                                                     type="text"
                                                     v-model="
-                                                        editForm.brand_color_hex
+                                                        editForm.primary_color_hex
                                                     "
                                                     placeholder="#000000"
                                                     maxlength="7"
@@ -422,13 +422,13 @@ function cancelEdit() {
                                             <p
                                                 v-if="
                                                     editForm.errors
-                                                        .brand_color_hex
+                                                        .primary_color_hex
                                                 "
                                                 class="mt-1 font-sans text-[13px] text-danger"
                                             >
                                                 {{
                                                     editForm.errors
-                                                        .brand_color_hex
+                                                        .primary_color_hex
                                                 }}
                                             </p>
                                         </div>

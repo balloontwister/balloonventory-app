@@ -13,6 +13,7 @@ const props = defineProps({
     colorFamilies: { type: Array, required: true },
     themes: { type: Array, required: true },
     materials: { type: Array, required: true },
+    textureFamilies: { type: Array, required: true },
 });
 
 const activeTab = ref('sizes');
@@ -35,11 +36,11 @@ const tabConfig = {
     shapes: { items: () => props.shapes, fields: ['name', 'sort_order'] },
     textures: {
         items: () => props.textures,
-        fields: ['name', 'texture_family', 'sort_order'],
+        fields: ['name', 'texture_family_id', 'sort_order'],
     },
     'color-families': {
         items: () => props.colorFamilies,
-        fields: ['name', 'color_hex', 'sort_order'],
+        fields: ['name', 'fallback_color_hex', 'sort_order'],
     },
     themes: { items: () => props.themes, fields: ['name', 'sort_order'] },
     materials: { items: () => props.materials, fields: ['name', 'sort_order'] },
@@ -53,15 +54,14 @@ const sizeCategories = [
     'small_modeling',
     'large_modeling',
 ];
-const textureFamilies = ['Crystal', 'Standard', 'Metallic', 'Neon', 'Chrome'];
 
 // ── Add form ──────────────────────────────────────────────────────────────────
 const showAdd = ref(false);
 const addForm = useForm({
     name: '',
     size_category: '',
-    texture_family: '',
-    color_hex: '',
+    texture_family_id: '',
+    fallback_color_hex: '',
     sort_order: '',
 });
 
@@ -82,8 +82,8 @@ const editingId = ref(null);
 const editForm = useForm({
     name: '',
     size_category: '',
-    texture_family: '',
-    color_hex: '',
+    texture_family_id: '',
+    fallback_color_hex: '',
     sort_order: '',
 });
 
@@ -91,8 +91,8 @@ function startEdit(item) {
     editingId.value = item.id;
     editForm.name = item.name;
     editForm.size_category = item.size_category ?? '';
-    editForm.texture_family = item.texture_family ?? '';
-    editForm.color_hex = item.color_hex ?? '';
+    editForm.texture_family_id = item.texture_family_id ?? '';
+    editForm.fallback_color_hex = item.fallback_color_hex ?? '';
     editForm.sort_order = item.sort_order ?? '';
 }
 
@@ -255,7 +255,7 @@ const selectClass =
                         {{ $t('catalog.reference.family_label') }}
                     </label>
                     <select
-                        v-model="addForm.texture_family"
+                        v-model="addForm.texture_family_id"
                         required
                         :class="selectClass"
                     >
@@ -264,12 +264,18 @@ const selectClass =
                         </option>
                         <option
                             v-for="f in textureFamilies"
-                            :key="f"
-                            :value="f"
+                            :key="f.id"
+                            :value="f.id"
                         >
-                            {{ f }}
+                            {{ f.name }}
                         </option>
                     </select>
+                    <p
+                        v-if="addForm.errors.texture_family_id"
+                        class="mt-1 font-sans text-[13px] text-danger"
+                    >
+                        {{ addForm.errors.texture_family_id }}
+                    </p>
                 </div>
 
                 <div
@@ -278,15 +284,15 @@ const selectClass =
                 >
                     <input
                         type="color"
-                        v-model="addForm.color_hex"
+                        v-model="addForm.fallback_color_hex"
                         class="h-[42px] w-10 cursor-pointer rounded border border-border-strong bg-surface"
                     />
                     <div class="w-28">
                         <AppInput
                             :label="$t('catalog.reference.hex_label')"
-                            v-model="addForm.color_hex"
+                            v-model="addForm.fallback_color_hex"
                             placeholder="#000000"
-                            :error="addForm.errors.color_hex"
+                            :error="addForm.errors.fallback_color_hex"
                         />
                     </div>
                 </div>
@@ -378,7 +384,7 @@ const selectClass =
                                 v-if="activeTab === 'textures'"
                                 class="px-4 py-3 font-sans text-[13px] text-ink-secondary"
                             >
-                                {{ item.texture_family }}
+                                {{ item.texture_family?.name ?? '—' }}
                             </td>
                             <td
                                 v-if="activeTab === 'color-families'"
@@ -386,15 +392,18 @@ const selectClass =
                             >
                                 <div class="flex items-center gap-2">
                                     <span
-                                        v-if="item.color_hex"
+                                        v-if="item.fallback_color_hex"
                                         class="h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
                                         :style="{
-                                            backgroundColor: item.color_hex,
+                                            backgroundColor:
+                                                item.fallback_color_hex,
                                         }"
                                     />
                                     <span
                                         class="font-mono text-[12px] text-ink-tertiary"
-                                        >{{ item.color_hex ?? '—' }}</span
+                                        >{{
+                                            item.fallback_color_hex ?? '—'
+                                        }}</span
                                     >
                                 </div>
                             </td>
@@ -486,18 +495,35 @@ const selectClass =
                                             }}
                                         </label>
                                         <select
-                                            v-model="editForm.texture_family"
+                                            v-model="editForm.texture_family_id"
                                             required
                                             :class="selectClass"
                                         >
+                                            <option value="">
+                                                {{
+                                                    $t(
+                                                        'catalog.reference.select_placeholder',
+                                                    )
+                                                }}
+                                            </option>
                                             <option
                                                 v-for="f in textureFamilies"
-                                                :key="f"
-                                                :value="f"
+                                                :key="f.id"
+                                                :value="f.id"
                                             >
-                                                {{ f }}
+                                                {{ f.name }}
                                             </option>
                                         </select>
+                                        <p
+                                            v-if="
+                                                editForm.errors.texture_family_id
+                                            "
+                                            class="mt-1 font-sans text-[13px] text-danger"
+                                        >
+                                            {{
+                                                editForm.errors.texture_family_id
+                                            }}
+                                        </p>
                                     </div>
                                     <div
                                         v-if="activeTab === 'color-families'"
@@ -505,7 +531,9 @@ const selectClass =
                                     >
                                         <input
                                             type="color"
-                                            v-model="editForm.color_hex"
+                                            v-model="
+                                                editForm.fallback_color_hex
+                                            "
                                             class="h-[42px] w-10 cursor-pointer rounded border border-border-strong bg-surface"
                                         />
                                         <div class="w-28">
@@ -515,10 +543,13 @@ const selectClass =
                                                         'catalog.reference.hex_label',
                                                     )
                                                 "
-                                                v-model="editForm.color_hex"
+                                                v-model="
+                                                    editForm.fallback_color_hex
+                                                "
                                                 placeholder="#000000"
                                                 :error="
-                                                    editForm.errors.color_hex
+                                                    editForm.errors
+                                                        .fallback_color_hex
                                                 "
                                             />
                                         </div>

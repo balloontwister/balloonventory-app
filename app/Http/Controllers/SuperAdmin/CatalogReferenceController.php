@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\Shape;
 use App\Models\Size;
 use App\Models\Texture;
+use App\Models\TextureFamily;
 use App\Models\Theme;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -22,8 +23,8 @@ class CatalogReferenceController extends Controller
     private const TABLES = [
         'sizes' => [Size::class,        ['name', 'size_category', 'sort_order', 'description']],
         'shapes' => [Shape::class,        ['name', 'sort_order', 'description']],
-        'textures' => [Texture::class,      ['name', 'texture_family', 'sort_order', 'description']],
-        'color-families' => [ColorFamily::class,  ['name', 'color_hex', 'sort_order', 'description']],
+        'textures' => [Texture::class,      ['name', 'texture_family_id', 'sort_order', 'description']],
+        'color-families' => [ColorFamily::class,  ['name', 'fallback_color_hex', 'sort_order', 'description']],
         'themes' => [Theme::class,        ['name', 'sort_order', 'description']],
         'materials' => [Material::class,     ['name', 'sort_order', 'description']],
     ];
@@ -33,10 +34,11 @@ class CatalogReferenceController extends Controller
         return Inertia::render('SuperAdmin/Catalog/Reference', [
             'sizes' => Size::orderBy('sort_order')->orderBy('name')->get(),
             'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
-            'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
+            'textures' => $this->translated(Texture::with('textureFamily:id,name')->withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
             'colorFamilies' => $this->translated(ColorFamily::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
             'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
             'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
+            'textureFamilies' => TextureFamily::orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -112,12 +114,12 @@ class CatalogReferenceController extends Controller
             $rules['size_category'] = ['required', 'in:small,medium,large,giant,small_modeling,large_modeling'];
         }
 
-        if (in_array('texture_family', $fields)) {
-            $rules['texture_family'] = ['required', 'string', 'max:50'];
+        if (in_array('texture_family_id', $fields)) {
+            $rules['texture_family_id'] = ['required', 'uuid', 'exists:texture_families,id'];
         }
 
-        if (in_array('color_hex', $fields)) {
-            $rules['color_hex'] = ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'];
+        if (in_array('fallback_color_hex', $fields)) {
+            $rules['fallback_color_hex'] = ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'];
         }
 
         if (in_array('sort_order', $fields)) {

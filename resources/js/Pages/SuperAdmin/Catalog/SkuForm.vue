@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, watch } from 'vue';
@@ -41,8 +42,10 @@ const form = useForm({
     asin: props.sku?.asin ?? '',
     mfg_no: props.sku?.mfg_no ?? '',
     packaging_id: props.sku?.packaging_id ?? '',
-    single_image_file_path: props.sku?.single_image_file_path ?? '',
-    cluster_image_file_path: props.sku?.cluster_image_file_path ?? '',
+    single_image: null,
+    single_image_clear: false,
+    cluster_image: null,
+    cluster_image_clear: false,
     price_code_id: props.sku?.price_code_id ?? '',
     is_active: props.sku?.is_active ?? true,
     discontinued_at: props.sku?.discontinued_at ?? '',
@@ -187,10 +190,16 @@ function togglePrintSide(sideId) {
 }
 
 function submit() {
+    // forceFormData so file uploads are sent as multipart. Inertia v2 handles
+    // the _method spoofing for PATCH internally when using useForm.
     if (isEdit.value) {
-        form.patch(route('super-admin.catalog.skus.update', props.sku.id));
+        form.patch(route('super-admin.catalog.skus.update', props.sku.id), {
+            forceFormData: true,
+        });
     } else {
-        form.post(route('super-admin.catalog.skus.store'));
+        form.post(route('super-admin.catalog.skus.store'), {
+            forceFormData: true,
+        });
     }
 }
 
@@ -897,7 +906,7 @@ const selectClass =
                         </div>
                     </div>
 
-                    <!-- Image paths -->
+                    <!-- Images -->
                     <div class="rounded-lg border border-border bg-surface p-5">
                         <h2
                             class="mb-4 font-sans text-[15px] font-semibold text-ink-primary"
@@ -905,35 +914,27 @@ const selectClass =
                             {{ $t('catalog.sku_form.images_heading') }}
                         </h2>
                         <div class="flex flex-col gap-4">
-                            <AppInput
+                            <ImageUpload
                                 :label="
                                     $t(
                                         'catalog.sku_form.single_image_label',
                                     )
                                 "
-                                id="single_image_file_path"
-                                v-model="form.single_image_file_path"
-                                :placeholder="
-                                    $t(
-                                        'catalog.sku_form.single_image_placeholder',
-                                    )
-                                "
-                                :error="form.errors.single_image_file_path"
+                                v-model:file="form.single_image"
+                                v-model:clear="form.single_image_clear"
+                                :current-url="sku?.images?.single"
+                                :error="form.errors.single_image"
                             />
-                            <AppInput
+                            <ImageUpload
                                 :label="
                                     $t(
                                         'catalog.sku_form.cluster_image_label',
                                     )
                                 "
-                                id="cluster_image_file_path"
-                                v-model="form.cluster_image_file_path"
-                                :placeholder="
-                                    $t(
-                                        'catalog.sku_form.cluster_image_placeholder',
-                                    )
-                                "
-                                :error="form.errors.cluster_image_file_path"
+                                v-model:file="form.cluster_image"
+                                v-model:clear="form.cluster_image_clear"
+                                :current-url="sku?.images?.cluster"
+                                :error="form.errors.cluster_image"
                             />
                         </div>
                     </div>

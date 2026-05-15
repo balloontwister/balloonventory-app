@@ -17,6 +17,7 @@ use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
 use App\Models\Theme;
+use App\Services\Catalog\CatalogImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -26,6 +27,8 @@ use Inertia\Response;
 
 class CatalogController extends Controller
 {
+    public function __construct(private readonly CatalogImageService $imageService) {}
+
     public function index(Request $request): Response
     {
         $locale = app()->getLocale();
@@ -94,6 +97,8 @@ class CatalogController extends Controller
             });
         }
 
+        $skus->getCollection()->each(fn (Sku $sku) => $sku->images = $this->imageService->urls($sku));
+
         return Inertia::render('SuperAdmin/Catalog/Index', [
             'skus' => $skus,
             'filters' => $request->only(['brand', 'size', 'texture', 'material', 'search']),
@@ -155,6 +160,8 @@ class CatalogController extends Controller
             $sku->printSides()->sync($data['print_side_ids']);
         }
 
+        $this->syncImages($request, $sku);
+
         return redirect()->route('super-admin.catalog.skus')
             ->with('success', __('flash.catalog.sku.created', ['name' => $sku->name]));
     }
@@ -177,12 +184,15 @@ class CatalogController extends Controller
             });
         }
 
+        $sku->load([
+            'brand', 'balloonSize', 'shape', 'texture', 'color',
+            'material', 'themes', 'packagingType', 'priceCode',
+            'printColors', 'printSides',
+        ]);
+        $sku->images = $this->imageService->urls($sku);
+
         return Inertia::render('SuperAdmin/Catalog/SkuForm', [
-            'sku' => $sku->load([
-                'brand', 'balloonSize', 'shape', 'texture', 'color',
-                'material', 'themes', 'packagingType', 'priceCode',
-                'printColors', 'printSides',
-            ]),
+            'sku' => $sku,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
             'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'material_id'])),
@@ -209,8 +219,21 @@ class CatalogController extends Controller
         $sku->printColors()->sync($data['print_color_ids'] ?? []);
         $sku->printSides()->sync($data['print_side_ids'] ?? []);
 
+        $this->syncImages($request, $sku);
+
         return redirect()->route('super-admin.catalog.skus')
             ->with('success', __('flash.catalog.sku.updated', ['name' => $sku->name]));
+    }
+
+    private function syncImages(Request $request, Sku $sku): void
+    {
+        foreach (['single', 'cluster'] as $slot) {
+            if ($request->hasFile("{$slot}_image")) {
+                $this->imageService->set($sku, $slot, $request->file("{$slot}_image"));
+            } elseif ($request->boolean("{$slot}_image_clear")) {
+                $this->imageService->clear($sku, $slot);
+            }
+        }
     }
 
     public function destroy(Sku $sku): RedirectResponse
@@ -267,8 +290,10 @@ class CatalogController extends Controller
             'asin' => ['nullable', 'string', 'max:50'],
             'mfg_no' => ['nullable', 'string', 'max:100'],
             'packaging_id' => ['nullable', 'uuid', 'exists:packaging_types,id'],
-            'single_image_file_path' => ['nullable', 'string', 'max:500'],
-            'cluster_image_file_path' => ['nullable', 'string', 'max:500'],
+            'single_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'single_image_clear' => ['nullable', 'boolean'],
+            'cluster_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'cluster_image_clear' => ['nullable', 'boolean'],
             'price_code_id' => ['nullable', 'uuid', 'exists:price_codes,id'],
             'is_active' => ['boolean'],
             'discontinued_at' => ['nullable', 'date'],

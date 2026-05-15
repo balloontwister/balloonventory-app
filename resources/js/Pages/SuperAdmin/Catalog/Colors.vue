@@ -2,6 +2,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
+import ImageGallery from '@/Components/ImageGallery.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { ref, computed } from 'vue';
@@ -19,10 +21,13 @@ const addForm = useForm({
     color_hex: '',
     sort_order: '',
     description: '',
+    single_image: null,
+    cluster_image: null,
 });
 
 function submitAdd() {
     addForm.post(route('super-admin.catalog.colors.store'), {
+        forceFormData: true,
         onSuccess: () => {
             addForm.reset();
             showAddForm.value = false;
@@ -41,6 +46,11 @@ const editForm = useForm({
     color_hex: '',
     sort_order: '',
     description: '',
+    single_image: null,
+    single_image_clear: false,
+    cluster_image: null,
+    cluster_image_clear: false,
+    _method: 'patch',
 });
 
 function startEdit(color) {
@@ -51,10 +61,17 @@ function startEdit(color) {
     editForm.color_hex = color.color_hex ?? '';
     editForm.sort_order = color.sort_order ?? '';
     editForm.description = color.description ?? '';
+    editForm.single_image = null;
+    editForm.single_image_clear = false;
+    editForm.cluster_image = null;
+    editForm.cluster_image_clear = false;
 }
 
 function submitEdit(color) {
-    editForm.patch(route('super-admin.catalog.colors.update', color.id), {
+    // POST + _method spoofing because file uploads require multipart/form-data,
+    // which PHP only parses from POST bodies.
+    editForm.post(route('super-admin.catalog.colors.update', color.id), {
+        forceFormData: true,
         onSuccess: () => {
             editingId.value = null;
         },
@@ -250,20 +267,33 @@ const selectClass =
                             {{ addForm.errors.color_hex }}
                         </p>
                     </div>
-                    <div class="flex items-end">
-                        <AppButton
-                            type="submit"
-                            variant="primary"
-                            :disabled="addForm.processing"
-                            class="w-full justify-center"
-                        >
-                            {{
-                                addForm.processing
-                                    ? $t('catalog.actions.saving')
-                                    : $t('catalog.colors.submit_add')
-                            }}
-                        </AppButton>
+                </div>
+                <div class="mt-4 flex flex-wrap items-end gap-4">
+                    <div class="w-72">
+                        <ImageUpload
+                            label="Single balloon image"
+                            v-model:file="addForm.single_image"
+                            :error="addForm.errors.single_image"
+                        />
                     </div>
+                    <div class="w-72">
+                        <ImageUpload
+                            label="Cluster image"
+                            v-model:file="addForm.cluster_image"
+                            :error="addForm.errors.cluster_image"
+                        />
+                    </div>
+                    <AppButton
+                        type="submit"
+                        variant="primary"
+                        :disabled="addForm.processing"
+                    >
+                        {{
+                            addForm.processing
+                                ? $t('catalog.actions.saving')
+                                : $t('catalog.colors.submit_add')
+                        }}
+                    </AppButton>
                 </div>
             </form>
         </div>
@@ -341,6 +371,16 @@ const selectClass =
                                 >
                                     {{ color.color_hex ?? '—' }}
                                 </td>
+                                <td class="px-3 py-2.5">
+                                    <ImageGallery
+                                        :urls="[
+                                            color.single_image_url,
+                                            color.cluster_image_url,
+                                        ]"
+                                        size="sm"
+                                        :alt="color.name"
+                                    />
+                                </td>
                                 <td class="px-4 py-2.5">
                                     <div
                                         class="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100"
@@ -366,7 +406,7 @@ const selectClass =
 
                             <!-- Edit row -->
                             <tr v-else class="bg-accent-soft/20">
-                                <td colspan="5" class="px-4 py-3">
+                                <td colspan="6" class="px-4 py-3">
                                     <form @submit.prevent="submitEdit(color)">
                                         <div
                                             class="flex flex-wrap items-end gap-3"
@@ -464,6 +504,42 @@ const selectClass =
                                                         "
                                                     />
                                                 </div>
+                                            </div>
+                                            <div class="w-72">
+                                                <ImageUpload
+                                                    label="Single balloon"
+                                                    v-model:file="
+                                                        editForm.single_image
+                                                    "
+                                                    v-model:clear="
+                                                        editForm.single_image_clear
+                                                    "
+                                                    :current-url="
+                                                        color.single_image_url
+                                                    "
+                                                    :error="
+                                                        editForm.errors
+                                                            .single_image
+                                                    "
+                                                />
+                                            </div>
+                                            <div class="w-72">
+                                                <ImageUpload
+                                                    label="Cluster"
+                                                    v-model:file="
+                                                        editForm.cluster_image
+                                                    "
+                                                    v-model:clear="
+                                                        editForm.cluster_image_clear
+                                                    "
+                                                    :current-url="
+                                                        color.cluster_image_url
+                                                    "
+                                                    :error="
+                                                        editForm.errors
+                                                            .cluster_image
+                                                    "
+                                                />
                                             </div>
                                             <div class="flex gap-2">
                                                 <AppButton

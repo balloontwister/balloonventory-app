@@ -2,6 +2,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
+import ImageGallery from '@/Components/ImageGallery.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -29,10 +31,6 @@ function submitAdd() {
     });
 }
 
-function onAddLogo(e) {
-    addForm.logo = e.target.files?.[0] ?? null;
-}
-
 // ── Inline edit ───────────────────────────────────────────────────────────────
 const editingId = ref(null);
 const editForm = useForm({
@@ -52,11 +50,6 @@ function startEdit(brand) {
     editForm.primary_color_hex = brand.primary_color_hex ?? '';
     editForm.sort_order = brand.sort_order ?? '';
     editForm.logo = null;
-    editForm.logo_clear = false;
-}
-
-function onEditLogo(e) {
-    editForm.logo = e.target.files?.[0] ?? null;
     editForm.logo_clear = false;
 }
 
@@ -205,27 +198,13 @@ function cancelEdit() {
                             :error="addForm.errors.sort_order"
                         />
                     </div>
-                    <div>
-                        <label
-                            class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                        >
-                            {{ $t('catalog.brands.logo_label') }}
-                        </label>
-                        <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/svg+xml"
-                            @change="onAddLogo"
-                            class="block w-full max-w-xs rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-secondary file:mr-3 file:rounded-md file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:font-sans file:text-[12px] file:font-medium file:text-accent"
+                    <div class="w-72">
+                        <ImageUpload
+                            :label="$t('catalog.brands.logo_label')"
+                            v-model:file="addForm.logo"
+                            :error="addForm.errors.logo"
+                            :help-text="$t('catalog.brands.logo_help')"
                         />
-                        <p class="mt-1 font-sans text-[11px] text-ink-tertiary">
-                            {{ $t('catalog.brands.logo_help') }}
-                        </p>
-                        <p
-                            v-if="addForm.errors.logo"
-                            class="mt-1 font-sans text-[13px] text-danger"
-                        >
-                            {{ addForm.errors.logo }}
-                        </p>
                     </div>
                     <AppButton
                         type="submit"
@@ -287,18 +266,11 @@ function cancelEdit() {
                             class="hover:bg-accent-soft/40 group transition"
                         >
                             <td class="px-4 py-2">
-                                <img
-                                    v-if="brand.logo_url"
-                                    :src="brand.logo_url"
+                                <ImageGallery
+                                    :urls="brand.logo_url"
+                                    size="sm"
                                     :alt="`${brand.name} logo`"
-                                    class="h-10 w-10 rounded-sm object-contain ring-1 ring-inset ring-border"
                                 />
-                                <div
-                                    v-else
-                                    class="flex h-10 w-10 items-center justify-center rounded-sm border border-dashed border-border bg-background font-sans text-[10px] uppercase tracking-eyebrow text-ink-tertiary"
-                                >
-                                    {{ $t('catalog.brands.logo_none') }}
-                                </div>
                             </td>
                             <td
                                 class="px-4 py-3 font-sans text-[14px] font-medium text-ink-primary"
@@ -446,67 +418,20 @@ function cancelEdit() {
                                                 "
                                             />
                                         </div>
-                                        <div>
-                                            <label
-                                                class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                            >
-                                                {{
+                                        <div class="w-72">
+                                            <ImageUpload
+                                                :label="
                                                     $t(
                                                         'catalog.brands.logo_label',
                                                     )
-                                                }}
-                                                <span
-                                                    v-if="brand.logo_url"
-                                                    class="normal-case tracking-normal text-ink-tertiary"
-                                                >
-                                                    {{
-                                                        $t(
-                                                            'catalog.brands.logo_current',
-                                                        )
-                                                    }}
-                                                </span>
-                                            </label>
-                                            <div
-                                                class="flex items-center gap-2"
-                                            >
-                                                <img
-                                                    v-if="
-                                                        brand.logo_url &&
-                                                        !editForm.logo_clear
-                                                    "
-                                                    :src="brand.logo_url"
-                                                    class="h-10 w-10 shrink-0 rounded-sm object-contain ring-1 ring-inset ring-border"
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/png,image/jpeg,image/svg+xml"
-                                                    @change="onEditLogo"
-                                                    class="block w-full max-w-xs rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-secondary file:mr-3 file:rounded-md file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:font-sans file:text-[12px] file:font-medium file:text-accent"
-                                                />
-                                            </div>
-                                            <label
-                                                v-if="brand.logo_url"
-                                                class="mt-2 flex cursor-pointer items-center gap-2 font-sans text-[12px] text-ink-secondary"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    v-model="
-                                                        editForm.logo_clear
-                                                    "
-                                                    class="h-3.5 w-3.5 accent-danger"
-                                                />
-                                                {{
-                                                    $t(
-                                                        'catalog.brands.remove_logo',
-                                                    )
-                                                }}
-                                            </label>
-                                            <p
-                                                v-if="editForm.errors.logo"
-                                                class="mt-1 font-sans text-[13px] text-danger"
-                                            >
-                                                {{ editForm.errors.logo }}
-                                            </p>
+                                                "
+                                                v-model:file="editForm.logo"
+                                                v-model:clear="
+                                                    editForm.logo_clear
+                                                "
+                                                :current-url="brand.logo_url"
+                                                :error="editForm.errors.logo"
+                                            />
                                         </div>
                                         <div class="flex gap-2">
                                             <AppButton

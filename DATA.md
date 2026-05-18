@@ -20,7 +20,7 @@ The stack is locked in. Concrete versions to update as the project upgrades:
 - **Tenancy enforcement**: app-layer query scoping via Eloquent global scopes. The `BelongsToBusiness` trait will be added to every tenant-scoped model and apply a global scope filtering on the current business context. MariaDB has no row-level security equivalent to Postgres RLS, so app-layer scoping is the only line of defense. This makes the rules in the Multi-tenancy contract section non-negotiable.
 - **Edge layer**: Cloudflare for DNS, WAF, DDoS protection, static asset caching, and free SSL. LiteSpeed LSCache at the origin for dynamic page caching once we install `litespeedtech/lscache-laravel`.
 - **Catalog curation model** (who can add to and edit shared catalog SKUs): for v1, admin-only, seeded from manufacturer catalogs. Crowdsourced contribution and moderation are deferred.
-- **UPC conflict resolution** (when two businesses claim the same UPC for different SKUs): for v1, last-write-wins with audit trail. Moderation flow deferred.
+- **UPC conflict resolution** (when two businesses claim the same UPC for different SKUs): for v1, last-write-wins on `sku.upc` with audit trail via `stock_movement`. UPC is a direct column on `sku`, not a separate table. Moderation flow deferred.
 
 ---
 
@@ -69,6 +69,8 @@ Tenant-scoped (every row belongs to exactly one business; every query MUST filte
 - `pending_upc_scan`
 - `membership` (when querying a single business's membership list)
 
+Note: `upc` columns on `sku` are direct attributes, not a separate table. UPC visibility is inherited from the SKU's visibility rule.
+
 Mixed-scope (rows are visible based on context — see entity definition):
 
 - `sku_error_report` (a row is visible to: the reporter, the owning business of a private SKU report, and SuperAdmin always)
@@ -80,7 +82,6 @@ Global / shared (rows are visible to all businesses; no `business_id` filter req
 - `brand`
 - `size`, `shape`, `texture`, `color_family`, `color`, `theme`, `material` (catalog reference data)
 - `sku` where `owned_by_business_id IS NULL` (the shared catalog)
-- `upc` (visibility is inherited from the SKU it points to)
 
 Hybrid (the row itself is global, but visibility may be filtered):
 
@@ -191,12 +192,17 @@ A balloon manufacturer. Shared globally, not tenant-scoped.
 - `id` (uuid, pk)
 - `name` (text, unique) — e.g. `Qualatex`, `Sempertex`, `TufTex`, `Betallic`, `Kalisan`, `Decomex`, `Funsational`
 - `abbreviation` (text, unique) — short tag shown in BrandTag, e.g. `QTX`, `STX`
+- `description` (text, nullable) — free-text brand description
+- `url_1` (text, nullable) — primary manufacturer URL
+- `url_2` (text, nullable) — secondary manufacturer URL
+- `logo_url` (text, nullable) — URL to brand logo image
+- `primary_color_hex` (varchar 7, nullable) — primary brand color
+- `secondary_color_hex` (varchar 7, nullable) — secondary brand color
+- `is_active` (boolean, default true) — soft toggle for brand visibility
 - `brand_color_hex` (text, nullable) — the dot color in BrandTag; optional
 - `logo_path` (text, nullable) — path inside the `public` disk (resolves to `storage/app/public/<path>`). Use `Storage::disk('public')->url($logo_path)` to render. New uploads land in `brand-logos/`.
 - `sort_order` (integer, default 0) — display order in dropdowns and tables
 - `created_at`, `updated_at`, `deleted_at`
-
-Brands intentionally have no `description` column — the seven seeded entries cover the market and the abbreviation already serves as the short label. If a future need emerges, add the column in a migration and surface it on the Brands page.
 
 ### `size`
 
@@ -209,6 +215,8 @@ A balloon size. Shared globally. All lookup tables follow this pattern: `id`, `n
 - `size_category` (enum: `small`, `medium`, `large`, `giant`, `small_modeling`, `large_modeling`) — groups similar sizes for browsing and filtering
 - `sort_order` (integer, default 0)
 - `description` (text, nullable)
+- `single_image_file_path` (text, nullable) — single balloon image for this size
+- `cluster_image_file_path` (text, nullable) — cluster/bag image for this size
 - `created_at`, `updated_at`, `deleted_at`
 
 **Display rule:** the UI renders sizes as `"{name} / {alt_imperial_name} ({diameter_cm} cm)"` when all three are set, `"{name} ({diameter_cm} cm)"` when only diameter is set, and just `"{name}"` otherwise. The hybrid label is intentional — balloon supply is a cross-region market and the same SKU is referenced by either notation depending on supplier paperwork.
@@ -217,32 +225,55 @@ A balloon size. Shared globally. All lookup tables follow this pattern: `id`, `n
 
 ### `shape`
 
-A balloon shape. Shared globally. Values: Round, Link, Non-round, Heart, Circle, Star, Shaped, SuperShape, Other. Same structure as `size` minus `size_category`.
+A balloon shape. Shared globally. Values: Round, Link, Non-round, Heart, Circle, Star, Shaped, SuperShape, Other.
+
+- `id` (uuid, pk)
+- `name` (text, unique)
+- `material_id` (uuid, nullable, fk → material.id, idx) — shapes are material-specific (e.g. a latex "Round" is different from a foil "Round")
+- `image_path` (text, nullable) — representative shape image
+- (plus standard lookup columns: `sort_order`, `description`, timestamps, soft deletes)
 
 ### `texture`
 
-A balloon surface finish. Shared globally.
+A balloon surface finish. Shared globally. Unique too each brand and material. Similar texture across brands are in the same texture-family.
 
+- `id` (uuid, pk)
 - `name` (text, unique) — seeded values: `Crystal`, `Standard`, `Matte`, `Glow-in-the-dark`, `Metallic`, `Pearl`, `Neon`, `Chrome`, `Satin`
-- `texture_family` (text, idx) — groups textures for filtering. Current families: `Crystal`, `Standard`, `Metallic`, `Neon`, `Chrome` (the `Chrome` family also covers `Satin` for now)
-- (plus standard lookup columns)
+- `material_id` (uuid, nullable, fk → material.id, idx) — textures are material-specific (e.g. chrome latex vs chrome foil)
+- `brand_id` (uuid, nullable, fk → brand.id, idx) — some textures are brand-specific
+- `texture_family_id` (uuid, nullable, fk → texture_family.id, idx) — groups textures for filtering. Current families: `Crystal`, `Standard`, `Metallic`, `Neon`, `Chrome` (the `Chrome` family also covers `Satin` for now)
+- `image_path` (text, nullable) — representative texture image
+- (plus standard lookup columns: `sort_order`, `description`, timestamps, soft deletes)
 
 ### `color_family`
 
 A cross-brand color grouping. Examples: `Blacks`, `Reds`, `Pinks`, `Blues`, `Golds`.
 
+- `id` (uuid, pk)
 - `name` (text, unique)
+- `material_id` (uuid, nullable, fk → material.id, idx) — color families are material-specific
 - `color_hex` (text, nullable) — canonical representative hex for the family swatch
-- (plus standard lookup columns)
+- `hex_color_start` (varchar 7, nullable) — gradient swatch start hex
+- `hex_color_end` (varchar 7, nullable) — gradient swatch end hex
+- `single_image_file_path` (text, nullable) — single balloon image for this color family
+- `cluster_image_file_path` (text, nullable) — cluster/bag image for this color family
+- (plus standard lookup columns: `sort_order`, `description`, timestamps, soft deletes)
 
 ### `color`
 
 A brand-specific color name. Each brand names their colors independently; `color_family` links them cross-brand.
 
+- `id` (uuid, pk)
 - `name` (text) — e.g. `Deluxe Black` (STX), `Onyx Black` (QTX), `Black` (TTX)
 - `color_family_id` (uuid, fk → color_family.id, idx)
 - `brand_id` (uuid, nullable, fk → brand.id, idx) — null for generic/unbranded colors
+- `material_id` (uuid, nullable, fk → material.id, idx) — colors are material-specific
 - `color_hex` (text, nullable) — specific hex for this color variant; used by BalloonSwatch
+- `color_code` (text, nullable) — internal color code from the manufacturer
+- `pms_value` (text, nullable) — Pantone Matching System value
+- `texture_id` (uuid, nullable, fk → texture.id, idx) — some colors have a default texture association
+- `single_image_file_path` (text, nullable) — single balloon image for this color
+- `cluster_image_file_path` (text, nullable) — cluster/bag image for this color
 - `sort_order`, `description`
 - `unique(name, brand_id, deleted_at)` — a brand cannot have two active colors with the same name
 
@@ -254,7 +285,13 @@ The Themes panel on the SKU form is hidden unless `sku.is_printed = true` (UX nu
 
 ### `material`
 
-The balloon substrate. Values: Latex, Foil, Plastic, Chloroprene, Stretchy. Same structure as `shape`.
+The balloon substrate. Values: Latex, Foil, Plastic, Chloroprene, Stretchy.
+
+- `id` (uuid, pk)
+- `name` (text, unique)
+- `url` (text, nullable) — external URL for this material
+- `image_path` (text, nullable) — representative material image
+- (plus standard lookup columns: `sort_order`, `description`, timestamps, soft deletes)
 
 ### `sku_themes` (pivot)
 
@@ -272,25 +309,37 @@ A balloon SKU. The hybrid catalog lives here. A row is either **shared** (visibl
 
 - `id` (uuid, pk)
 - `name` (text) — canonical product name, e.g. `Wild Berry`
+- `description` (text, nullable) — free-text product description
 - `brand_id` (uuid, fk → brand.id, idx)
-- `size_id` (uuid, nullable, fk → size.id, idx)
+- `material_id` (uuid, nullable, fk → material.id, idx)
+- `balloon_size_id` (uuid, nullable, fk → balloon_size.id, idx) — brand+material-specific balloon size (e.g. Sempertex R-12), replaces the direct `size_id` FK
 - `shape_id` (uuid, nullable, fk → shape.id, idx)
 - `texture_id` (uuid, nullable, fk → texture.id, idx)
 - `color_id` (uuid, nullable, fk → color.id, idx)
-- `material_id` (uuid, nullable, fk → material.id, idx)
 - `is_printed` (boolean, default false) — true for printed/themed balloons; glow-in-the-dark and satin are textures, not a separate flag
 - `default_count_per_bag` (integer, nullable) — typical bag size, e.g. 100 for 11" latex
-- `manufacturer_sku` (text, nullable) — official product number from the brand, e.g. `43734`. Enforced unique per `(brand_id, manufacturer_sku, deleted_at)` at the validation layer when non-null; the catalog admin may leave it blank for variants without product numbers, in which case multiple matching rows are permitted.
-- `price_code` (text, nullable, idx) — pricing variable shared across SKUs that price together. Emergent from this column; no dictionary table in v1.
-- `image_url` (text, nullable) — points at object storage. Currently no upload UI; future SKU image upload will land in `storage/app/public/sku-images/` and follow the same `public` disk pattern as brand logos.
+- `warehouse_sku` (text, nullable, idx) — official product number from the brand, e.g. `43734`. Renamed from `manufacturer_sku`. Enforced unique per `(brand_id, warehouse_sku, deleted_at)` at the validation layer when non-null.
+- `upc` (text, nullable, idx) — UPC barcode string (12-digit GTIN-12). Stored directly on the SKU; no separate `upcs` table.
+- `ean` (text, nullable) — European Article Number (13-digit GTIN-13)
+- `asin` (text, nullable) — Amazon Standard Identification Number
+- `mfg_no` (text, nullable) — manufacturer's part/item number distinct from the warehouse SKU
+- `packaging_id` (uuid, nullable, fk → packaging_type.id, idx) — how the bag is packaged (Individual, Loose, Nozzle Up, Retail)
+- `single_image_file_path` (text, nullable) — single balloon image for this SKU
+- `cluster_image_file_path` (text, nullable) — cluster/bag image for this SKU
+- `computed_name` (text, nullable, idx) — auto-generated display name from cascading attributes. Format: `"{balloon_size.name} {color.name} {brand.abbreviation} {shape.name} {count}ct"` (e.g. "12-inch Fashion Red STX Round 100ct"). Regenerated via Eloquent `saving` observer when brand, color, shape, count, or balloon_size change.
+- `price_code_id` (uuid, nullable, fk → price_code.id, idx) — FK to the `price_codes` table; replaces the free-text `price_code` string column
+- `gs1_prefix` (text, nullable) — GS1 company prefix (derivable from UPC but stored for lookup perf)
+- `is_active` (boolean, default true) — soft toggle for SKU visibility in catalogs
+- `discontinued_at` (timestamp, nullable) — when the manufacturer discontinued this SKU
+- `product_version` (text, nullable) — version/revision of the product
 - `owned_by_business_id` (uuid, nullable, fk → business.id) — `NULL` means shared catalog. Set means private to that business.
 - `created_at`, `updated_at`, `deleted_at`
 
-All attribute FK columns are nullable. Conditional validation (e.g. foil SKUs have no `size_id`) is deferred to a later phase.
+All attribute FK columns are nullable. Conditional validation (e.g. foil SKUs have no `balloon_size_id`) is deferred to a later phase.
 
-Themes are many-to-many via the `sku_themes` pivot (a SKU can belong to multiple themes). All other attributes are single-value per SKU.
+Themes are many-to-many via the `sku_themes` pivot (a SKU can belong to multiple themes). Print colors and print sides are also many-to-many (via `sku_print_colors` and `sku_print_sides` pivots) and are only surfaced when `is_printed = true`. Identical SKUs (same physical balloon, different bag variant) are modeled as a self-referential M2M via the `identical_skus` pivot.
 
-**Color images (deferred):** `color` will eventually grow an `image_path` column (same shape as `brand.logo_path`) so each brand-color can show a photo on top of the swatch. Not yet added — when implemented, files will land in `storage/app/public/color-images/`.
+**Image fallback chain (runtime):** display logic cascades from SKU image → SKU color image → hex-generated placeholder. This is an accessor / Vue computed, not a denormalized copy.
 
 Visibility rule for any user in business X:
 
@@ -298,6 +347,109 @@ Visibility rule for any user in business X:
 WHERE sku.deleted_at IS NULL
   AND (sku.owned_by_business_id IS NULL OR sku.owned_by_business_id = X)
 ```
+
+### `texture_family`
+
+A grouping of related textures for filtering. Shared globally.
+
+- `id` (uuid, pk)
+- `name` (text, unique) — seeded values: `Crystal`, `Standard`, `Metallic`, `Neon`, `Chrome`
+- `description` (text, nullable)
+- `image_path` (text, nullable)
+- (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
+
+### `packaging_type`
+
+How a bag of balloons is physically packaged. Shared globally.
+
+- `id` (uuid, pk)
+- `name` (text, unique) — seeded values: `Individual`, `Loose`, `Nozzle Up`, `Retail`
+- (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
+
+### `price_code`
+
+A per-brand pricing category. Each brand defines its own set of price codes; SKUs reference them via `price_code_id`.
+
+- `id` (uuid, pk)
+- `brand_id` (uuid, fk → brand.id, idx)
+- `code` (text) — pricing code string (e.g. `std`, `premium`)
+- `unique(brand_id, code, deleted_at)`
+- (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
+
+This table replaces the free-text `price_code` column that was previously on `skus`. The dictionary governance prevents typos and allows per-brand pricing tiers.
+
+### `balloon_size`
+
+A brand+material-specific balloon size definition. This bridges the abstract `size` family (e.g. "11-inch") with how a specific brand+material combination names it (e.g. Sempertex latex calls it "R-12", TufTex latex calls it "11-inch"). Shared globally.
+
+- `id` (uuid, pk)
+- `brand_id` (uuid, fk → brand.id, idx)
+- `material_id` (uuid, fk → material.id, idx)
+- `size_id` (uuid, fk → size.id, idx) — the size family this belongs to (e.g. the "11-inch" size row)
+- `name` (text) — brand's name for this size (e.g. `R-12`, `C-12`, `11-inch`)
+- `description` (text, nullable)
+- `single_image_path` (text, nullable)
+- `cluster_image_path` (text, nullable)
+- `unique(brand_id, material_id, name, deleted_at)`
+- (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
+
+The `size_id` FK groups balloon sizes into families for cross-brand filtering (e.g. "show me all 11-inch balloons from all brands"). The `balloon_size_id` FK on `sku` pins a SKU to a specific brand+material size.
+
+### `print_color`
+
+An ink color used for printed balloons. M2M with SKUs.
+
+- `id` (uuid, pk)
+- `name` (text, unique) — e.g. `Black`, `White`, `Red`, `Gold`, `Silver`
+- (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
+
+### `print_side`
+
+Which side(s) of a balloon are printed. M2M with SKUs.
+
+- `id` (uuid, pk)
+- `name` (text, unique) — e.g. `Top`, `Side`, `Two-Sides`, `Four-Sides`, `Five-Sides`
+- (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
+
+### `brand_gs1_prefix`
+
+A GS1 manufacturer prefix associated with a brand. Used to validate UPC/EAN identifiers.
+
+- `id` (uuid, pk)
+- `brand_id` (uuid, fk → brand.id, idx)
+- `prefix` (text) — GS1 company prefix digits
+- `unique(brand_id, prefix)`
+- `created_at`, `updated_at` (no soft deletes — prefix assignments are durable)
+
+### `sku_print_colors` (pivot)
+
+Many-to-many between `sku` and `print_color`. Only meaningful when `sku.is_printed = true`.
+
+- `sku_id` (uuid, fk → sku.id, cascade delete)
+- `print_color_id` (uuid, fk → print_color.id, cascade delete)
+- `primary(sku_id, print_color_id)`
+
+No timestamps, no soft delete — print colors are attributes; removing one hard-deletes the pivot row.
+
+### `sku_print_sides` (pivot)
+
+Many-to-many between `sku` and `print_side`. Only meaningful when `sku.is_printed = true`.
+
+- `sku_id` (uuid, fk → sku.id, cascade delete)
+- `print_side_id` (uuid, fk → print_side.id, cascade delete)
+- `primary(sku_id, print_side_id)`
+
+No timestamps, no soft delete.
+
+### `identical_skus` (pivot)
+
+Self-referential many-to-many linking different SKU rows that represent the same physical balloon in different bag variants. For example, a 25ct bag and a 100ct bag of the same balloon.
+
+- `sku_id` (uuid, fk → sku.id, cascade delete)
+- `identical_sku_id` (uuid, fk → sku.id, cascade delete, idx)
+- `primary(sku_id, identical_sku_id)`
+
+Both directions are stored. The application layer prevents self-referencing rows (`sku_id = identical_sku_id`). When a SKU is deleted, all its identical_skus pivot rows are cascade-deleted.
 
 ### `business_sku_override`
 
@@ -313,17 +465,6 @@ A business's per-SKU customization layer over a shared catalog SKU. Only meaning
 - `is_hidden` (boolean, default false) — business doesn't use this SKU; hide from search
 - `created_at`, `updated_at`, `deleted_at`
 - `unique(business_id, sku_id, deleted_at)`
-
-### `upc`
-
-A UPC barcode mapped to one SKU. Globally unique on `upc_string` for v1 (last-write-wins on conflict, with audit). Visibility is inherited from the SKU it points to.
-
-- `id` (uuid, pk)
-- `upc_string` (text, unique, idx) — the raw scanned digits, no separators
-- `sku_id` (uuid, fk → sku.id, idx)
-- `first_added_by_business_id` (uuid, fk → business.id) — audit; who first identified this barcode
-- `first_added_by_user_id` (uuid, fk → user.id) — audit
-- `created_at`, `updated_at`, `deleted_at`
 
 ### `stock_level`
 
@@ -425,7 +566,7 @@ A per-business dollar value for a price code. Reference data only. Never used in
 
 - `id` (uuid, pk)
 - `business_id` (uuid, fk → business.id, idx)
-- `price_code` (text) — should match a `sku.price_code` value to be useful, but no FK enforcement (price codes are emergent from the SKU table, not a separate dictionary). Orphan rows are allowed and harmless.
+- `price_code` (text) — should match a `price_codes.code` value to be useful, but no FK enforcement. Orphan rows are allowed and harmless.
 - `amount_cents` (integer) — stored as cents to avoid floating point. USD assumed in v1; per-business currency override is a future setting.
 - `created_at`, `updated_at`, `deleted_at`
 - `unique(business_id, price_code, deleted_at)`
@@ -538,17 +679,22 @@ Creating a reply auto-archives the parent ticket (`archived_at = now()`).
 ```
 user ──< membership >── business
                           │
-                          ├──< stock_level >── sku ──> brand
-                          │                    │   ──> size (→ size_category)
-                          │                    │   ──> shape
-                          │                    │   ──> texture (→ texture_family)
-                          │                    │   ──> color (→ color_family)
+                          ├──< stock_level >── sku ──> brand ──< brand_gs1_prefix
+                          │                    │   ──> balloon_size ──> size (→ size_category)
+                          │                    │   │               ──> brand
+                          │                    │   │               ──> material
+                          │                    │   ──> shape (→ material)
+                          │                    │   ──> texture (→ texture_family, material, brand)
+                          │                    │   ──> color (→ color_family, material, texture)
                           │                    │   ──> material
+                          │                    │   ──> packaging_type
+                          │                    │   ──> price_code (→ brand)
                           │                    │   ──< sku_themes >── theme
+                          │                    │   ──< sku_print_colors >── print_color
+                          │                    │   ──< sku_print_sides >── print_side
+                          │                    │   ──< identical_skus >── sku (self)
                           │                    │
-                          │                    ├──< upc
-                          │                    │
-                          │                    └── price_code (text field on sku)
+                          │                    └── upc (direct string column on sku)
                           │
                           ├──< stock_movement >── sku
                           │            │
@@ -558,7 +704,7 @@ user ──< membership >── business
                           │
                           ├──< list (incl. is_business_favorites=true seed) >── list_item ── sku
                           │
-                          ├──< local_price (loose match to sku.price_code by string)
+                          ├──< local_price (loose match to price_code by string)
                           │
                           ├──< pending_upc_scan ── (resolves to) ── sku
                           │
@@ -567,7 +713,7 @@ user ──< membership >── business
 sku_error_report ── reporter:user, scope:business?, sku  (mixed-scope, see entity)
 ```
 
-`sku` is in the middle because every other inventory concept references it. The shared-vs-private distinction lives in `sku.owned_by_business_id` and is honored everywhere through the visibility rule. `local_price` does not foreign-key into `sku.price_code`; the codes are emergent from the SKU table, and orphan rows in `local_price` are allowed.
+`sku` is in the middle because every other inventory concept references it. The shared-vs-private distinction lives in `sku.owned_by_business_id` and is honored everywhere through the visibility rule. `local_price` loosely matches `price_code.code` by string; orphan rows in `local_price` are allowed.
 
 ---
 
@@ -580,11 +726,12 @@ These are the canonical patterns. New code should match the shape of these examp
 ```
 SELECT
   sku.id,
-  COALESCE(override.custom_name, sku.name) AS display_name,
+  COALESCE(override.custom_name, sku.computed_name, sku.name) AS display_name,
   COALESCE(override.custom_color_hex, sku.color_hex) AS display_color_hex,
   sku.brand_id,
-  sku.size,
-  sku.finish,
+  sku.balloon_size_id,
+  sku.warehouse_sku,
+  sku.upc,
   override.reorder_threshold,
   override.is_hidden
 FROM sku
@@ -597,14 +744,14 @@ WHERE sku.deleted_at IS NULL
 
 ### Resolve a scanned UPC to an SKU
 
+UPC is now a direct column on `sku` — no separate `upcs` table. Query against `sku.upc` directly:
+
 ```
-SELECT sku.*
-FROM upc
-JOIN sku ON sku.id = upc.sku_id
-WHERE upc.upc_string = $1
-  AND upc.deleted_at IS NULL
-  AND sku.deleted_at IS NULL
-  AND (sku.owned_by_business_id IS NULL OR sku.owned_by_business_id = $2);
+SELECT *
+FROM sku
+WHERE upc = $1
+  AND deleted_at IS NULL
+  AND (owned_by_business_id IS NULL OR owned_by_business_id = $2);
 ```
 
 If no row returns, the UPC is unknown to this business: trigger the "Unknown UPC — assign or create" flow described in DESIGN.md.
@@ -702,11 +849,12 @@ In Eloquent, this becomes `BalloonList::find($favoritesListId)->items()->updateO
 ```
 SELECT
   sku.id,
-  COALESCE(override.custom_name, sku.name) AS display_name,
+  COALESCE(override.custom_name, sku.computed_name, sku.name) AS display_name,
   COALESCE(override.custom_color_hex, sku.color_hex) AS display_color_hex,
-  sku.size,
+  sku.balloon_size_id,
   sku.brand_id,
-  sku.finish,
+  sku.texture_id,
+  sku.warehouse_sku,
   COALESCE(sl.quantity, 0) AS on_hand
 FROM list_item AS li
 JOIN list ON list.id = li.list_id
@@ -760,10 +908,11 @@ SELECT
   li.planned_quantity,
   li.sort_order,
   li.notes,
-  COALESCE(override.custom_name, sku.name) AS display_name,
+  COALESCE(override.custom_name, sku.computed_name, sku.name) AS display_name,
   COALESCE(override.custom_color_hex, sku.color_hex) AS display_color_hex,
-  sku.size,
+  sku.balloon_size_id,
   sku.brand_id,
+  sku.warehouse_sku,
   COALESCE(sl.quantity, 0) AS on_hand
 FROM list_item AS li
 JOIN list ON list.id = li.list_id
@@ -793,6 +942,8 @@ WHERE business_id = $1
 
 Caller materializes this as a `Map<priceCode, amountCents>`. Used only by the LocalPricesTable in Settings → Pricing. If you find this query running outside that surface, stop and check why — there's no other authorized consumer in v1.
 
+`local_price.price_code` loosely matches `price_codes.code` by string (no FK enforcement). Orphan rows are allowed.
+
 ---
 
 ## Decisions deferred
@@ -800,8 +951,8 @@ Caller materializes this as a `Map<priceCode, amountCents>`. Used only by the Lo
 These are real product calls that will need to be made before related code is written. Listed here so they don't get lost.
 
 - **Catalog curation model**: who can add and edit shared SKUs, what moderation looks like, how brands get added to the `brand` table. v1 assumption: admin-only, seeded from manufacturer catalogs.
-- **UPC conflict resolution**: what happens when business A claims UPC `012345678901` for SKU X, then business B insists it's actually SKU Y. v1: last-write-wins with `stock_movement` and `upc.first_added_by_*` providing the audit trail.
-- **Image storage and processing**: thumbnail sizes, max upload, compression, CDN strategy. Placeholder `image_url` for now.
+- **UPC conflict resolution**: what happens when business A assigns UPC `012345678901` to SKU X, then business B insists it's actually SKU Y. v1: last-write-wins on `sku.upc` with `stock_movement` providing the audit trail. UPC is a direct column on `sku`, not a separate table.
+- **Image storage and processing**: thumbnail sizes, max upload, compression, CDN strategy. Single and cluster image paths exist on SKU, color, color_family, balloon_size, size, and texture_family. Upload UI deferred.
 - **Brand color seeding**: where the initial `brand_color_hex` values come from. Manual curation for v1.
 - **Soft-delete cleanup**: when do tombstoned rows get hard-deleted, if ever. v1: never.
 - **Audit log retention**: `stock_movement` is append-only; if it grows unboundedly, partitioning or archival becomes a concern. v1: don't worry about it until row count crosses a few million.
@@ -810,7 +961,7 @@ These are real product calls that will need to be made before related code is wr
 - **List visibility and sharing**: lists are shared across all members of a business in v1. Per-user private lists, sharing with specific users, sharing across businesses, and list-import-from-template are all v2 concerns.
 - **Default Local Prices for shared SKUs**: a new business starts with an empty `local_price` table. v2 might suggest defaults from a community-curated catalog or import from CSV.
 - **Per-business currency**: USD assumed in v1. Storing `amount_cents` as integer future-proofs the schema. Adding a `currency_code` column to `business` and `local_price` is straightforward when the need arrives.
-- **Price code dictionary**: the set of valid price codes is emergent from `sku.price_code` values, with no FK enforcement on `local_price.price_code`. If governance becomes needed (preventing typos like `STD-5` vs `STD5`, enforcing consistent naming), add a dictionary table and FK both `sku.price_code` and `local_price.price_code` against it.
+- **Price code dictionary**: implemented as the `price_codes` table with FK from `sku.price_code_id`. `local_price.price_code` still loosely matches by string (no FK to `price_codes`). If governance becomes needed for `local_price`, add a `price_code_id` FK there as well.
 - **Favorites schema history note**: in pre-PERMISSIONS.md drafts, Favorites was a separate `favorite` junction table. It was unified under the `list` table with an `is_business_favorites` flag during the PERMISSIONS.md design pass. This note exists so a future reader doesn't reintroduce a separate table by mistake.
 - **Per-Guest custom permissions**: PERMISSIONS.md notes the v1 limitation that all Guests get the same default permissions. v2 will introduce a `membership_permission_override` table allowing Owners to grant individual Guests broader access (Job visibility, Local Prices visibility, etc.) on a case-by-case basis. Schema sketch: `id`, `membership_id`, `permission_key` (text matching Spatie permission names), `granted` (boolean), timestamps. Read-time logic merges role-default permissions with per-membership overrides.
 - **SuperAdmin support view**: PERMISSIONS.md notes that v1 SuperAdmins cannot read a business's tenant-scoped data without being a member. v2 will add a "support view" mode where a SuperAdmin can opt into read-only access to any business, with the action audit-logged. Implementation likely needs a separate `super_admin_audit_log` table to track every tenant-scoped read by a SuperAdmin, plus an explicit "enter support view" UI step that requires a reason string.

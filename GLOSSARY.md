@@ -43,7 +43,7 @@ Shape describes the physical form of the balloon, not its color or finish.
 |-------|-------------|
 | `Round` | Standard spherical balloon; the default for decorator work |
 | `Heart` | Heart-shaped latex balloon; the ears are fat and short, giving it its shape when inflated |
-| `Link` | Dumbbell-shaped balloon designed to link together into chains; also sold as "Link-O-Loon" or "Quick Link" |
+| `Link` | A balloon with a thin tail that is    designed to link together into chains; also sold as "Link-O-Loon" or "Quick Link" |
 | `Star` | Five-pointed star-shaped balloon |
 | `Circle` | Flat disc-shaped balloon (distinct from Round) |
 | `Non-round` | Catch-all for elongated, oval, or irregular latex shapes that don't fit Round or Heart |
@@ -101,7 +101,7 @@ Brand abbreviations appear in BrandTag UI components and throughout catalog data
 
 | Abbreviation | Full name | Notes |
 |-------------|-----------|-------|
-| `QTX` | Qualatex | Pioneer Balloon Company's flagship brand; made in USA/Canada; wide color range; considered the premium latex standard |
+| `QTX` | Qualatex | Pioneer Balloon Company's flagship brand; made in USA/Canada; wide color range; |
 | `STX` | Sempertex | Colombian manufacturer; known for consistent quality and an extensive color palette including unique shades not available elsewhere |
 | `TTX` | TufTex | Budget-friendly brand; popular for high-volume decorator work where unit cost matters more than premium finish |
 | `BTL` | Betallic | Produces foil and latex balloons; known for SuperShape foils and metallic latex |
@@ -110,19 +110,6 @@ Brand abbreviations appear in BrandTag UI components and throughout catalog data
 | `FUN` | Funsational | Value-tier latex balloons |
 
 > The abbreviations above are drawn from `DATA.md`. If an abbreviation for a brand is not yet defined in DATA.md, do not invent one — add it to DATA.md first.
-
-### Additional brands (not yet seeded)
-
-These brands are used by the business but not yet in the v1 catalog seed. Add them via migration before creating SKUs against them.
-
-- **Anagram** — foil balloon specialist; widely distributed in mass-market retail
-- **Betallic** — see seeded brands above (listed here in case the seed is incomplete)
-- **Brookloons** — specialty/boutique balloon brand
-- **Cattex** — latex balloon manufacturer
-- **Gemar** — Italian manufacturer; known for high-quality latex and wide size range
-- **Rifco** — balloon manufacturer
-- **Everts** — balloon manufacturer
-- **Elitex** — balloon manufacturer
 
 ---
 

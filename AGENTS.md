@@ -104,7 +104,7 @@ Standard Laravel layout with these project-specific callouts:
 app/
 ├── Http/Controllers/
 │   ├── SuperAdmin/
-│   │   ├── CatalogController.php          # Shared SKU CRUD
+│   │   ├── CatalogController.php          # Shared SKU CRUD — cascading filters, computed_name, pivot sync
 │   │   ├── CatalogColorController.php     # Color CRUD
 │   │   ├── CatalogBrandController.php     # Brand list + update
 │   │   ├── CatalogReferenceController.php # Generic reference data (sizes/shapes/etc.)
@@ -115,11 +115,17 @@ app/
 │   ├── Concerns/
 │   │   ├── BelongsToBusiness.php  # Tenancy trait with global scope
 │   │   └── HasTranslations.php    # i18n trait — translated(), withTranslations(), loadTranslations()
-│   ├── Brand.php, Sku.php          # Core catalog models
+│   ├── Brand.php, Sku.php              # Core catalog models
 │   ├── Size.php, Shape.php, Texture.php, Material.php  # Reference lookup tables
-│   ├── Color.php, ColorFamily.php  # Two-level color taxonomy
-│   ├── Theme.php                   # Many-to-many with Sku via sku_themes pivot
-│   └── *Translation.php           # 6 translation models (ShapeTranslation, MaterialTranslation, etc.)
+│   ├── Color.php, ColorFamily.php      # Two-level color taxonomy
+│   ├── Theme.php                       # Many-to-many with Sku via sku_themes pivot
+│   ├── BalloonSize.php                 # Brand+material-specific balloon size definitions
+│   ├── PackagingType.php               # Bag packaging types (Individual, Loose, etc.)
+│   ├── PriceCode.php                   # Per-brand pricing codes
+│   ├── PrintColor.php, PrintSide.php   # Printed balloon detail lookups
+│   ├── TextureFamily.php               # Groups textures into families
+│   ├── BrandGs1Prefix.php              # Brand-specific GS1 manufacturer prefixes
+│   └── *Translation.php               # 6 translation models (ShapeTranslation, MaterialTranslation, etc.)
 ├── Services/                  # Domain services (StockService, JobService, etc.)
 ├── Policies/                  # Laravel policies, one per model
 ├── Notifications/             # Laravel notifications for unknown UPC, errors
@@ -130,14 +136,21 @@ app/
 database/
 ├── migrations/                # Schema migrations; reflect DATA.md
 └── seeders/
-    ├── PermissionSeeder.php   # Seeds Spatie roles and permissions from PERMISSIONS.md
-    ├── BrandSeeder.php        # 7 brands (QTX, STX, BET, KAL, TTX, DCX, FSN)
-    ├── SizeSeeder.php         # 14 sizes with size_category groupings
-    ├── ShapeSeeder.php        # 9 shapes
-    ├── TextureSeeder.php      # 9 textures in 5 families
-    ├── ColorFamilySeeder.php  # 13 color families (Reds, Blues, etc.)
-    ├── ThemeSeeder.php        # 9 themes (Holiday, Christmas, etc.)
-    ├── MaterialSeeder.php     # 5 materials (Latex, Foil, etc.)
+    ├── PermissionSeeder.php       # Seeds Spatie roles and permissions from PERMISSIONS.md
+    ├── BrandSeeder.php            # 7 brands (QTX, STX, BET, KAL, TTX, DCX, FSN)
+    ├── SizeSeeder.php             # 14 sizes with size_category groupings
+    ├── ShapeSeeder.php            # 9 shapes
+    ├── TextureFamilySeeder.php    # 5 texture families (Crystal, Standard, etc.)
+    ├── TextureSeeder.php          # 9 textures with FK refs to material + texture_family
+    ├── ColorFamilySeeder.php      # 13 color families with material FK
+    ├── ColorSeeder.php            # ~150 brand-specific colors
+    ├── ThemeSeeder.php            # 9 themes (Holiday, Christmas, etc.)
+    ├── MaterialSeeder.php         # 5 materials (Latex, Foil, etc.)
+    ├── PackagingTypeSeeder.php    # 4 packaging types (Individual, Loose, etc.)
+    ├── PrintColorSeeder.php       # 11 print ink colors
+    ├── PrintSideSeeder.php        # 5 print side options
+    ├── PriceCodeSeeder.php        # Per-brand price codes
+    ├── BalloonSizeSeeder.php      # ~40 brand+material balloon sizes
     └── CatalogTranslationSeeder.php  # Spanish translations for all reference data
 
 resources/js/

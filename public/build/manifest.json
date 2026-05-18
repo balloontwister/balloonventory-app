@@ -515,5 +515,17 @@
     "css": [
       "assets/app-BQe2TPpr.css"
     ]
+  },
+  "resources/js/Pages/SuperAdmin/Users/Index.vue": {
+    "file": "assets/Index-SuperAdminUsers.js",
+    "name": "Index",
+    "src": "resources/js/Pages/SuperAdmin/Users/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js",
+      "_AuthenticatedLayout-BVO8-POJ.js",
+      "_LocaleSwitcher-CplEdJsj.js",
+      "_balloonventory-logo-dark-Yk2Gp6TE.js"
+    ]
   }
 }

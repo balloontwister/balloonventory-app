@@ -30,9 +30,6 @@ class PermissionSeeder extends Seeder
             'sku.edit_override',
             'sku.report_error',
 
-            // Pending UPC scans (still in use; the old `upcs` catalog table is gone)
-            'upc.resolve_pending',
-
             // Lists and Favorites
             'list.view',
             'list.create',
@@ -64,6 +61,7 @@ class PermissionSeeder extends Seeder
 
             // Business settings
             'business.edit_settings',
+            'business.manage_logo',
         ];
 
         foreach ($permissions as $name) {
@@ -91,7 +89,6 @@ class PermissionSeeder extends Seeder
             'sku.delete_private',
             'sku.edit_override',
             'sku.report_error',
-            'upc.resolve_pending',
             'list.view',
             'list.create',
             'list.edit',
@@ -114,6 +111,7 @@ class PermissionSeeder extends Seeder
             'membership.remove_manager',
             'membership.remove_staff_guest',
             'business.edit_settings',
+            'business.manage_logo',
         ]);
     }
 
@@ -132,7 +130,6 @@ class PermissionSeeder extends Seeder
             'sku.delete_private',
             'sku.edit_override',
             'sku.report_error',
-            'upc.resolve_pending',
             'list.view',
             'list.create',
             'list.edit',

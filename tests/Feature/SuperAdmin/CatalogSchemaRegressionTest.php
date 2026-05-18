@@ -28,8 +28,7 @@ class CatalogSchemaRegressionTest extends TestCase
     {
         parent::setUp();
 
-        $this->superAdmin = User::factory()->create([
-            'is_super_admin' => true,
+        $this->superAdmin = User::factory()->superAdmin()->create([
             'email_verified_at' => now(),
         ]);
     }

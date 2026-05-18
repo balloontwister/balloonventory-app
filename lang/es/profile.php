@@ -4,6 +4,15 @@ return [
     'meta_title' => 'Perfil',
     'heading' => 'Perfil',
 
+    'avatar' => [
+        'heading' => 'Foto de perfil',
+        'subheading' => 'Sube una foto para que tus compañeros puedan reconocerte.',
+        'help' => 'PNG, JPG o WebP. Máximo 5 MB. Las imágenes cuadradas funcionan mejor.',
+        'submit' => 'Guardar foto',
+        'saved' => 'Foto actualizada.',
+        'preview_alt' => 'Tu foto de perfil',
+    ],
+
     'information' => [
         'heading' => 'Información del perfil',
         'subheading' => 'Actualiza tu nombre y dirección de correo electrónico.',

@@ -15,8 +15,13 @@ class BusinessPolicy
         return $this->userCan($user, $business, 'business.edit_settings');
     }
 
+    public function manageLogo(User $user, Business $business): bool
+    {
+        return $this->userCan($user, $business, 'business.manage_logo');
+    }
+
     public function delete(User $user, Business $business): bool
     {
-        return $user->is_super_admin;
+        return $user->isSuperAdmin();
     }
 }

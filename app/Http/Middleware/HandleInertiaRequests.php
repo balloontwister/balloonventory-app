@@ -2,10 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Business;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -26,6 +28,7 @@ class HandleInertiaRequests extends Middleware
                 'isSuperAdmin' => $request->user()?->isSuperAdmin() ?? false,
                 'isSiteAdmin' => $request->user()?->isSiteAdmin() ?? false,
                 'isAnyAdmin' => $request->user()?->isAnyAdmin() ?? false,
+                'avatarUrl' => $this->avatarUrl($request),
             ],
             'locale' => fn () => app()->getLocale(),
             'supportedLocales' => fn () => collect(config('app.supported_locales'))
@@ -79,12 +82,14 @@ class HandleInertiaRequests extends Middleware
                 'name' => $currentBusiness->name,
                 'slug' => $currentBusiness->slug,
                 'color' => $currentMembership->business_badge_color,
+                'logoUrl' => $this->businessLogoUrl($currentBusiness),
             ] : null,
 
             'businesses' => $memberships->map(fn (Membership $m) => [
                 'id' => $m->business->id,
                 'name' => $m->business->name,
                 'color' => $m->business_badge_color,
+                'logoUrl' => $this->businessLogoUrl($m->business),
                 'pivot' => ['role' => $m->role],
             ])->values(),
 
@@ -96,6 +101,31 @@ class HandleInertiaRequests extends Middleware
 
             'permissions' => self::permissionsForRole($currentMembership->role),
         ];
+    }
+
+    private function businessLogoUrl(Business $business): string
+    {
+        if ($business->logo_path) {
+            return Storage::disk('public')->url($business->logo_path);
+        }
+
+        $locale = app()->getLocale();
+        $file = $locale === 'es'
+            ? 'balloon-company-es-logo-light-default.png'
+            : 'balloon-company-logo-light-default.png';
+
+        return asset("images/defaults/{$file}");
+    }
+
+    private function avatarUrl(Request $request): string
+    {
+        $user = $request->user();
+
+        if ($user?->avatar_path) {
+            return Storage::disk('public')->url($user->avatar_path);
+        }
+
+        return asset('images/defaults/user-profile-default.png');
     }
 
     private static function permissionsForRole(string $role): array
@@ -114,6 +144,7 @@ class HandleInertiaRequests extends Middleware
                 'membership.change_role_any', 'membership.change_role_staff_guest',
                 'membership.remove_owner', 'membership.remove_manager',
                 'membership.remove_staff_guest', 'business.edit_settings',
+                'business.manage_logo',
             ],
             'manager' => [
                 'inventory.check_in', 'inventory.check_out', 'inventory.manual_adjust',

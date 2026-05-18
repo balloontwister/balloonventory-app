@@ -10,6 +10,7 @@ export function useBusiness() {
 
     const businessColor = computed(() => business.value?.color ?? '#6D28D9');
     const businessName = computed(() => business.value?.name ?? '');
+    const businessLogoUrl = computed(() => business.value?.logoUrl ?? null);
     const userRole = computed(() => membership.value?.role ?? null);
 
     return {
@@ -18,6 +19,7 @@ export function useBusiness() {
         membership,
         businessColor,
         businessName,
+        businessLogoUrl,
         userRole,
     };
 }

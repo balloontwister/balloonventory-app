@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Business;
+use App\Services\Catalog\CatalogImageService;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
+    public function __construct(private readonly CatalogImageService $images) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -47,9 +50,28 @@ class SettingsController extends Controller
                 'id' => $business->id,
                 'name' => $business->name,
                 'slug' => $business->slug,
-                'logo_path' => $business->logo_path,
+                'logoUrl' => $this->images->url($business, 'logo'),
             ],
         ]);
+    }
+
+    public function updateBusinessLogo(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'logo' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $business = Business::findOrFail(BusinessContext::currentId());
+
+        Gate::authorize('business.manage_logo', $business);
+
+        if ($request->hasFile('logo')) {
+            $this->images->set($business, 'logo', $request->file('logo'));
+        } elseif ($request->boolean('logo_clear')) {
+            $this->images->clear($business, 'logo');
+        }
+
+        return back()->with('success', __('flash.settings.business_logo_updated'));
     }
 
     public function updateBusiness(Request $request): RedirectResponse

@@ -83,5 +83,6 @@ class AppServiceProvider extends ServiceProvider
 
         $biz = app(BusinessPolicy::class);
         Gate::define('business.edit_settings', fn ($u, $b) => $biz->editSettings($u, $b));
+        Gate::define('business.manage_logo', fn ($u, $b) => $biz->manageLogo($u, $b));
     }
 }

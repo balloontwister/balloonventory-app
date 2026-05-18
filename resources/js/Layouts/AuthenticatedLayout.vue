@@ -233,16 +233,12 @@ function isActive(routeName) {
                                 :href="route('profile.edit')"
                                 class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                    class="h-4 w-4 flex-shrink-0"
-                                >
-                                    <path
-                                        d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
-                                    />
-                                </svg>
+                                <img
+                                    :src="$page.props.auth.avatarUrl"
+                                    class="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-border"
+                                    alt=""
+                                    aria-hidden="true"
+                                />
                                 <span class="truncate">{{
                                     $page.props.auth.user.name
                                 }}</span>

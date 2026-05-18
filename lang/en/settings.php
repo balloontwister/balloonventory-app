@@ -29,9 +29,12 @@ return [
         ],
         'logo' => [
             'heading' => 'Business logo',
-            'subheading' => 'Upload a logo to personalise your business. Shown on reports and shared views.',
-            'upload' => 'Upload logo',
-            'help' => 'Coming soon — PNG or SVG, max 2 MB.',
+            'subheading' => 'Upload a logo to personalise your business. Shown in the nav and on shared views.',
+            'help' => 'PNG, JPG, or WebP. Max 5 MB. Square images work best.',
+            'submit' => 'Save logo',
+            'saved' => 'Logo updated.',
+            'no_permission' => 'Only the business owner can change the logo.',
+            'preview_alt' => 'Business logo preview',
         ],
         'subscription' => [
             'heading' => 'Subscription',

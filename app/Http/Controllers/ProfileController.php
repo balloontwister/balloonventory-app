@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\Catalog\CatalogImageService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    public function __construct(private readonly CatalogImageService $images) {}
+
     /**
      * Display the user's profile form.
      */
@@ -38,6 +41,23 @@ class ProfileController extends Controller
         $request->user()->save();
 
         return Redirect::route('profile.edit');
+    }
+
+    public function updateAvatar(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'avatar' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $user = $request->user();
+
+        if ($request->hasFile('avatar')) {
+            $this->images->set($user, 'avatar', $request->file('avatar'));
+        } elseif ($request->boolean('avatar_clear')) {
+            $this->images->clear($user, 'avatar');
+        }
+
+        return back()->with('success', __('flash.profile.avatar_updated'));
     }
 
     /**

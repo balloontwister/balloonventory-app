@@ -4,6 +4,11 @@ return [
     'settings' => [
         'preferences_updated' => 'Preferencias actualizadas.',
         'business_name_updated' => 'Nombre del negocio actualizado.',
+        'business_logo_updated' => 'Logo del negocio actualizado.',
+    ],
+
+    'profile' => [
+        'avatar_updated' => 'Foto de perfil actualizada.',
     ],
 
     'catalog' => [

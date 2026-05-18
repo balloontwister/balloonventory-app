@@ -4,6 +4,15 @@ return [
     'meta_title' => 'Profile',
     'heading' => 'Profile',
 
+    'avatar' => [
+        'heading' => 'Profile picture',
+        'subheading' => 'Upload a photo so your teammates can recognise you.',
+        'help' => 'PNG, JPG, or WebP. Max 5 MB. Square images work best.',
+        'submit' => 'Save picture',
+        'saved' => 'Picture updated.',
+        'preview_alt' => 'Your profile picture',
+    ],
+
     'information' => [
         'heading' => 'Profile information',
         'subheading' => 'Update your name and email address.',

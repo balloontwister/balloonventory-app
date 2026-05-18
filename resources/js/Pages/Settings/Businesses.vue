@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -14,12 +15,20 @@ const page = usePage();
 const canEditSettings = computed(() =>
     page.props.permissions?.includes('business.edit_settings'),
 );
+const canManageLogo = computed(() =>
+    page.props.permissions?.includes('business.manage_logo'),
+);
 
 const form = useForm({
     name: props.business.name,
 });
-
 const submit = () => form.patch(route('settings.businesses.update'));
+
+const logoForm = useForm({ logo: null, logo_clear: false });
+const submitLogo = () =>
+    logoForm.post(route('settings.businesses.logo.update'), {
+        forceFormData: true,
+    });
 </script>
 
 <template>
@@ -111,36 +120,60 @@ const submit = () => form.patch(route('settings.businesses.update'));
                     {{ $t('settings.businesses.logo.subheading') }}
                 </p>
 
-                <div class="mt-5 flex items-center gap-4">
-                    <!-- Logo preview placeholder -->
-                    <div
-                        class="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-border bg-background text-ink-tertiary"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                <div class="mt-5 flex items-start gap-6">
+                    <!-- Circle preview of current logo -->
+                    <img
+                        :src="logoForm.logo
+                            ? undefined
+                            : (business.logoUrl ?? undefined)"
+                        :class="[
+                            'h-20 w-20 shrink-0 rounded-full object-cover ring-2 ring-border',
+                            !business.logoUrl && !logoForm.logo ? 'opacity-50' : '',
+                        ]"
+                        :alt="$t('settings.businesses.logo.preview_alt')"
+                    />
+
+                    <div class="flex flex-col gap-4">
+                        <ImageUpload
+                            v-model:file="logoForm.logo"
+                            v-model:clear="logoForm.logo_clear"
+                            :current-url="business.logoUrl ?? undefined"
+                            :help-text="$t('settings.businesses.logo.help')"
+                            :error="logoForm.errors.logo"
+                            accept="image/png,image/jpeg,image/webp"
+                            :disabled="!canManageLogo"
+                        />
+
+                        <div class="flex items-center gap-4">
+                            <button
+                                type="button"
+                                :disabled="logoForm.processing || (!logoForm.logo && !logoForm.logo_clear) || !canManageLogo"
+                                class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                                @click="submitLogo"
+                            >
+                                {{ $t('settings.businesses.logo.submit') }}
+                            </button>
+
+                            <Transition
+                                enter-active-class="transition-opacity duration-200"
+                                enter-from-class="opacity-0"
+                                leave-active-class="transition-opacity duration-200"
+                                leave-to-class="opacity-0"
+                            >
+                                <span
+                                    v-if="logoForm.recentlySuccessful"
+                                    class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
+                                >
+                                    {{ $t('settings.businesses.logo.saved') }}
+                                </span>
+                            </Transition>
+                        </div>
+
+                        <p
+                            v-if="!canManageLogo"
+                            class="font-sans text-[12px] text-ink-tertiary"
                         >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.5"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                        </svg>
-                    </div>
-                    <div>
-                        <button
-                            type="button"
-                            disabled
-                            class="rounded-md border border-border px-4 py-2 font-sans text-[14px] font-medium text-ink-secondary opacity-40"
-                        >
-                            {{ $t('settings.businesses.logo.upload') }}
-                        </button>
-                        <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
-                            {{ $t('settings.businesses.logo.help') }}
+                            {{ $t('settings.businesses.logo.no_permission') }}
                         </p>
                     </div>
                 </div>

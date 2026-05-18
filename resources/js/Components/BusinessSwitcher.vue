@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import RoleBadge from '@/Components/RoleBadge.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 
-const { business, businesses, userRole, businessColor } = useBusiness();
+const { business, businesses, userRole, businessColor, businessLogoUrl } = useBusiness();
 
 const open = ref(false);
 
@@ -27,17 +27,26 @@ function switchBusiness(id) {
             :style="{ borderLeft: `4px solid ${businessColor}` }"
             @click="open = !open"
         >
-            <div class="min-w-0 pl-2">
-                <p
-                    class="truncate font-sans text-[15px] font-semibold leading-snug text-ink-primary"
-                >
-                    {{ business?.name ?? $t('nav.no_business_selected') }}
-                </p>
-                <p
-                    class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                >
-                    {{ userRole ?? '' }}
-                </p>
+            <div class="flex min-w-0 items-center gap-2 pl-2">
+                <img
+                    v-if="businessLogoUrl"
+                    :src="businessLogoUrl"
+                    class="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
+                    aria-hidden="true"
+                    alt=""
+                />
+                <div class="min-w-0">
+                    <p
+                        class="truncate font-sans text-[15px] font-semibold leading-snug text-ink-primary"
+                    >
+                        {{ business?.name ?? $t('nav.no_business_selected') }}
+                    </p>
+                    <p
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ userRole ?? '' }}
+                    </p>
+                </div>
             </div>
             <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +74,15 @@ function switchBusiness(id) {
                 class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-background"
                 @click="switchBusiness(biz.id)"
             >
+                <img
+                    v-if="biz.logoUrl"
+                    :src="biz.logoUrl"
+                    class="h-6 w-6 shrink-0 rounded-full object-cover ring-1 ring-border"
+                    aria-hidden="true"
+                    alt=""
+                />
                 <span
+                    v-else
                     class="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                     :style="{ backgroundColor: biz.color ?? '#A1A1AA' }"
                 />

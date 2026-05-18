@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
 
     Route::post('/support/contact', [SupportController::class, 'send'])
         ->middleware('throttle:3,60')
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
     Route::get('/settings/businesses', [SettingsController::class, 'businesses'])->name('settings.businesses');
     Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
+    Route::post('/settings/businesses/logo', [SettingsController::class, 'updateBusinessLogo'])->name('settings.businesses.logo.update');
 
     Route::get('/lists/create', [ListsController::class, 'create'])->name('lists.create');
     Route::get('/lists/{list}', [ListsController::class, 'show'])->name('lists.show');

@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'admin_level',
+        'avatar_path',
         'locale',
         'timezone',
         'last_login_at',

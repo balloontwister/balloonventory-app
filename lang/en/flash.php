@@ -4,6 +4,11 @@ return [
     'settings' => [
         'preferences_updated' => 'Preferences updated.',
         'business_name_updated' => 'Business name updated.',
+        'business_logo_updated' => 'Business logo updated.',
+    ],
+
+    'profile' => [
+        'avatar_updated' => 'Profile picture updated.',
     ],
 
     'catalog' => [

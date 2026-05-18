@@ -3,6 +3,7 @@
 namespace App\Services\Catalog;
 
 use App\Models\Brand;
+use App\Models\Business;
 use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Material;
@@ -10,6 +11,7 @@ use App\Models\Shape;
 use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -44,6 +46,16 @@ class CatalogImageService
     public const JPEG_QUALITY = 85;
 
     private const CONFIG = [
+        Business::class => [
+            'folder' => 'business-logos',
+            'slots' => ['logo' => 'logo_path'],
+            'max_width' => 400,
+        ],
+        User::class => [
+            'folder' => 'user-avatars',
+            'slots' => ['avatar' => 'avatar_path'],
+            'max_width' => 400,
+        ],
         Brand::class => [
             'folder' => 'brand-logos',
             'slots' => ['logo' => 'logo_path'],
@@ -113,13 +125,15 @@ class CatalogImageService
         $mime = $file->getMimeType();
         $extension = $this->extensionFor($mime, $file);
 
+        $maxWidth = self::CONFIG[$model::class]['max_width'] ?? self::MAX_WIDTH;
+
         if ($mime === 'image/svg+xml') {
             // SVGs pass through unchanged — they're already vector.
             $contents = (string) file_get_contents($file->getRealPath());
         } else {
             $image = $this->images->decode($file->getRealPath());
-            if ($image->width() > self::MAX_WIDTH) {
-                $image->scale(width: self::MAX_WIDTH);
+            if ($image->width() > $maxWidth) {
+                $image->scale(width: $maxWidth);
             }
             $encoder = match ($mime) {
                 'image/png' => new PngEncoder,

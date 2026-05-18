@@ -29,9 +29,12 @@ return [
         ],
         'logo' => [
             'heading' => 'Logo del negocio',
-            'subheading' => 'Sube un logo para personalizar tu negocio. Se muestra en reportes y vistas compartidas.',
-            'upload' => 'Subir logo',
-            'help' => 'Próximamente — PNG o SVG, máximo 2 MB.',
+            'subheading' => 'Sube un logo para personalizar tu negocio. Se muestra en la navegación y en vistas compartidas.',
+            'help' => 'PNG, JPG o WebP. Máximo 5 MB. Las imágenes cuadradas funcionan mejor.',
+            'submit' => 'Guardar logo',
+            'saved' => 'Logo actualizado.',
+            'no_permission' => 'Solo el dueño del negocio puede cambiar el logo.',
+            'preview_alt' => 'Vista previa del logo del negocio',
         ],
         'subscription' => [
             'heading' => 'Suscripción',

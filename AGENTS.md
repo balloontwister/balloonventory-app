@@ -57,7 +57,7 @@ These are the rules that must hold in every change. If a request asks you to vio
 
 4. **Server-side authorization is the boundary.** Client-side `PermissionGate` is UX courtesy. Every server action re-checks permissions in a Laravel policy. Never trust the client.
 
-5. **SuperAdmin doesn't bypass tenant scope.** The `is_super_admin` flag grants platform powers (shared catalog, business deletion). It does not grant access to a business's tenant-scoped data. SuperAdmin still needs a `membership` row to act inside a specific business.
+5. **Admin level doesn't bypass tenant scope.** The `admin_level` enum (`site_admin` | `super_admin`) grants platform powers (shared catalog, business deletion). It does not grant access to a business's tenant-scoped data. Any admin-level user still needs a `membership` row to act inside a specific business.
 
 6. **Soft delete uses `deleted_at`-in-unique-composite.** MariaDB-specific pattern. See DATA.md Conventions for examples.
 
@@ -102,8 +102,12 @@ Standard Laravel layout with these project-specific callouts:
 
 ```
 app/
+├── Enums/
+│   ├── AdminLevel.php   # site_admin | super_admin — stored in users.admin_level
+│   └── BusinessPlan.php # solo | store | enterprise — stored in businesses.plan
 ├── Http/Controllers/
 │   ├── SuperAdmin/
+│   │   ├── AdminUserController.php        # Admin Users page — promote/demote Site Admin
 │   │   ├── CatalogController.php          # Shared SKU CRUD — cascading filters, computed_name, pivot sync
 │   │   ├── CatalogColorController.php     # Color CRUD
 │   │   ├── CatalogBrandController.php     # Brand list + update
@@ -157,6 +161,8 @@ resources/js/
 ├── Pages/
 │   ├── SuperAdmin/
 │   │   ├── Dashboard.vue
+│   │   ├── Users/
+│   │   │   └── Index.vue  # Admin Users list with promote/demote
 │   │   └── Catalog/
 │   │       ├── Index.vue      # SKU list with filters + pagination
 │   │       ├── SkuForm.vue    # Create/edit SKU — brand-driven color filter, theme pills
@@ -432,7 +438,7 @@ See the "Decisions deferred" sections of DATA.md and PERMISSIONS.md for the runn
 
 A short list of the most relevant ones a coding agent might bump into:
 
-- **No SuperAdmin support view in v1.** SuperAdmin needs a `membership` to act in a business.
+- **No admin support view in v1.** Super Admin and Site Admin both need a `membership` to act in a business.
 - **No per-Guest custom permissions in v1.** All Guests get the default permission set.
 - **Cross-business stock transfer is manual.** A user with memberships in A and B does Check Out from A then Check In to B.
 - **No bulk operations.** No CSV import, no bulk stock adjustments. Will come, but not in v1.

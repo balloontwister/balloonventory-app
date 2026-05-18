@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BusinessPlan;
+use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +12,7 @@ use Illuminate\Support\Str;
 
 class Business extends Model
 {
+    /** @use HasFactory<BusinessFactory> */
     use HasFactory, SoftDeletes;
 
     public $incrementing = false;
@@ -19,8 +22,16 @@ class Business extends Model
     protected $fillable = [
         'name',
         'slug',
+        'plan',
         'logo_path',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'plan' => BusinessPlan::class,
+        ];
+    }
 
     protected static function boot(): void
     {
@@ -29,6 +40,10 @@ class Business extends Model
         static::creating(function (self $model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid7();
+            }
+
+            if (empty($model->plan)) {
+                $model->plan = BusinessPlan::Solo;
             }
         });
 

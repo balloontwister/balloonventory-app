@@ -10,6 +10,7 @@ return [
             'email_templates' => 'Plantillas de correo',
             'support_tickets' => 'Tickets de soporte',
             'catalog' => 'Catálogo',
+            'users' => 'Usuarios',
         ],
 
         'overview_heading' => 'Vista general',
@@ -84,6 +85,34 @@ return [
         'catalog_heading' => 'Catálogo compartido de globos',
         'catalog_subheading' => ':count SKUs en el catálogo maestro.',
         'catalog_manage' => 'Gestionar catálogo',
+
+        'users_heading' => 'Usuarios admin',
+        'users_subheading' => ':count usuarios registrados en la plataforma.',
+        'users_manage' => 'Gestionar usuarios admin',
+    ],
+
+    'users' => [
+        'meta_title' => 'Usuarios Admin',
+        'heading' => 'Usuarios Admin',
+        'back' => '← Super Admin',
+        'description' => 'Gestiona el acceso de administrador a nivel de plataforma. Solo los Super Admin pueden promover usuarios a Site Admin o revocar ese acceso.',
+
+        'col_name' => 'Nombre',
+        'col_email' => 'Correo',
+        'col_admin_level' => 'Nivel de admin',
+        'col_registered' => 'Registrado',
+        'col_last_login' => 'Último inicio',
+        'col_actions' => 'Acciones',
+
+        'level_none' => 'Ninguno',
+        'level_site_admin' => 'Site Admin',
+        'level_super_admin' => 'Super Admin',
+
+        'promote_button' => 'Hacer Site Admin',
+        'demote_button' => 'Quitar Site Admin',
+        'demote_confirm' => '¿Quitar acceso de Site Admin?',
+        'demote_yes' => 'Sí, quitar',
+        'demote_cancel' => 'Cancelar',
     ],
 
     'email_templates' => [

@@ -151,6 +151,7 @@ const navItems = [
         labelKey: 'super_admin.dashboard.nav.support_tickets',
     },
     { id: 'catalog', labelKey: 'super_admin.dashboard.nav.catalog' },
+    { id: 'users', labelKey: 'super_admin.dashboard.nav.users' },
 ];
 
 const activeSection = ref('overview');
@@ -1122,6 +1123,37 @@ function scrollToSection(id) {
                         >
                             {{ $t('super_admin.dashboard.catalog_manage') }}
                         </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══ Users ══════════════════════════════════════════════════ -->
+            <section id="users" class="scroll-mt-6">
+                <div class="rounded-lg border border-border bg-surface p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2
+                                class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                            >
+                                {{ $t('super_admin.dashboard.users_heading') }}
+                            </h2>
+                            <p
+                                class="mt-1 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{
+                                    $t(
+                                        'super_admin.dashboard.users_subheading',
+                                        { count: stats.total_users },
+                                    )
+                                }}
+                            </p>
+                        </div>
+                        <Link
+                            :href="route('super-admin.users.index')"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover"
+                        >
+                            {{ $t('super_admin.dashboard.users_manage') }}
+                        </Link>
                     </div>
                 </div>
             </section>

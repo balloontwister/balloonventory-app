@@ -25,11 +25,14 @@ The system uses `staff` and `guest` as the underlying enum values, but the UI al
 
 ### Global roles
 
-| System name | Description |
-|---|---|
-| `super_admin` | Boolean flag on `user` (`is_super_admin`). Maintains the shared SKU catalog and resolves cross-business issues. Not a per-business role; the SuperAdmin must still be invited as a member to act inside a specific business's data. |
+| System name | Display label | Description |
+|---|---|---|
+| `site_admin` | Site Admin | Platform-level admin. Has all the same platform powers as Super Admin in v1; distinction will matter when subscriptions and plan management are introduced. Can be granted or revoked by a Super Admin. |
+| `super_admin` | Super Admin | Highest platform authority. Maintains the shared SKU catalog, resolves cross-business issues, and is the only role that can promote or demote Site Admins. Cannot be promoted or demoted through the UI. |
 
-A SuperAdmin who is not a member of business X cannot read or write business X's data. SuperAdmin powers are platform-level (shared catalog, business deletion requests, unknown-UPC queue triage), not tenant-level.
+Both admin levels are stored in the `admin_level` enum column on `user` (nullable; `NULL` = regular user). The `App\Enums\AdminLevel` PHP enum provides typed constants: `AdminLevel::SiteAdmin` and `AdminLevel::SuperAdmin`.
+
+Neither admin level grants access to a business's tenant-scoped data without a `membership` row. Admin powers are platform-level only.
 
 ---
 
@@ -138,21 +141,23 @@ The Manager column here applies a hard ceiling: **Manager cannot create or modif
 
 ---
 
-## SuperAdmin actions (platform-level)
+## Admin actions (platform-level)
 
-These are not in the per-business matrix because they happen outside any single business's scope.
+These are not in the per-business matrix because they happen outside any single business's scope. In v1, Site Admin and Super Admin share the same platform action set — the columns will diverge in v2 when subscriptions and restricted access surfaces are introduced.
 
-| Action | SuperAdmin |
-|---|:-:|
-| Edit the shared SKU catalog (any field, any SKU with `owned_by_business_id IS NULL`) | ✓ |
-| Edit the `brand` table | ✓ |
-| Resolve a `pending_upc_scan` queue item | ✓ (also any business Owner/Manager for their own business) |
-| Triage `sku_error_report` entries against shared SKUs | ✓ |
-| Delete a business (after out-of-band confirmation with an Owner) | ✓ |
-| Read any business's data in a read-only "support view" | ✓ (deferred — see Special rules) |
-| Become a member of a business with a per-business role | ✓ (same path as any other user; requires invitation) |
+| Action | Super Admin | Site Admin |
+|---|:-:|:-:|
+| Edit the shared SKU catalog (any field, any SKU with `owned_by_business_id IS NULL`) | ✓ | ✓ |
+| Edit the `brand` table | ✓ | ✓ |
+| Resolve a `pending_upc_scan` queue item | ✓ | ✓ (also any business Owner/Manager for their own business) |
+| Triage `sku_error_report` entries against shared SKUs | ✓ | ✓ |
+| Delete a business (after out-of-band confirmation with an Owner) | ✓ | ✓ |
+| Promote a regular user to Site Admin | ✓ | ✗ |
+| Demote a Site Admin back to regular user | ✓ | ✗ |
+| Read any business's data in a read-only "support view" | ✓ (deferred — see Special rules) | ✓ (deferred) |
+| Become a member of a business with a per-business role | ✓ (same path as any other user; requires invitation) | ✓ |
 
-**Important:** SuperAdmin status alone does not grant access to a business's data. A SuperAdmin who isn't a member of business X cannot see business X's stock levels, jobs, or members. To act inside a business, the SuperAdmin must be invited like anyone else and gets the role they're invited as. The `is_super_admin` flag adds platform powers; it does not bypass tenant scoping.
+**Important:** Admin status alone does not grant access to a business's data. An admin who isn't a member of business X cannot see business X's stock levels, jobs, or members. To act inside a business, the admin must be invited like anyone else and gets the role they're invited as. The `admin_level` field adds platform powers; it does not bypass tenant scoping.
 
 ---
 
@@ -245,7 +250,7 @@ Notifications must respect tenant scope: an in-app notification about business X
 
 DATA.md locks in `spatie/laravel-permission` as the package for the role × action mapping. The matrix above translates to:
 
-- Roles: `owner`, `manager`, `staff`, `guest` (the system names) plus a non-Spatie `super_admin` boolean on `user`
+- Roles: `owner`, `manager`, `staff`, `guest` (the system names) plus a non-Spatie `admin_level` enum on `user` (`site_admin` | `super_admin` | NULL)
 - Permissions: dot-namespaced strings like `inventory.check_in`, `sku.create_private`, `list.delete`, `membership.invite`, `business.edit_settings`
 - A seeder populates the role × permission assignments from this file at install time
 - Permission checks in code use `$user->can('inventory.check_in', $business)` style with Laravel policies
@@ -279,7 +284,7 @@ PERMISSIONS.md introduces two new entities and two schema changes that need to b
 
 **Schema changes:**
 
-3. Add `is_super_admin` boolean (default false) to the `users` table
+3. Add `admin_level` enum (`site_admin` | `super_admin`, nullable) to the `users` table — replaced the earlier `is_super_admin` boolean
 4. Replace the `favorite` table entirely:
    - Remove the `favorite` table
    - Add `is_business_favorites` boolean (default false) to the `list` table
@@ -299,4 +304,4 @@ These changes should land in DATA.md as a coordinated update, not piecemeal.
 
 When you add a permission, change a role's powers, or relax a special rule: update this file in the same change set as the policy code. A permission policy without a corresponding PERMISSIONS.md update is incomplete.
 
-When the role enum or `is_super_admin` flag changes, get a second pair of eyes. These are load-bearing for every authorization decision in the product.
+When the role enum or `admin_level` enum changes, get a second pair of eyes. These are load-bearing for every authorization decision in the product.

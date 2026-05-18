@@ -6,11 +6,11 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class RequireSuperAdmin
+class RequireAdminAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->isSuperAdmin()) {
+        if (! $request->user()?->isAnyAdmin()) {
             abort(403);
         }
 

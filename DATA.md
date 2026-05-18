@@ -152,7 +152,7 @@ A person. The standard Laravel `users` table extended with our display field. Au
 - `email_verified_at` (timestamp, nullable) — Laravel default field
 - `password` (text) — Laravel default field; hashed by the framework
 - `remember_token` (text, nullable) — Laravel default field
-- `is_super_admin` (boolean, default false) — platform-level admin flag. Grants edit access to the shared catalog, the `pending_upc_scan` queue, and platform actions like business deletion. Does NOT grant access to any business's tenant-scoped data; SuperAdmin still needs a `membership` row to act inside a specific business. See PERMISSIONS.md.
+- `admin_level` (enum: `site_admin`, `super_admin`, nullable, default NULL) — platform-level admin tier. `NULL` means regular user; `site_admin` means Site Admin; `super_admin` means Super Admin. Grants edit access to the shared catalog, the `pending_upc_scan` queue, and platform actions like business deletion. Does NOT grant access to any business's tenant-scoped data; any admin-level user still needs a `membership` row to act inside a specific business. See PERMISSIONS.md for the full tier description. Only a `super_admin` can promote a regular user or `site_admin` to `site_admin`.
 - `locale` (string(8), default `'en'`) — BCP-47 short tag selecting the UI language for this user. `'en'` and `'es'` are the supported values; the column is wide enough for future region tags like `'pt-BR'`. Honored by `SetUserLocale` middleware on every request and by `TemplatedMailable::forKey()` when picking an email template variant.
 - `timezone` (string(64), nullable) — IANA tz database identifier (e.g. `'America/Chicago'`). Captured from the browser via `Intl.DateTimeFormat().resolvedOptions().timeZone` on first login if NULL. Used for client-side date/time formatting; the server keeps storing UTC.
 - `created_at`, `updated_at`, `deleted_at`
@@ -166,6 +166,7 @@ A tenant. The unit that owns inventory.
 - `id` (uuid, pk)
 - `name` (text)
 - `slug` (text, unique, idx) — URL-safe identifier, e.g. `acme-balloons`
+- `plan` (enum: `solo`, `store`, `enterprise`, default `solo`) — membership tier for this business. In v1 there are no functional differences between tiers; the field is present so future subscription logic has a home. All existing and new businesses default to `solo`. See PERMISSIONS.md for planned future tier distinctions.
 - `created_at`, `updated_at`, `deleted_at`
 
 No currency field, no billing fields, no money fields. Add when needed.
@@ -960,6 +961,7 @@ These are real product calls that will need to be made before related code is wr
 - **Bulk operations**: CSV import for SKUs, CSV export for inventory snapshots, bulk stock adjustments. Not modeled in this file yet.
 - **List visibility and sharing**: lists are shared across all members of a business in v1. Per-user private lists, sharing with specific users, sharing across businesses, and list-import-from-template are all v2 concerns.
 - **Default Local Prices for shared SKUs**: a new business starts with an empty `local_price` table. v2 might suggest defaults from a community-curated catalog or import from CSV.
+- **Business plan enforcement**: the `business.plan` column exists and defaults to `solo`. In v2, each plan tier will gate different maximum user counts (artists + guests + owners) and be charged a different subscription fee. No enforcement code is written yet — the field is structural scaffolding only.
 - **Per-business currency**: USD assumed in v1. Storing `amount_cents` as integer future-proofs the schema. Adding a `currency_code` column to `business` and `local_price` is straightforward when the need arrives.
 - **Price code dictionary**: implemented as the `price_codes` table with FK from `sku.price_code_id`. `local_price.price_code` still loosely matches by string (no FK to `price_codes`). If governance becomes needed for `local_price`, add a `price_code_id` FK there as well.
 - **Favorites schema history note**: in pre-PERMISSIONS.md drafts, Favorites was a separate `favorite` junction table. It was unified under the `list` table with an `is_business_favorites` flag during the PERMISSIONS.md design pass. This note exists so a future reader doesn't reintroduce a separate table by mistake.

@@ -14,7 +14,7 @@ const page = usePage();
 
 const showSupportModal = ref(false);
 
-const isSuperAdmin = page.props.auth?.user?.is_super_admin ?? false;
+const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
 
 function logout() {
     router.post(route('logout'));

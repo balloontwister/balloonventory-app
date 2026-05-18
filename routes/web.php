@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SuperAdmin\AdminUserController;
 use App\Http\Controllers\SuperAdmin\CatalogBrandController;
 use App\Http\Controllers\SuperAdmin\CatalogColorController;
 use App\Http\Controllers\SuperAdmin\CatalogController;
@@ -17,7 +18,7 @@ use App\Http\Controllers\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SupportController;
-use App\Http\Middleware\RequireSuperAdmin;
+use App\Http\Middleware\RequireAdminAccess;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -80,8 +81,13 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
 });
 
 // ─── SuperAdmin ───────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified', RequireSuperAdmin::class])->group(function () {
+Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(function () {
     Route::get('/super-admin', [SuperAdminController::class, 'dashboard'])->name('super-admin.dashboard');
+
+    // ── Users ────────────────────────────────────────────────────────────────
+    Route::get('/super-admin/users', [AdminUserController::class, 'index'])->name('super-admin.users.index');
+    Route::post('/super-admin/users/{user}/site-admin', [AdminUserController::class, 'promote'])->name('super-admin.users.promote');
+    Route::delete('/super-admin/users/{user}/site-admin', [AdminUserController::class, 'demote'])->name('super-admin.users.demote');
 
     // ── Catalog ──────────────────────────────────────────────────────────────
     Route::get('/super-admin/catalog', fn () => redirect()->route('super-admin.catalog.skus'))->name('super-admin.catalog');

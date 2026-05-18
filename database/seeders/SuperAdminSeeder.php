@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AdminLevel;
 use App\Models\BalloonList;
 use App\Models\Business;
 use App\Models\Membership;
@@ -9,7 +10,6 @@ use App\Models\User;
 use App\Scopes\BusinessScope;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class SuperAdminSeeder extends Seeder
 {
@@ -20,7 +20,7 @@ class SuperAdminSeeder extends Seeder
             [
                 'name' => 'Todd',
                 'password' => Hash::make(env('SUPER_ADMIN_PASSWORD', 'Zaphod1974')),
-                'is_super_admin' => true,
+                'admin_level' => AdminLevel::SuperAdmin,
                 'email_verified_at' => now(),
                 'deleted_at' => null,
             ]

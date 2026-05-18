@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\AdminLevel;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -24,7 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
-        'is_super_admin',
+        'admin_level',
         'locale',
         'timezone',
         'last_login_at',
@@ -45,7 +46,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_login_at' => 'datetime',
             'email_verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
-            'is_super_admin' => 'boolean',
+            'admin_level' => AdminLevel::class,
         ];
     }
 
@@ -60,10 +61,25 @@ class User extends Authenticatable implements MustVerifyEmail
         });
 
         static::deleting(function (self $model) {
-            if ($model->is_super_admin) {
+            if ($model->admin_level === AdminLevel::SuperAdmin) {
                 throw new \RuntimeException('Super admin accounts cannot be deleted.');
             }
         });
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->admin_level === AdminLevel::SuperAdmin;
+    }
+
+    public function isSiteAdmin(): bool
+    {
+        return $this->admin_level === AdminLevel::SiteAdmin;
+    }
+
+    public function isAnyAdmin(): bool
+    {
+        return $this->admin_level !== null;
     }
 
     // Suppress Laravel's default link-based verification email.

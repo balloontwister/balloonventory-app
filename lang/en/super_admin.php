@@ -10,6 +10,7 @@ return [
             'email_templates' => 'Email Templates',
             'support_tickets' => 'Support Tickets',
             'catalog' => 'Catalog',
+            'users' => 'Users',
         ],
 
         'overview_heading' => 'Overview',
@@ -84,6 +85,34 @@ return [
         'catalog_heading' => 'Shared balloon catalog',
         'catalog_subheading' => ':count SKUs in the master catalog.',
         'catalog_manage' => 'Manage catalog',
+
+        'users_heading' => 'Admin users',
+        'users_subheading' => ':count registered users on the platform.',
+        'users_manage' => 'Manage admin users',
+    ],
+
+    'users' => [
+        'meta_title' => 'Admin Users',
+        'heading' => 'Admin Users',
+        'back' => '← Super Admin',
+        'description' => 'Manage platform-level admin access. Only Super Admins can promote users to Site Admin or revoke that access.',
+
+        'col_name' => 'Name',
+        'col_email' => 'Email',
+        'col_admin_level' => 'Admin level',
+        'col_registered' => 'Registered',
+        'col_last_login' => 'Last login',
+        'col_actions' => 'Actions',
+
+        'level_none' => 'None',
+        'level_site_admin' => 'Site Admin',
+        'level_super_admin' => 'Super Admin',
+
+        'promote_button' => 'Make Site Admin',
+        'demote_button' => 'Remove Site Admin',
+        'demote_confirm' => 'Remove Site Admin access?',
+        'demote_yes' => 'Yes, remove',
+        'demote_cancel' => 'Cancel',
     ],
 
     'email_templates' => [

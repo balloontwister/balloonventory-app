@@ -96,6 +96,19 @@ If a fix would touch files outside the working set of the current task, ask firs
 
 ---
 
+## Deployment
+
+Production deploys run `bin/deploy.sh` on the cPanel VPS — it pulls `main`, installs composer deps via the PHP 8.4 CLI, runs migrations, and rebuilds the prod caches. The script exists because the default `composer`/`php` on the host resolve to PHP 8.2 and won't satisfy the lock file.
+
+```bash
+# From your laptop in one shot
+ssh myvps "cd /home/balloonventory/balloonventory-app && bash bin/deploy.sh"
+```
+
+Vite assets are committed under `public/build/` so the server doesn't need `npm`. Run `npm run build` locally and commit the output before deploying.
+
+---
+
 ## Repository layout
 
 Standard Laravel layout with these project-specific callouts:

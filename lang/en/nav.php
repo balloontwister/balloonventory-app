@@ -15,4 +15,6 @@ return [
     'log_out' => 'Log out',
     'no_business_selected' => 'No business selected',
     'manage_businesses' => 'Manage businesses',
+    'switch_business' => 'Switch business',
+    'go_to_dashboard' => 'Go to dashboard',
 ];

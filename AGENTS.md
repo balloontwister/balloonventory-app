@@ -294,6 +294,7 @@ Detail lives in DATA.md (schema) and DESIGN.md (visual). High-level rules:
 - Don't add a date or client field to the `list` table. That makes it a Job. The distinction is intentional.
 - Don't track consumption, fulfillment, or estimate-vs-actual reconciliation anywhere.
 - Don't display full UPC strings in primary inventory rows. Last 6 digits in detail views only.
+- Don't use MySQL-only raw SQL (e.g. `ALTER TABLE ... MODIFY`) in migrations. Tests run on SQLite in-memory and will fail. Use Laravel's `Schema::table()->...->change()` for column nullability/type changes — it abstracts both drivers.
 
 ---
 

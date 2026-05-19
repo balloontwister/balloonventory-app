@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Material;
+use App\Models\Shape;
 use App\Models\Size;
 use Illuminate\Database\Seeder;
 
@@ -14,10 +15,15 @@ class BalloonSizeSeeder extends Seeder
     {
         $latex = Material::where('name', 'Latex')->first();
         $foil = Material::where('name', 'Foil')->first();
+        $round = Shape::where('name', 'Round')->first();
 
-        if (! $latex || ! $foil) {
+        if (! $latex || ! $foil || ! $round) {
             return;
         }
+
+        // All seeded entries are round balloons. Other shapes get added via the
+        // admin UI as the catalog grows.
+        $shapeId = $round->id;
 
         $sempertex = Brand::where('name', 'Sempertex')->first();
         $tuftex = Brand::where('name', 'TufTex')->first();
@@ -92,10 +98,12 @@ class BalloonSizeSeeder extends Seeder
             if ($data['size_id'] === null) {
                 continue; // skip if size family not found
             }
+            $data['shape_id'] = $shapeId;
             BalloonSize::firstOrCreate(
                 [
                     'brand_id' => $data['brand_id'],
                     'material_id' => $data['material_id'],
+                    'shape_id' => $shapeId,
                     'name' => $data['name'],
                 ],
                 $data,

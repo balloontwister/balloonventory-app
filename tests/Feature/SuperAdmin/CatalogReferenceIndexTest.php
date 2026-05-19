@@ -5,6 +5,7 @@ namespace Tests\Feature\SuperAdmin;
 use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Material;
+use App\Models\Shape;
 use App\Models\Size;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,11 +31,13 @@ class CatalogReferenceIndexTest extends TestCase
         $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
         $latex = Material::create(['name' => 'Latex', 'sort_order' => 1]);
         $size = Size::create(['name' => '11-inch', 'sort_order' => 30]);
+        $round = Shape::create(['name' => 'Round', 'sort_order' => 1]);
 
         BalloonSize::create([
             'brand_id' => $brand->id,
             'material_id' => $latex->id,
             'size_id' => $size->id,
+            'shape_id' => $round->id,
             'name' => '11-inch',
             'sort_order' => 10,
         ]);

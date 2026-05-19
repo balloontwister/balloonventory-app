@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import RoleBadge from '@/Components/RoleBadge.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 
@@ -20,14 +20,16 @@ function switchBusiness(id) {
 
 <template>
     <div class="relative">
-        <!-- trigger -->
-        <button
-            type="button"
-            class="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        <!-- trigger row: identity link + chevron toggle -->
+        <div
+            class="flex items-center rounded-md transition focus-within:ring-2 focus-within:ring-accent"
             :style="{ borderLeft: `4px solid ${businessColor}` }"
-            @click="open = !open"
         >
-            <div class="flex min-w-0 items-center gap-2 pl-2">
+            <Link
+                :href="route('dashboard')"
+                :title="$t('nav.go_to_dashboard')"
+                class="flex min-w-0 flex-1 items-center gap-2 rounded-l-md py-2 pl-3 pr-2 transition hover:bg-background focus-visible:outline-none"
+            >
                 <img
                     v-if="businessLogoUrl"
                     :src="businessLogoUrl"
@@ -47,20 +49,30 @@ function switchBusiness(id) {
                         {{ userRole ?? '' }}
                     </p>
                 </div>
-            </div>
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                class="h-4 w-4 flex-shrink-0 text-ink-tertiary"
+            </Link>
+            <button
+                type="button"
+                :title="$t('nav.switch_business')"
+                :aria-label="$t('nav.switch_business')"
+                :aria-expanded="open"
+                class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-r-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary focus-visible:outline-none"
+                @click="open = !open"
             >
-                <path
-                    fill-rule="evenodd"
-                    d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"
-                    clip-rule="evenodd"
-                />
-            </svg>
-        </button>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    class="h-4 w-4"
+                    :class="open ? 'rotate-180' : ''"
+                >
+                    <path
+                        fill-rule="evenodd"
+                        d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"
+                        clip-rule="evenodd"
+                    />
+                </svg>
+            </button>
+        </div>
 
         <!-- dropdown -->
         <div

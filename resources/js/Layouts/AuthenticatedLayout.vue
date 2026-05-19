@@ -259,7 +259,7 @@ function isActive(routeName) {
                 class="sticky top-0.5 z-10 border-b border-border bg-surface"
             >
                 <div class="flex items-center gap-2 px-4 py-3">
-                    <div class="flex-1">
+                    <div class="min-w-0 flex-1">
                         <BusinessSwitcher />
                     </div>
                     <Link

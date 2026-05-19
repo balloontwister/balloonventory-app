@@ -15,4 +15,6 @@ return [
     'log_out' => 'Cerrar sesión',
     'no_business_selected' => 'Sin negocio seleccionado',
     'manage_businesses' => 'Gestionar negocios',
+    'switch_business' => 'Cambiar negocio',
+    'go_to_dashboard' => 'Ir al panel',
 ];

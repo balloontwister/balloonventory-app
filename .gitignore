@@ -5,6 +5,7 @@
 .env.production
 .phpactor.json
 .phpunit.result.cache
+/.claude/worktrees
 /.fleet
 /.idea
 /.nova
@@ -23,3 +24,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local scratch — not part of the project
+/intake
+/Database Table*.md

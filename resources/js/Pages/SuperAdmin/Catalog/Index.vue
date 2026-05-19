@@ -49,9 +49,6 @@ function destroy(sku) {
     });
 }
 
-function sizeCategoryLabel(key) {
-    return trans(`catalog.size_categories.${key}`);
-}
 </script>
 
 <template>
@@ -143,7 +140,7 @@ function sizeCategoryLabel(key) {
                     {{ $t('catalog.skus.filter_all_sizes') }}
                 </option>
                 <option v-for="s in sizes" :key="s.id" :value="s.id">
-                    {{ s.name }} ({{ sizeCategoryLabel(s.size_category) }})
+                    {{ s.name }}
                 </option>
             </select>
 

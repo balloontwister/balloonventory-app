@@ -182,6 +182,10 @@ return [
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
+        'image' => [
+            'svg_unsafe' => 'This SVG could not be processed safely. Please upload a different file.',
+            'dimensions_too_large' => 'This image is too large to process. Maximum is :max × :max pixels.',
+        ],
     ],
 
     /*

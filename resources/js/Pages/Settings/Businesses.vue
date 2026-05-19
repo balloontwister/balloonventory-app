@@ -140,7 +140,7 @@ const submitLogo = () =>
                             :current-url="business.logoUrl ?? undefined"
                             :help-text="$t('settings.businesses.logo.help')"
                             :error="logoForm.errors.logo"
-                            accept="image/png,image/jpeg,image/webp"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
                             :disabled="!canManageLogo"
                         />
 

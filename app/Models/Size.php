@@ -20,7 +20,6 @@ class Size extends Model
         'name',
         'alt_imperial_name',
         'diameter_cm',
-        'size_category',
         'single_image_file_path',
         'cluster_image_file_path',
         'sort_order',

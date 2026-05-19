@@ -19,15 +19,6 @@ return [
         'add' => 'Agregar',
     ],
 
-    'size_categories' => [
-        'small' => 'Pequeño',
-        'medium' => 'Mediano',
-        'large' => 'Grande',
-        'giant' => 'Gigante',
-        'small_modeling' => 'Modelado pequeño',
-        'large_modeling' => 'Modelado grande',
-    ],
-
     'skus' => [
         'meta_title' => 'Catálogo — SKUs',
         'search_placeholder' => 'Buscar nombre, SKU fab., código de precio…',
@@ -102,7 +93,8 @@ return [
     'reference' => [
         'meta_title' => 'Catálogo — Datos de referencia',
         'tabs' => [
-            'sizes' => 'Tamaños',
+            'sizes' => 'Familias de Tamaño',
+            'balloon-sizes' => 'Tamaños de Globo',
             'shapes' => 'Formas',
             'textures' => 'Texturas',
             'color-families' => 'Familias de color',
@@ -111,14 +103,23 @@ return [
         ],
         'add_button' => '+ Agregar elemento',
         'name_label' => 'Nombre *',
-        'category_label' => 'Categoría *',
+        'alt_imperial_label' => 'Nombre alternativo',
+        'diameter_label' => 'Diámetro (cm)',
         'family_label' => 'Familia *',
+        'size_family_label' => 'Familia de Tamaño *',
+        'material_label' => 'Material',
+        'brand_label' => 'Marca',
         'hex_label' => 'Hex',
         'sort_order_label' => 'Orden',
         'select_placeholder' => 'Seleccionar…',
+        'none_option' => '(Cualquiera)',
         'col_name' => 'Nombre',
-        'col_category' => 'Categoría',
+        'col_alt_imperial' => 'Nombre alternativo',
+        'col_diameter' => 'Diámetro (cm)',
         'col_family' => 'Familia',
+        'col_size_family' => 'Familia de Tamaño',
+        'col_material' => 'Material',
+        'col_brand' => 'Marca',
         'col_hex' => 'Hex',
         'col_sort' => 'Orden',
         'empty' => 'Aún no hay elementos.',
@@ -164,14 +165,5 @@ return [
         'submit_edit' => 'Guardar cambios',
         'submitting' => 'Guardando…',
         'cancel' => 'Cancelar',
-
-        'size_group_labels' => [
-            'small' => 'Pequeño (redondo)',
-            'medium' => 'Mediano (redondo)',
-            'large' => 'Grande (redondo)',
-            'giant' => 'Gigante (redondo)',
-            'small_modeling' => 'Modelado pequeño',
-            'large_modeling' => 'Modelado grande',
-        ],
     ],
 ];

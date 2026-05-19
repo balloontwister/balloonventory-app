@@ -4,7 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
-use App\Services\Catalog\CatalogImageService;
+use App\Services\ImageAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -13,7 +13,7 @@ use Inertia\Response;
 
 class CatalogBrandController extends Controller
 {
-    public function __construct(private readonly CatalogImageService $images) {}
+    public function __construct(private readonly ImageAttachmentService $images) {}
 
     public function index(): Response
     {

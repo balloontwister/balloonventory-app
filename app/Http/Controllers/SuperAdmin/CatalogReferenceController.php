@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BalloonSize;
+use App\Models\Brand;
 use App\Models\ColorFamily;
 use App\Models\Material;
 use App\Models\Shape;
@@ -10,7 +12,7 @@ use App\Models\Size;
 use App\Models\Texture;
 use App\Models\TextureFamily;
 use App\Models\Theme;
-use App\Services\Catalog\CatalogImageService;
+use App\Services\ImageAttachmentService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,28 +23,35 @@ use Inertia\Response;
 class CatalogReferenceController extends Controller
 {
     // Maps URL segment → [Model class, allowed fields for create/update, image slots].
-    // Image slots correspond to keys configured in CatalogImageService.
+    // Image slots correspond to keys configured in ImageAttachmentService.
     private const TABLES = [
-        'sizes' => [Size::class,         ['name', 'size_category', 'sort_order', 'description'], ['single', 'cluster']],
+        // "Size families" — brand-agnostic abstract sizes (e.g. "11-inch"). Multiple
+        // balloon_sizes share one size row. See DATA.md → `size`.
+        'sizes' => [Size::class, ['name', 'alt_imperial_name', 'diameter_cm', 'sort_order', 'description'], ['single', 'cluster']],
+        // Brand+material-specific size instances (e.g. "Sempertex R-12"). The
+        // FK columns are NOT NULL in the schema — required by validation below.
+        'balloon-sizes' => [BalloonSize::class, ['name', 'size_id', 'brand_id', 'material_id', 'sort_order', 'description'], ['single', 'cluster']],
         'shapes' => [Shape::class,        ['name', 'sort_order', 'description'],                  ['image']],
-        'textures' => [Texture::class,      ['name', 'texture_family_id', 'sort_order', 'description'], ['image']],
+        'textures' => [Texture::class,      ['name', 'material_id', 'brand_id', 'texture_family_id', 'sort_order', 'description'], ['image']],
         'color-families' => [ColorFamily::class,  ['name', 'fallback_color_hex', 'sort_order', 'description'], ['single', 'cluster']],
         'themes' => [Theme::class,        ['name', 'sort_order', 'description'],                  []],
         'materials' => [Material::class,     ['name', 'sort_order', 'description'],                  ['image']],
     ];
 
-    public function __construct(private readonly CatalogImageService $imageService) {}
+    public function __construct(private readonly ImageAttachmentService $imageService) {}
 
     public function index(): Response
     {
         return Inertia::render('SuperAdmin/Catalog/Reference', [
             'sizes' => $this->withImages($this->translated(Size::orderBy('sort_order')->orderBy('name')->get()), ['single', 'cluster']),
+            'balloonSizes' => $this->withImages(BalloonSize::with('size:id,name', 'brand:id,name', 'material:id,name')->orderBy('sort_order')->orderBy('name')->get(), ['single', 'cluster']),
             'shapes' => $this->withImages($this->translated(Shape::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
-            'textures' => $this->withImages($this->translated(Texture::with('textureFamily:id,name')->withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
+            'textures' => $this->withImages($this->translated(Texture::with('textureFamily:id,name', 'material:id,name', 'brand:id,name')->withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
             'colorFamilies' => $this->withImages($this->translated(ColorFamily::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['single', 'cluster']),
             'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),
             'materials' => $this->withImages($this->translated(Material::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
             'textureFamilies' => TextureFamily::orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
+            'brands' => Brand::orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -53,6 +62,10 @@ class CatalogReferenceController extends Controller
         }
 
         return $items->map(function ($item) {
+            // Size and BalloonSize don't use HasTranslations — skip them.
+            if (! method_exists($item, 'translated')) {
+                return $item;
+            }
             $item->name = $item->translated('name');
             if (array_key_exists('description', $item->getAttributes())) {
                 $item->description = $item->translated('description');
@@ -164,12 +177,33 @@ class CatalogReferenceController extends Controller
             $rules['name'] = ['required', 'string', 'max:100'];
         }
 
-        if (in_array('size_category', $fields)) {
-            $rules['size_category'] = ['required', 'in:small,medium,large,giant,small_modeling,large_modeling'];
+        if (in_array('alt_imperial_name', $fields)) {
+            $rules['alt_imperial_name'] = ['nullable', 'string', 'max:100'];
+        }
+
+        if (in_array('diameter_cm', $fields)) {
+            $rules['diameter_cm'] = ['nullable', 'integer', 'min:1', 'max:65535'];
         }
 
         if (in_array('texture_family_id', $fields)) {
             $rules['texture_family_id'] = ['required', 'uuid', 'exists:texture_families,id'];
+        }
+
+        if (in_array('size_id', $fields)) {
+            $rules['size_id'] = ['required', 'uuid', 'exists:sizes,id'];
+        }
+
+        if (in_array('material_id', $fields)) {
+            // balloon-sizes requires material_id (NOT NULL in schema); textures keep it optional.
+            $rules['material_id'] = $table === 'balloon-sizes'
+                ? ['required', 'uuid', 'exists:materials,id']
+                : ['nullable', 'uuid', 'exists:materials,id'];
+        }
+
+        if (in_array('brand_id', $fields)) {
+            $rules['brand_id'] = $table === 'balloon-sizes'
+                ? ['required', 'uuid', 'exists:brands,id']
+                : ['nullable', 'uuid', 'exists:brands,id'];
         }
 
         if (in_array('fallback_color_hex', $fields)) {

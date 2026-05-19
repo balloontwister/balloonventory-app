@@ -18,6 +18,7 @@ const nav = [
         routeName: 'inventory.index',
     },
     { labelKey: 'nav.jobs', icon: 'jobs', routeName: 'jobs.index' },
+    { labelKey: 'nav.scan', icon: 'scan', routeName: 'scan.index' },
     { labelKey: 'nav.reorder', icon: 'reorder', routeName: 'reorder.index' },
     { labelKey: 'nav.account', icon: 'account', routeName: 'account.index' },
 ];
@@ -120,6 +121,29 @@ function isActive(routeName) {
                             </svg>
                         </template>
 
+                        <!-- scan icon -->
+                        <template v-else-if="item.icon === 'scan'">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3M21 9V6a1 1 0 00-1-1h-3M21 15v3a1 1 0 01-1 1h-3"
+                                />
+                                <line x1="7" y1="12" x2="17" y2="12" />
+                                <line x1="7" y1="9" x2="7" y2="15" />
+                                <line x1="11" y1="10" x2="11" y2="14" />
+                                <line x1="15" y1="9" x2="15" y2="15" />
+                                <line x1="17" y1="12" x2="17" y2="12" />
+                            </svg>
+                        </template>
+
                         <!-- reorder icon -->
                         <template v-else-if="item.icon === 'reorder'">
                             <svg
@@ -156,37 +180,31 @@ function isActive(routeName) {
                         {{ $t(item.labelKey) }}
                     </Link>
 
-                    <!-- Super Admin section -->
-                    <template v-if="isSuperAdmin">
-                        <p
-                            class="mb-1 mt-6 px-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                    <!-- Admin link (super admins only, merged into main nav) -->
+                    <Link
+                        v-if="isSuperAdmin"
+                        :href="route('super-admin.dashboard')"
+                        class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                        :class="
+                            route().current('super-admin.*')
+                                ? 'bg-accent-soft font-semibold text-accent'
+                                : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                        "
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4 flex-shrink-0"
                         >
-                            {{ $t('nav.super_admin_section') }}
-                        </p>
-                        <Link
-                            :href="route('super-admin.dashboard')"
-                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
-                            :class="
-                                route().current('super-admin.*')
-                                    ? 'bg-accent-soft font-semibold text-accent'
-                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
-                            "
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                class="h-4 w-4 flex-shrink-0"
-                            >
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.533.533 0 01.479.533c0 5.448-3.299 10.116-8 11.932a.535.535 0 01-.372 0c-4.701-1.816-8-6.484-8-11.932a.533.533 0 01.479-.533 11.947 11.947 0 007.078-2.749z"
-                                    clip-rule="evenodd"
-                                />
-                            </svg>
-                            {{ $t('nav.admin') }}
-                        </Link>
-                    </template>
+                            <path
+                                fill-rule="evenodd"
+                                d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.533.533 0 01.479.533c0 5.448-3.299 10.116-8 11.932a.535.535 0 01-.372 0c-4.701-1.816-8-6.484-8-11.932a.533.533 0 01.479-.533 11.947 11.947 0 007.078-2.749z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                        {{ $t('nav.admin') }}
+                    </Link>
 
                     <!-- user identity (links to Account hub) -->
                     <div class="mt-auto border-t border-border pt-4">

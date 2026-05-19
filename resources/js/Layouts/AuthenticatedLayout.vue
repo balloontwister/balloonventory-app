@@ -1,10 +1,7 @@
 <script setup>
-import { ref } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
-import ContactSupportModal from '@/Components/ContactSupportModal.vue';
-import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
@@ -12,13 +9,7 @@ import logoDark from '../../images/balloonventory-logo-dark.png';
 const { businessColor } = useBusiness();
 const page = usePage();
 
-const showSupportModal = ref(false);
-
 const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
-
-function logout() {
-    router.post(route('logout'));
-}
 
 const nav = [
     {
@@ -28,7 +19,7 @@ const nav = [
     },
     { labelKey: 'nav.jobs', icon: 'jobs', routeName: 'jobs.index' },
     { labelKey: 'nav.reorder', icon: 'reorder', routeName: 'reorder.index' },
-    { labelKey: 'nav.settings', icon: 'settings', routeName: 'settings.index' },
+    { labelKey: 'nav.account', icon: 'account', routeName: 'account.index' },
 ];
 
 function isActive(routeName) {
@@ -44,11 +35,6 @@ function isActive(routeName) {
     <div class="min-h-screen bg-background">
         <!-- 2px BusinessBadge color bar pinned above everything -->
         <BusinessBadge :color="businessColor" />
-
-        <ContactSupportModal
-            :show="showSupportModal"
-            @close="showSupportModal = false"
-        />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
         <div class="hidden min-h-screen pt-0.5 lg:flex">
@@ -98,7 +84,7 @@ function isActive(routeName) {
                                 : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                         "
                     >
-                        <!-- inventory icon -->
+                        <!-- inventory icon (stacked boxes) -->
                         <template v-if="item.icon === 'inventory'">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -107,9 +93,13 @@ function isActive(routeName) {
                                 class="h-4 w-4 flex-shrink-0"
                             >
                                 <path
-                                    fill-rule="evenodd"
-                                    d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"
-                                    clip-rule="evenodd"
+                                    d="M10.75 1.66a1.5 1.5 0 0 0-1.5 0L1.6 6.04a.75.75 0 0 0 0 1.32l7.65 4.37a1.5 1.5 0 0 0 1.5 0l7.65-4.37a.75.75 0 0 0 0-1.32l-7.65-4.37Z"
+                                />
+                                <path
+                                    d="m2.69 9.21-1.09.62a.75.75 0 0 0 0 1.32l7.65 4.37a1.5 1.5 0 0 0 1.5 0l7.65-4.37a.75.75 0 0 0 0-1.32l-1.09-.62-5.81 3.32a3 3 0 0 1-3 0L2.69 9.21Z"
+                                />
+                                <path
+                                    d="m2.69 13.21-1.09.62a.75.75 0 0 0 0 1.32l7.65 4.37a1.5 1.5 0 0 0 1.5 0l7.65-4.37a.75.75 0 0 0 0-1.32l-1.09-.62-5.81 3.32a3 3 0 0 1-3 0l-5.81-3.32Z"
                                 />
                             </svg>
                         </template>
@@ -149,8 +139,8 @@ function isActive(routeName) {
                             </svg>
                         </template>
 
-                        <!-- settings icon -->
-                        <template v-else-if="item.icon === 'settings'">
+                        <!-- account icon -->
+                        <template v-else-if="item.icon === 'account'">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 20 20"
@@ -158,9 +148,7 @@ function isActive(routeName) {
                                 class="h-4 w-4 flex-shrink-0"
                             >
                                 <path
-                                    fill-rule="evenodd"
-                                    d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.993 6.993 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z"
-                                    clip-rule="evenodd"
+                                    d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
                                 />
                             </svg>
                         </template>
@@ -200,74 +188,50 @@ function isActive(routeName) {
                         </Link>
                     </template>
 
-                    <!-- user section -->
+                    <!-- user identity (links to Account hub) -->
                     <div class="mt-auto border-t border-border pt-4">
-                        <!-- Get help -->
-                        <button
-                            type="button"
-                            class="mb-1 flex w-full items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
-                            @click="showSupportModal = true"
+                        <Link
+                            :href="route('account.index')"
+                            class="flex items-center gap-2 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
+                            :class="
+                                route().current('account.index')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : ''
+                            "
                         >
+                            <img
+                                v-if="$page.props.auth.avatarUrl"
+                                :src="$page.props.auth.avatarUrl"
+                                :alt="$page.props.auth.user.name"
+                                class="h-6 w-6 flex-shrink-0 rounded-full object-cover"
+                            />
                             <svg
+                                v-else
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 20 20"
                                 fill="currentColor"
                                 class="h-4 w-4 flex-shrink-0"
                             >
                                 <path
+                                    d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
+                                />
+                            </svg>
+                            <span class="min-w-0 flex-1 truncate">{{
+                                $page.props.auth.user.name
+                            }}</span>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0 text-ink-tertiary"
+                            >
+                                <path
                                     fill-rule="evenodd"
-                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
+                                    d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            {{ $t('nav.get_help') }}
-                        </button>
-
-                        <LocaleSwitcher
-                            class="mb-1"
-                            button-class="flex w-full items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
-                        />
-
-                        <div class="flex items-center gap-1">
-                            <Link
-                                :href="route('profile.edit')"
-                                class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
-                            >
-                                <img
-                                    :src="$page.props.auth.avatarUrl"
-                                    class="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-border"
-                                    alt=""
-                                    aria-hidden="true"
-                                />
-                                <span class="truncate">{{
-                                    $page.props.auth.user.name
-                                }}</span>
-                            </Link>
-                            <button
-                                type="button"
-                                :title="$t('nav.log_out')"
-                                class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
-                                @click="logout"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                    class="h-4 w-4"
-                                >
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
-                                        clip-rule="evenodd"
-                                    />
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.115l-2.5 2.569a.75.75 0 000 1.052l2.5 2.569a.75.75 0 101.004-1.115l-1.048-1.08h9.546A.75.75 0 0019 10z"
-                                        clip-rule="evenodd"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
+                        </Link>
                     </div>
                 </nav>
             </aside>
@@ -322,52 +286,34 @@ function isActive(routeName) {
                             />
                         </svg>
                     </Link>
-                    <button
-                        type="button"
-                        :title="$t('nav.get_help')"
-                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
-                        @click="showSupportModal = true"
+                    <Link
+                        :href="route('account.index')"
+                        :title="$t('nav.account')"
+                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                        :class="
+                            route().current('account.index')
+                                ? 'ring-2 ring-accent'
+                                : ''
+                        "
                     >
+                        <img
+                            v-if="$page.props.auth.avatarUrl"
+                            :src="$page.props.auth.avatarUrl"
+                            :alt="$page.props.auth.user.name"
+                            class="h-8 w-8 rounded-full object-cover"
+                        />
                         <svg
+                            v-else
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 20 20"
                             fill="currentColor"
-                            class="h-4 w-4"
+                            class="h-5 w-5"
                         >
                             <path
-                                fill-rule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
-                                clip-rule="evenodd"
+                                d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
                             />
                         </svg>
-                    </button>
-                    <LocaleSwitcher
-                        button-class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
-                    />
-                    <button
-                        type="button"
-                        :title="$t('nav.log_out')"
-                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
-                        @click="logout"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            class="h-4 w-4"
-                        >
-                            <path
-                                fill-rule="evenodd"
-                                d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
-                                clip-rule="evenodd"
-                            />
-                            <path
-                                fill-rule="evenodd"
-                                d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.115l-2.5 2.569a.75.75 0 000 1.052l2.5 2.569a.75.75 0 101.004-1.115l-1.048-1.08h9.546A.75.75 0 0019 10z"
-                                clip-rule="evenodd"
-                            />
-                        </svg>
-                    </button>
+                    </Link>
                 </div>
 
                 <!-- Page sub-header slot -->
@@ -405,9 +351,13 @@ function isActive(routeName) {
                         class="h-5 w-5"
                     >
                         <path
-                            fill-rule="evenodd"
-                            d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"
-                            clip-rule="evenodd"
+                            d="M10.75 1.66a1.5 1.5 0 0 0-1.5 0L1.6 6.04a.75.75 0 0 0 0 1.32l7.65 4.37a1.5 1.5 0 0 0 1.5 0l7.65-4.37a.75.75 0 0 0 0-1.32l-7.65-4.37Z"
+                        />
+                        <path
+                            d="m2.69 9.21-1.09.62a.75.75 0 0 0 0 1.32l7.65 4.37a1.5 1.5 0 0 0 1.5 0l7.65-4.37a.75.75 0 0 0 0-1.32l-1.09-.62-5.81 3.32a3 3 0 0 1-3 0L2.69 9.21Z"
+                        />
+                        <path
+                            d="m2.69 13.21-1.09.62a.75.75 0 0 0 0 1.32l7.65 4.37a1.5 1.5 0 0 0 1.5 0l7.65-4.37a.75.75 0 0 0 0-1.32l-1.09-.62-5.81 3.32a3 3 0 0 1-3 0l-5.81-3.32Z"
                         />
                     </svg>
                     <span class="font-sans text-[10px] font-medium">{{
@@ -498,30 +448,35 @@ function isActive(routeName) {
                     }}</span>
                 </Link>
 
-                <!-- Settings -->
+                <!-- Account -->
                 <Link
-                    :href="route('settings.index')"
+                    :href="route('account.index')"
                     class="flex flex-1 flex-col items-center justify-center gap-0.5 transition"
                     :class="
-                        isActive('settings.index')
+                        isActive('account.index')
                             ? 'text-accent'
                             : 'text-ink-tertiary'
                     "
                 >
+                    <img
+                        v-if="$page.props.auth.avatarUrl"
+                        :src="$page.props.auth.avatarUrl"
+                        :alt="$page.props.auth.user.name"
+                        class="h-5 w-5 rounded-full object-cover"
+                    />
                     <svg
+                        v-else
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                         class="h-5 w-5"
                     >
                         <path
-                            fill-rule="evenodd"
-                            d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.993 6.993 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z"
-                            clip-rule="evenodd"
+                            d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
                         />
                     </svg>
                     <span class="font-sans text-[10px] font-medium">{{
-                        $t('nav.settings')
+                        $t('nav.account')
                     }}</span>
                 </Link>
             </nav>

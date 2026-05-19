@@ -35,7 +35,7 @@ class BusinessFactory extends Factory
         ]);
     }
 
-    public function enterprise(): static
+    public function enterprisePlan(): static
     {
         return $this->state(fn (array $attributes) => [
             'plan' => BusinessPlan::Enterprise,

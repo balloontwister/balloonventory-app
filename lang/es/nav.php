@@ -8,6 +8,7 @@ return [
     'jobs' => 'Trabajos',
     'reorder' => 'Reabastecer',
     'settings' => 'Configuración',
+    'account' => 'Cuenta',
     'scan' => 'Escanear',
     'get_help' => 'Ayuda',
     'language' => 'Idioma',

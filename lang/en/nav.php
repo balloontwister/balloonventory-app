@@ -8,6 +8,7 @@ return [
     'jobs' => 'Jobs',
     'reorder' => 'Reorder',
     'settings' => 'Settings',
+    'account' => 'Account',
     'scan' => 'Scan',
     'get_help' => 'Get help',
     'language' => 'Language',

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\JobsController;
@@ -52,8 +53,8 @@ Route::middleware('auth')->post('/business/{business}/switch', [BusinessControll
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::post('/support/contact', [SupportController::class, 'send'])
         ->middleware('throttle:3,60')
@@ -70,6 +71,8 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
     Route::get('/reorder', [ReorderController::class, 'index'])->name('reorder.index');
+
+    Route::get('/account', [AccountController::class, 'index'])->name('account.index');
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');

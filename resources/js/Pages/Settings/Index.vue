@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import BackLink from '@/Components/BackLink.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -57,6 +58,7 @@ const submit = () => form.patch(route('settings.preferences.update'));
 
     <AuthenticatedLayout>
         <template #header>
+            <BackLink :href="route('account.index')" :label="$t('nav.account')" />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >

@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import BackLink from '@/Components/BackLink.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
@@ -22,6 +23,7 @@ const submitAvatar = () =>
 
     <AuthenticatedLayout>
         <template #header>
+            <BackLink :href="route('account.index')" :label="$t('nav.account')" />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >

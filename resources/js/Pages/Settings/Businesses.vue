@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import BackLink from '@/Components/BackLink.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -36,6 +37,7 @@ const submitLogo = () =>
 
     <AuthenticatedLayout>
         <template #header>
+            <BackLink :href="route('account.index')" :label="$t('nav.account')" />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >

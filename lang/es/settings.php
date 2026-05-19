@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'meta_title' => 'Configuración',
-    'heading' => 'Configuración',
+    'meta_title' => 'Preferencias',
+    'heading' => 'Preferencias',
 
     'preferences' => [
         'heading' => 'Preferencias',

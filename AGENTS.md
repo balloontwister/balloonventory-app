@@ -172,6 +172,8 @@ database/
 
 resources/js/
 ├── Pages/
+│   ├── Account/
+│   │   └── Index.vue          # Account hub — rows for Profile, Business, Preferences, Support, Log out
 │   ├── SuperAdmin/
 │   │   ├── Dashboard.vue
 │   │   ├── Users/

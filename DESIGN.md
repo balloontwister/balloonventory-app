@@ -302,10 +302,23 @@ Confirmation pulse that appears below the ScanField after each successful scan. 
 The persistent business context selector. Visible on every screen. The single most important piece of chrome in the product because it determines which business's inventory is being modified.
 
 - Desktop: top of the sidebar, full sidebar width minus 16px gutter on each side. Two stacked rows of text: business name in Inter 15px / weight 600 ink-primary, user's role in that business below in Eyebrow type / `ink-secondary`. A small chevron sits on the right.
-- Mobile: pinned header element above the page title, full bleed, 56px tall, `surface` bg with `border` bottom edge. Same two-line layout, chevron on the right.
-- Tapping opens a dropdown (desktop) or full-screen sheet (mobile) listing all businesses the user belongs to. Each entry shows business name + user's role + small business-color indicator. The current business has an `accent` checkmark.
+- Mobile: pinned header element above the page title, full bleed, 56px tall, `surface` bg with `border` bottom edge. Same two-line layout, chevron on the right. The wrapping flex container must use `min-w-0` so the business name truncates instead of overflowing into adjacent top-bar elements (avatar, admin shield).
+- The trigger row is **two distinct click targets**, not one. Tapping the logo + name + role region navigates to `/dashboard` — the primary one-tap path to the dashboard from anywhere in the app. Tapping the chevron (44×44 tap target, rotates 180° when open) opens the switcher dropdown. This split lets the most common action (return to dashboard) be one tap while keeping the switcher discoverable.
+- The dropdown (desktop) or full-screen sheet (mobile) lists all businesses the user belongs to. Each entry shows business name + user's role + small business-color indicator. The current business has an `accent` checkmark.
 - A 4px-wide vertical bar in the business's chosen accent color sits on the left edge of the BusinessSwitcher at all times. This is the **business-color cue** — see BusinessBadge.
 - A "Manage businesses" link at the bottom of the dropdown opens settings.
+
+### AccountHub (page pattern)
+
+The Account hub at `/account` is an iOS-Settings-style index page that consolidates rare-use account, business, and support controls behind a single discoverable entry point. The user reaches it by tapping their avatar in the mobile top bar, the Account tab in the mobile bottom nav, or the user-name row in the desktop sidebar footer.
+
+- Layout: a vertical column of cards/rows on `background`, max content width inherits from the page main column
+- Top: **identity card** — avatar (or person-icon fallback) on the left, user name (display 17px) + email (body small `ink-secondary`) stacked on the right, chevron trailing. Tapping navigates to `route('profile.edit')`
+- Body: a single `surface` card containing rows separated by 1px `border-t`. Each row is a flex container: 32×32 icon tile (`accent-soft` bg, `accent` icon) + label + optional subtext + trailing chevron. Rows in order: Profile · Business · Preferences · Help & Support · Super Admin (only when `auth.isAnyAdmin`)
+- The Business row is gated by `business.edit_settings` or `business.manage_logo` and is omitted entirely when the user has neither permission (unlike PermissionGate's disabled-state rule, which applies inside business workflows — the Account hub treats permission-irrelevant entries as not-applicable to this user, not as gated)
+- Help & Support opens the `ContactSupportModal` (mounted locally on the page, not in the layout)
+- **Log out** is the final row, visually separated by sitting in its own card with `bg-surface`, `danger-soft` icon tile, and `danger` text. POSTs to `/logout` directly — no confirmation modal (logging out is reversible by logging back in; a confirm dialog would create more friction than it prevents)
+- This pattern replaces the older approach of stacking Help, Language, Logout buttons in the top bar. Rare-use chrome belongs inside the hub; the top bar carries only business context (BusinessSwitcher) and an avatar entry point.
 
 ### BusinessBadge
 
@@ -377,7 +390,7 @@ Used only on desktop and tablet landscape. On phones, tables collapse to stacked
 ### Navigation
 
 - Desktop: 240px fixed left sidebar, `surface` bg, `border` right edge. **BusinessSwitcher pinned at the top, then a 24px gap, then nav sections separated by 24px and Eyebrow-style headers.** Inventory is an expandable section with sub-items: All Stock, Favorites, and a nested Lists tree (each list by name, plus "+ New list" at the bottom of the tree). Clicking a sub-item navigates and sets the matching ScopeTabs state on the main view. A 2px BusinessBadge color bar runs across the top of the entire viewport above any chrome.
-- Mobile: bottom tab bar, 5 items, 56px tall, `surface` bg with `border` top edge, active item in `accent`. Items: Inventory, **Jobs**, Reorder, **Scan** (center), Settings. The center Scan item is visually elevated as a circular button (see Mobile-specific rules in Section 8). The ScopeTabs (All / Favorites / Lists) live at the top of the Inventory view, not in the bottom nav. **A sticky BusinessSwitcher header sits above the page title on every screen, with the BusinessBadge color bar above it.**
+- Mobile: bottom tab bar, 5 items, 56px tall, `surface` bg with `border` top edge, active item in `accent`. Items: Inventory, **Jobs**, **Scan** (center), Reorder, Account. The center Scan item is visually elevated as a circular button (see Mobile-specific rules in Section 8). The Account tab uses the user's avatar (or a person icon fallback) and opens the Account hub (Profile / Business / Preferences / Help & Support / Log out). The ScopeTabs (All / Favorites / Lists) live at the top of the Inventory view, not in the bottom nav. **A sticky BusinessSwitcher header sits above the page title on every screen, with the BusinessBadge color bar above it.**
 - Active nav item: `accent-soft` background, `accent` text, `rounded.md`
 
 ## 5. Layout Principles
@@ -458,7 +471,7 @@ Three breakpoints:
 ### Mobile-specific rules
 
 - Touch targets ≥ 44×44px
-- Bottom nav with 5 items: Inventory, **Jobs**, Reorder, **Scan**, Settings
+- Bottom nav with 5 items: Inventory, **Jobs**, **Scan** (center), Reorder, Account. The mobile top bar carries only the BusinessSwitcher (left), an optional admin shield, and the user's avatar (right, links to the Account hub). Rare-use controls (help, language, logout) live inside the Account hub, not in the top bar.
 - The Scan item in the center slot is visually elevated: 56px diameter circle, `accent` background, barcode glyph in `accent-on`, `shadow-pop`, sits 12px above the bottom nav baseline. This is the only exception to "no shadows." Tapping it opens the camera scanner overlay; long-pressing offers manual entry.
 - Inventory list shows: swatch, name, size, brand, stock badge, FavoriteStar (right-anchored) — in a single 64px row
 - Tap a row → sheet from bottom with full SKU detail (UPC visible in detail view as last 6 digits in JetBrains Mono)

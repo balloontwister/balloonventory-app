@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Business;
-use App\Services\Catalog\CatalogImageService;
+use App\Services\ImageAttachmentService;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
-    public function __construct(private readonly CatalogImageService $images) {}
+    public function __construct(private readonly ImageAttachmentService $images) {}
 
     public function index(Request $request): Response
     {
@@ -57,13 +57,13 @@ class SettingsController extends Controller
 
     public function updateBusinessLogo(Request $request): RedirectResponse
     {
-        $request->validate([
-            'logo' => ['nullable', 'image', 'max:5120'],
-        ]);
-
         $business = Business::findOrFail(BusinessContext::currentId());
 
         Gate::authorize('business.manage_logo', $business);
+
+        $request->validate([
+            'logo' => ['nullable', 'mimes:png,jpg,jpeg,webp,svg', 'max:5120'],
+        ]);
 
         if ($request->hasFile('logo')) {
             $this->images->set($business, 'logo', $request->file('logo'));
@@ -76,13 +76,13 @@ class SettingsController extends Controller
 
     public function updateBusiness(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-        ]);
-
         $business = Business::findOrFail(BusinessContext::currentId());
 
         Gate::authorize('business.edit_settings', $business);
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
 
         $business->update([
             'name' => $request->name,

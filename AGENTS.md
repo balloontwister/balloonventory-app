@@ -142,10 +142,10 @@ database/
 └── seeders/
     ├── PermissionSeeder.php       # Seeds Spatie roles and permissions from PERMISSIONS.md
     ├── BrandSeeder.php            # 7 brands (QTX, STX, BET, KAL, TTX, DCX, FSN)
-    ├── SizeSeeder.php             # 14 sizes with size_category groupings
+    ├── SizeSeeder.php             # 12 size families (round + modeling) — brand-agnostic
     ├── ShapeSeeder.php            # 9 shapes
     ├── TextureFamilySeeder.php    # 5 texture families (Crystal, Standard, etc.)
-    ├── TextureSeeder.php          # 9 textures with FK refs to material + texture_family
+    ├── TextureSeeder.php          # 9 brand-agnostic textures with material + texture_family FKs (brand_id null)
     ├── ColorFamilySeeder.php      # 13 color families with material FK
     ├── ColorSeeder.php            # ~150 brand-specific colors
     ├── ThemeSeeder.php            # 9 themes (Holiday, Christmas, etc.)

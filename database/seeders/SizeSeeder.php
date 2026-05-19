@@ -27,19 +27,19 @@ class SizeSeeder extends Seeder
     {
         $sizes = [
             // Round latex
-            ['name' => '5-inch',  'alt_imperial_name' => '6-inch',  'diameter_cm' => 13,  'size_category' => 'small',          'sort_order' => 10],
-            ['name' => '11-inch', 'alt_imperial_name' => '12-inch', 'diameter_cm' => 30,  'size_category' => 'medium',         'sort_order' => 30],
-            ['name' => '16-inch', 'alt_imperial_name' => null,      'diameter_cm' => 40,  'size_category' => 'large',          'sort_order' => 50],
-            ['name' => '24-inch', 'alt_imperial_name' => null,      'diameter_cm' => 60,  'size_category' => 'large',          'sort_order' => 60],
-            ['name' => '36-inch', 'alt_imperial_name' => null,      'diameter_cm' => 90,  'size_category' => 'giant',          'sort_order' => 70],
-            ['name' => '72-inch', 'alt_imperial_name' => null,      'diameter_cm' => 180, 'size_category' => 'giant',          'sort_order' => 80],
+            ['name' => '5-inch',  'alt_imperial_name' => '6-inch',  'diameter_cm' => 13,  'sort_order' => 10],
+            ['name' => '11-inch', 'alt_imperial_name' => '12-inch', 'diameter_cm' => 30,  'sort_order' => 30],
+            ['name' => '16-inch', 'alt_imperial_name' => null,      'diameter_cm' => 40,  'sort_order' => 50],
+            ['name' => '24-inch', 'alt_imperial_name' => null,      'diameter_cm' => 60,  'sort_order' => 60],
+            ['name' => '36-inch', 'alt_imperial_name' => null,      'diameter_cm' => 90,  'sort_order' => 70],
+            ['name' => '72-inch', 'alt_imperial_name' => null,      'diameter_cm' => 180, 'sort_order' => 80],
             // Modeling / twisting — name is the spec
-            ['name' => '160',     'alt_imperial_name' => null,      'diameter_cm' => null, 'size_category' => 'small_modeling', 'sort_order' => 90],
-            ['name' => '260',     'alt_imperial_name' => null,      'diameter_cm' => null, 'size_category' => 'small_modeling', 'sort_order' => 100],
-            ['name' => '350',     'alt_imperial_name' => null,      'diameter_cm' => null, 'size_category' => 'large_modeling', 'sort_order' => 110],
-            ['name' => '360',     'alt_imperial_name' => null,      'diameter_cm' => null, 'size_category' => 'large_modeling', 'sort_order' => 120],
-            ['name' => '646',     'alt_imperial_name' => null,      'diameter_cm' => null, 'size_category' => 'large_modeling', 'sort_order' => 130],
-            ['name' => '660',     'alt_imperial_name' => null,      'diameter_cm' => null, 'size_category' => 'large_modeling', 'sort_order' => 140],
+            ['name' => '160',     'alt_imperial_name' => null,      'diameter_cm' => null, 'sort_order' => 90],
+            ['name' => '260',     'alt_imperial_name' => null,      'diameter_cm' => null, 'sort_order' => 100],
+            ['name' => '350',     'alt_imperial_name' => null,      'diameter_cm' => null, 'sort_order' => 110],
+            ['name' => '360',     'alt_imperial_name' => null,      'diameter_cm' => null, 'sort_order' => 120],
+            ['name' => '646',     'alt_imperial_name' => null,      'diameter_cm' => null, 'sort_order' => 130],
+            ['name' => '660',     'alt_imperial_name' => null,      'diameter_cm' => null, 'sort_order' => 140],
         ];
 
         foreach ($sizes as $data) {

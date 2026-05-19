@@ -136,19 +136,6 @@ const filteredPriceCodes = computed(() => {
     return props.priceCodes.filter((pc) => pc.brand_id === form.brand_id);
 });
 
-// Group sizes by category for optgroup display.
-const sizeGroups = computed(() => {
-    const groups = {};
-    for (const s of props.sizes) {
-        const label = s.size_category
-            ? trans(`catalog.sku_form.size_group_labels.${s.size_category}`)
-            : '';
-        if (!groups[label]) groups[label] = [];
-        groups[label].push(s);
-    }
-    return groups;
-});
-
 // Group textures by family for optgroup display.
 const textureGroups = computed(() => {
     const groups = {};

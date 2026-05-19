@@ -17,7 +17,7 @@ use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
 use App\Models\Theme;
-use App\Services\Catalog\CatalogImageService;
+use App\Services\ImageAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -27,7 +27,7 @@ use Inertia\Response;
 
 class CatalogController extends Controller
 {
-    public function __construct(private readonly CatalogImageService $imageService) {}
+    public function __construct(private readonly ImageAttachmentService $imageService) {}
 
     public function index(Request $request): Response
     {
@@ -103,7 +103,7 @@ class CatalogController extends Controller
             'skus' => $skus,
             'filters' => $request->only(['brand', 'size', 'texture', 'material', 'search']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
-            'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
+            'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
             'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
             'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
         ]);
@@ -128,7 +128,7 @@ class CatalogController extends Controller
         return Inertia::render('SuperAdmin/Catalog/SkuForm', [
             'sku' => null,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
-            'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
+            'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
             'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'material_id'])),
             'textures' => $this->translated(Texture::with('textureFamily:id,name')->withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family_id', 'material_id'])),
             'colorFamilies' => $colorFamilies,
@@ -194,7 +194,7 @@ class CatalogController extends Controller
         return Inertia::render('SuperAdmin/Catalog/SkuForm', [
             'sku' => $sku,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
-            'sizes' => Size::orderBy('sort_order')->get(['id', 'name', 'size_category']),
+            'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
             'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'material_id'])),
             'textures' => $this->translated(Texture::with('textureFamily:id,name')->withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family_id', 'material_id'])),
             'colorFamilies' => $colorFamilies,

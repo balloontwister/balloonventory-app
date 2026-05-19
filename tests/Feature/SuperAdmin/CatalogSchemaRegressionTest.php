@@ -99,7 +99,7 @@ class CatalogSchemaRegressionTest extends TestCase
     {
         $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
         $latex = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $size = Size::create(['name' => '11-inch', 'size_category' => 'medium', 'sort_order' => 1]);
+        $size = Size::create(['name' => '11-inch', 'sort_order' => 1]);
         $balloonSize = BalloonSize::create([
             'brand_id' => $brand->id,
             'material_id' => $latex->id,

@@ -31,7 +31,7 @@ Balloon sizes are model designations, not raw measurements, not counts, and not 
 | `16-inch` | Large round |
 | `36-inch` | Jumbo round; often called a "geo" or "giant round" |
 
-In the Balloonventory database, `size.size_category` groups sizes as: `small`, `medium`, `large`, `giant`, `small_modeling`, `large_modeling`.
+In the Balloonventory database, the `size` table is the brand-agnostic "Size Family" — multiple `balloon_size` rows (brand+material-specific instances) roll up to one `size`. See DATA.md → `size` and `balloon_size`.
 
 ---
 

@@ -205,15 +205,16 @@ A balloon manufacturer. Shared globally, not tenant-scoped.
 - `sort_order` (integer, default 0) — display order in dropdowns and tables
 - `created_at`, `updated_at`, `deleted_at`
 
-### `size`
+### `size` (Size Family)
 
-A balloon size. Shared globally. All lookup tables follow this pattern: `id`, `name` (unique), `sort_order`, `description` (nullable), `deleted_at`, timestamps.
+The brand-agnostic abstract size — the "Size Family" that multiple brand-specific `balloon_size` rows roll up to. Shared globally. Parallel to `texture_family` and `color_family`: a `balloon_size` belongs to one `size`, the same way a `texture` belongs to one `texture_family` and a `color` belongs to one `color_family`.
+
+Used directly when end users search inventory and don't care which brand made the balloon — they pick "12-inch" and the app resolves it to the matching brand-specific `balloon_size`.
 
 - `id` (uuid, pk)
 - `name` (text, unique) — primary imperial label, e.g. `5-inch`, `11-inch`, `16-inch`, `260`, `646`
 - `alt_imperial_name` (text, nullable) — secondary imperial label for the same physical balloon. Used where manufacturers ship one product under two names in different regions. Examples: `5-inch` has alt `6-inch`; `11-inch` has alt `12-inch`. Larger and modeling sizes leave this NULL.
 - `diameter_cm` (unsigned smallint, nullable) — canonical metric diameter for round-latex sizes. Rendered alongside the imperial label as a hybrid display (e.g. `5" / 6" (13 cm)`). Modeling sizes (260, 350, etc.) leave this NULL because the name itself is the spec.
-- `size_category` (enum: `small`, `medium`, `large`, `giant`, `small_modeling`, `large_modeling`) — groups similar sizes for browsing and filtering
 - `sort_order` (integer, default 0)
 - `description` (text, nullable)
 - `single_image_file_path` (text, nullable) — single balloon image for this size
@@ -236,7 +237,7 @@ A balloon shape. Shared globally. Values: Round, Link, Non-round, Heart, Circle,
 
 ### `texture`
 
-A balloon surface finish. Shared globally. Unique too each brand and material. Similar texture across brands are in the same texture-family.
+A balloon surface finish. Shared globally. Unique to each brand and material. Similar texture across brands are in the same texture-family.
 
 - `id` (uuid, pk)
 - `name` (text, unique) — seeded values: `Crystal`, `Standard`, `Matte`, `Glow-in-the-dark`, `Metallic`, `Pearl`, `Neon`, `Chrome`, `Satin`
@@ -681,7 +682,7 @@ Creating a reply auto-archives the parent ticket (`archived_at = now()`).
 user ──< membership >── business
                           │
                           ├──< stock_level >── sku ──> brand ──< brand_gs1_prefix
-                          │                    │   ──> balloon_size ──> size (→ size_category)
+                          │                    │   ──> balloon_size ──> size (Size Family)
                           │                    │   │               ──> brand
                           │                    │   │               ──> material
                           │                    │   ──> shape (→ material)

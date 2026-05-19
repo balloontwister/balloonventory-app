@@ -7,7 +7,7 @@ use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Sku;
 use App\Models\User;
-use App\Services\Catalog\CatalogImageService;
+use App\Services\ImageAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -40,7 +40,7 @@ class CatalogImageUploadTest extends TestCase
     public function test_service_resizes_oversized_images_down_to_max_width(): void
     {
         $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $service = app(CatalogImageService::class);
+        $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('big.jpg', 3000, 1500));
 
@@ -50,14 +50,14 @@ class CatalogImageUploadTest extends TestCase
 
         $stored = Storage::disk('public')->get($brand->logo_path);
         $info = getimagesizefromstring($stored);
-        $this->assertSame(CatalogImageService::MAX_WIDTH, $info[0], 'Width should be downscaled to MAX_WIDTH');
+        $this->assertSame(ImageAttachmentService::MAX_WIDTH, $info[0], 'Width should be downscaled to MAX_WIDTH');
         $this->assertSame(600, $info[1], 'Height should preserve aspect ratio (3000:1500 → 1200:600)');
     }
 
     public function test_service_leaves_already_small_images_untouched_in_dimensions(): void
     {
         $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $service = app(CatalogImageService::class);
+        $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('small.jpg', 400, 200));
 
@@ -71,7 +71,7 @@ class CatalogImageUploadTest extends TestCase
     public function test_service_deletes_previous_file_when_replacing(): void
     {
         $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $service = app(CatalogImageService::class);
+        $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('a.jpg', 500, 500));
         $brand->refresh();
@@ -88,7 +88,7 @@ class CatalogImageUploadTest extends TestCase
     public function test_service_clear_removes_file_and_nulls_column(): void
     {
         $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $service = app(CatalogImageService::class);
+        $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('a.jpg', 500, 500));
         $path = $brand->fresh()->logo_path;
@@ -108,7 +108,7 @@ class CatalogImageUploadTest extends TestCase
             'color_family_id' => $family->id,
             'sort_order' => 1,
         ]);
-        $service = app(CatalogImageService::class);
+        $service = app(ImageAttachmentService::class);
 
         // Both slots empty initially.
         $this->assertSame(['single' => null, 'cluster' => null], $service->urls($color));
@@ -159,8 +159,12 @@ class CatalogImageUploadTest extends TestCase
         $this->assertNotNull($brand->logo_path);
         $this->assertStringEndsWith('.svg', $brand->logo_path);
 
-        // SVGs must pass through unmodified — they're vector, no resize.
-        $this->assertSame($svg, Storage::disk('public')->get($brand->logo_path));
+        // SVGs are sanitized (re-serialized via DOMDocument) rather than
+        // byte-copied, so we assert semantic preservation instead of equality.
+        $stored = Storage::disk('public')->get($brand->logo_path);
+        $this->assertStringContainsString('<svg', $stored);
+        $this->assertStringContainsString('<rect', $stored);
+        $this->assertStringContainsString('#f00', $stored);
     }
 
     public function test_color_store_uploads_single_and_cluster_through_service(): void
@@ -195,7 +199,7 @@ class CatalogImageUploadTest extends TestCase
         ]);
 
         // Seed an existing image via the service.
-        app(CatalogImageService::class)->set($color, 'single', UploadedFile::fake()->image('s.jpg', 500, 500));
+        app(ImageAttachmentService::class)->set($color, 'single', UploadedFile::fake()->image('s.jpg', 500, 500));
         $color->refresh();
         $originalPath = $color->single_image_file_path;
         $this->assertNotNull($originalPath);
@@ -236,7 +240,7 @@ class CatalogImageUploadTest extends TestCase
     public function test_brand_update_clear_flag_removes_existing_logo(): void
     {
         $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        app(CatalogImageService::class)->set($brand, 'logo', UploadedFile::fake()->image('l.jpg', 500, 500));
+        app(ImageAttachmentService::class)->set($brand, 'logo', UploadedFile::fake()->image('l.jpg', 500, 500));
         $brand->refresh();
         $originalPath = $brand->logo_path;
         $this->assertNotNull($originalPath);

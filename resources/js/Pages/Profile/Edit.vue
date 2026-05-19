@@ -57,7 +57,7 @@ const submitAvatar = () =>
                             :current-url="page.props.auth.avatarUrl"
                             :help-text="$t('profile.avatar.help')"
                             :error="avatarForm.errors.avatar"
-                            accept="image/png,image/jpeg,image/webp"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
                         />
 
                         <div class="flex items-center gap-4">

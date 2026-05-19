@@ -19,15 +19,6 @@ return [
         'add' => 'Add',
     ],
 
-    'size_categories' => [
-        'small' => 'Small',
-        'medium' => 'Medium',
-        'large' => 'Large',
-        'giant' => 'Giant',
-        'small_modeling' => 'Small Modeling',
-        'large_modeling' => 'Large Modeling',
-    ],
-
     'skus' => [
         'meta_title' => 'Catalog — SKUs',
         'search_placeholder' => 'Search name, mfr SKU, price code…',
@@ -102,7 +93,8 @@ return [
     'reference' => [
         'meta_title' => 'Catalog — Reference Data',
         'tabs' => [
-            'sizes' => 'Sizes',
+            'sizes' => 'Size Families',
+            'balloon-sizes' => 'Balloon Sizes',
             'shapes' => 'Shapes',
             'textures' => 'Textures',
             'color-families' => 'Color Families',
@@ -111,14 +103,23 @@ return [
         ],
         'add_button' => '+ Add item',
         'name_label' => 'Name *',
-        'category_label' => 'Category *',
+        'alt_imperial_label' => 'Alt imperial',
+        'diameter_label' => 'Diameter (cm)',
         'family_label' => 'Family *',
+        'size_family_label' => 'Size Family *',
+        'material_label' => 'Material',
+        'brand_label' => 'Brand',
         'hex_label' => 'Hex',
         'sort_order_label' => 'Sort order',
         'select_placeholder' => 'Select…',
+        'none_option' => '(Any)',
         'col_name' => 'Name',
-        'col_category' => 'Category',
+        'col_alt_imperial' => 'Alt imperial',
+        'col_diameter' => 'Diameter (cm)',
         'col_family' => 'Family',
+        'col_size_family' => 'Size Family',
+        'col_material' => 'Material',
+        'col_brand' => 'Brand',
         'col_hex' => 'Hex',
         'col_sort' => 'Sort',
         'empty' => 'No items yet.',
@@ -164,14 +165,5 @@ return [
         'submit_edit' => 'Save changes',
         'submitting' => 'Saving…',
         'cancel' => 'Cancel',
-
-        'size_group_labels' => [
-            'small' => 'Small (round)',
-            'medium' => 'Medium (round)',
-            'large' => 'Large (round)',
-            'giant' => 'Giant (round)',
-            'small_modeling' => 'Small Modeling',
-            'large_modeling' => 'Large Modeling',
-        ],
     ],
 ];

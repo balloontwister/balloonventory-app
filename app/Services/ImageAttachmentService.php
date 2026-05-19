@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Business;
 use App\Models\Color;
@@ -85,6 +86,13 @@ class ImageAttachmentService
         ],
         Size::class => [
             'folder' => 'size-images',
+            'slots' => [
+                'single' => 'single_image_file_path',
+                'cluster' => 'cluster_image_file_path',
+            ],
+        ],
+        BalloonSize::class => [
+            'folder' => 'balloon-size-images',
             'slots' => [
                 'single' => 'single_image_file_path',
                 'cluster' => 'cluster_image_file_path',

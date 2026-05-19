@@ -163,9 +163,16 @@ function isActive(routeName) {
                             </svg>
                         </template>
 
-                        <!-- account icon -->
+                        <!-- account icon (avatar if available) -->
                         <template v-else-if="item.icon === 'account'">
+                            <img
+                                v-if="$page.props.auth.avatarUrl"
+                                :src="$page.props.auth.avatarUrl"
+                                :alt="$page.props.auth.user.name"
+                                class="h-4 w-4 flex-shrink-0 rounded-full object-cover"
+                            />
                             <svg
+                                v-else
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 20 20"
                                 fill="currentColor"
@@ -206,51 +213,6 @@ function isActive(routeName) {
                         {{ $t('nav.admin') }}
                     </Link>
 
-                    <!-- user identity (links to Account hub) -->
-                    <div class="mt-auto border-t border-border pt-4">
-                        <Link
-                            :href="route('account.index')"
-                            class="flex items-center gap-2 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
-                            :class="
-                                route().current('account.index')
-                                    ? 'bg-accent-soft font-semibold text-accent'
-                                    : ''
-                            "
-                        >
-                            <img
-                                v-if="$page.props.auth.avatarUrl"
-                                :src="$page.props.auth.avatarUrl"
-                                :alt="$page.props.auth.user.name"
-                                class="h-6 w-6 flex-shrink-0 rounded-full object-cover"
-                            />
-                            <svg
-                                v-else
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                class="h-4 w-4 flex-shrink-0"
-                            >
-                                <path
-                                    d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"
-                                />
-                            </svg>
-                            <span class="min-w-0 flex-1 truncate">{{
-                                $page.props.auth.user.name
-                            }}</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                class="h-4 w-4 flex-shrink-0 text-ink-tertiary"
-                            >
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                                    clip-rule="evenodd"
-                                />
-                            </svg>
-                        </Link>
-                    </div>
                 </nav>
             </aside>
 

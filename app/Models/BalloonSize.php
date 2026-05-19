@@ -21,6 +21,7 @@ class BalloonSize extends Model
         'brand_id',
         'material_id',
         'size_id',
+        'shape_id',
         'name',
         'description',
         'single_image_file_path',
@@ -52,6 +53,11 @@ class BalloonSize extends Model
     public function size(): BelongsTo
     {
         return $this->belongsTo(Size::class);
+    }
+
+    public function shape(): BelongsTo
+    {
+        return $this->belongsTo(Shape::class);
     }
 
     public function skus(): HasMany

@@ -28,9 +28,9 @@ class CatalogReferenceController extends Controller
         // "Size families" — brand-agnostic abstract sizes (e.g. "11-inch"). Multiple
         // balloon_sizes share one size row. See DATA.md → `size`.
         'sizes' => [Size::class, ['name', 'alt_imperial_name', 'diameter_cm', 'sort_order', 'description'], ['single', 'cluster']],
-        // Brand+material-specific size instances (e.g. "Sempertex R-12"). The
-        // FK columns are NOT NULL in the schema — required by validation below.
-        'balloon-sizes' => [BalloonSize::class, ['name', 'size_id', 'brand_id', 'material_id', 'sort_order', 'description'], ['single', 'cluster']],
+        // Brand+material+shape-specific size instances (e.g. "Sempertex R-12").
+        // All four FKs are NOT NULL in the schema — required by validation below.
+        'balloon-sizes' => [BalloonSize::class, ['name', 'size_id', 'shape_id', 'brand_id', 'material_id', 'sort_order', 'description'], ['single', 'cluster']],
         'shapes' => [Shape::class,        ['name', 'sort_order', 'description'],                  ['image']],
         'textures' => [Texture::class,      ['name', 'material_id', 'brand_id', 'texture_family_id', 'sort_order', 'description'], ['image']],
         'color-families' => [ColorFamily::class,  ['name', 'fallback_color_hex', 'sort_order', 'description'], ['single', 'cluster']],
@@ -44,7 +44,7 @@ class CatalogReferenceController extends Controller
     {
         return Inertia::render('SuperAdmin/Catalog/Reference', [
             'sizes' => $this->withImages($this->translated(Size::orderBy('sort_order')->orderBy('name')->get()), ['single', 'cluster']),
-            'balloonSizes' => $this->withImages(BalloonSize::with('size:id,name', 'brand:id,name', 'material:id,name')->orderBy('sort_order')->orderBy('name')->get(), ['single', 'cluster']),
+            'balloonSizes' => $this->withImages(BalloonSize::with('size:id,name', 'shape:id,name', 'brand:id,name', 'material:id,name')->orderBy('sort_order')->orderBy('name')->get(), ['single', 'cluster']),
             'shapes' => $this->withImages($this->translated(Shape::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
             'textures' => $this->withImages($this->translated(Texture::with('textureFamily:id,name', 'material:id,name', 'brand:id,name')->withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
             'colorFamilies' => $this->withImages($this->translated(ColorFamily::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['single', 'cluster']),
@@ -191,6 +191,10 @@ class CatalogReferenceController extends Controller
 
         if (in_array('size_id', $fields)) {
             $rules['size_id'] = ['required', 'uuid', 'exists:sizes,id'];
+        }
+
+        if (in_array('shape_id', $fields)) {
+            $rules['shape_id'] = ['required', 'uuid', 'exists:shapes,id'];
         }
 
         if (in_array('material_id', $fields)) {

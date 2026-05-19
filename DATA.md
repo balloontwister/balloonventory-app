@@ -382,12 +382,13 @@ This table replaces the free-text `price_code` column that was previously on `sk
 
 ### `balloon_size`
 
-A brand+material-specific balloon size definition. This bridges the abstract `size` family (e.g. "11-inch") with how a specific brand+material combination names it (e.g. Sempertex latex calls it "R-12", TufTex latex calls it "11-inch"). Shared globally.
+A brand+material+shape-specific balloon size definition. This bridges the abstract `size` family (e.g. "11-inch") with how a specific brand+material+shape combination names it (e.g. Sempertex latex round calls it "R-12", TufTex latex round calls it "11-inch"). Shared globally. Shape is required: a "6-inch heart" and a "6-inch round" are distinct physical balloons that happen to share the "6-inch" size family.
 
 - `id` (uuid, pk)
 - `brand_id` (uuid, fk → brand.id, idx)
 - `material_id` (uuid, fk → material.id, idx)
 - `size_id` (uuid, fk → size.id, idx) — the size family this belongs to (e.g. the "11-inch" size row)
+- `shape_id` (uuid, fk → shape.id, idx) — required; distinguishes shapes within the same brand+material+size
 - `name` (text) — brand's name for this size (e.g. `R-12`, `C-12`, `11-inch`)
 - `description` (text, nullable)
 - `single_image_path` (text, nullable)

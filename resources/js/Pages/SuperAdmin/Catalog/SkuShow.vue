@@ -57,7 +57,7 @@ const props = defineProps({
                         </span>
                     </div>
                     <div v-if="sku.brand" class="mt-1">
-                        <BrandTag :brand="sku.brand" />
+                        <BrandTag :brand="sku.brand.name" />
                     </div>
                 </div>
 

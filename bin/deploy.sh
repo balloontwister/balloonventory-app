@@ -18,6 +18,10 @@ set -euo pipefail
 PHP=/opt/cpanel/ea-php84/root/usr/bin/php
 COMPOSER=/opt/cpanel/composer/bin/composer
 
+export NVM_DIR="$HOME/.nvm"
+# shellcheck source=/dev/null
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 echo "== git pull =="
 git fetch
 git checkout main
@@ -25,6 +29,10 @@ git pull
 
 echo "== composer install =="
 "$PHP" "$COMPOSER" install --no-dev --optimize-autoloader
+
+echo "== npm build =="
+npm ci --prefer-offline
+npm run build
 
 echo "== migrate =="
 "$PHP" artisan migrate --force

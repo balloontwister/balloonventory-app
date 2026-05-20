@@ -66,9 +66,9 @@ class CatalogSchemaRegressionTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->has('textures', 1, fn ($t) => $t
-                ->where('id', $texture->id)
-                ->where('name', 'Crystal')
+            ->has('textureFamilies', 1, fn ($t) => $t
+                ->where('id', $family->id)
+                ->where('name', 'Crystal Family')
                 ->etc()
             )
         );

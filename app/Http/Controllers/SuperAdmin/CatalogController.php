@@ -16,6 +16,7 @@ use App\Models\Shape;
 use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
+use App\Models\TextureFamily;
 use App\Models\Theme;
 use App\Services\ImageAttachmentService;
 use Illuminate\Http\RedirectResponse;
@@ -60,12 +61,20 @@ class CatalogController extends Controller
             });
         }
 
-        if ($request->filled('texture')) {
-            $query->where('texture_id', $request->texture);
+        if ($request->filled('texture_family')) {
+            $query->whereHas('texture', fn ($q) => $q->where('texture_family_id', $request->texture_family));
+        }
+
+        if ($request->filled('color_family')) {
+            $query->whereHas('color', fn ($q) => $q->where('color_family_id', $request->color_family));
         }
 
         if ($request->filled('material')) {
             $query->where('material_id', $request->material);
+        }
+
+        if ($request->filled('printed')) {
+            $query->where('is_printed', $request->printed === '1');
         }
 
         if ($request->filled('search')) {
@@ -101,10 +110,11 @@ class CatalogController extends Controller
 
         return Inertia::render('SuperAdmin/Catalog/Index', [
             'skus' => $skus,
-            'filters' => $request->only(['brand', 'size', 'texture', 'material', 'search']),
+            'filters' => $request->only(['brand', 'size', 'texture_family', 'color_family', 'material', 'printed', 'search']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
-            'textures' => $this->translated(Texture::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
+            'textureFamilies' => TextureFamily::orderBy('sort_order')->get(['id', 'name']),
+            'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
             'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
         ]);
     }

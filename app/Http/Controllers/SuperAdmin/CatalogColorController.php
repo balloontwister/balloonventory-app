@@ -65,6 +65,21 @@ class CatalogColorController extends Controller
         ]);
     }
 
+    public function edit(Color $color): Response
+    {
+        $color->load(['colorFamily', 'brand', 'material', 'texture']);
+
+        $urls = $this->images->urls($color);
+        $color->single_image_url = $urls['single'] ?? null;
+        $color->cluster_image_url = $urls['cluster'] ?? null;
+
+        return Inertia::render('SuperAdmin/Catalog/ColorEdit', [
+            'color' => $color,
+            'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
+            'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate($this->rules($request));
@@ -101,7 +116,7 @@ class CatalogColorController extends Controller
 
         $this->syncImages($request, $color);
 
-        return redirect()->route('super-admin.catalog.colors')
+        return redirect()->route('super-admin.catalog.colors.show', $color)
             ->with('success', __('flash.catalog.color.updated', ['name' => $color->name]));
     }
 

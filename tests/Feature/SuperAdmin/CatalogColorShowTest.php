@@ -76,6 +76,38 @@ class CatalogColorShowTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
+    public function test_edit_page_renders_with_form_data(): void
+    {
+        $color = Color::where('name', 'Turquoise')->firstOrFail();
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.colors.edit', $color))
+            ->assertOk()
+            ->assertInertia(
+                fn ($page) => $page
+                    ->component('SuperAdmin/Catalog/ColorEdit')
+                    ->has('color')
+                    ->has('colorFamilies')
+                    ->has('brands')
+                    ->where('color.name', 'Turquoise'),
+            );
+    }
+
+    public function test_update_redirects_to_show_page(): void
+    {
+        $color = Color::where('name', 'Turquoise')->firstOrFail();
+
+        $this->actingAs($this->superAdmin)
+            ->patch(route('super-admin.catalog.colors.update', $color), [
+                'name' => 'Turquoise',
+                'color_family_id' => $color->color_family_id,
+                'brand_id' => $color->brand_id,
+                'color_hex' => '#009EC4',
+                'sort_order' => $color->sort_order,
+            ])
+            ->assertRedirect(route('super-admin.catalog.colors.show', $color));
+    }
+
     public function test_colors_index_includes_show_route_data(): void
     {
         $color = Color::where('name', 'Turquoise')->firstOrFail();

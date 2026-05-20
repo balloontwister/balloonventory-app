@@ -22,7 +22,7 @@ const props = defineProps({
 
         <div class="mb-6">
             <BackLink
-                :href="route('super-admin.catalog.colors')"
+                :href="route('super-admin.catalog.colors') + '#color-' + color.id"
                 :label="$t('catalog.tabs.colors')"
             />
         </div>

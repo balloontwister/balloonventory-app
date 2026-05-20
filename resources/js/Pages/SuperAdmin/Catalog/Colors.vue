@@ -348,10 +348,18 @@ const selectClass =
                                         class="inline-block h-5 w-5 rounded-sm border border-border bg-background"
                                     />
                                 </td>
-                                <td
-                                    class="px-3 py-2.5 font-sans text-[14px] text-ink-primary"
-                                >
-                                    {{ color.name }}
+                                <td class="px-3 py-2.5">
+                                    <Link
+                                        :href="
+                                            route(
+                                                'super-admin.catalog.colors.show',
+                                                color.id,
+                                            )
+                                        "
+                                        class="font-sans text-[14px] text-ink-primary transition hover:text-accent hover:underline"
+                                    >
+                                        {{ color.name }}
+                                    </Link>
                                 </td>
                                 <td class="px-3 py-2.5">
                                     <span

@@ -52,6 +52,19 @@ class CatalogColorController extends Controller
         ]);
     }
 
+    public function show(Color $color): Response
+    {
+        $color->load(['colorFamily', 'brand', 'material', 'texture']);
+
+        $urls = $this->images->urls($color);
+        $color->single_image_url = $urls['single'] ?? null;
+        $color->cluster_image_url = $urls['cluster'] ?? null;
+
+        return Inertia::render('SuperAdmin/Catalog/ColorShow', [
+            'color' => $color,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate($this->rules($request));

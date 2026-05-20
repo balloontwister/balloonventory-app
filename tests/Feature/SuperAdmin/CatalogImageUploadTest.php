@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Sku;
+use App\Models\Texture;
 use App\Models\User;
 use App\Services\ImageAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,11 +166,15 @@ class CatalogImageUploadTest extends TestCase
     public function test_color_store_uploads_single_and_cluster_through_service(): void
     {
         $family = ColorFamily::factory()->create();
+        $brand = Brand::factory()->create();
+        $texture = Texture::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
             ->post(route('super-admin.catalog.colors.store'), [
                 'name' => 'Crimson',
                 'color_family_id' => $family->id,
+                'brand_id' => $brand->id,
+                'texture_id' => $texture->id,
                 'sort_order' => 1,
                 'single_image' => UploadedFile::fake()->image('single.jpg', 500, 500),
                 'cluster_image' => UploadedFile::fake()->image('cluster.jpg', 500, 500),
@@ -201,6 +206,8 @@ class CatalogImageUploadTest extends TestCase
             ->patch(route('super-admin.catalog.colors.update', $color->id), [
                 'name' => 'Crimson',
                 'color_family_id' => $family->id,
+                'brand_id' => $color->brand_id,
+                'texture_id' => $color->texture_id,
                 'sort_order' => 1,
                 'single_image_clear' => true,
             ]);

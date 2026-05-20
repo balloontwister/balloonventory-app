@@ -39,8 +39,13 @@ class CatalogIndexFilterTest extends TestCase
         $textureA = Texture::factory()->create(['texture_family_id' => $familyA->id]);
         $textureB = Texture::factory()->create(['texture_family_id' => $familyB->id]);
 
-        Sku::factory()->create(['name' => 'In Family A', 'brand_id' => $this->brand->id, 'texture_id' => $textureA->id]);
-        Sku::factory()->create(['name' => 'In Family B', 'brand_id' => $this->brand->id, 'texture_id' => $textureB->id]);
+        $colorFamilyA = ColorFamily::factory()->create();
+        $colorFamilyB = ColorFamily::factory()->create();
+        $colorA = Color::factory()->create(['color_family_id' => $colorFamilyA->id, 'texture_id' => $textureA->id]);
+        $colorB = Color::factory()->create(['color_family_id' => $colorFamilyB->id, 'texture_id' => $textureB->id]);
+
+        Sku::factory()->create(['name' => 'In Family A', 'brand_id' => $this->brand->id, 'color_id' => $colorA->id]);
+        Sku::factory()->create(['name' => 'In Family B', 'brand_id' => $this->brand->id, 'color_id' => $colorB->id]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['texture_family' => $familyA->id]))

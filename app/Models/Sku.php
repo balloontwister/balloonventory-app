@@ -24,8 +24,6 @@ class Sku extends Model
         'brand_id',
         'material_id',
         'balloon_size_id',
-        'shape_id',
-        'texture_id',
         'color_id',
         'is_printed',
         'default_count_per_bag',
@@ -62,7 +60,7 @@ class Sku extends Model
         });
 
         static::saving(function (self $model) {
-            if ($model->isDirty(['brand_id', 'color_id', 'shape_id', 'default_count_per_bag', 'balloon_size_id'])) {
+            if ($model->isDirty(['brand_id', 'color_id', 'default_count_per_bag', 'balloon_size_id'])) {
                 $model->computed_name = $model->generateComputedName();
             }
 
@@ -122,16 +120,6 @@ class Sku extends Model
     public function balloonSize(): BelongsTo
     {
         return $this->belongsTo(BalloonSize::class);
-    }
-
-    public function shape(): BelongsTo
-    {
-        return $this->belongsTo(Shape::class);
-    }
-
-    public function texture(): BelongsTo
-    {
-        return $this->belongsTo(Texture::class);
     }
 
     public function color(): BelongsTo
@@ -212,13 +200,13 @@ class Sku extends Model
 
     private function generateComputedName(): string
     {
-        $this->loadMissing(['balloonSize', 'color', 'brand', 'shape']);
+        $this->loadMissing(['balloonSize.shape', 'color', 'brand']);
 
         $parts = array_filter([
             $this->balloonSize?->name,
             $this->color?->name,
             $this->brand?->abbreviation,
-            $this->shape?->name,
+            $this->balloonSize?->shape?->name,
             $this->default_count_per_bag ? $this->default_count_per_bag.'ct' : null,
         ]);
 

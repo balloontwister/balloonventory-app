@@ -49,8 +49,8 @@ class CatalogSchemaRegressionTest extends TestCase
     public function test_catalog_index_loads_without_referencing_dropped_columns(): void
     {
         $family = TextureFamily::factory()->create(['name' => 'Crystal Family']);
-        $texture = Texture::factory()->create(['texture_family_id' => $family->id]);
-        Sku::factory()->create(['texture_id' => $texture->id]);
+        Texture::factory()->create(['texture_family_id' => $family->id]);
+        Sku::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus'));
@@ -65,13 +65,13 @@ class CatalogSchemaRegressionTest extends TestCase
         );
     }
 
-    public function test_catalog_create_form_groups_textures_by_family_via_relation(): void
+    public function test_color_index_exposes_textures_for_color_form(): void
     {
         $family = TextureFamily::factory()->create(['name' => 'Metallic Family']);
         Texture::factory()->create(['texture_family_id' => $family->id]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.create'));
+            ->get(route('super-admin.catalog.colors'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -100,7 +100,6 @@ class CatalogSchemaRegressionTest extends TestCase
         $sku = Sku::factory()->create([
             'brand_id' => $brand->id,
             'balloon_size_id' => $balloonSize->id,
-            'shape_id' => $shape->id,
             'color_id' => $color->id,
             'default_count_per_bag' => 100,
         ]);

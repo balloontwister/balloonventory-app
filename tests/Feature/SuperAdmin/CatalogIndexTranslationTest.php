@@ -33,12 +33,11 @@ class CatalogIndexTranslationTest extends TestCase
     {
         $texture = Texture::factory()->create(['name' => 'Crystal']);
         $material = Material::factory()->create(['name' => 'Latex']);
-        $color = Color::factory()->create(['name' => 'Red']);
+        $color = Color::factory()->create(['name' => 'Red', 'texture_id' => $texture->id]);
         $brand = Brand::factory()->create();
 
         Sku::factory()->create([
             'brand_id' => $brand->id,
-            'texture_id' => $texture->id,
             'material_id' => $material->id,
             'color_id' => $color->id,
         ]);
@@ -49,7 +48,7 @@ class CatalogIndexTranslationTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->has('skus.data', 1, fn ($sku) => $sku
-                ->where('texture.name', 'Crystal')
+                ->where('color.texture.name', 'Crystal')
                 ->where('material.name', 'Latex')
                 ->where('color.name', 'Red')
                 ->etc()
@@ -65,13 +64,12 @@ class CatalogIndexTranslationTest extends TestCase
         $material = Material::factory()->create();
         MaterialTranslation::factory()->create(['material_id' => $material->id, 'locale' => 'es', 'name' => 'Látex']);
 
-        $color = Color::factory()->create();
+        $color = Color::factory()->create(['texture_id' => $texture->id]);
         ColorTranslation::factory()->create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
 
         $brand = Brand::factory()->create();
         Sku::factory()->create([
             'brand_id' => $brand->id,
-            'texture_id' => $texture->id,
             'material_id' => $material->id,
             'color_id' => $color->id,
         ]);
@@ -84,7 +82,7 @@ class CatalogIndexTranslationTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->has('skus.data', 1, fn ($sku) => $sku
-                ->where('texture.name', 'Cristal')
+                ->where('color.texture.name', 'Cristal')
                 ->where('material.name', 'Látex')
                 ->where('color.name', 'Rojo')
                 ->etc()
@@ -95,8 +93,9 @@ class CatalogIndexTranslationTest extends TestCase
     public function test_index_falls_back_to_english_when_no_translation_exists(): void
     {
         $texture = Texture::factory()->create(['name' => 'Pearl']);
+        $color = Color::factory()->create(['texture_id' => $texture->id]);
         $brand = Brand::factory()->create();
-        Sku::factory()->create(['brand_id' => $brand->id, 'texture_id' => $texture->id]);
+        Sku::factory()->create(['brand_id' => $brand->id, 'color_id' => $color->id]);
 
         $this->app->setLocale('es');
 
@@ -106,7 +105,7 @@ class CatalogIndexTranslationTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->has('skus.data', 1, fn ($sku) => $sku
-                ->where('texture.name', 'Pearl')
+                ->where('color.texture.name', 'Pearl')
                 ->etc()
             )
         );

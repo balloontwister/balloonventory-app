@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\SuperAdmin;
 
+use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Business;
 use App\Models\Color;
@@ -11,6 +12,7 @@ use App\Models\Material;
 use App\Models\MaterialTranslation;
 use App\Models\Shape;
 use App\Models\ShapeTranslation;
+use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
 use App\Models\TextureFamily;
@@ -68,11 +70,10 @@ class CatalogSkuShowTest extends TestCase
         $texture = Texture::factory()->create(['name' => 'Designer', 'texture_family_id' => $family->id]);
         $material = Material::factory()->create(['name' => 'Latex']);
         $colorFamily = ColorFamily::factory()->create();
-        $color = Color::factory()->create(['name' => 'Turquoise', 'color_family_id' => $colorFamily->id, 'brand_id' => $this->brand->id]);
+        $color = Color::factory()->create(['name' => 'Turquoise', 'color_family_id' => $colorFamily->id, 'brand_id' => $this->brand->id, 'texture_id' => $texture->id]);
 
         $sku = Sku::factory()->create([
             'brand_id' => $this->brand->id,
-            'texture_id' => $texture->id,
             'material_id' => $material->id,
             'color_id' => $color->id,
         ]);
@@ -83,7 +84,7 @@ class CatalogSkuShowTest extends TestCase
             ->assertInertia(
                 fn ($page) => $page
                     ->where('sku.brand.name', 'TufTex')
-                    ->where('sku.texture.name', 'Designer')
+                    ->where('sku.color.texture.name', 'Designer')
                     ->where('sku.material.name', 'Latex')
                     ->where('sku.color.name', 'Turquoise'),
             );
@@ -102,17 +103,19 @@ class CatalogSkuShowTest extends TestCase
         ShapeTranslation::factory()->create(['shape_id' => $shape->id, 'locale' => 'es', 'name' => 'Redondo']);
 
         $colorFamily = ColorFamily::factory()->create();
-        $color = Color::factory()->create(['color_family_id' => $colorFamily->id]);
+        $color = Color::factory()->create(['color_family_id' => $colorFamily->id, 'texture_id' => $texture->id]);
         ColorTranslation::factory()->create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
 
         $theme = Theme::factory()->create();
         ThemeTranslation::factory()->create(['theme_id' => $theme->id, 'locale' => 'es', 'name' => 'Cumpleaños']);
 
+        $size = Size::factory()->create();
+        $balloonSize = BalloonSize::factory()->create(['shape_id' => $shape->id, 'size_id' => $size->id]);
+
         $sku = Sku::factory()->create([
             'brand_id' => $this->brand->id,
-            'texture_id' => $texture->id,
             'material_id' => $material->id,
-            'shape_id' => $shape->id,
+            'balloon_size_id' => $balloonSize->id,
             'color_id' => $color->id,
         ]);
         $sku->themes()->attach($theme->id);
@@ -124,9 +127,9 @@ class CatalogSkuShowTest extends TestCase
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
-                    ->where('sku.texture.name', 'Cristal')
+                    ->where('sku.color.texture.name', 'Cristal')
                     ->where('sku.material.name', 'Látex')
-                    ->where('sku.shape.name', 'Redondo')
+                    ->where('sku.balloon_size.shape.name', 'Redondo')
                     ->where('sku.color.name', 'Rojo')
                     ->where('sku.themes.0.name', 'Cumpleaños'),
             );

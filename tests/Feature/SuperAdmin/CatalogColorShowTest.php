@@ -102,6 +102,7 @@ class CatalogColorShowTest extends TestCase
                 'name' => 'Turquoise',
                 'color_family_id' => $color->color_family_id,
                 'brand_id' => $color->brand_id,
+                'texture_id' => $color->texture_id,
                 'color_hex' => '#009EC4',
                 'sort_order' => $color->sort_order,
             ])

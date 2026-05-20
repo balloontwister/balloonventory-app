@@ -5,14 +5,13 @@ import AppInput from '@/Components/AppInput.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
     sku: { type: Object, default: null },
     brands: { type: Array, required: true },
     sizes: { type: Array, required: true },
     shapes: { type: Array, required: true },
-    textures: { type: Array, required: true },
     colorFamilies: { type: Array, required: true },
     themes: { type: Array, required: true },
     materials: { type: Array, required: true },
@@ -25,14 +24,20 @@ const props = defineProps({
 
 const isEdit = computed(() => !!props.sku);
 
+// Shape is a local UI filter — not a form field sent to the server.
+// On edit, derive the initial shape from the balloon size already selected.
+const selectedShape = ref(
+    props.sku?.balloon_size_id
+        ? (props.balloonSizes.find((bs) => bs.id === props.sku.balloon_size_id)?.shape_id ?? '')
+        : '',
+);
+
 const form = useForm({
     name: props.sku?.name ?? '',
     description: props.sku?.description ?? '',
     brand_id: props.sku?.brand_id ?? '',
     material_id: props.sku?.material_id ?? '',
     balloon_size_id: props.sku?.balloon_size_id ?? '',
-    shape_id: props.sku?.shape_id ?? '',
-    texture_id: props.sku?.texture_id ?? '',
     color_id: props.sku?.color_id ?? '',
     is_printed: props.sku?.is_printed ?? false,
     default_count_per_bag: props.sku?.default_count_per_bag ?? '',
@@ -56,9 +61,7 @@ const form = useForm({
 });
 
 // When brand changes, clear every brand-scoped attribute whose previously
-// selected value no longer matches the new brand. We always clear balloon_size,
-// price_code, and texture (which can be brand-scoped); color is cleared only
-// when it actually points at a different brand (unbranded colors are kept).
+// selected value no longer matches the new brand.
 watch(
     () => form.brand_id,
     (newBrand) => {
@@ -71,9 +74,9 @@ watch(
             form.color_id = '';
         }
 
+        selectedShape.value = '';
         form.balloon_size_id = '';
         form.price_code_id = '';
-        form.texture_id = '';
     },
 );
 
@@ -81,11 +84,15 @@ watch(
 watch(
     () => form.material_id,
     () => {
+        selectedShape.value = '';
         form.balloon_size_id = '';
-        form.shape_id = '';
-        form.texture_id = '';
     },
 );
+
+// When shape filter changes, clear balloon size (it may no longer match the shape).
+watch(selectedShape, () => {
+    form.balloon_size_id = '';
+});
 
 // Flatten all colors for lookup.
 const allColors = computed(() =>
@@ -105,57 +112,40 @@ const filteredColorFamilies = computed(() => {
         .filter((family) => family.colors.length > 0);
 });
 
-// Filter balloon sizes by brand + material.
+// Shapes available for the current brand + material (derived from balloon sizes).
+const availableShapes = computed(() => {
+    const shapeIds = new Set(
+        props.balloonSizes
+            .filter((bs) => {
+                if (form.brand_id && bs.brand_id !== form.brand_id) return false;
+                if (form.material_id && bs.material_id !== form.material_id) return false;
+                return true;
+            })
+            .map((bs) => bs.shape_id),
+    );
+    return props.shapes.filter((s) => shapeIds.has(s.id));
+});
+
+// Filter balloon sizes by brand + material + shape.
 const filteredBalloonSizes = computed(() => {
     return props.balloonSizes.filter((bs) => {
         if (form.brand_id && bs.brand_id !== form.brand_id) return false;
         if (form.material_id && bs.material_id !== form.material_id) return false;
+        if (selectedShape.value && bs.shape_id !== selectedShape.value) return false;
         return true;
     });
 });
 
-// Filter shapes by material.
-const filteredShapes = computed(() => {
-    if (!form.material_id) return props.shapes;
-    return props.shapes.filter(
-        (s) => !s.material_id || s.material_id === form.material_id,
-    );
-});
-
-// Filter textures by material.
-const filteredTextures = computed(() => {
-    if (!form.material_id) return props.textures;
-    return props.textures.filter(
-        (t) => !t.material_id || t.material_id === form.material_id,
-    );
+// Texture derived from the selected color — read-only display.
+const derivedTexture = computed(() => {
+    if (!form.color_id) return null;
+    return allColors.value.find((c) => c.id === form.color_id)?.texture ?? null;
 });
 
 // Filter price codes by brand.
 const filteredPriceCodes = computed(() => {
     if (!form.brand_id) return props.priceCodes;
     return props.priceCodes.filter((pc) => pc.brand_id === form.brand_id);
-});
-
-// Group textures by family for optgroup display.
-const textureGroups = computed(() => {
-    const groups = {};
-    for (const t of filteredTextures.value) {
-        const family = t.texture_family?.name ?? '';
-        if (!groups[family]) groups[family] = [];
-        groups[family].push(t);
-    }
-    return groups;
-});
-
-// Balloon sizes grouped by size family.
-const balloonSizeGroups = computed(() => {
-    const groups = {};
-    for (const bs of filteredBalloonSizes.value) {
-        const label = bs.size?.name || '';
-        if (!groups[label]) groups[label] = [];
-        groups[label].push(bs);
-    }
-    return groups;
 });
 
 function toggleTheme(themeId) {
@@ -399,7 +389,32 @@ const selectClass =
                                 </p>
                             </div>
 
-                            <!-- Balloon size (replaces old size dropdown) -->
+                            <!-- Shape filter — narrows balloon sizes, not stored directly -->
+                            <div>
+                                <label
+                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{ $t('catalog.sku_form.shape_label') }}
+                                </label>
+                                <select
+                                    v-model="selectedShape"
+                                    :disabled="!form.brand_id || !form.material_id"
+                                    :class="selectClass"
+                                >
+                                    <option value="">
+                                        {{ $t('catalog.sku_form.none_option') }}
+                                    </option>
+                                    <option
+                                        v-for="s in availableShapes"
+                                        :key="s.id"
+                                        :value="s.id"
+                                    >
+                                        {{ s.name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Balloon size (filtered by brand + material + shape) -->
                             <div>
                                 <label
                                     class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
@@ -422,89 +437,19 @@ const selectClass =
                                                   )
                                         }}
                                     </option>
-                                    <optgroup
-                                        v-for="(group, label) in balloonSizeGroups"
-                                        :key="label"
-                                        :label="label"
+                                    <option
+                                        v-for="bs in filteredBalloonSizes"
+                                        :key="bs.id"
+                                        :value="bs.id"
                                     >
-                                        <option
-                                            v-for="bs in group"
-                                            :key="bs.id"
-                                            :value="bs.id"
-                                        >
-                                            {{ bs.name }}
-                                        </option>
-                                    </optgroup>
+                                        {{ bs.name }}
+                                    </option>
                                 </select>
                                 <p
                                     v-if="form.errors.balloon_size_id"
                                     class="mt-1 font-sans text-[13px] text-danger"
                                 >
                                     {{ form.errors.balloon_size_id }}
-                                </p>
-                            </div>
-
-                            <div>
-                                <label
-                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                >
-                                    {{ $t('catalog.sku_form.shape_label') }}
-                                </label>
-                                <select
-                                    v-model="form.shape_id"
-                                    :class="selectClass"
-                                >
-                                    <option value="">
-                                        {{ $t('catalog.sku_form.none_option') }}
-                                    </option>
-                                    <option
-                                        v-for="s in filteredShapes"
-                                        :key="s.id"
-                                        :value="s.id"
-                                    >
-                                        {{ s.name }}
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="form.errors.shape_id"
-                                    class="mt-1 font-sans text-[13px] text-danger"
-                                >
-                                    {{ form.errors.shape_id }}
-                                </p>
-                            </div>
-
-                            <div>
-                                <label
-                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                >
-                                    {{ $t('catalog.sku_form.texture_label') }}
-                                </label>
-                                <select
-                                    v-model="form.texture_id"
-                                    :class="selectClass"
-                                >
-                                    <option value="">
-                                        {{ $t('catalog.sku_form.none_option') }}
-                                    </option>
-                                    <optgroup
-                                        v-for="(group, family) in textureGroups"
-                                        :key="family"
-                                        :label="family"
-                                    >
-                                        <option
-                                            v-for="t in group"
-                                            :key="t.id"
-                                            :value="t.id"
-                                        >
-                                            {{ t.name }}
-                                        </option>
-                                    </optgroup>
-                                </select>
-                                <p
-                                    v-if="form.errors.texture_id"
-                                    class="mt-1 font-sans text-[13px] text-danger"
-                                >
-                                    {{ form.errors.texture_id }}
                                 </p>
                             </div>
 
@@ -565,6 +510,21 @@ const selectClass =
                                 >
                                     {{ form.errors.color_id }}
                                 </p>
+                            </div>
+
+                            <!-- Texture derived from color — read-only -->
+                            <div v-if="derivedTexture">
+                                <label
+                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                >
+                                    {{ $t('catalog.sku_form.texture_label') }}
+                                </label>
+                                <div
+                                    :class="selectClass"
+                                    class="opacity-60"
+                                >
+                                    {{ derivedTexture.name }}
+                                </div>
                             </div>
 
                             <div class="flex flex-col gap-1">

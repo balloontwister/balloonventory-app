@@ -15,7 +15,6 @@ use App\Models\PrintSide;
 use App\Models\Shape;
 use App\Models\Size;
 use App\Models\Sku;
-use App\Models\Texture;
 use App\Models\TextureFamily;
 use App\Models\Theme;
 use App\Services\ImageAttachmentService;
@@ -45,13 +44,19 @@ class CatalogController extends Controller
         $locale = app()->getLocale();
 
         $with = $locale === 'en'
-            ? ['brand', 'balloonSize.size', 'shape', 'texture', 'color.colorFamily', 'material', 'themes', 'packagingType', 'priceCode']
+            ? [
+                'brand',
+                'balloonSize' => fn ($q) => $q->with(['size', 'shape']),
+                'color' => fn ($q) => $q->with(['colorFamily', 'texture']),
+                'material',
+                'themes',
+                'packagingType',
+                'priceCode',
+            ]
             : [
                 'brand',
-                'balloonSize' => fn ($q) => $q->with('size'),
-                'shape' => fn ($q) => $q->withTranslations($locale),
-                'texture' => fn ($q) => $q->withTranslations($locale),
-                'color' => fn ($q) => $q->with('colorFamily')->withTranslations($locale),
+                'balloonSize' => fn ($q) => $q->with(['size', 'shape' => fn ($sq) => $sq->withTranslations($locale)]),
+                'color' => fn ($q) => $q->with(['colorFamily', 'texture' => fn ($tq) => $tq->withTranslations($locale)])->withTranslations($locale),
                 'material' => fn ($q) => $q->withTranslations($locale),
                 'themes',
                 'packagingType',
@@ -72,7 +77,7 @@ class CatalogController extends Controller
         }
 
         if ($request->filled('texture_family')) {
-            $query->whereHas('texture', fn ($q) => $q->where('texture_family_id', $request->texture_family));
+            $query->whereHas('color.texture', fn ($q) => $q->where('texture_family_id', $request->texture_family));
         }
 
         if ($request->filled('color_family')) {
@@ -101,11 +106,11 @@ class CatalogController extends Controller
 
         if ($locale !== 'en') {
             $skus->getCollection()->each(function (Sku $sku) {
-                if ($sku->shape) {
-                    $sku->shape->name = $sku->shape->translated('name');
+                if ($sku->balloonSize?->shape) {
+                    $sku->balloonSize->shape->name = $sku->balloonSize->shape->translated('name');
                 }
-                if ($sku->texture) {
-                    $sku->texture->name = $sku->texture->translated('name');
+                if ($sku->color?->texture) {
+                    $sku->color->texture->name = $sku->color->texture->translated('name');
                 }
                 if ($sku->material) {
                     $sku->material->name = $sku->material->translated('name');
@@ -133,7 +138,7 @@ class CatalogController extends Controller
     {
         $locale = app()->getLocale();
 
-        $colorFamilies = ColorFamily::with(['colors' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get();
+        $colorFamilies = ColorFamily::with(['colors' => fn ($q) => $q->with('texture:id,name')->orderBy('sort_order')])->orderBy('sort_order')->get();
         if ($locale !== 'en') {
             $colorFamilies->each(function (ColorFamily $family) use ($locale) {
                 $family->loadTranslations($locale);
@@ -150,11 +155,10 @@ class CatalogController extends Controller
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
             'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'material_id'])),
-            'textures' => $this->translated(Texture::with('textureFamily:id,name')->withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family_id', 'material_id'])),
             'colorFamilies' => $colorFamilies,
             'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
             'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
-            'balloonSizes' => BalloonSize::with(['size', 'brand'])->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'material_id', 'size_id']),
+            'balloonSizes' => BalloonSize::with(['size', 'brand', 'shape'])->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'material_id', 'size_id', 'shape_id']),
             'packagingTypes' => PackagingType::orderBy('sort_order')->get(['id', 'name']),
             'priceCodes' => PriceCode::orderBy('sort_order')->get(['id', 'brand_id', 'code']),
             'printColors' => PrintColor::orderBy('sort_order')->get(['id', 'name']),
@@ -194,15 +198,20 @@ class CatalogController extends Controller
 
         $with = $locale === 'en'
             ? [
-                'brand', 'balloonSize', 'shape', 'texture', 'color',
-                'material', 'themes', 'packagingType', 'priceCode', 'printColors', 'printSides',
+                'brand',
+                'balloonSize.shape',
+                'color.texture',
+                'material',
+                'themes',
+                'packagingType',
+                'priceCode',
+                'printColors',
+                'printSides',
             ]
             : [
                 'brand',
-                'balloonSize',
-                'shape' => fn ($q) => $q->withTranslations($locale),
-                'texture' => fn ($q) => $q->withTranslations($locale),
-                'color' => fn ($q) => $q->withTranslations($locale),
+                'balloonSize' => fn ($q) => $q->with(['shape' => fn ($sq) => $sq->withTranslations($locale)]),
+                'color' => fn ($q) => $q->with(['texture' => fn ($tq) => $tq->withTranslations($locale)])->withTranslations($locale),
                 'material' => fn ($q) => $q->withTranslations($locale),
                 'themes' => fn ($q) => $q->withTranslations($locale),
                 'packagingType',
@@ -214,11 +223,11 @@ class CatalogController extends Controller
         $sku->load($with);
 
         if ($locale !== 'en') {
-            if ($sku->shape) {
-                $sku->shape->name = $sku->shape->translated('name');
+            if ($sku->balloonSize?->shape) {
+                $sku->balloonSize->shape->name = $sku->balloonSize->shape->translated('name');
             }
-            if ($sku->texture) {
-                $sku->texture->name = $sku->texture->translated('name');
+            if ($sku->color?->texture) {
+                $sku->color->texture->name = $sku->color->texture->translated('name');
             }
             if ($sku->material) {
                 $sku->material->name = $sku->material->translated('name');
@@ -247,7 +256,7 @@ class CatalogController extends Controller
 
         $locale = app()->getLocale();
 
-        $colorFamilies = ColorFamily::with(['colors' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get();
+        $colorFamilies = ColorFamily::with(['colors' => fn ($q) => $q->with('texture:id,name')->orderBy('sort_order')])->orderBy('sort_order')->get();
         if ($locale !== 'en') {
             $colorFamilies->each(function (ColorFamily $family) use ($locale) {
                 $family->loadTranslations($locale);
@@ -260,7 +269,7 @@ class CatalogController extends Controller
         }
 
         $sku->load([
-            'brand', 'balloonSize', 'shape', 'texture', 'color',
+            'brand', 'balloonSize.shape', 'color',
             'material', 'themes', 'packagingType', 'priceCode',
             'printColors', 'printSides',
         ]);
@@ -271,11 +280,10 @@ class CatalogController extends Controller
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
             'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name', 'material_id'])),
-            'textures' => $this->translated(Texture::with('textureFamily:id,name')->withTranslations()->orderBy('sort_order')->get(['id', 'name', 'texture_family_id', 'material_id'])),
             'colorFamilies' => $colorFamilies,
             'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
             'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
-            'balloonSizes' => BalloonSize::with(['size', 'brand'])->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'material_id', 'size_id']),
+            'balloonSizes' => BalloonSize::with(['size', 'brand', 'shape'])->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'material_id', 'size_id', 'shape_id']),
             'packagingTypes' => PackagingType::orderBy('sort_order')->get(['id', 'name']),
             'priceCodes' => PriceCode::orderBy('sort_order')->get(['id', 'brand_id', 'code']),
             'printColors' => PrintColor::orderBy('sort_order')->get(['id', 'name']),
@@ -354,8 +362,6 @@ class CatalogController extends Controller
             'brand_id' => ['required', 'uuid', 'exists:brands,id'],
             'material_id' => ['nullable', 'uuid', 'exists:materials,id'],
             'balloon_size_id' => ['nullable', 'uuid', 'exists:balloon_sizes,id'],
-            'shape_id' => ['nullable', 'uuid', 'exists:shapes,id'],
-            'texture_id' => ['nullable', 'uuid', 'exists:textures,id'],
             'color_id' => ['nullable', 'uuid', 'exists:colors,id'],
             'is_printed' => ['boolean'],
             'default_count_per_bag' => ['nullable', 'integer', 'min:1', 'max:10000'],

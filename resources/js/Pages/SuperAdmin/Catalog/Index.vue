@@ -341,7 +341,7 @@ function destroy(sku) {
                         <td
                             class="px-3 py-3 font-sans text-[13px] text-ink-secondary"
                         >
-                            {{ sku.texture?.name ?? '—' }}
+                            {{ sku.color?.texture?.name ?? '—' }}
                         </td>
                         <td
                             class="px-3 py-3 font-sans text-[13px] text-ink-secondary"

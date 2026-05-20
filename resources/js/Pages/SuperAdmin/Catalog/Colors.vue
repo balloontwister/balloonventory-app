@@ -14,6 +14,7 @@ useScrollToHash();
 const props = defineProps({
     colorFamilies: { type: Array, required: true },
     brands: { type: Array, required: true },
+    textures: { type: Array, required: true },
 });
 
 // ── Add form ──────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ const addForm = useForm({
     name: '',
     color_family_id: '',
     brand_id: '',
+    texture_id: '',
     color_hex: '',
     sort_order: '',
     description: '',
@@ -46,6 +48,7 @@ const editForm = useForm({
     name: '',
     color_family_id: '',
     brand_id: '',
+    texture_id: '',
     color_hex: '',
     sort_order: '',
     description: '',
@@ -61,6 +64,7 @@ function startEdit(color) {
     editForm.name = color.name;
     editForm.color_family_id = color.color_family_id;
     editForm.brand_id = color.brand_id ?? '';
+    editForm.texture_id = color.texture_id ?? '';
     editForm.color_hex = color.color_hex ?? '';
     editForm.sort_order = color.sort_order ?? '';
     editForm.description = color.description ?? '';
@@ -230,9 +234,9 @@ const selectClass =
                         >
                             {{ $t('catalog.colors.brand_label') }}
                         </label>
-                        <select v-model="addForm.brand_id" :class="selectClass">
+                        <select v-model="addForm.brand_id" required :class="selectClass">
                             <option value="">
-                                {{ $t('catalog.colors.brand_generic') }}
+                                {{ $t('catalog.colors.select_placeholder') }}
                             </option>
                             <option
                                 v-for="b in brands"
@@ -242,6 +246,37 @@ const selectClass =
                                 {{ b.abbreviation }}
                             </option>
                         </select>
+                        <p
+                            v-if="addForm.errors.brand_id"
+                            class="mt-1 font-sans text-[13px] text-danger"
+                        >
+                            {{ addForm.errors.brand_id }}
+                        </p>
+                    </div>
+                    <div>
+                        <label
+                            class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.colors.texture_label') }}
+                        </label>
+                        <select v-model="addForm.texture_id" required :class="selectClass">
+                            <option value="">
+                                {{ $t('catalog.colors.select_placeholder') }}
+                            </option>
+                            <option
+                                v-for="t in textures"
+                                :key="t.id"
+                                :value="t.id"
+                            >
+                                {{ t.name }}
+                            </option>
+                        </select>
+                        <p
+                            v-if="addForm.errors.texture_id"
+                            class="mt-1 font-sans text-[13px] text-danger"
+                        >
+                            {{ addForm.errors.texture_id }}
+                        </p>
                     </div>
                     <div>
                         <label
@@ -475,12 +510,13 @@ const selectClass =
                                                 </label>
                                                 <select
                                                     v-model="editForm.brand_id"
+                                                    required
                                                     :class="selectClass"
                                                 >
                                                     <option value="">
                                                         {{
                                                             $t(
-                                                                'catalog.colors.brand_generic',
+                                                                'catalog.colors.select_placeholder',
                                                             )
                                                         }}
                                                     </option>
@@ -490,6 +526,37 @@ const selectClass =
                                                         :value="b.id"
                                                     >
                                                         {{ b.abbreviation }}
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="w-28">
+                                                <label
+                                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                                >
+                                                    {{
+                                                        $t(
+                                                            'catalog.colors.texture_label',
+                                                        )
+                                                    }}
+                                                </label>
+                                                <select
+                                                    v-model="editForm.texture_id"
+                                                    required
+                                                    :class="selectClass"
+                                                >
+                                                    <option value="">
+                                                        {{
+                                                            $t(
+                                                                'catalog.colors.select_placeholder',
+                                                            )
+                                                        }}
+                                                    </option>
+                                                    <option
+                                                        v-for="t in textures"
+                                                        :key="t.id"
+                                                        :value="t.id"
+                                                    >
+                                                        {{ t.name }}
                                                     </option>
                                                 </select>
                                             </div>

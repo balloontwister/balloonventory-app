@@ -169,18 +169,18 @@ const props = defineProps({
                     <dd class="font-sans text-[13px] text-ink-primary">{{ sku.balloon_size.name }}</dd>
                 </div>
                 <div
-                    v-if="sku.shape"
+                    v-if="sku.balloon_size?.shape"
                     class="flex items-center gap-3 px-4 py-3"
                 >
                     <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.shape') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.shape.name }}</dd>
+                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.balloon_size.shape.name }}</dd>
                 </div>
                 <div
-                    v-if="sku.texture"
+                    v-if="sku.color?.texture"
                     class="flex items-center gap-3 px-4 py-3"
                 >
                     <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.texture') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.texture.name }}</dd>
+                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.color.texture.name }}</dd>
                 </div>
                 <div
                     v-if="sku.color"

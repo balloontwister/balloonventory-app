@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\ColorFamily;
+use App\Models\Texture;
 use App\Services\ImageAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,7 @@ class CatalogColorController extends Controller
         return Inertia::render('SuperAdmin/Catalog/Colors', [
             'colorFamilies' => $colorFamilies,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
+            'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'texture_family_id']),
         ]);
     }
 
@@ -77,6 +79,7 @@ class CatalogColorController extends Controller
             'color' => $color,
             'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
+            'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'texture_family_id']),
         ]);
     }
 
@@ -88,7 +91,8 @@ class CatalogColorController extends Controller
         $color = Color::create([
             'name' => $data['name'],
             'color_family_id' => $data['color_family_id'],
-            'brand_id' => $data['brand_id'] ?? null,
+            'brand_id' => $data['brand_id'],
+            'texture_id' => $data['texture_id'],
             'color_hex' => $data['color_hex'] ?? null,
             'sort_order' => $data['sort_order'],
             'description' => $data['description'] ?? null,
@@ -108,7 +112,8 @@ class CatalogColorController extends Controller
         $color->update([
             'name' => $data['name'],
             'color_family_id' => $data['color_family_id'],
-            'brand_id' => $data['brand_id'] ?? null,
+            'brand_id' => $data['brand_id'],
+            'texture_id' => $data['texture_id'],
             'color_hex' => $data['color_hex'] ?? null,
             'sort_order' => $data['sort_order'],
             'description' => $data['description'] ?? null,
@@ -150,7 +155,8 @@ class CatalogColorController extends Controller
         return [
             'name' => ['required', 'string', 'max:100', $uniqueRule],
             'color_family_id' => ['required', 'uuid', 'exists:color_families,id'],
-            'brand_id' => ['nullable', 'uuid', 'exists:brands,id'],
+            'brand_id' => ['required', 'uuid', 'exists:brands,id'],
+            'texture_id' => ['required', 'uuid', 'exists:textures,id'],
             'color_hex' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'description' => ['nullable', 'string', 'max:500'],

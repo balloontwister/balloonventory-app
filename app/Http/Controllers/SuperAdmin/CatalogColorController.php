@@ -50,7 +50,7 @@ class CatalogColorController extends Controller
         return Inertia::render('SuperAdmin/Catalog/Colors', [
             'colorFamilies' => $colorFamilies,
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
-            'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'texture_family_id']),
+            'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'texture_family_id']),
         ]);
     }
 
@@ -79,7 +79,7 @@ class CatalogColorController extends Controller
             'color' => $color,
             'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
-            'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'texture_family_id']),
+            'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'texture_family_id']),
         ]);
     }
 

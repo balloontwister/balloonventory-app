@@ -7,7 +7,7 @@ import ImageUpload from '@/Components/ImageUpload.vue';
 import { useScrollToHash } from '@/Composables/useScrollToHash';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 useScrollToHash();
 
@@ -96,6 +96,21 @@ function destroy(color) {
         preserveScroll: true,
     });
 }
+
+// ── Texture filtering by brand ────────────────────────────────────────────────
+const addFormTextures = computed(() =>
+    addForm.brand_id
+        ? props.textures.filter((t) => t.brand_id === addForm.brand_id)
+        : [],
+);
+const editFormTextures = computed(() =>
+    editForm.brand_id
+        ? props.textures.filter((t) => t.brand_id === editForm.brand_id)
+        : [],
+);
+
+watch(() => addForm.brand_id, () => { addForm.texture_id = ''; });
+watch(() => editForm.brand_id, () => { editForm.texture_id = ''; });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const allColors = computed(() =>
@@ -264,7 +279,7 @@ const selectClass =
                                 {{ $t('catalog.colors.select_placeholder') }}
                             </option>
                             <option
-                                v-for="t in textures"
+                                v-for="t in addFormTextures"
                                 :key="t.id"
                                 :value="t.id"
                             >
@@ -552,7 +567,7 @@ const selectClass =
                                                         }}
                                                     </option>
                                                     <option
-                                                        v-for="t in textures"
+                                                        v-for="t in editFormTextures"
                                                         :key="t.id"
                                                         :value="t.id"
                                                     >

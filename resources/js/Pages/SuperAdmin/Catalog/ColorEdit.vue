@@ -5,6 +5,7 @@ import AppInput from '@/Components/AppInput.vue';
 import BackLink from '@/Components/BackLink.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
 
 const props = defineProps({
     color: { type: Object, required: true },
@@ -36,6 +37,12 @@ function submit() {
         },
     });
 }
+
+const filteredTextures = computed(() =>
+    form.brand_id ? props.textures.filter((t) => t.brand_id === form.brand_id) : [],
+);
+
+watch(() => form.brand_id, () => { form.texture_id = ''; });
 
 const selectClass =
     'w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft';
@@ -140,7 +147,7 @@ const selectClass =
                                 {{ $t('catalog.colors.select_placeholder') }}
                             </option>
                             <option
-                                v-for="t in textures"
+                                v-for="t in filteredTextures"
                                 :key="t.id"
                                 :value="t.id"
                             >

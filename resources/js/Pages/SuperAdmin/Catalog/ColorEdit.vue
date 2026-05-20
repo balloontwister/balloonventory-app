@@ -184,14 +184,12 @@ const selectClass =
                                 : $t('catalog.actions.save')
                         }}
                     </AppButton>
-                    <AppButton
-                        type="button"
-                        variant="secondary"
+                    <Link
                         :href="route('super-admin.catalog.colors.show', color.id)"
-                        tag="a"
+                        class="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-surface px-4 py-[10px] font-sans text-[14px] font-medium leading-none text-ink-primary transition-colors hover:bg-background"
                     >
                         {{ $t('catalog.actions.cancel') }}
-                    </AppButton>
+                    </Link>
                 </div>
             </form>
         </div>

@@ -4,7 +4,16 @@ import AppButton from '@/Components/AppButton.vue';
 import BrandTag from '@/Components/BrandTag.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+
+onMounted(() => {
+    if (window.location.hash) {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+            el.scrollIntoView({ block: 'center' });
+        }
+    }
+});
 
 const props = defineProps({
     skus: { type: Object, required: true },
@@ -239,6 +248,7 @@ function destroy(sku) {
                     <tr
                         v-for="sku in skus.data"
                         :key="sku.id"
+                        :id="`sku-${sku.id}`"
                         class="hover:bg-accent-soft/40 group transition"
                     >
                         <td class="px-3 py-3">
@@ -251,9 +261,10 @@ function destroy(sku) {
                                         backgroundColor: sku.color.color_hex,
                                     }"
                                 />
-                                <span
-                                    class="font-sans text-[14px] font-medium text-ink-primary"
-                                    >{{ sku.name }}</span
+                                <Link
+                                    :href="route('super-admin.catalog.skus.show', sku.id)"
+                                    class="font-sans text-[14px] font-medium text-ink-primary hover:underline"
+                                    >{{ sku.name }}</Link
                                 >
                                 <span
                                     v-if="sku.is_printed"

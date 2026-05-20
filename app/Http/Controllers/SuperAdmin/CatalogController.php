@@ -166,6 +166,21 @@ class CatalogController extends Controller
             ->with('success', __('flash.catalog.sku.created', ['name' => $sku->name]));
     }
 
+    public function show(Sku $sku): Response
+    {
+        abort_if($sku->owned_by_business_id !== null, 403);
+
+        $sku->load([
+            'brand', 'balloonSize.size', 'shape', 'texture', 'color.colorFamily',
+            'material', 'themes', 'packagingType', 'priceCode', 'printColors', 'printSides',
+        ]);
+        $sku->images = $this->imageService->urls($sku);
+
+        return Inertia::render('SuperAdmin/Catalog/SkuShow', [
+            'sku' => $sku,
+        ]);
+    }
+
     public function edit(Sku $sku): Response
     {
         abort_if($sku->owned_by_business_id !== null, 403);
@@ -221,7 +236,7 @@ class CatalogController extends Controller
 
         $this->syncImages($request, $sku);
 
-        return redirect()->route('super-admin.catalog.skus')
+        return redirect()->route('super-admin.catalog.skus.show', $sku)
             ->with('success', __('flash.catalog.sku.updated', ['name' => $sku->name]));
     }
 

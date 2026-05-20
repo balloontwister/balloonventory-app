@@ -99,6 +99,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::get('/super-admin/catalog/skus', [CatalogController::class, 'index'])->name('super-admin.catalog.skus');
     Route::get('/super-admin/catalog/skus/create', [CatalogController::class, 'create'])->name('super-admin.catalog.skus.create');
     Route::post('/super-admin/catalog/skus', [CatalogController::class, 'store'])->name('super-admin.catalog.skus.store');
+    Route::get('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'show'])->name('super-admin.catalog.skus.show');
     Route::get('/super-admin/catalog/skus/{sku}/edit', [CatalogController::class, 'edit'])->name('super-admin.catalog.skus.edit');
     Route::patch('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'update'])->name('super-admin.catalog.skus.update');
     Route::delete('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'destroy'])->name('super-admin.catalog.skus.destroy');

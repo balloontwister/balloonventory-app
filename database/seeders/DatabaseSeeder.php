@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             PriceCodeSeeder::class,
             BalloonSizeSeeder::class,
             CatalogTranslationSeeder::class,
+            QualatexColorSeeder::class,
         ]);
     }
 }

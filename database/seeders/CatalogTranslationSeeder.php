@@ -9,6 +9,8 @@ use App\Models\MaterialTranslation;
 use App\Models\Shape;
 use App\Models\ShapeTranslation;
 use App\Models\Texture;
+use App\Models\TextureFamily;
+use App\Models\TextureFamilyTranslation;
 use App\Models\TextureTranslation;
 use App\Models\Theme;
 use App\Models\ThemeTranslation;
@@ -21,6 +23,7 @@ class CatalogTranslationSeeder extends Seeder
         $this->seedShapes();
         $this->seedMaterials();
         $this->seedTextures();
+        $this->seedTextureFamilies();
         $this->seedColorFamilies();
         $this->seedThemes();
     }
@@ -91,6 +94,54 @@ class CatalogTranslationSeeder extends Seeder
                 TextureTranslation::updateOrCreate(
                     ['texture_id' => $texture->id, 'locale' => 'es'],
                     ['name' => $es],
+                );
+            }
+        }
+    }
+
+    private function seedTextureFamilies(): void
+    {
+        $map = [
+            'Standard' => [
+                'name' => 'Estándar',
+                'description' => 'Los globos estándar tienen colores sólidos y vibrantes.',
+            ],
+            'Crystal' => [
+                'name' => 'Cristal',
+                'description' => 'Los globos de cristal tienen una apariencia transparente, como de vidrio.',
+            ],
+            'Pastel' => [
+                'name' => 'Pastel',
+                'description' => 'Los pasteles tienen una luminosidad relativamente alta y una saturación baja a moderada, lo que les da una apariencia suave y apagada.',
+            ],
+            'Dusk' => [
+                'name' => 'Crepúsculo',
+                'description' => 'Los crepúsculos tienen un acabado mate oscuro, tonos suaves mezclados con grises sutiles.',
+            ],
+            'Silk' => [
+                'name' => 'Seda',
+                'description' => 'Las sedas tienen una superficie semibillante sutil, entre mate y brillante.',
+            ],
+            'Metallic' => [
+                'name' => 'Metálico',
+                'description' => 'Los globos metálicos tienen un brillo perlado o brillante que refleja la luz suavemente.',
+            ],
+            'Neon' => [
+                'name' => 'Neón',
+                'description' => 'Los neones son colores brillantes y fluorescentes que parecen brillar, especialmente bajo luz ultravioleta.',
+            ],
+            'Chrome' => [
+                'name' => 'Cromo',
+                'description' => 'Los globos de cromo son una versión más intensa y altamente reflectante de los globos metálicos.',
+            ],
+        ];
+
+        foreach ($map as $en => $translations) {
+            $family = TextureFamily::where('name', $en)->first();
+            if ($family) {
+                TextureFamilyTranslation::updateOrCreate(
+                    ['texture_family_id' => $family->id, 'locale' => 'es'],
+                    ['name' => $translations['name'], 'description' => $translations['description']],
                 );
             }
         }

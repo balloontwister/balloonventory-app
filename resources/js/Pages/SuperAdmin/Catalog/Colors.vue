@@ -6,7 +6,16 @@ import ImageGallery from '@/Components/ImageGallery.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+
+onMounted(() => {
+    if (window.location.hash) {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+            el.scrollIntoView({ block: 'center' });
+        }
+    }
+});
 
 const props = defineProps({
     colorFamilies: { type: Array, required: true },
@@ -333,6 +342,7 @@ const selectClass =
                             <!-- View row -->
                             <tr
                                 v-if="editingId !== color.id"
+                                :id="`color-${color.id}`"
                                 class="hover:bg-accent-soft/30 group transition"
                             >
                                 <td class="w-10 px-4 py-2.5">

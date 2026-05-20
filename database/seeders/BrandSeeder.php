@@ -9,6 +9,11 @@ class BrandSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Brand::withTrashed()->exists()) {
+            return;
+        }
+
         $brands = [
             ['name' => 'Qualatex',    'abbreviation' => 'QTX', 'sort_order' => 10],
             ['name' => 'Sempertex',   'abbreviation' => 'STX', 'sort_order' => 20],

@@ -10,6 +10,11 @@ class ColorFamilySeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (ColorFamily::withTrashed()->exists()) {
+            return;
+        }
+
         $latex = Material::where('name', 'Latex')->first();
 
         $families = [

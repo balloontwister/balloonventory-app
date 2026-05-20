@@ -20,6 +20,11 @@ class CatalogTranslationSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once translations exist — catalog data is curated by hand in production.
+        if (TextureTranslation::exists()) {
+            return;
+        }
+
         $this->seedShapes();
         $this->seedMaterials();
         $this->seedTextures();

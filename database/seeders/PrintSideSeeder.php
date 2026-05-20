@@ -9,6 +9,11 @@ class PrintSideSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (PrintSide::withTrashed()->exists()) {
+            return;
+        }
+
         $sides = [
             ['name' => 'Top',        'sort_order' => 10],
             ['name' => 'Side',       'sort_order' => 20],

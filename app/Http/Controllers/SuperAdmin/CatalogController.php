@@ -32,6 +32,16 @@ class CatalogController extends Controller
 
     public function index(Request $request): Response
     {
+        $request->validate([
+            'brand' => ['nullable', 'uuid'],
+            'size' => ['nullable', 'uuid'],
+            'texture_family' => ['nullable', 'uuid'],
+            'color_family' => ['nullable', 'uuid'],
+            'material' => ['nullable', 'uuid'],
+            'printed' => ['nullable', 'in:0,1'],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
         $locale = app()->getLocale();
 
         $with = $locale === 'en'
@@ -74,7 +84,7 @@ class CatalogController extends Controller
         }
 
         if ($request->filled('printed')) {
-            $query->where('is_printed', $request->printed === '1');
+            $query->where('is_printed', $request->boolean('printed'));
         }
 
         if ($request->filled('search')) {
@@ -172,22 +182,62 @@ class CatalogController extends Controller
 
         $this->syncImages($request, $sku);
 
-        return redirect()->route('super-admin.catalog.skus')
+        return redirect()->route('super-admin.catalog.skus.show', $sku)
             ->with('success', __('flash.catalog.sku.created', ['name' => $sku->name]));
     }
 
-    public function show(Sku $sku): Response
+    public function show(Request $request, Sku $sku): Response
     {
         abort_if($sku->owned_by_business_id !== null, 403);
 
-        $sku->load([
-            'brand', 'balloonSize.size', 'shape', 'texture', 'color.colorFamily',
-            'material', 'themes', 'packagingType', 'priceCode', 'printColors', 'printSides',
-        ]);
+        $locale = app()->getLocale();
+
+        $with = $locale === 'en'
+            ? [
+                'brand', 'balloonSize', 'shape', 'texture', 'color',
+                'material', 'themes', 'packagingType', 'priceCode', 'printColors', 'printSides',
+            ]
+            : [
+                'brand',
+                'balloonSize',
+                'shape' => fn ($q) => $q->withTranslations($locale),
+                'texture' => fn ($q) => $q->withTranslations($locale),
+                'color' => fn ($q) => $q->withTranslations($locale),
+                'material' => fn ($q) => $q->withTranslations($locale),
+                'themes' => fn ($q) => $q->withTranslations($locale),
+                'packagingType',
+                'priceCode',
+                'printColors',
+                'printSides',
+            ];
+
+        $sku->load($with);
+
+        if ($locale !== 'en') {
+            if ($sku->shape) {
+                $sku->shape->name = $sku->shape->translated('name');
+            }
+            if ($sku->texture) {
+                $sku->texture->name = $sku->texture->translated('name');
+            }
+            if ($sku->material) {
+                $sku->material->name = $sku->material->translated('name');
+            }
+            if ($sku->color) {
+                $sku->color->name = $sku->color->translated('name');
+            }
+            $sku->themes->each(function (Theme $theme) {
+                $theme->name = $theme->translated('name');
+            });
+        }
+
         $sku->images = $this->imageService->urls($sku);
 
         return Inertia::render('SuperAdmin/Catalog/SkuShow', [
             'sku' => $sku,
+            // Query string of the originating list, so the back link can
+            // restore the user's filters, page, and scroll position.
+            'returnQuery' => $request->query('return', ''),
         ]);
     }
 

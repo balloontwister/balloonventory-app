@@ -1,19 +1,12 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
-import BrandTag from '@/Components/BrandTag.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { useScrollToHash } from '@/Composables/useScrollToHash';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 
-onMounted(() => {
-    if (window.location.hash) {
-        const el = document.querySelector(window.location.hash);
-        if (el) {
-            el.scrollIntoView({ block: 'center' });
-        }
-    }
-});
+useScrollToHash();
 
 const props = defineProps({
     skus: { type: Object, required: true },
@@ -54,6 +47,17 @@ function applyFilters() {
 }
 
 watch([search, brand, size, textureFamily, colorFamily, material, printed], applyFilters);
+
+const page = usePage();
+
+// Carry the list's current filters/page into the show link so the show page's
+// back link can restore them (and scroll to the originating row).
+function showUrl(skuId) {
+    const base = route('super-admin.catalog.skus.show', skuId);
+    const queryStart = page.url.indexOf('?');
+    const query = queryStart === -1 ? '' : page.url.slice(queryStart);
+    return query ? `${base}?return=${encodeURIComponent(query)}` : base;
+}
 
 function destroy(sku) {
     if (!confirm(trans('catalog.skus.delete_confirm', { name: sku.name })))
@@ -162,7 +166,9 @@ function destroy(sku) {
                 v-model="textureFamily"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">All Textures</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_textures') }}
+                </option>
                 <option v-for="tf in textureFamilies" :key="tf.id" :value="tf.id">
                     {{ tf.name }}
                 </option>
@@ -172,7 +178,9 @@ function destroy(sku) {
                 v-model="colorFamily"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">All Colors</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_colors') }}
+                </option>
                 <option v-for="cf in colorFamilies" :key="cf.id" :value="cf.id">
                     {{ cf.name }}
                 </option>
@@ -182,7 +190,9 @@ function destroy(sku) {
                 v-model="material"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">All Materials</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_materials') }}
+                </option>
                 <option v-for="m in materials" :key="m.id" :value="m.id">
                     {{ m.name }}
                 </option>
@@ -192,9 +202,15 @@ function destroy(sku) {
                 v-model="printed"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">Printed &amp; Solid</option>
-                <option value="0">Solid only</option>
-                <option value="1">Printed only</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_printed_all') }}
+                </option>
+                <option value="0">
+                    {{ $t('catalog.skus.filter_solid_only') }}
+                </option>
+                <option value="1">
+                    {{ $t('catalog.skus.filter_printed_only') }}
+                </option>
             </select>
 
             <div class="ml-auto">
@@ -294,7 +310,7 @@ function destroy(sku) {
                                     }"
                                 />
                                 <Link
-                                    :href="route('super-admin.catalog.skus.show', sku.id)"
+                                    :href="showUrl(sku.id)"
                                     class="font-sans text-[14px] font-medium text-ink-primary hover:underline"
                                     >{{ sku.name }}</Link
                                 >

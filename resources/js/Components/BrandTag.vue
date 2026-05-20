@@ -4,7 +4,7 @@ import { computed } from 'vue';
 const BRAND_COLORS = {
     Qualatex: '#8B0000',
     Sempertex: '#005B8E',
-    Tuftex: '#1A6B3A',
+    TufTex: '#1A6B3A',
     Betallic: '#7B3F00',
     Kalisan: '#4B0082',
 };

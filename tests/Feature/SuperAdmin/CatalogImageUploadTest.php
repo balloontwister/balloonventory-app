@@ -212,7 +212,7 @@ class CatalogImageUploadTest extends TestCase
                 'single_image_clear' => true,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.colors'));
+        $response->assertRedirect(route('super-admin.catalog.colors.show', $color));
         $this->assertNull($color->fresh()->single_image_file_path);
         Storage::disk('public')->assertMissing($originalPath);
     }
@@ -229,8 +229,8 @@ class CatalogImageUploadTest extends TestCase
                 'cluster_image' => UploadedFile::fake()->image('c.jpg', 800, 800),
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.skus'));
         $sku = Sku::where('name', 'Test SKU')->firstOrFail();
+        $response->assertRedirect(route('super-admin.catalog.skus.show', $sku));
         $this->assertStringStartsWith('sku-images/', $sku->single_image_file_path);
         $this->assertStringStartsWith('sku-images/', $sku->cluster_image_file_path);
         Storage::disk('public')->assertExists($sku->single_image_file_path);

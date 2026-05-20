@@ -6,10 +6,17 @@ use App\Models\Brand;
 use App\Models\Business;
 use App\Models\Color;
 use App\Models\ColorFamily;
+use App\Models\ColorTranslation;
 use App\Models\Material;
+use App\Models\MaterialTranslation;
+use App\Models\Shape;
+use App\Models\ShapeTranslation;
 use App\Models\Sku;
 use App\Models\Texture;
 use App\Models\TextureFamily;
+use App\Models\TextureTranslation;
+use App\Models\Theme;
+use App\Models\ThemeTranslation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -83,6 +90,51 @@ class CatalogSkuShowTest extends TestCase
             );
     }
 
+    public function test_show_page_returns_translated_names_for_es_locale(): void
+    {
+        $family = TextureFamily::create(['name' => 'Standard', 'sort_order' => 1]);
+        $texture = Texture::create(['name' => 'Crystal', 'sort_order' => 1, 'texture_family_id' => $family->id]);
+        TextureTranslation::create(['texture_id' => $texture->id, 'locale' => 'es', 'name' => 'Cristal']);
+
+        $material = Material::create(['name' => 'Latex', 'sort_order' => 1]);
+        MaterialTranslation::create(['material_id' => $material->id, 'locale' => 'es', 'name' => 'Látex']);
+
+        $shape = Shape::create(['name' => 'Round', 'sort_order' => 1]);
+        ShapeTranslation::create(['shape_id' => $shape->id, 'locale' => 'es', 'name' => 'Redondo']);
+
+        $colorFamily = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
+        $color = Color::create(['name' => 'Red', 'color_family_id' => $colorFamily->id, 'sort_order' => 1]);
+        ColorTranslation::create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
+
+        $theme = Theme::create(['name' => 'Birthday', 'sort_order' => 1]);
+        ThemeTranslation::create(['theme_id' => $theme->id, 'locale' => 'es', 'name' => 'Cumpleaños']);
+
+        $sku = Sku::create([
+            'name' => 'Test Balloon',
+            'brand_id' => $this->brand->id,
+            'texture_id' => $texture->id,
+            'material_id' => $material->id,
+            'shape_id' => $shape->id,
+            'color_id' => $color->id,
+            'is_printed' => true,
+        ]);
+        $sku->themes()->attach($theme->id);
+
+        $this->app->setLocale('es');
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus.show', $sku))
+            ->assertOk()
+            ->assertInertia(
+                fn ($page) => $page
+                    ->where('sku.texture.name', 'Cristal')
+                    ->where('sku.material.name', 'Látex')
+                    ->where('sku.shape.name', 'Redondo')
+                    ->where('sku.color.name', 'Rojo')
+                    ->where('sku.themes.0.name', 'Cumpleaños'),
+            );
+    }
+
     public function test_show_page_is_inaccessible_to_guests(): void
     {
         $this->get(route('super-admin.catalog.skus.show', $this->sku))
@@ -102,6 +154,22 @@ class CatalogSkuShowTest extends TestCase
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus.show', $sku))
             ->assertForbidden();
+    }
+
+    public function test_show_page_forwards_return_query_for_back_link(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus.show', $this->sku).'?return='.urlencode('?brand=abc&page=2'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('returnQuery', '?brand=abc&page=2'));
+    }
+
+    public function test_show_page_return_query_defaults_to_empty_string(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus.show', $this->sku))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('returnQuery', ''));
     }
 
     public function test_edit_page_renders_with_form_data(): void
@@ -132,15 +200,31 @@ class CatalogSkuShowTest extends TestCase
             ->assertRedirect(route('super-admin.catalog.skus.show', $this->sku));
     }
 
-    public function test_skus_index_links_to_show_route(): void
+    public function test_store_redirects_to_show_page(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->post(route('super-admin.catalog.skus.store'), [
+                'name' => 'Brand New SKU',
+                'brand_id' => $this->brand->id,
+            ]);
+
+        $sku = Sku::where('name', 'Brand New SKU')->firstOrFail();
+        $response->assertRedirect(route('super-admin.catalog.skus.show', $sku));
+    }
+
+    public function test_skus_index_exposes_sku_ids_used_to_build_show_links(): void
     {
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus'))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('SuperAdmin/Catalog/Index'));
-
-        $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $this->sku))
-            ->assertOk();
+            ->assertInertia(
+                fn ($page) => $page
+                    ->component('SuperAdmin/Catalog/Index')
+                    ->has(
+                        'skus.data',
+                        1,
+                        fn ($sku) => $sku->where('id', $this->sku->id)->etc(),
+                    ),
+            );
     }
 }

@@ -4,8 +4,7 @@ import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 import BackLink from '@/Components/BackLink.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
-import { Head } from '@inertiajs/vue3';
-import { useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     color: { type: Object, required: true },

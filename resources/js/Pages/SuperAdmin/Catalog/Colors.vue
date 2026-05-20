@@ -4,18 +4,12 @@ import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 import ImageGallery from '@/Components/ImageGallery.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
+import { useScrollToHash } from '@/Composables/useScrollToHash';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 
-onMounted(() => {
-    if (window.location.hash) {
-        const el = document.querySelector(window.location.hash);
-        if (el) {
-            el.scrollIntoView({ block: 'center' });
-        }
-    }
-});
+useScrollToHash();
 
 const props = defineProps({
     colorFamilies: { type: Array, required: true },

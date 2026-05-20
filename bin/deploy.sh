@@ -22,6 +22,16 @@ export NVM_DIR="$HOME/.nvm"
 # shellcheck source=/dev/null
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
+# Sourcing nvm.sh does not put node/npm on PATH in a non-interactive SSH
+# session — select a version explicitly, then fail loudly if it's still missing.
+nvm use default >/dev/null 2>&1 || nvm use node >/dev/null 2>&1 || true
+
+if ! command -v npm >/dev/null 2>&1; then
+    echo "ERROR: npm not found on PATH after loading nvm." >&2
+    echo "Set a default node version on the server: nvm alias default <version>" >&2
+    exit 1
+fi
+
 echo "== git pull =="
 git fetch
 git checkout main

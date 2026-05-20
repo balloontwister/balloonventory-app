@@ -29,18 +29,18 @@ class CatalogIndexFilterTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        $this->brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $this->brand = Brand::factory()->create();
     }
 
     public function test_texture_family_filter_narrows_results_to_that_family(): void
     {
-        $familyA = TextureFamily::create(['name' => 'Crystal', 'sort_order' => 1]);
-        $familyB = TextureFamily::create(['name' => 'Standard', 'sort_order' => 2]);
-        $textureA = Texture::create(['name' => 'Crystal Clear', 'sort_order' => 1, 'texture_family_id' => $familyA->id]);
-        $textureB = Texture::create(['name' => 'Fashion', 'sort_order' => 2, 'texture_family_id' => $familyB->id]);
+        $familyA = TextureFamily::factory()->create();
+        $familyB = TextureFamily::factory()->create();
+        $textureA = Texture::factory()->create(['texture_family_id' => $familyA->id]);
+        $textureB = Texture::factory()->create(['texture_family_id' => $familyB->id]);
 
-        Sku::create(['name' => 'In Family A', 'brand_id' => $this->brand->id, 'texture_id' => $textureA->id]);
-        Sku::create(['name' => 'In Family B', 'brand_id' => $this->brand->id, 'texture_id' => $textureB->id]);
+        Sku::factory()->create(['name' => 'In Family A', 'brand_id' => $this->brand->id, 'texture_id' => $textureA->id]);
+        Sku::factory()->create(['name' => 'In Family B', 'brand_id' => $this->brand->id, 'texture_id' => $textureB->id]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['texture_family' => $familyA->id]))
@@ -52,13 +52,13 @@ class CatalogIndexFilterTest extends TestCase
 
     public function test_color_family_filter_narrows_results_to_that_family(): void
     {
-        $familyA = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $familyB = ColorFamily::create(['name' => 'Blues', 'sort_order' => 2]);
-        $colorA = Color::create(['name' => 'Red', 'color_family_id' => $familyA->id, 'sort_order' => 1]);
-        $colorB = Color::create(['name' => 'Blue', 'color_family_id' => $familyB->id, 'sort_order' => 2]);
+        $familyA = ColorFamily::factory()->create();
+        $familyB = ColorFamily::factory()->create();
+        $colorA = Color::factory()->create(['color_family_id' => $familyA->id]);
+        $colorB = Color::factory()->create(['color_family_id' => $familyB->id]);
 
-        Sku::create(['name' => 'Red SKU', 'brand_id' => $this->brand->id, 'color_id' => $colorA->id]);
-        Sku::create(['name' => 'Blue SKU', 'brand_id' => $this->brand->id, 'color_id' => $colorB->id]);
+        Sku::factory()->create(['name' => 'Red SKU', 'brand_id' => $this->brand->id, 'color_id' => $colorA->id]);
+        Sku::factory()->create(['name' => 'Blue SKU', 'brand_id' => $this->brand->id, 'color_id' => $colorB->id]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['color_family' => $familyA->id]))
@@ -70,11 +70,11 @@ class CatalogIndexFilterTest extends TestCase
 
     public function test_material_filter_narrows_results_to_that_material(): void
     {
-        $latex = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $foil = Material::create(['name' => 'Foil', 'sort_order' => 2]);
+        $latex = Material::factory()->create();
+        $foil = Material::factory()->create();
 
-        Sku::create(['name' => 'Latex SKU', 'brand_id' => $this->brand->id, 'material_id' => $latex->id]);
-        Sku::create(['name' => 'Foil SKU', 'brand_id' => $this->brand->id, 'material_id' => $foil->id]);
+        Sku::factory()->create(['name' => 'Latex SKU', 'brand_id' => $this->brand->id, 'material_id' => $latex->id]);
+        Sku::factory()->create(['name' => 'Foil SKU', 'brand_id' => $this->brand->id, 'material_id' => $foil->id]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['material' => $latex->id]))
@@ -86,8 +86,8 @@ class CatalogIndexFilterTest extends TestCase
 
     public function test_printed_filter_shows_only_printed_skus(): void
     {
-        Sku::create(['name' => 'Printed SKU', 'brand_id' => $this->brand->id, 'is_printed' => true]);
-        Sku::create(['name' => 'Solid SKU', 'brand_id' => $this->brand->id, 'is_printed' => false]);
+        Sku::factory()->create(['name' => 'Printed SKU', 'brand_id' => $this->brand->id, 'is_printed' => true]);
+        Sku::factory()->create(['name' => 'Solid SKU', 'brand_id' => $this->brand->id, 'is_printed' => false]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['printed' => '1']))
@@ -99,8 +99,8 @@ class CatalogIndexFilterTest extends TestCase
 
     public function test_printed_filter_shows_only_solid_skus_when_zero(): void
     {
-        Sku::create(['name' => 'Printed SKU', 'brand_id' => $this->brand->id, 'is_printed' => true]);
-        Sku::create(['name' => 'Solid SKU', 'brand_id' => $this->brand->id, 'is_printed' => false]);
+        Sku::factory()->create(['name' => 'Printed SKU', 'brand_id' => $this->brand->id, 'is_printed' => true]);
+        Sku::factory()->create(['name' => 'Solid SKU', 'brand_id' => $this->brand->id, 'is_printed' => false]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['printed' => '0']))
@@ -112,12 +112,12 @@ class CatalogIndexFilterTest extends TestCase
 
     public function test_filters_combine_to_narrow_results(): void
     {
-        $latex = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $foil = Material::create(['name' => 'Foil', 'sort_order' => 2]);
+        $latex = Material::factory()->create();
+        $foil = Material::factory()->create();
 
-        Sku::create(['name' => 'Latex Printed', 'brand_id' => $this->brand->id, 'material_id' => $latex->id, 'is_printed' => true]);
-        Sku::create(['name' => 'Latex Solid', 'brand_id' => $this->brand->id, 'material_id' => $latex->id, 'is_printed' => false]);
-        Sku::create(['name' => 'Foil Printed', 'brand_id' => $this->brand->id, 'material_id' => $foil->id, 'is_printed' => true]);
+        Sku::factory()->create(['name' => 'Latex Printed', 'brand_id' => $this->brand->id, 'material_id' => $latex->id, 'is_printed' => true]);
+        Sku::factory()->create(['name' => 'Latex Solid', 'brand_id' => $this->brand->id, 'material_id' => $latex->id, 'is_printed' => false]);
+        Sku::factory()->create(['name' => 'Foil Printed', 'brand_id' => $this->brand->id, 'material_id' => $foil->id, 'is_printed' => true]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus', ['material' => $latex->id, 'printed' => '1']))
@@ -138,8 +138,8 @@ class CatalogIndexFilterTest extends TestCase
 
     public function test_no_filters_returns_all_shared_skus(): void
     {
-        Sku::create(['name' => 'First', 'brand_id' => $this->brand->id]);
-        Sku::create(['name' => 'Second', 'brand_id' => $this->brand->id]);
+        Sku::factory()->create(['brand_id' => $this->brand->id]);
+        Sku::factory()->create(['brand_id' => $this->brand->id]);
 
         $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus'))

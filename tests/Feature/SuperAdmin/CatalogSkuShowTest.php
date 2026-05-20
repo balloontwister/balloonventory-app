@@ -39,9 +39,9 @@ class CatalogSkuShowTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        $this->brand = Brand::create(['name' => 'TufTex', 'abbreviation' => 'TT', 'sort_order' => 1]);
+        $this->brand = Brand::factory()->create(['name' => 'TufTex', 'abbreviation' => 'TT']);
 
-        $this->sku = Sku::create([
+        $this->sku = Sku::factory()->create([
             'name' => '11" Turquoise',
             'brand_id' => $this->brand->id,
             'warehouse_sku' => 'TT-11-TQ',
@@ -64,14 +64,13 @@ class CatalogSkuShowTest extends TestCase
 
     public function test_show_page_includes_related_data(): void
     {
-        $family = TextureFamily::create(['name' => 'Standard', 'sort_order' => 1]);
-        $texture = Texture::create(['name' => 'Designer', 'sort_order' => 1, 'texture_family_id' => $family->id]);
-        $material = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $colorFamily = ColorFamily::create(['name' => 'Blues', 'sort_order' => 1]);
-        $color = Color::create(['name' => 'Turquoise', 'color_family_id' => $colorFamily->id, 'brand_id' => $this->brand->id]);
+        $family = TextureFamily::factory()->create();
+        $texture = Texture::factory()->create(['name' => 'Designer', 'texture_family_id' => $family->id]);
+        $material = Material::factory()->create(['name' => 'Latex']);
+        $colorFamily = ColorFamily::factory()->create();
+        $color = Color::factory()->create(['name' => 'Turquoise', 'color_family_id' => $colorFamily->id, 'brand_id' => $this->brand->id]);
 
-        $sku = Sku::create([
-            'name' => '11" Turquoise',
+        $sku = Sku::factory()->create([
             'brand_id' => $this->brand->id,
             'texture_id' => $texture->id,
             'material_id' => $material->id,
@@ -92,31 +91,29 @@ class CatalogSkuShowTest extends TestCase
 
     public function test_show_page_returns_translated_names_for_es_locale(): void
     {
-        $family = TextureFamily::create(['name' => 'Standard', 'sort_order' => 1]);
-        $texture = Texture::create(['name' => 'Crystal', 'sort_order' => 1, 'texture_family_id' => $family->id]);
-        TextureTranslation::create(['texture_id' => $texture->id, 'locale' => 'es', 'name' => 'Cristal']);
+        $family = TextureFamily::factory()->create();
+        $texture = Texture::factory()->create(['texture_family_id' => $family->id]);
+        TextureTranslation::factory()->create(['texture_id' => $texture->id, 'locale' => 'es', 'name' => 'Cristal']);
 
-        $material = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        MaterialTranslation::create(['material_id' => $material->id, 'locale' => 'es', 'name' => 'Látex']);
+        $material = Material::factory()->create();
+        MaterialTranslation::factory()->create(['material_id' => $material->id, 'locale' => 'es', 'name' => 'Látex']);
 
-        $shape = Shape::create(['name' => 'Round', 'sort_order' => 1]);
-        ShapeTranslation::create(['shape_id' => $shape->id, 'locale' => 'es', 'name' => 'Redondo']);
+        $shape = Shape::factory()->create();
+        ShapeTranslation::factory()->create(['shape_id' => $shape->id, 'locale' => 'es', 'name' => 'Redondo']);
 
-        $colorFamily = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $color = Color::create(['name' => 'Red', 'color_family_id' => $colorFamily->id, 'sort_order' => 1]);
-        ColorTranslation::create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
+        $colorFamily = ColorFamily::factory()->create();
+        $color = Color::factory()->create(['color_family_id' => $colorFamily->id]);
+        ColorTranslation::factory()->create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
 
-        $theme = Theme::create(['name' => 'Birthday', 'sort_order' => 1]);
-        ThemeTranslation::create(['theme_id' => $theme->id, 'locale' => 'es', 'name' => 'Cumpleaños']);
+        $theme = Theme::factory()->create();
+        ThemeTranslation::factory()->create(['theme_id' => $theme->id, 'locale' => 'es', 'name' => 'Cumpleaños']);
 
-        $sku = Sku::create([
-            'name' => 'Test Balloon',
+        $sku = Sku::factory()->create([
             'brand_id' => $this->brand->id,
             'texture_id' => $texture->id,
             'material_id' => $material->id,
             'shape_id' => $shape->id,
             'color_id' => $color->id,
-            'is_printed' => true,
         ]);
         $sku->themes()->attach($theme->id);
 
@@ -145,8 +142,7 @@ class CatalogSkuShowTest extends TestCase
     {
         $business = Business::factory()->create();
 
-        $sku = Sku::create([
-            'name' => 'Custom SKU',
+        $sku = Sku::factory()->create([
             'brand_id' => $this->brand->id,
             'owned_by_business_id' => $business->id,
         ]);

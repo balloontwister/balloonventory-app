@@ -48,18 +48,9 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_catalog_index_loads_without_referencing_dropped_columns(): void
     {
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $family = TextureFamily::create(['name' => 'Crystal Family', 'sort_order' => 1]);
-        $texture = Texture::create([
-            'name' => 'Crystal',
-            'sort_order' => 1,
-            'texture_family_id' => $family->id,
-        ]);
-        Sku::create([
-            'name' => 'Test SKU',
-            'brand_id' => $brand->id,
-            'texture_id' => $texture->id,
-        ]);
+        $family = TextureFamily::factory()->create(['name' => 'Crystal Family']);
+        $texture = Texture::factory()->create(['texture_family_id' => $family->id]);
+        Sku::factory()->create(['texture_id' => $texture->id]);
 
         $response = $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus'));
@@ -76,12 +67,8 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_catalog_create_form_groups_textures_by_family_via_relation(): void
     {
-        $family = TextureFamily::create(['name' => 'Metallic Family', 'sort_order' => 1]);
-        Texture::create([
-            'name' => 'Pearl',
-            'sort_order' => 1,
-            'texture_family_id' => $family->id,
-        ]);
+        $family = TextureFamily::factory()->create(['name' => 'Metallic Family']);
+        Texture::factory()->create(['texture_family_id' => $family->id]);
 
         $response = $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus.create'));
@@ -97,22 +84,20 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_computed_name_is_populated_on_create_without_eager_loading(): void
     {
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $latex = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $size = Size::create(['name' => '11-inch', 'sort_order' => 1]);
-        $shape = Shape::create(['name' => 'Round', 'sort_order' => 1]);
-        $balloonSize = BalloonSize::create([
+        $brand = Brand::factory()->create(['abbreviation' => 'Q']);
+        $latex = Material::factory()->create();
+        $size = Size::factory()->create();
+        $shape = Shape::factory()->create(['name' => 'Round']);
+        $balloonSize = BalloonSize::factory()->create([
             'brand_id' => $brand->id,
             'material_id' => $latex->id,
             'size_id' => $size->id,
             'shape_id' => $shape->id,
             'name' => '11-inch',
         ]);
-        $colorFamily = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $color = Color::create(['name' => 'Fashion Red', 'color_family_id' => $colorFamily->id, 'sort_order' => 1]);
+        $color = Color::factory()->create(['name' => 'Fashion Red']);
 
-        $sku = Sku::create([
-            'name' => 'Whatever',
+        $sku = Sku::factory()->create([
             'brand_id' => $brand->id,
             'balloon_size_id' => $balloonSize->id,
             'shape_id' => $shape->id,
@@ -130,12 +115,12 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_upc_normalization_treats_na_and_empty_as_null(): void
     {
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create();
 
-        $skuNa = Sku::create(['name' => 'A', 'brand_id' => $brand->id, 'upc' => 'na']);
-        $skuNA = Sku::create(['name' => 'B', 'brand_id' => $brand->id, 'upc' => 'N/A']);
-        $skuEmpty = Sku::create(['name' => 'C', 'brand_id' => $brand->id, 'upc' => '']);
-        $skuReal = Sku::create(['name' => 'D', 'brand_id' => $brand->id, 'upc' => '030625530125']);
+        $skuNa = Sku::factory()->create(['brand_id' => $brand->id, 'upc' => 'na']);
+        $skuNA = Sku::factory()->create(['brand_id' => $brand->id, 'upc' => 'N/A']);
+        $skuEmpty = Sku::factory()->create(['brand_id' => $brand->id, 'upc' => '']);
+        $skuReal = Sku::factory()->create(['brand_id' => $brand->id, 'upc' => '030625530125']);
 
         $this->assertNull($skuNa->fresh()->upc);
         $this->assertNull($skuNA->fresh()->upc);
@@ -145,19 +130,17 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_gs1_prefix_is_derived_from_upc_on_save(): void
     {
-        $brand = Brand::create(['name' => 'Sempertex', 'abbreviation' => 'STX', 'sort_order' => 1]);
-        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '719784']);
+        $brand = Brand::factory()->create();
+        BrandGs1Prefix::factory()->create(['brand_id' => $brand->id, 'prefix' => '719784']);
 
-        $sku = Sku::create([
-            'name' => 'Sempertex bag',
+        $sku = Sku::factory()->create([
             'brand_id' => $brand->id,
             'upc' => '7197841234567',
         ]);
 
         $this->assertSame('719784', $sku->fresh()->gs1_prefix);
 
-        $skuNoMatch = Sku::create([
-            'name' => 'Mystery bag',
+        $skuNoMatch = Sku::factory()->create([
             'brand_id' => $brand->id,
             'upc' => '9999999999999',
         ]);
@@ -167,9 +150,9 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_link_identical_is_symmetric_and_rejects_self(): void
     {
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $a = Sku::create(['name' => 'A', 'brand_id' => $brand->id]);
-        $b = Sku::create(['name' => 'B', 'brand_id' => $brand->id]);
+        $brand = Brand::factory()->create();
+        $a = Sku::factory()->create(['brand_id' => $brand->id]);
+        $b = Sku::factory()->create(['brand_id' => $brand->id]);
 
         $a->linkIdentical($b);
 
@@ -201,28 +184,28 @@ class CatalogSchemaRegressionTest extends TestCase
 
     public function test_lookup_tables_no_longer_enforce_global_unique_name(): void
     {
-        $latex = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $foil = Material::create(['name' => 'Foil', 'sort_order' => 2]);
-        $brandA = Brand::create(['name' => 'Sempertex', 'abbreviation' => 'STX', 'sort_order' => 1]);
-        $brandB = Brand::create(['name' => 'TufTex', 'abbreviation' => 'TT', 'sort_order' => 2]);
+        $latex = Material::factory()->create();
+        $foil = Material::factory()->create();
+        $brandA = Brand::factory()->create();
+        $brandB = Brand::factory()->create();
 
-        Texture::create(['name' => 'Standard', 'material_id' => $latex->id, 'brand_id' => $brandA->id, 'sort_order' => 1]);
-        Texture::create(['name' => 'Standard', 'material_id' => $latex->id, 'brand_id' => $brandB->id, 'sort_order' => 2]);
+        Texture::factory()->create(['name' => 'Standard', 'material_id' => $latex->id, 'brand_id' => $brandA->id]);
+        Texture::factory()->create(['name' => 'Standard', 'material_id' => $latex->id, 'brand_id' => $brandB->id]);
         $this->assertSame(2, Texture::where('name', 'Standard')->count());
 
-        Shape::create(['name' => 'Round', 'material_id' => $latex->id, 'sort_order' => 1]);
-        Shape::create(['name' => 'Round', 'material_id' => $foil->id, 'sort_order' => 2]);
+        Shape::factory()->create(['name' => 'Round', 'material_id' => $latex->id]);
+        Shape::factory()->create(['name' => 'Round', 'material_id' => $foil->id]);
         $this->assertSame(2, Shape::where('name', 'Round')->count());
 
-        ColorFamily::create(['name' => 'Reds', 'material_id' => $latex->id, 'sort_order' => 1]);
-        ColorFamily::create(['name' => 'Reds', 'material_id' => $foil->id, 'sort_order' => 2]);
+        ColorFamily::factory()->create(['name' => 'Reds', 'material_id' => $latex->id]);
+        ColorFamily::factory()->create(['name' => 'Reds', 'material_id' => $foil->id]);
         $this->assertSame(2, ColorFamily::where('name', 'Reds')->count());
     }
 
     public function test_discontinued_at_is_auto_managed_on_is_active_toggle(): void
     {
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        $sku = Sku::create(['name' => 'X', 'brand_id' => $brand->id, 'is_active' => true]);
+        $brand = Brand::factory()->create();
+        $sku = Sku::factory()->create(['brand_id' => $brand->id, 'is_active' => true]);
         $this->assertNull($sku->fresh()->discontinued_at);
 
         $sku->update(['is_active' => false]);

@@ -39,7 +39,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_service_resizes_oversized_images_down_to_max_width(): void
     {
-        $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create();
         $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('big.jpg', 3000, 1500));
@@ -56,7 +56,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_service_leaves_already_small_images_untouched_in_dimensions(): void
     {
-        $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create();
         $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('small.jpg', 400, 200));
@@ -70,7 +70,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_service_deletes_previous_file_when_replacing(): void
     {
-        $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create();
         $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('a.jpg', 500, 500));
@@ -87,7 +87,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_service_clear_removes_file_and_nulls_column(): void
     {
-        $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create();
         $service = app(ImageAttachmentService::class);
 
         $service->set($brand, 'logo', UploadedFile::fake()->image('a.jpg', 500, 500));
@@ -102,12 +102,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_service_urls_returns_slot_map_with_nulls(): void
     {
-        $family = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $color = Color::create([
-            'name' => 'Crimson',
-            'color_family_id' => $family->id,
-            'sort_order' => 1,
-        ]);
+        $color = Color::factory()->create();
         $service = app(ImageAttachmentService::class);
 
         // Both slots empty initially.
@@ -169,7 +164,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_color_store_uploads_single_and_cluster_through_service(): void
     {
-        $family = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
+        $family = ColorFamily::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
             ->post(route('super-admin.catalog.colors.store'), [
@@ -191,11 +186,9 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_color_update_clear_flag_removes_existing_image(): void
     {
-        $family = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $color = Color::create([
-            'name' => 'Crimson',
+        $family = ColorFamily::factory()->create();
+        $color = Color::factory()->create([
             'color_family_id' => $family->id,
-            'sort_order' => 1,
         ]);
 
         // Seed an existing image via the service.
@@ -219,7 +212,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_sku_store_uploads_both_images_through_service(): void
     {
-        $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
             ->post(route('super-admin.catalog.skus.store'), [
@@ -239,7 +232,7 @@ class CatalogImageUploadTest extends TestCase
 
     public function test_brand_update_clear_flag_removes_existing_logo(): void
     {
-        $brand = Brand::create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $brand = Brand::factory()->create(['name' => 'Q', 'abbreviation' => 'Q', 'sort_order' => 1]);
         app(ImageAttachmentService::class)->set($brand, 'logo', UploadedFile::fake()->image('l.jpg', 500, 500));
         $brand->refresh();
         $originalPath = $brand->logo_path;

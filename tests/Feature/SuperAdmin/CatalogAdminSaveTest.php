@@ -51,10 +51,9 @@ class CatalogAdminSaveTest extends TestCase
 
     public function test_brand_update_persists_primary_color_hex(): void
     {
-        $brand = Brand::create([
+        $brand = Brand::factory()->create([
             'name' => 'Qualatex',
             'abbreviation' => 'QTX',
-            'primary_color_hex' => '#000000',
             'sort_order' => 1,
         ]);
 
@@ -72,7 +71,7 @@ class CatalogAdminSaveTest extends TestCase
 
     public function test_textures_reference_store_persists_texture_family_id(): void
     {
-        $family = TextureFamily::create(['name' => 'Crystal', 'sort_order' => 1]);
+        $family = TextureFamily::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
             ->post(route('super-admin.catalog.reference.store', 'textures'), [
@@ -88,10 +87,10 @@ class CatalogAdminSaveTest extends TestCase
 
     public function test_textures_reference_update_persists_texture_family_id(): void
     {
-        $crystal = TextureFamily::create(['name' => 'Crystal', 'sort_order' => 1]);
-        $metallic = TextureFamily::create(['name' => 'Metallic', 'sort_order' => 2]);
+        $crystal = TextureFamily::factory()->create();
+        $metallic = TextureFamily::factory()->create();
 
-        $texture = Texture::create([
+        $texture = Texture::factory()->create([
             'name' => 'Pearl',
             'sort_order' => 1,
             'texture_family_id' => $crystal->id,
@@ -136,9 +135,8 @@ class CatalogAdminSaveTest extends TestCase
 
     public function test_color_families_reference_update_persists_fallback_color_hex(): void
     {
-        $family = ColorFamily::create([
+        $family = ColorFamily::factory()->create([
             'name' => 'Reds',
-            'fallback_color_hex' => '#000000',
             'sort_order' => 1,
         ]);
 
@@ -155,10 +153,8 @@ class CatalogAdminSaveTest extends TestCase
 
     public function test_reference_index_passes_texture_families_and_eager_loads_family_on_textures(): void
     {
-        $family = TextureFamily::create(['name' => 'Crystal', 'sort_order' => 1]);
-        Texture::create([
-            'name' => 'Crystal Standard',
-            'sort_order' => 1,
+        $family = TextureFamily::factory()->create(['name' => 'Crystal']);
+        Texture::factory()->create([
             'texture_family_id' => $family->id,
         ]);
 

@@ -4,7 +4,6 @@ namespace Tests\Feature\SuperAdmin;
 
 use App\Models\Brand;
 use App\Models\Color;
-use App\Models\ColorFamily;
 use App\Models\ColorTranslation;
 use App\Models\Material;
 use App\Models\MaterialTranslation;
@@ -32,13 +31,17 @@ class CatalogIndexTranslationTest extends TestCase
 
     public function test_index_returns_english_names_for_en_locale(): void
     {
-        $texture = Texture::create(['name' => 'Crystal', 'sort_order' => 1]);
-        $material = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        $colorFamily = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $color = Color::create(['name' => 'Red', 'color_family_id' => $colorFamily->id, 'color_hex' => '#ff0000', 'sort_order' => 1]);
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
+        $texture = Texture::factory()->create(['name' => 'Crystal']);
+        $material = Material::factory()->create(['name' => 'Latex']);
+        $color = Color::factory()->create(['name' => 'Red']);
+        $brand = Brand::factory()->create();
 
-        Sku::create(['name' => 'Test Balloon', 'brand_id' => $brand->id, 'texture_id' => $texture->id, 'material_id' => $material->id, 'color_id' => $color->id]);
+        Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'texture_id' => $texture->id,
+            'material_id' => $material->id,
+            'color_id' => $color->id,
+        ]);
 
         $response = $this->actingAs($this->superAdmin)
             ->get(route('super-admin.catalog.skus'));
@@ -56,18 +59,22 @@ class CatalogIndexTranslationTest extends TestCase
 
     public function test_index_returns_translated_names_for_es_locale(): void
     {
-        $texture = Texture::create(['name' => 'Crystal', 'sort_order' => 1]);
-        TextureTranslation::create(['texture_id' => $texture->id, 'locale' => 'es', 'name' => 'Cristal']);
+        $texture = Texture::factory()->create();
+        TextureTranslation::factory()->create(['texture_id' => $texture->id, 'locale' => 'es', 'name' => 'Cristal']);
 
-        $material = Material::create(['name' => 'Latex', 'sort_order' => 1]);
-        MaterialTranslation::create(['material_id' => $material->id, 'locale' => 'es', 'name' => 'Látex']);
+        $material = Material::factory()->create();
+        MaterialTranslation::factory()->create(['material_id' => $material->id, 'locale' => 'es', 'name' => 'Látex']);
 
-        $colorFamily = ColorFamily::create(['name' => 'Reds', 'sort_order' => 1]);
-        $color = Color::create(['name' => 'Red', 'color_family_id' => $colorFamily->id, 'color_hex' => '#ff0000', 'sort_order' => 1]);
-        ColorTranslation::create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
+        $color = Color::factory()->create();
+        ColorTranslation::factory()->create(['color_id' => $color->id, 'locale' => 'es', 'name' => 'Rojo']);
 
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        Sku::create(['name' => 'Test Balloon', 'brand_id' => $brand->id, 'texture_id' => $texture->id, 'material_id' => $material->id, 'color_id' => $color->id]);
+        $brand = Brand::factory()->create();
+        Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'texture_id' => $texture->id,
+            'material_id' => $material->id,
+            'color_id' => $color->id,
+        ]);
 
         $this->app->setLocale('es');
 
@@ -87,9 +94,9 @@ class CatalogIndexTranslationTest extends TestCase
 
     public function test_index_falls_back_to_english_when_no_translation_exists(): void
     {
-        $texture = Texture::create(['name' => 'Pearl', 'sort_order' => 1]);
-        $brand = Brand::create(['name' => 'Qualatex', 'abbreviation' => 'Q', 'sort_order' => 1]);
-        Sku::create(['name' => 'Test Balloon', 'brand_id' => $brand->id, 'texture_id' => $texture->id]);
+        $texture = Texture::factory()->create(['name' => 'Pearl']);
+        $brand = Brand::factory()->create();
+        Sku::factory()->create(['brand_id' => $brand->id, 'texture_id' => $texture->id]);
 
         $this->app->setLocale('es');
 

@@ -104,6 +104,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::delete('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'destroy'])->name('super-admin.catalog.skus.destroy');
 
     Route::get('/super-admin/catalog/colors', [CatalogColorController::class, 'index'])->name('super-admin.catalog.colors');
+    Route::get('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'show'])->name('super-admin.catalog.colors.show');
     Route::post('/super-admin/catalog/colors', [CatalogColorController::class, 'store'])->name('super-admin.catalog.colors.store');
     Route::patch('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'update'])->name('super-admin.catalog.colors.update');
     Route::delete('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'destroy'])->name('super-admin.catalog.colors.destroy');

@@ -20,15 +20,18 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     brands: { type: Array, required: true },
     sizes: { type: Array, required: true },
-    textures: { type: Array, required: true },
+    textureFamilies: { type: Array, required: true },
+    colorFamilies: { type: Array, required: true },
     materials: { type: Array, required: true },
 });
 
 const search = ref(props.filters.search ?? '');
 const brand = ref(props.filters.brand ?? '');
 const size = ref(props.filters.size ?? '');
-const texture = ref(props.filters.texture ?? '');
+const textureFamily = ref(props.filters.texture_family ?? '');
+const colorFamily = ref(props.filters.color_family ?? '');
 const material = ref(props.filters.material ?? '');
+const printed = ref(props.filters.printed ?? '');
 
 let debounce;
 function applyFilters() {
@@ -40,15 +43,17 @@ function applyFilters() {
                 search: search.value || undefined,
                 brand: brand.value || undefined,
                 size: size.value || undefined,
-                texture: texture.value || undefined,
+                texture_family: textureFamily.value || undefined,
+                color_family: colorFamily.value || undefined,
                 material: material.value || undefined,
+                printed: printed.value || undefined,
             },
             { preserveState: true, replace: true },
         );
     }, 350);
 }
 
-watch([search, brand, size, texture, material], applyFilters);
+watch([search, brand, size, textureFamily, colorFamily, material, printed], applyFilters);
 
 function destroy(sku) {
     if (!confirm(trans('catalog.skus.delete_confirm', { name: sku.name })))
@@ -154,15 +159,42 @@ function destroy(sku) {
             </select>
 
             <select
-                v-model="texture"
+                v-model="textureFamily"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">
-                    {{ $t('catalog.skus.filter_all_textures') }}
+                <option value="">All Textures</option>
+                <option v-for="tf in textureFamilies" :key="tf.id" :value="tf.id">
+                    {{ tf.name }}
                 </option>
-                <option v-for="t in textures" :key="t.id" :value="t.id">
-                    {{ t.name }}
+            </select>
+
+            <select
+                v-model="colorFamily"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">All Colors</option>
+                <option v-for="cf in colorFamilies" :key="cf.id" :value="cf.id">
+                    {{ cf.name }}
                 </option>
+            </select>
+
+            <select
+                v-model="material"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">All Materials</option>
+                <option v-for="m in materials" :key="m.id" :value="m.id">
+                    {{ m.name }}
+                </option>
+            </select>
+
+            <select
+                v-model="printed"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">Printed &amp; Solid</option>
+                <option value="0">Solid only</option>
+                <option value="1">Printed only</option>
             </select>
 
             <div class="ml-auto">

@@ -215,10 +215,10 @@ const selectClass =
         <template #header>
             <div class="flex items-center gap-3">
                 <Link
-                    :href="route('super-admin.catalog.skus')"
+                    :href="isEdit ? route('super-admin.catalog.skus.show', sku.id) : route('super-admin.catalog.skus')"
                     class="font-sans text-[14px] text-ink-secondary hover:text-ink-primary"
                 >
-                    {{ $t('catalog.sku_form.back_to_catalog') }}
+                    {{ isEdit ? sku.name : $t('catalog.sku_form.back_to_catalog') }}
                 </Link>
                 <span class="text-ink-tertiary">/</span>
                 <h1
@@ -942,7 +942,9 @@ const selectClass =
                                       : $t('catalog.sku_form.submit_create')
                             }}
                         </AppButton>
-                        <Link :href="route('super-admin.catalog.skus')">
+                        <Link
+                            :href="isEdit ? route('super-admin.catalog.skus.show', sku.id) : route('super-admin.catalog.skus')"
+                        >
                             <AppButton
                                 variant="secondary"
                                 class="w-full justify-center"

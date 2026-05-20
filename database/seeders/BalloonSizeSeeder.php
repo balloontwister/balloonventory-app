@@ -13,6 +13,11 @@ class BalloonSizeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (BalloonSize::withTrashed()->exists()) {
+            return;
+        }
+
         $latex = Material::where('name', 'Latex')->first();
         $foil = Material::where('name', 'Foil')->first();
         $round = Shape::where('name', 'Round')->first();

@@ -9,6 +9,11 @@ class PackagingTypeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (PackagingType::withTrashed()->exists()) {
+            return;
+        }
+
         $types = [
             ['name' => 'Individual', 'sort_order' => 10],
             ['name' => 'Loose',      'sort_order' => 20],

@@ -10,6 +10,11 @@ class PriceCodeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (PriceCode::withTrashed()->exists()) {
+            return;
+        }
+
         // Only seed if brands exist. Each brand gets a default price code.
         $brands = Brand::all();
 

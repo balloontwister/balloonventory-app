@@ -10,6 +10,11 @@ class ShapeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Shape::withTrashed()->exists()) {
+            return;
+        }
+
         $latex = Material::where('name', 'Latex')->first();
 
         $shapes = [

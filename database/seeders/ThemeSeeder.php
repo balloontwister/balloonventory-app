@@ -9,6 +9,11 @@ class ThemeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Theme::withTrashed()->exists()) {
+            return;
+        }
+
         $themes = [
             ['name' => 'Holiday',   'sort_order' => 10],
             ['name' => 'Christmas', 'sort_order' => 20],

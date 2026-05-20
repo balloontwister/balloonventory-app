@@ -12,6 +12,11 @@ class TextureSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Texture::withTrashed()->exists()) {
+            return;
+        }
+
         $latex = Material::where('name', 'Latex')->first();
         $standardFam = TextureFamily::where('name', 'Standard')->first();
         $crystalFam = TextureFamily::where('name', 'Crystal')->first();

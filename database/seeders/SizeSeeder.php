@@ -25,6 +25,11 @@ class SizeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Size::withTrashed()->exists()) {
+            return;
+        }
+
         $sizes = [
             // Round latex
             ['name' => '5-inch',  'alt_imperial_name' => '6-inch',  'diameter_cm' => 13,  'sort_order' => 10],

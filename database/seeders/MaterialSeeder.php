@@ -9,6 +9,11 @@ class MaterialSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Material::withTrashed()->exists()) {
+            return;
+        }
+
         $materials = [
             ['name' => 'Latex',        'sort_order' => 10],
             ['name' => 'Foil',         'sort_order' => 20],

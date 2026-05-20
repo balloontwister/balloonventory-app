@@ -18,6 +18,7 @@ class QualatexColorSeeder extends Seeder
 
         $crystal = Texture::where('name', 'Crystal')->whereNull('brand_id')->firstOrFail();
         $standard = Texture::where('name', 'Standard')->whereNull('brand_id')->firstOrFail();
+        $pastel = Texture::where('name', 'Pastel')->whereNull('brand_id')->firstOrFail();
         $pearl = Texture::where('name', 'Pearl')->whereNull('brand_id')->firstOrFail();
         $neon = Texture::where('name', 'Neon')->whereNull('brand_id')->firstOrFail();
         $metallic = Texture::where('name', 'Metallic')->whereNull('brand_id')->firstOrFail();
@@ -55,13 +56,13 @@ class QualatexColorSeeder extends Seeder
             ['name' => 'Ivory',           'texture' => $standard, 'family' => 'Whites',  'hex' => '#FFF5DC', 'pms' => null,              'sort_order' => 250],
             ['name' => 'Mocha Brown',     'texture' => $standard, 'family' => 'Browns',  'hex' => '#803D0A', 'pms' => 'PMS 469 C',       'sort_order' => 260],
 
-            // Pastel (opaque — Standard texture, no dedicated pastel texture exists)
-            ['name' => 'Pastel Yellow',   'texture' => $standard, 'family' => 'Yellows', 'hex' => '#FFF5B0', 'pms' => null,              'sort_order' => 270],
-            ['name' => 'Pastel Pink',     'texture' => $standard, 'family' => 'Pinks',   'hex' => '#FFDDEE', 'pms' => null,              'sort_order' => 280],
-            ['name' => 'Pastel Blue',     'texture' => $standard, 'family' => 'Blues',   'hex' => '#CCE8FF', 'pms' => null,              'sort_order' => 290],
-            ['name' => 'Pastel Green',    'texture' => $standard, 'family' => 'Greens',  'hex' => '#CCEECC', 'pms' => null,              'sort_order' => 300],
-            ['name' => 'Pastel Lavender', 'texture' => $standard, 'family' => 'Purples', 'hex' => '#E8DDFF', 'pms' => null,              'sort_order' => 310],
-            ['name' => 'Pastel Peach',    'texture' => $standard, 'family' => 'Oranges', 'hex' => '#FFE0CC', 'pms' => null,              'sort_order' => 320],
+            // Pastel
+            ['name' => 'Pastel Yellow',   'texture' => $pastel,   'family' => 'Yellows', 'hex' => '#FFF5B0', 'pms' => null,              'sort_order' => 270],
+            ['name' => 'Pastel Pink',     'texture' => $pastel,   'family' => 'Pinks',   'hex' => '#FFDDEE', 'pms' => null,              'sort_order' => 280],
+            ['name' => 'Pastel Blue',     'texture' => $pastel,   'family' => 'Blues',   'hex' => '#CCE8FF', 'pms' => null,              'sort_order' => 290],
+            ['name' => 'Pastel Green',    'texture' => $pastel,   'family' => 'Greens',  'hex' => '#CCEECC', 'pms' => null,              'sort_order' => 300],
+            ['name' => 'Pastel Lavender', 'texture' => $pastel,   'family' => 'Purples', 'hex' => '#E8DDFF', 'pms' => null,              'sort_order' => 310],
+            ['name' => 'Pastel Peach',    'texture' => $pastel,   'family' => 'Oranges', 'hex' => '#FFE0CC', 'pms' => null,              'sort_order' => 320],
 
             // Pearl
             ['name' => 'Pearl White',      'texture' => $pearl,   'family' => 'Whites',  'hex' => '#F5F0E8', 'pms' => null,              'sort_order' => 330],

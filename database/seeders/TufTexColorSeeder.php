@@ -51,7 +51,7 @@ class TufTexColorSeeder extends Seeder
             ['name' => 'Willow',        'texture' => $designer, 'family' => 'Greens',  'hex' => '#9EADA3', 'pms' => 'PMS 624 C',   'sort_order' => 220],
             ['name' => 'Blush',         'texture' => $designer, 'family' => 'Pinks',   'hex' => '#EDD5B4', 'pms' => 'PMS 155 C',   'sort_order' => 230],
             ['name' => 'Cheeky',        'texture' => $designer, 'family' => 'Oranges', 'hex' => '#F9B87A', 'pms' => 'PMS 162 C',   'sort_order' => 240],
-            ['name' => 'Money',         'texture' => $designer, 'family' => 'Greens',  'hex' => '#4A7C59', 'pms' => null,          'sort_order' => 250],
+            ['name' => 'Monet',         'texture' => $designer, 'family' => 'Greens',  'hex' => '#4A7C59', 'pms' => null,          'sort_order' => 250],
             ['name' => 'Cameo',         'texture' => $designer, 'family' => 'Pinks',   'hex' => '#D4A5A5', 'pms' => 'PMS 691 C',   'sort_order' => 260],
             ['name' => 'Fiona',         'texture' => $designer, 'family' => 'Greens',  'hex' => '#9B9570', 'pms' => 'PMS 4212 C',  'sort_order' => 270],
             ['name' => 'Empower Mint',  'texture' => $designer, 'family' => 'Greens',  'hex' => '#8DC3AC', 'pms' => 'PMS 559 C',   'sort_order' => 280],

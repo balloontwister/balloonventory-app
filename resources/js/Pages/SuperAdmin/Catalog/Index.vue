@@ -4,7 +4,7 @@ import AppButton from '@/Components/AppButton.vue';
 import { useScrollToHash } from '@/Composables/useScrollToHash';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 useScrollToHash();
 
@@ -47,6 +47,20 @@ function applyFilters() {
 }
 
 watch([search, brand, size, textureFamily, colorFamily, material, printed], applyFilters);
+
+const hasActiveFilters = computed(
+    () => !!(search.value || brand.value || size.value || textureFamily.value || colorFamily.value || material.value || printed.value),
+);
+
+function resetFilters() {
+    search.value = '';
+    brand.value = '';
+    size.value = '';
+    textureFamily.value = '';
+    colorFamily.value = '';
+    material.value = '';
+    printed.value = '';
+}
 
 const page = usePage();
 
@@ -212,6 +226,15 @@ function destroy(sku) {
                     {{ $t('catalog.skus.filter_printed_only') }}
                 </option>
             </select>
+
+            <AppButton
+                v-if="hasActiveFilters"
+                variant="ghost"
+                size="sm"
+                @click="resetFilters"
+            >
+                {{ $t('catalog.skus.reset_filters') }}
+            </AppButton>
 
             <div class="ml-auto">
                 <Link :href="route('super-admin.catalog.skus.create')">

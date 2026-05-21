@@ -46,6 +46,7 @@ return [
         'pagination_label' => 'Page :current of :last',
         'pagination_prev' => '← Previous',
         'pagination_next' => 'Next →',
+        'reset_filters' => 'Reset filters',
         'delete_confirm' => 'Delete ":name"? This cannot be undone.',
     ],
 

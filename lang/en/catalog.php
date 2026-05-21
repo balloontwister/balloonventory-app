@@ -77,8 +77,8 @@ return [
 
     'colors' => [
         'meta_title' => 'Catalog — Colors',
-        'count_singular' => ':count color across :families families',
-        'count_plural' => ':count colors across :families families',
+        'count_singular' => ':count color',
+        'count_plural' => ':count colors',
         'add_button' => '+ Add color',
         'new_heading' => 'New color',
         'name_label' => 'Color name *',
@@ -92,6 +92,7 @@ return [
         'hex_short_label' => 'Hex',
         'submit_add' => 'Add color',
         'empty_family' => 'No colors in this family yet.',
+        'reset_filters' => 'Reset filters',
         'delete_confirm' => 'Delete ":name"?',
     ],
 

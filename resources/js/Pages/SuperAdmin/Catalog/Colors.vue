@@ -12,10 +12,49 @@ import { ref, computed, watch } from 'vue';
 useScrollToHash();
 
 const props = defineProps({
-    colorFamilies: { type: Array, required: true },
+    colors: { type: Object, required: true },
+    filters: { type: Object, default: () => ({}) },
     brands: { type: Array, required: true },
+    materials: { type: Array, required: true },
+    colorFamilies: { type: Array, required: true },
+    textureFamilies: { type: Array, required: true },
     textures: { type: Array, required: true },
 });
+
+const brand = ref(props.filters.brand ?? '');
+const material = ref(props.filters.material ?? '');
+const colorFamily = ref(props.filters.color_family ?? '');
+const textureFamily = ref(props.filters.texture_family ?? '');
+
+let debounce;
+function applyFilters() {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+        router.get(
+            route('super-admin.catalog.colors'),
+            {
+                brand: brand.value || undefined,
+                material: material.value || undefined,
+                color_family: colorFamily.value || undefined,
+                texture_family: textureFamily.value || undefined,
+            },
+            { preserveState: true, replace: true },
+        );
+    }, 350);
+}
+
+watch([brand, material, colorFamily, textureFamily], applyFilters);
+
+const hasActiveFilters = computed(
+    () => !!(brand.value || material.value || colorFamily.value || textureFamily.value),
+);
+
+function resetFilters() {
+    brand.value = '';
+    material.value = '';
+    colorFamily.value = '';
+    textureFamily.value = '';
+}
 
 // ── Add form ──────────────────────────────────────────────────────────────────
 const addForm = useForm({
@@ -113,10 +152,8 @@ watch(() => addForm.brand_id, () => { addForm.texture_id = ''; });
 watch(() => editForm.brand_id, () => { editForm.texture_id = ''; });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const allColors = computed(() =>
-    props.colorFamilies.flatMap((f) => f.colors ?? []),
-);
-const totalColors = computed(() => allColors.value.length);
+const allColors = computed(() => props.colors.data);
+const totalColors = computed(() => props.colors.total);
 
 function brandAbbr(brandId) {
     if (!brandId) return null;
@@ -167,19 +204,61 @@ const selectClass =
             </Link>
         </div>
 
+        <!-- Filter bar -->
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+            <select
+                v-model="brand"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">{{ $t('catalog.skus.filter_all_brands') }}</option>
+                <option v-for="b in brands" :key="b.id" :value="b.id">
+                    {{ b.abbreviation }} — {{ b.name }}
+                </option>
+            </select>
+            <select
+                v-model="material"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">{{ $t('catalog.skus.filter_all_materials') }}</option>
+                <option v-for="m in materials" :key="m.id" :value="m.id">
+                    {{ m.name }}
+                </option>
+            </select>
+            <select
+                v-model="colorFamily"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">{{ $t('catalog.skus.filter_all_colors') }}</option>
+                <option v-for="cf in colorFamilies" :key="cf.id" :value="cf.id">
+                    {{ cf.name }}
+                </option>
+            </select>
+            <select
+                v-model="textureFamily"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">{{ $t('catalog.skus.filter_all_textures') }}</option>
+                <option v-for="tf in textureFamilies" :key="tf.id" :value="tf.id">
+                    {{ tf.name }}
+                </option>
+            </select>
+            <AppButton
+                v-if="hasActiveFilters"
+                variant="ghost"
+                size="sm"
+                @click="resetFilters"
+            >
+                {{ $t('catalog.colors.reset_filters') }}
+            </AppButton>
+        </div>
+
         <!-- Toolbar -->
         <div class="mb-4 flex items-center justify-between">
             <p class="font-sans text-[13px] text-ink-secondary">
                 {{
                     totalColors === 1
-                        ? $t('catalog.colors.count_singular', {
-                              count: totalColors,
-                              families: colorFamilies.length,
-                          })
-                        : $t('catalog.colors.count_plural', {
-                              count: totalColors,
-                              families: colorFamilies.length,
-                          })
+                        ? $t('catalog.colors.count_singular', { count: totalColors })
+                        : $t('catalog.colors.count_plural', { count: totalColors })
                 }}
             </p>
             <AppButton variant="primary" @click="showAddForm = !showAddForm">
@@ -351,332 +430,375 @@ const selectClass =
             </form>
         </div>
 
-        <!-- Color families + colors -->
-        <div class="flex flex-col gap-6">
-            <div
-                v-for="family in colorFamilies"
-                :key="family.id"
-                class="overflow-hidden rounded-lg border border-border"
-            >
-                <!-- Family header -->
-                <div
-                    class="flex items-center gap-3 border-b border-border bg-background px-4 py-2.5"
-                >
-                    <span
-                        v-if="family.color_hex"
-                        class="h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
-                        :style="{ backgroundColor: family.color_hex }"
-                    />
-                    <span
-                        class="font-sans text-[13px] font-semibold text-ink-primary"
-                        >{{ family.name }}</span
-                    >
-                    <span class="font-sans text-[13px] text-ink-tertiary">{{
-                        (family.colors ?? []).length
-                    }}</span>
-                </div>
-
-                <!-- Colors table -->
-                <table v-if="(family.colors ?? []).length" class="w-full">
-                    <tbody class="divide-y divide-border">
-                        <template
-                            v-for="color in family.colors"
-                            :key="color.id"
+        <!-- Colors table -->
+        <div class="overflow-hidden rounded-lg border border-border">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-border bg-background">
+                        <th class="w-10 px-4 py-2.5"></th>
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
-                            <!-- View row -->
-                            <tr
-                                v-if="editingId !== color.id"
-                                :id="`color-${color.id}`"
-                                class="hover:bg-accent-soft/30 group transition"
-                            >
-                                <td class="w-10 px-4 py-2.5">
-                                    <span
-                                        v-if="color.color_hex"
-                                        class="inline-block h-5 w-5 rounded-sm ring-1 ring-inset ring-black/10"
-                                        :style="{
-                                            backgroundColor: color.color_hex,
-                                        }"
-                                    />
-                                    <span
-                                        v-else
-                                        class="inline-block h-5 w-5 rounded-sm border border-border bg-background"
-                                    />
-                                </td>
-                                <td class="px-3 py-2.5">
-                                    <Link
-                                        :href="
-                                            route(
-                                                'super-admin.catalog.colors.show',
-                                                color.id,
-                                            )
-                                        "
-                                        class="font-sans text-[14px] text-ink-primary transition hover:text-accent hover:underline"
-                                    >
-                                        {{ color.name }}
-                                    </Link>
-                                </td>
-                                <td class="px-3 py-2.5">
-                                    <span
-                                        v-if="brandAbbr(color.brand_id)"
-                                        class="font-mono text-[12px] text-ink-secondary"
-                                        >{{ brandAbbr(color.brand_id) }}</span
-                                    >
-                                    <span
-                                        v-else
-                                        class="font-sans text-[12px] text-ink-tertiary"
-                                    >
-                                        {{ $t('catalog.colors.brand_generic') }}
-                                    </span>
-                                </td>
-                                <td
-                                    class="px-3 py-2.5 font-mono text-[12px] text-ink-tertiary"
+                            {{ $t('catalog.reference.col_name') }}
+                        </th>
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.reference.col_family') }}
+                        </th>
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.reference.col_brand') }}
+                        </th>
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.reference.col_hex') }}
+                        </th>
+                        <th class="px-3 py-2.5"></th>
+                        <th class="w-24 px-4 py-2.5"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    <tr v-if="colors.data.length === 0">
+                        <td
+                            colspan="7"
+                            class="px-4 py-10 text-center font-sans text-[14px] text-ink-tertiary"
+                        >
+                            {{ $t('catalog.colors.empty_family') }}
+                        </td>
+                    </tr>
+                    <template
+                        v-for="color in colors.data"
+                        :key="color.id"
+                    >
+                        <!-- View row -->
+                        <tr
+                            v-if="editingId !== color.id"
+                            :id="`color-${color.id}`"
+                            class="hover:bg-accent-soft/30 group transition"
+                        >
+                            <td class="w-10 px-4 py-2.5">
+                                <span
+                                    v-if="color.color_hex"
+                                    class="inline-block h-5 w-5 rounded-sm ring-1 ring-inset ring-black/10"
+                                    :style="{
+                                        backgroundColor: color.color_hex,
+                                    }"
+                                />
+                                <span
+                                    v-else
+                                    class="inline-block h-5 w-5 rounded-sm border border-border bg-background"
+                                />
+                            </td>
+                            <td class="px-3 py-2.5">
+                                <Link
+                                    :href="
+                                        route(
+                                            'super-admin.catalog.colors.show',
+                                            color.id,
+                                        )
+                                    "
+                                    class="font-sans text-[14px] text-ink-primary transition hover:text-accent hover:underline"
                                 >
-                                    {{ color.color_hex ?? '—' }}
-                                </td>
-                                <td class="px-3 py-2.5">
-                                    <ImageGallery
-                                        :urls="[
-                                            color.single_image_url,
-                                            color.cluster_image_url,
-                                        ]"
+                                    {{ color.name }}
+                                </Link>
+                            </td>
+                            <td class="px-3 py-2.5">
+                                <span class="font-sans text-[13px] text-ink-secondary">
+                                    {{ color.color_family?.name }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2.5">
+                                <span
+                                    v-if="brandAbbr(color.brand_id)"
+                                    class="font-mono text-[12px] text-ink-secondary"
+                                    >{{ brandAbbr(color.brand_id) }}</span
+                                >
+                                <span
+                                    v-else
+                                    class="font-sans text-[12px] text-ink-tertiary"
+                                >
+                                    {{ $t('catalog.colors.brand_generic') }}
+                                </span>
+                            </td>
+                            <td
+                                class="px-3 py-2.5 font-mono text-[12px] text-ink-tertiary"
+                            >
+                                {{ color.color_hex ?? '—' }}
+                            </td>
+                            <td class="px-3 py-2.5">
+                                <ImageGallery
+                                    :urls="[
+                                        color.single_image_url,
+                                        color.cluster_image_url,
+                                    ]"
+                                    size="sm"
+                                    :alt="color.name"
+                                />
+                            </td>
+                            <td class="px-4 py-2.5">
+                                <div
+                                    class="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100"
+                                >
+                                    <AppButton
+                                        variant="ghost"
                                         size="sm"
-                                        :alt="color.name"
-                                    />
-                                </td>
-                                <td class="px-4 py-2.5">
-                                    <div
-                                        class="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100"
+                                        @click="startEdit(color)"
                                     >
-                                        <AppButton
-                                            variant="ghost"
-                                            size="sm"
-                                            @click="startEdit(color)"
-                                        >
-                                            {{ $t('catalog.actions.edit') }}
-                                        </AppButton>
-                                        <AppButton
-                                            variant="ghost"
-                                            size="sm"
-                                            class="text-danger hover:bg-danger-soft"
-                                            @click="destroy(color)"
-                                        >
-                                            {{ $t('catalog.actions.delete') }}
-                                        </AppButton>
-                                    </div>
-                                </td>
-                            </tr>
+                                        {{ $t('catalog.actions.edit') }}
+                                    </AppButton>
+                                    <AppButton
+                                        variant="ghost"
+                                        size="sm"
+                                        class="text-danger hover:bg-danger-soft"
+                                        @click="destroy(color)"
+                                    >
+                                        {{ $t('catalog.actions.delete') }}
+                                    </AppButton>
+                                </div>
+                            </td>
+                        </tr>
 
-                            <!-- Edit row -->
-                            <tr v-else class="bg-accent-soft/20">
-                                <td colspan="6" class="px-4 py-3">
-                                    <form @submit.prevent="submitEdit(color)">
-                                        <div
-                                            class="flex flex-wrap items-end gap-3"
-                                        >
-                                            <div class="w-44">
+                        <!-- Edit row -->
+                        <tr v-else class="bg-accent-soft/20">
+                            <td colspan="7" class="px-4 py-3">
+                                <form @submit.prevent="submitEdit(color)">
+                                    <div
+                                        class="flex flex-wrap items-end gap-3"
+                                    >
+                                        <div class="w-44">
+                                            <AppInput
+                                                :label="
+                                                    $t(
+                                                        'catalog.colors.edit_name_label',
+                                                    )
+                                                "
+                                                v-model="editForm.name"
+                                                :error="
+                                                    editForm.errors.name
+                                                "
+                                                required
+                                            />
+                                        </div>
+                                        <div class="w-36">
+                                            <label
+                                                class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'catalog.colors.family_label',
+                                                    )
+                                                }}
+                                            </label>
+                                            <select
+                                                v-model="
+                                                    editForm.color_family_id
+                                                "
+                                                required
+                                                :class="selectClass"
+                                            >
+                                                <option
+                                                    v-for="f in colorFamilies"
+                                                    :key="f.id"
+                                                    :value="f.id"
+                                                >
+                                                    {{ f.name }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="w-28">
+                                            <label
+                                                class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'catalog.colors.brand_label',
+                                                    )
+                                                }}
+                                            </label>
+                                            <select
+                                                v-model="editForm.brand_id"
+                                                required
+                                                :class="selectClass"
+                                            >
+                                                <option value="">
+                                                    {{
+                                                        $t(
+                                                            'catalog.colors.select_placeholder',
+                                                        )
+                                                    }}
+                                                </option>
+                                                <option
+                                                    v-for="b in brands"
+                                                    :key="b.id"
+                                                    :value="b.id"
+                                                >
+                                                    {{ b.abbreviation }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="w-28">
+                                            <label
+                                                class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'catalog.colors.texture_label',
+                                                    )
+                                                }}
+                                            </label>
+                                            <select
+                                                v-model="editForm.texture_id"
+                                                required
+                                                :class="selectClass"
+                                            >
+                                                <option value="">
+                                                    {{
+                                                        $t(
+                                                            'catalog.colors.select_placeholder',
+                                                        )
+                                                    }}
+                                                </option>
+                                                <option
+                                                    v-for="t in editFormTextures"
+                                                    :key="t.id"
+                                                    :value="t.id"
+                                                >
+                                                    {{ t.name }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-end gap-2">
+                                            <input
+                                                type="color"
+                                                v-model="editForm.color_hex"
+                                                class="h-[42px] w-10 cursor-pointer rounded border border-border-strong bg-surface"
+                                            />
+                                            <div class="w-28">
                                                 <AppInput
                                                     :label="
                                                         $t(
-                                                            'catalog.colors.edit_name_label',
+                                                            'catalog.colors.hex_short_label',
                                                         )
                                                     "
-                                                    v-model="editForm.name"
-                                                    :error="
-                                                        editForm.errors.name
-                                                    "
-                                                    required
-                                                />
-                                            </div>
-                                            <div class="w-36">
-                                                <label
-                                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                                >
-                                                    {{
-                                                        $t(
-                                                            'catalog.colors.family_label',
-                                                        )
-                                                    }}
-                                                </label>
-                                                <select
                                                     v-model="
-                                                        editForm.color_family_id
+                                                        editForm.color_hex
                                                     "
-                                                    required
-                                                    :class="selectClass"
-                                                >
-                                                    <option
-                                                        v-for="f in colorFamilies"
-                                                        :key="f.id"
-                                                        :value="f.id"
-                                                    >
-                                                        {{ f.name }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="w-28">
-                                                <label
-                                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                                >
-                                                    {{
-                                                        $t(
-                                                            'catalog.colors.brand_label',
-                                                        )
-                                                    }}
-                                                </label>
-                                                <select
-                                                    v-model="editForm.brand_id"
-                                                    required
-                                                    :class="selectClass"
-                                                >
-                                                    <option value="">
-                                                        {{
-                                                            $t(
-                                                                'catalog.colors.select_placeholder',
-                                                            )
-                                                        }}
-                                                    </option>
-                                                    <option
-                                                        v-for="b in brands"
-                                                        :key="b.id"
-                                                        :value="b.id"
-                                                    >
-                                                        {{ b.abbreviation }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="w-28">
-                                                <label
-                                                    class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                                                >
-                                                    {{
-                                                        $t(
-                                                            'catalog.colors.texture_label',
-                                                        )
-                                                    }}
-                                                </label>
-                                                <select
-                                                    v-model="editForm.texture_id"
-                                                    required
-                                                    :class="selectClass"
-                                                >
-                                                    <option value="">
-                                                        {{
-                                                            $t(
-                                                                'catalog.colors.select_placeholder',
-                                                            )
-                                                        }}
-                                                    </option>
-                                                    <option
-                                                        v-for="t in editFormTextures"
-                                                        :key="t.id"
-                                                        :value="t.id"
-                                                    >
-                                                        {{ t.name }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="flex items-end gap-2">
-                                                <input
-                                                    type="color"
-                                                    v-model="editForm.color_hex"
-                                                    class="h-[42px] w-10 cursor-pointer rounded border border-border-strong bg-surface"
-                                                />
-                                                <div class="w-28">
-                                                    <AppInput
-                                                        :label="
-                                                            $t(
-                                                                'catalog.colors.hex_short_label',
-                                                            )
-                                                        "
-                                                        v-model="
-                                                            editForm.color_hex
-                                                        "
-                                                        placeholder="#000000"
-                                                        :error="
-                                                            editForm.errors
-                                                                .color_hex
-                                                        "
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div class="w-72">
-                                                <ImageUpload
-                                                    label="Single balloon"
-                                                    v-model:file="
-                                                        editForm.single_image
-                                                    "
-                                                    v-model:clear="
-                                                        editForm.single_image_clear
-                                                    "
-                                                    :current-url="
-                                                        color.single_image_url
-                                                    "
+                                                    placeholder="#000000"
                                                     :error="
                                                         editForm.errors
-                                                            .single_image
+                                                            .color_hex
                                                     "
                                                 />
-                                            </div>
-                                            <div class="w-72">
-                                                <ImageUpload
-                                                    label="Cluster"
-                                                    v-model:file="
-                                                        editForm.cluster_image
-                                                    "
-                                                    v-model:clear="
-                                                        editForm.cluster_image_clear
-                                                    "
-                                                    :current-url="
-                                                        color.cluster_image_url
-                                                    "
-                                                    :error="
-                                                        editForm.errors
-                                                            .cluster_image
-                                                    "
-                                                />
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <AppButton
-                                                    type="submit"
-                                                    variant="primary"
-                                                    size="sm"
-                                                    :disabled="
-                                                        editForm.processing
-                                                    "
-                                                >
-                                                    {{
-                                                        $t(
-                                                            'catalog.actions.save',
-                                                        )
-                                                    }}
-                                                </AppButton>
-                                                <AppButton
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    @click="cancelEdit"
-                                                >
-                                                    {{
-                                                        $t(
-                                                            'catalog.actions.cancel',
-                                                        )
-                                                    }}
-                                                </AppButton>
                                             </div>
                                         </div>
-                                    </form>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                                        <div class="w-72">
+                                            <ImageUpload
+                                                label="Single balloon"
+                                                v-model:file="
+                                                    editForm.single_image
+                                                "
+                                                v-model:clear="
+                                                    editForm.single_image_clear
+                                                "
+                                                :current-url="
+                                                    color.single_image_url
+                                                "
+                                                :error="
+                                                    editForm.errors
+                                                        .single_image
+                                                "
+                                            />
+                                        </div>
+                                        <div class="w-72">
+                                            <ImageUpload
+                                                label="Cluster"
+                                                v-model:file="
+                                                    editForm.cluster_image
+                                                "
+                                                v-model:clear="
+                                                    editForm.cluster_image_clear
+                                                "
+                                                :current-url="
+                                                    color.cluster_image_url
+                                                "
+                                                :error="
+                                                    editForm.errors
+                                                        .cluster_image
+                                                "
+                                            />
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <AppButton
+                                                type="submit"
+                                                variant="primary"
+                                                size="sm"
+                                                :disabled="
+                                                    editForm.processing
+                                                "
+                                            >
+                                                {{
+                                                    $t(
+                                                        'catalog.actions.save',
+                                                    )
+                                                }}
+                                            </AppButton>
+                                            <AppButton
+                                                type="button"
+                                                variant="secondary"
+                                                size="sm"
+                                                @click="cancelEdit"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'catalog.actions.cancel',
+                                                    )
+                                                }}
+                                            </AppButton>
+                                        </div>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
 
-                <p
-                    v-else
-                    class="px-4 py-3 font-sans text-[13px] text-ink-tertiary"
+        <!-- Pagination -->
+        <div
+            v-if="colors.last_page > 1"
+            class="mt-4 flex items-center justify-between"
+        >
+            <p class="font-sans text-[13px] text-ink-secondary">
+                {{
+                    $t('catalog.skus.pagination_label', {
+                        current: colors.current_page,
+                        last: colors.last_page,
+                    })
+                }}
+            </p>
+            <div class="flex gap-2">
+                <Link
+                    v-if="colors.prev_page_url"
+                    :href="colors.prev_page_url"
+                    preserve-state
                 >
-                    {{ $t('catalog.colors.empty_family') }}
-                </p>
+                    <AppButton variant="secondary" size="sm">{{
+                        $t('catalog.skus.pagination_prev')
+                    }}</AppButton>
+                </Link>
+                <Link
+                    v-if="colors.next_page_url"
+                    :href="colors.next_page_url"
+                    preserve-state
+                >
+                    <AppButton variant="secondary" size="sm">{{
+                        $t('catalog.skus.pagination_next')
+                    }}</AppButton>
+                </Link>
             </div>
         </div>
     </AuthenticatedLayout>

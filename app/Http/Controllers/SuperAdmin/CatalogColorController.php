@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\ColorFamily;
+use App\Models\Material;
 use App\Models\Texture;
+use App\Models\TextureFamily;
 use App\Services\ImageAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,38 +20,50 @@ class CatalogColorController extends Controller
 {
     public function __construct(private readonly ImageAttachmentService $images) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $locale = app()->getLocale();
+        $request->validate([
+            'brand' => ['nullable', 'uuid'],
+            'material' => ['nullable', 'uuid'],
+            'color_family' => ['nullable', 'uuid'],
+            'texture_family' => ['nullable', 'uuid'],
+        ]);
 
-        $colorFamilies = ColorFamily::with([
-            'colors' => fn ($q) => $q->with('brand')->orderBy('sort_order')->orderBy('name'),
-        ])->orderBy('sort_order')->get();
+        $query = Color::with(['brand', 'colorFamily', 'texture.textureFamily', 'material'])
+            ->orderBy('sort_order')
+            ->orderBy('name');
 
-        if ($locale !== 'en') {
-            $colorFamilies->each(function (ColorFamily $family) use ($locale) {
-                $family->loadTranslations($locale);
-                $family->name = $family->translated('name');
-
-                $family->colors->each(function (Color $color) use ($locale) {
-                    $color->loadTranslations($locale);
-                    $color->name = $color->translated('name');
-                });
-            });
+        if ($request->filled('brand')) {
+            $query->where('brand_id', $request->brand);
         }
 
-        // Attach image URLs to every color so Vue can render thumbnails.
-        $colorFamilies->each(function (ColorFamily $family) {
-            $family->colors->each(function (Color $color) {
-                $urls = $this->images->urls($color);
-                $color->single_image_url = $urls['single'] ?? null;
-                $color->cluster_image_url = $urls['cluster'] ?? null;
-            });
+        if ($request->filled('material')) {
+            $query->where('material_id', $request->material);
+        }
+
+        if ($request->filled('color_family')) {
+            $query->where('color_family_id', $request->color_family);
+        }
+
+        if ($request->filled('texture_family')) {
+            $query->whereHas('texture', fn ($q) => $q->where('texture_family_id', $request->texture_family));
+        }
+
+        $colors = $query->paginate(50)->withQueryString();
+
+        $colors->getCollection()->each(function (Color $color) {
+            $urls = $this->images->urls($color);
+            $color->single_image_url = $urls['single'] ?? null;
+            $color->cluster_image_url = $urls['cluster'] ?? null;
         });
 
         return Inertia::render('SuperAdmin/Catalog/Colors', [
-            'colorFamilies' => $colorFamilies,
+            'colors' => $colors,
+            'filters' => $request->only(['brand', 'material', 'color_family', 'texture_family']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
+            'materials' => Material::orderBy('sort_order')->get(['id', 'name']),
+            'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
+            'textureFamilies' => TextureFamily::orderBy('sort_order')->get(['id', 'name']),
             'textures' => Texture::with('textureFamily:id,name')->orderBy('sort_order')->get(['id', 'name', 'brand_id', 'texture_family_id']),
         ]);
     }

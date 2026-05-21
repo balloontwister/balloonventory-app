@@ -187,31 +187,69 @@ function isActive(routeName) {
                         {{ $t(item.labelKey) }}
                     </Link>
 
-                    <!-- Admin link (super admins only, merged into main nav) -->
-                    <Link
-                        v-if="isSuperAdmin"
-                        :href="route('super-admin.dashboard')"
-                        class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
-                        :class="
-                            route().current('super-admin.*')
-                                ? 'bg-accent-soft font-semibold text-accent'
-                                : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
-                        "
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            class="h-4 w-4 flex-shrink-0"
+                    <!-- Admin section -->
+                    <template v-if="isSuperAdmin">
+                        <p
+                            class="mb-1 mt-4 px-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
                         >
-                            <path
-                                fill-rule="evenodd"
-                                d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.533.533 0 01.479.533c0 5.448-3.299 10.116-8 11.932a.535.535 0 01-.372 0c-4.701-1.816-8-6.484-8-11.932a.533.533 0 01.479-.533 11.947 11.947 0 007.078-2.749z"
-                                clip-rule="evenodd"
-                            />
-                        </svg>
-                        {{ $t('nav.admin') }}
-                    </Link>
+                            {{ $t('nav.admin') }}
+                        </p>
+
+                        <Link
+                            :href="route('super-admin.dashboard')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.dashboard')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 flex-shrink-0">
+                                <path fill-rule="evenodd" d="M4.25 2A2.25 2.25 0 002 4.25v2.5A2.25 2.25 0 004.25 9h2.5A2.25 2.25 0 009 6.75v-2.5A2.25 2.25 0 006.75 2h-2.5zm0 9A2.25 2.25 0 002 13.25v2.5A2.25 2.25 0 004.25 18h2.5A2.25 2.25 0 009 15.75v-2.5A2.25 2.25 0 006.75 11h-2.5zm6.5-9A2.25 2.25 0 008.5 4.25v2.5A2.25 2.25 0 0010.75 9h2.5A2.25 2.25 0 0015.5 6.75v-2.5A2.25 2.25 0 0013.25 2h-2.5zm0 9a2.25 2.25 0 00-2.25 2.25v2.5A2.25 2.25 0 0010.75 18h2.5A2.25 2.25 0 0015.5 15.75v-2.5A2.25 2.25 0 0013.25 11h-2.5z" clip-rule="evenodd" />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.overview') }}
+                        </Link>
+
+                        <Link
+                            :href="route('super-admin.dashboard') + '#support-tickets'"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 flex-shrink-0">
+                                <path fill-rule="evenodd" d="M2 10c0-3.967 3.69-7 8-7 4.31 0 8 3.033 8 7s-3.69 7-8 7a9.165 9.165 0 01-2.628-.39A1 1 0 006 18.1l-2.7-.9A.75.75 0 012.5 16.5v-1.75A6.967 6.967 0 012 10z" clip-rule="evenodd" />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.support_tickets') }}
+                        </Link>
+
+                        <Link
+                            :href="route('super-admin.catalog.skus')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.catalog.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 flex-shrink-0">
+                                <path d="M10.75 16.82A7.462 7.462 0 0115 15.5c.71 0 1.396.098 2.046.282A.75.75 0 0018 15.06v-11a.75.75 0 00-.546-.721A9.006 9.006 0 0015 3a8.963 8.963 0 00-4.25 1.065V16.82zM9.25 4.065A8.963 8.963 0 005 3c-.85 0-1.673.118-2.454.339A.75.75 0 002 4.06v11a.75.75 0 00.954.721A7.506 7.506 0 015 15.5c1.579 0 3.042.487 4.25 1.32V4.065z" />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.catalog') }}
+                        </Link>
+
+                        <Link
+                            :href="route('super-admin.users.index')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.users.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 flex-shrink-0">
+                                <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 17a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z" />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.users') }}
+                        </Link>
+                    </template>
 
                 </nav>
             </aside>

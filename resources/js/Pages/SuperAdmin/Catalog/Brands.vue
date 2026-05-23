@@ -272,10 +272,18 @@ function cancelEdit() {
                                     :alt="`${brand.name} logo`"
                                 />
                             </td>
-                            <td
-                                class="px-4 py-3 font-sans text-[14px] font-medium text-ink-primary"
-                            >
-                                {{ brand.name }}
+                            <td class="px-4 py-3">
+                                <Link
+                                    :href="
+                                        route(
+                                            'super-admin.catalog.brands.show',
+                                            brand.id,
+                                        )
+                                    "
+                                    class="font-sans text-[14px] font-medium text-ink-primary transition hover:text-accent hover:underline"
+                                >
+                                    {{ brand.name }}
+                                </Link>
                             </td>
                             <td
                                 class="px-4 py-3 font-mono text-[13px] text-ink-secondary"

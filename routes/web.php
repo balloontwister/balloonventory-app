@@ -113,8 +113,12 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::delete('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'destroy'])->name('super-admin.catalog.colors.destroy');
 
     Route::get('/super-admin/catalog/brands', [CatalogBrandController::class, 'index'])->name('super-admin.catalog.brands');
+    Route::get('/super-admin/catalog/brands/{brand}', [CatalogBrandController::class, 'show'])->name('super-admin.catalog.brands.show');
+    Route::get('/super-admin/catalog/brands/{brand}/edit', [CatalogBrandController::class, 'edit'])->name('super-admin.catalog.brands.edit');
     Route::post('/super-admin/catalog/brands', [CatalogBrandController::class, 'store'])->name('super-admin.catalog.brands.store');
     Route::patch('/super-admin/catalog/brands/{brand}', [CatalogBrandController::class, 'update'])->name('super-admin.catalog.brands.update');
+    Route::post('/super-admin/catalog/brands/{brand}/gs1-prefixes', [CatalogBrandController::class, 'storeGs1Prefix'])->name('super-admin.catalog.brands.gs1-prefixes.store');
+    Route::delete('/super-admin/catalog/brands/{brand}/gs1-prefixes/{prefix}', [CatalogBrandController::class, 'destroyGs1Prefix'])->name('super-admin.catalog.brands.gs1-prefixes.destroy');
 
     Route::get('/super-admin/catalog/reference', [CatalogReferenceController::class, 'index'])->name('super-admin.catalog.reference');
     Route::post('/super-admin/catalog/reference/{table}', [CatalogReferenceController::class, 'store'])->name('super-admin.catalog.reference.store');

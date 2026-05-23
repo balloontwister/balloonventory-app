@@ -30,6 +30,8 @@ return [
         'brand' => [
             'added' => 'Marca ":name" agregada.',
             'updated' => 'Marca ":name" actualizada.',
+            'gs1_added' => 'Prefijo GS1 :prefix agregado.',
+            'gs1_removed' => 'Prefijo GS1 :prefix eliminado.',
         ],
     ],
 

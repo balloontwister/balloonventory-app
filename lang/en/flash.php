@@ -30,6 +30,8 @@ return [
         'brand' => [
             'added' => 'Brand ":name" added.',
             'updated' => 'Brand ":name" updated.',
+            'gs1_added' => 'GS1 prefix :prefix added.',
+            'gs1_removed' => 'GS1 prefix :prefix removed.',
         ],
     ],
 

@@ -200,7 +200,6 @@ A balloon manufacturer. Shared globally, not tenant-scoped.
 - `primary_color_hex` (varchar 7, nullable) — primary brand color
 - `secondary_color_hex` (varchar 7, nullable) — secondary brand color
 - `is_active` (boolean, default true) — soft toggle for brand visibility
-- `brand_color_hex` (text, nullable) — the dot color in BrandTag; optional
 - `logo_path` (text, nullable) — path inside the `public` disk (resolves to `storage/app/public/<path>`). Use `Storage::disk('public')->url($logo_path)` to render. New uploads land in `brand-logos/`.
 - `sort_order` (integer, default 0) — display order in dropdowns and tables
 - `created_at`, `updated_at`, `deleted_at`
@@ -254,7 +253,7 @@ A cross-brand color grouping. Examples: `Blacks`, `Reds`, `Pinks`, `Blues`, `Gol
 - `id` (uuid, pk)
 - `name` (text, unique)
 - `material_id` (uuid, nullable, fk → material.id, idx) — color families are material-specific
-- `color_hex` (text, nullable) — canonical representative hex for the family swatch
+- `fallback_color_hex` (text, nullable) — canonical representative hex for the family swatch
 - `hex_color_start` (varchar 7, nullable) — gradient swatch start hex
 - `hex_color_end` (varchar 7, nullable) — gradient swatch end hex
 - `single_image_file_path` (text, nullable) — single balloon image for this color family
@@ -268,12 +267,12 @@ A brand-specific color name. Each brand names their colors independently; `color
 - `id` (uuid, pk)
 - `name` (text) — e.g. `Deluxe Black` (STX), `Onyx Black` (QTX), `Black` (TTX)
 - `color_family_id` (uuid, fk → color_family.id, idx)
-- `brand_id` (uuid, nullable, fk → brand.id, idx) — null for generic/unbranded colors
+- `brand_id` (uuid, NOT NULL, fk → brand.id, idx) — every color must belong to a brand
 - `material_id` (uuid, nullable, fk → material.id, idx) — colors are material-specific
 - `color_hex` (text, nullable) — specific hex for this color variant; used by BalloonSwatch
 - `color_code` (text, nullable) — internal color code from the manufacturer
 - `pms_value` (text, nullable) — Pantone Matching System value
-- `texture_id` (uuid, nullable, fk → texture.id, idx) — some colors have a default texture association
+- `texture_id` (uuid, NOT NULL, fk → texture.id, idx) — every color must have a texture; texture is the source of truth for a SKU's texture (derived via color.texture_id, not stored directly on sku)
 - `single_image_file_path` (text, nullable) — single balloon image for this color
 - `cluster_image_file_path` (text, nullable) — cluster/bag image for this color
 - `sort_order`, `description`
@@ -315,8 +314,6 @@ A balloon SKU. The hybrid catalog lives here. A row is either **shared** (visibl
 - `brand_id` (uuid, fk → brand.id, idx)
 - `material_id` (uuid, nullable, fk → material.id, idx)
 - `balloon_size_id` (uuid, nullable, fk → balloon_size.id, idx) — brand+material-specific balloon size (e.g. Sempertex R-12), replaces the direct `size_id` FK
-- `shape_id` (uuid, nullable, fk → shape.id, idx)
-- `texture_id` (uuid, nullable, fk → texture.id, idx)
 - `color_id` (uuid, nullable, fk → color.id, idx)
 - `is_printed` (boolean, default false) — true for printed/themed balloons; glow-in-the-dark and satin are textures, not a separate flag
 - `default_count_per_bag` (integer, nullable) — typical bag size, e.g. 100 for 11" latex
@@ -328,7 +325,7 @@ A balloon SKU. The hybrid catalog lives here. A row is either **shared** (visibl
 - `packaging_id` (uuid, nullable, fk → packaging_type.id, idx) — how the bag is packaged (Individual, Loose, Nozzle Up, Retail)
 - `single_image_file_path` (text, nullable) — single balloon image for this SKU
 - `cluster_image_file_path` (text, nullable) — cluster/bag image for this SKU
-- `computed_name` (text, nullable, idx) — auto-generated display name from cascading attributes. Format: `"{balloon_size.name} {color.name} {brand.abbreviation} {shape.name} {count}ct"` (e.g. "12-inch Fashion Red STX Round 100ct"). Regenerated via Eloquent `saving` observer when brand, color, shape, count, or balloon_size change.
+- `computed_name` (text, nullable, idx) — auto-generated display name from cascading attributes. Format: `"{balloon_size.name} {color.name} {brand.abbreviation} {balloon_size.shape.name} {count}ct"` (e.g. "12-inch Fashion Red STX Round 100ct"). Shape is derived from `balloon_size.shape_id`, not stored directly on the SKU. Regenerated via Eloquent `saving` observer when brand, color, balloon_size, or count change.
 - `price_code_id` (uuid, nullable, fk → price_code.id, idx) — FK to the `price_codes` table; replaces the free-text `price_code` string column
 - `gs1_prefix` (text, nullable) — GS1 company prefix (derivable from UPC but stored for lookup perf)
 - `is_active` (boolean, default true) — soft toggle for SKU visibility in catalogs
@@ -391,8 +388,8 @@ A brand+material+shape-specific balloon size definition. This bridges the abstra
 - `shape_id` (uuid, fk → shape.id, idx) — required; distinguishes shapes within the same brand+material+size
 - `name` (text) — brand's name for this size (e.g. `R-12`, `C-12`, `11-inch`)
 - `description` (text, nullable)
-- `single_image_path` (text, nullable)
-- `cluster_image_path` (text, nullable)
+- `single_image_file_path` (text, nullable)
+- `cluster_image_file_path` (text, nullable)
 - `unique(brand_id, material_id, name, deleted_at)`
 - (plus standard lookup columns: `sort_order`, timestamps, soft deletes)
 
@@ -856,7 +853,6 @@ SELECT
   COALESCE(override.custom_color_hex, sku.color_hex) AS display_color_hex,
   sku.balloon_size_id,
   sku.brand_id,
-  sku.texture_id,
   sku.warehouse_sku,
   COALESCE(sl.quantity, 0) AS on_hand
 FROM list_item AS li

@@ -102,7 +102,7 @@ class CatalogController extends Controller
             });
         }
 
-        $skus = $query->orderBy('name')->paginate(50)->withQueryString();
+        $skus = $query->orderBy('name')->paginate(100)->withQueryString();
 
         if ($locale !== 'en') {
             $skus->getCollection()->each(function (Sku $sku) {

@@ -14,6 +14,12 @@ class TufTexColorSeeder extends Seeder
     public function run(): void
     {
         $tuftex = Brand::where('name', 'TufTex')->firstOrFail();
+
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Color::withTrashed()->where('brand_id', $tuftex->id)->exists()) {
+            return;
+        }
+
         $latex = Material::where('name', 'Latex')->firstOrFail();
 
         $designer = Texture::where('name', 'Designer')->whereNull('brand_id')->firstOrFail();

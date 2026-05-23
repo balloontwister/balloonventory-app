@@ -14,6 +14,12 @@ class QualatexColorSeeder extends Seeder
     public function run(): void
     {
         $qualatex = Brand::where('name', 'Qualatex')->firstOrFail();
+
+        // Skip once the table holds data — catalog data is curated by hand in production.
+        if (Color::withTrashed()->where('brand_id', $qualatex->id)->exists()) {
+            return;
+        }
+
         $latex = Material::where('name', 'Latex')->firstOrFail();
 
         $crystal = Texture::where('name', 'Crystal')->whereNull('brand_id')->firstOrFail();

@@ -249,6 +249,21 @@ function isActive(routeName) {
                             </svg>
                             {{ $t('super_admin.dashboard.nav.users') }}
                         </Link>
+
+                        <Link
+                            :href="route('super-admin.backups.index')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.backups.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 flex-shrink-0">
+                                <path d="M3 12.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75ZM3 8.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 8.25ZM3 3.75A.75.75 0 0 1 3.75 3h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 3.75Z" />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.backups') }}
+                        </Link>
                     </template>
 
                 </nav>

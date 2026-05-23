@@ -11,6 +11,7 @@ return [
             'support_tickets' => 'Support Tickets',
             'catalog' => 'Catalog',
             'users' => 'Users',
+            'backups' => 'Backups',
         ],
 
         'overview_heading' => 'Overview',
@@ -113,6 +114,25 @@ return [
         'demote_confirm' => 'Remove Site Admin access?',
         'demote_yes' => 'Yes, remove',
         'demote_cancel' => 'Cancel',
+    ],
+
+    'backups' => [
+        'meta_title' => 'Database Backups',
+        'heading' => 'Database Backups',
+        'back' => '← Super Admin',
+        'description' => 'Daily backups are created automatically at 2:00 AM. You can also trigger one manually.',
+        'run_backup' => 'Back up now',
+        'running' => 'Running…',
+        'empty' => 'No backups found.',
+        'col_filename' => 'File',
+        'col_size' => 'Size',
+        'col_created' => 'Created',
+        'col_actions' => 'Actions',
+        'download' => 'Download',
+        'delete' => 'Delete',
+        'delete_confirm' => 'Delete this backup permanently?',
+        'delete_yes' => 'Yes, delete',
+        'delete_cancel' => 'Cancel',
     ],
 
     'email_templates' => [

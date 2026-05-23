@@ -11,6 +11,7 @@ return [
             'support_tickets' => 'Tickets de soporte',
             'catalog' => 'Catálogo',
             'users' => 'Usuarios',
+            'backups' => 'Copias de seguridad',
         ],
 
         'overview_heading' => 'Vista general',
@@ -113,6 +114,25 @@ return [
         'demote_confirm' => '¿Quitar acceso de Site Admin?',
         'demote_yes' => 'Sí, quitar',
         'demote_cancel' => 'Cancelar',
+    ],
+
+    'backups' => [
+        'meta_title' => 'Copias de seguridad',
+        'heading' => 'Copias de seguridad',
+        'back' => '← Super Admin',
+        'description' => 'Las copias de seguridad se crean automáticamente a las 2:00 AM. También puedes crear una manualmente.',
+        'run_backup' => 'Hacer copia ahora',
+        'running' => 'Ejecutando…',
+        'empty' => 'No se encontraron copias de seguridad.',
+        'col_filename' => 'Archivo',
+        'col_size' => 'Tamaño',
+        'col_created' => 'Creado',
+        'col_actions' => 'Acciones',
+        'download' => 'Descargar',
+        'delete' => 'Eliminar',
+        'delete_confirm' => '¿Eliminar esta copia de seguridad permanentemente?',
+        'delete_yes' => 'Sí, eliminar',
+        'delete_cancel' => 'Cancelar',
     ],
 
     'email_templates' => [

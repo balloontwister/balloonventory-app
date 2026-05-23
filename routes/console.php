@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Schedule;
 // Runs once per day at 3:00 AM server time.
 Schedule::command('app:prune-unverified-users')->dailyAt('03:00');
 
+// Create a daily database backup at 2:00 AM server time.
+Schedule::command('app:backup-database')->dailyAt('02:00');
+
 // Process the queued email worker every minute. Uses --stop-when-empty so the
 // process exits cleanly after draining pending jobs (daemon mode is not
 // available on the cPanel/shared host). withoutOverlapping() prevents a second

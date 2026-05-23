@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -18,7 +19,7 @@ class BackupController extends Controller
         $backups = [];
 
         if (is_dir($backupDir)) {
-            foreach (glob($backupDir.'/balloonventory_*.sql.gz') as $path) {
+            foreach (glob($backupDir.'/*.sql.gz') as $path) {
                 $backups[] = [
                     'filename' => basename($path),
                     'size_kb' => round(filesize($path) / 1024, 1),
@@ -52,6 +53,36 @@ class BackupController extends Controller
         return response()->download($path);
     }
 
+    public function rename(Request $request, string $filename): RedirectResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403);
+
+        $oldPath = $this->resolveBackupPath($filename);
+
+        $request->validate([
+            'new_filename' => [
+                'required',
+                'string',
+                'regex:/^[a-zA-Z0-9][a-zA-Z0-9_-]*\.sql\.gz$/',
+            ],
+        ]);
+
+        $newFilename = $request->input('new_filename');
+        $newPath = storage_path('app/backups/'.$newFilename);
+
+        if ($newFilename !== $filename) {
+            if (file_exists($newPath)) {
+                throw ValidationException::withMessages([
+                    'new_filename' => __('super_admin.backups.rename_error_exists'),
+                ]);
+            }
+
+            rename($oldPath, $newPath);
+        }
+
+        return back()->with('success', 'Backup renamed.');
+    }
+
     public function destroy(Request $request, string $filename): RedirectResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
@@ -64,7 +95,7 @@ class BackupController extends Controller
 
     private function resolveBackupPath(string $filename): string
     {
-        abort_unless(preg_match('/^balloonventory_[\d_-]+\.sql\.gz$/', $filename), 404);
+        abort_unless(preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]*\.sql\.gz$/', $filename), 404);
 
         $path = storage_path('app/backups/'.$filename);
         abort_unless(file_exists($path), 404);

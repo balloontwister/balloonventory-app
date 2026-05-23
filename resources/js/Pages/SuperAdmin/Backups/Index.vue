@@ -9,6 +9,10 @@ const props = defineProps({
 
 const runningBackup = ref(false);
 const confirmingDelete = ref(null);
+const renamingFile = ref(null);
+const renameValue = ref('');
+const renameError = ref(null);
+const renamingSaving = ref(false);
 
 function runBackup() {
     runningBackup.value = true;
@@ -19,6 +23,7 @@ function runBackup() {
 
 function confirmDelete(filename) {
     confirmingDelete.value = filename;
+    cancelRename();
 }
 
 function cancelDelete() {
@@ -29,6 +34,37 @@ function deleteBackup(filename) {
     router.delete(route('super-admin.backups.destroy', filename), {
         preserveScroll: true,
         onFinish: () => (confirmingDelete.value = null),
+    });
+}
+
+function startRename(filename) {
+    renamingFile.value = filename;
+    renameValue.value = filename;
+    renameError.value = null;
+    confirmingDelete.value = null;
+}
+
+function cancelRename() {
+    renamingFile.value = null;
+    renameValue.value = '';
+    renameError.value = null;
+}
+
+function saveRename(oldFilename) {
+    renamingSaving.value = true;
+    renameError.value = null;
+    router.patch(route('super-admin.backups.rename', oldFilename), {
+        new_filename: renameValue.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            renamingFile.value = null;
+            renameValue.value = '';
+        },
+        onError: (errors) => {
+            renameError.value = errors.new_filename ?? null;
+        },
+        onFinish: () => (renamingSaving.value = false),
     });
 }
 
@@ -95,17 +131,50 @@ function formatDate(val) {
                     </thead>
                     <tbody class="divide-y divide-border">
                         <tr v-for="backup in backups" :key="backup.filename">
-                            <td class="px-4 py-3 font-mono text-xs text-ink-primary">
-                                {{ backup.filename }}
+                            <!-- Filename — shows editable input when renaming this row -->
+                            <td class="px-4 py-3">
+                                <template v-if="renamingFile === backup.filename">
+                                    <input
+                                        v-model="renameValue"
+                                        type="text"
+                                        :placeholder="$t('super_admin.backups.rename_placeholder')"
+                                        class="w-full rounded border border-border bg-background px-2 py-1 font-mono text-xs text-ink-primary focus:border-accent focus:outline-none"
+                                        @keyup.enter="saveRename(backup.filename)"
+                                        @keyup.escape="cancelRename"
+                                    />
+                                    <p v-if="renameError" class="mt-1 text-xs text-red-500">{{ renameError }}</p>
+                                </template>
+                                <span v-else class="font-mono text-xs text-ink-primary">{{ backup.filename }}</span>
                             </td>
+
                             <td class="px-4 py-3 text-ink-secondary">
                                 {{ backup.size_kb }} KB
                             </td>
                             <td class="px-4 py-3 text-ink-secondary">
                                 {{ formatDate(backup.created_at) }}
                             </td>
+
+                            <!-- Actions -->
                             <td class="px-4 py-3 text-right">
-                                <div v-if="confirmingDelete === backup.filename" class="flex items-center justify-end gap-2">
+                                <!-- Rename: save / cancel -->
+                                <div v-if="renamingFile === backup.filename" class="flex items-center justify-end gap-2">
+                                    <button
+                                        :disabled="renamingSaving"
+                                        class="rounded bg-accent px-2 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-60"
+                                        @click="saveRename(backup.filename)"
+                                    >
+                                        {{ renamingSaving ? $t('super_admin.backups.running') : $t('super_admin.backups.rename_save') }}
+                                    </button>
+                                    <button
+                                        class="rounded bg-background px-2 py-1 text-xs font-medium text-ink-secondary hover:text-ink-primary"
+                                        @click="cancelRename"
+                                    >
+                                        {{ $t('super_admin.backups.rename_cancel') }}
+                                    </button>
+                                </div>
+
+                                <!-- Delete: confirm / cancel -->
+                                <div v-else-if="confirmingDelete === backup.filename" class="flex items-center justify-end gap-2">
                                     <span class="text-xs text-ink-secondary">{{ $t('super_admin.backups.delete_confirm') }}</span>
                                     <button
                                         class="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
@@ -120,6 +189,8 @@ function formatDate(val) {
                                         {{ $t('super_admin.backups.delete_cancel') }}
                                     </button>
                                 </div>
+
+                                <!-- Default: download / rename / delete -->
                                 <div v-else class="flex items-center justify-end gap-3">
                                     <a
                                         :href="route('super-admin.backups.download', backup.filename)"
@@ -127,6 +198,12 @@ function formatDate(val) {
                                     >
                                         {{ $t('super_admin.backups.download') }}
                                     </a>
+                                    <button
+                                        class="text-ink-secondary hover:text-ink-primary hover:underline"
+                                        @click="startRename(backup.filename)"
+                                    >
+                                        {{ $t('super_admin.backups.rename') }}
+                                    </button>
                                     <button
                                         class="text-red-500 hover:underline"
                                         @click="confirmDelete(backup.filename)"

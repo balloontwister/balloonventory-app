@@ -136,6 +136,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::get('/super-admin/backups', [BackupController::class, 'index'])->name('super-admin.backups.index');
     Route::post('/super-admin/backups', [BackupController::class, 'store'])->name('super-admin.backups.store');
     Route::get('/super-admin/backups/{filename}/download', [BackupController::class, 'download'])->name('super-admin.backups.download');
+    Route::patch('/super-admin/backups/{filename}', [BackupController::class, 'rename'])->name('super-admin.backups.rename');
     Route::delete('/super-admin/backups/{filename}', [BackupController::class, 'destroy'])->name('super-admin.backups.destroy');
 });
 

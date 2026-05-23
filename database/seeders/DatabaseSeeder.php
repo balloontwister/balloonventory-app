@@ -29,6 +29,8 @@ class DatabaseSeeder extends Seeder
             CatalogTranslationSeeder::class,
             QualatexColorSeeder::class,
             TufTexColorSeeder::class,
+            KalisanTextureSeeder::class,
+            KalisanColorSeeder::class,
         ]);
     }
 }

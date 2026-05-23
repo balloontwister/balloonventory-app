@@ -28,32 +28,28 @@ class BackupDatabase extends Command
         $filename = 'balloonventory_'.now()->format('Y-m-d_H-i-s').'.sql.gz';
         $backupPath = $backupDir.'/'.$filename;
 
-        // Write credentials to a temp file so the password never appears in
-        // the process argument list or shell history.
-        $cnfPath = tempnam(sys_get_temp_dir(), 'bv_backup_');
-        file_put_contents($cnfPath, "[mysqldump]\nuser={$username}\npassword={$password}\nhost={$host}\n");
-        chmod($cnfPath, 0600);
+        // Pass the password via MYSQL_PWD so it never appears in the process
+        // argument list or shell history, and avoids cnf-file special-char issues.
+        $process = Process::fromShellCommandline(
+            sprintf(
+                'mysqldump -u %s -h %s %s | gzip > %s',
+                escapeshellarg($username),
+                escapeshellarg($host),
+                escapeshellarg($database),
+                escapeshellarg($backupPath),
+            )
+        );
 
-        try {
-            $process = Process::fromShellCommandline(
-                sprintf(
-                    'mysqldump --defaults-extra-file=%s %s | gzip > %s',
-                    escapeshellarg($cnfPath),
-                    escapeshellarg($database),
-                    escapeshellarg($backupPath),
-                )
-            );
+        $process->setEnv(['MYSQL_PWD' => $password]);
+        $process->setTimeout(300);
+        $process->run();
 
-            $process->setTimeout(300);
-            $process->run();
+        if (! $process->isSuccessful() || ! file_exists($backupPath) || filesize($backupPath) === 0) {
+            $this->error('Backup failed: '.$process->getErrorOutput());
 
-            if (! $process->isSuccessful() || ! file_exists($backupPath)) {
-                $this->error('Backup failed: '.$process->getErrorOutput());
+            @unlink($backupPath);
 
-                return self::FAILURE;
-            }
-        } finally {
-            @unlink($cnfPath);
+            return self::FAILURE;
         }
 
         $size = round(filesize($backupPath) / 1024, 1);

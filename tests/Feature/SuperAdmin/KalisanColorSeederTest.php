@@ -4,6 +4,7 @@ namespace Tests\Feature\SuperAdmin;
 
 use App\Models\Brand;
 use App\Models\Color;
+use App\Models\ColorFamily;
 use App\Models\Texture;
 use Database\Seeders\BrandSeeder;
 use Database\Seeders\ColorFamilySeeder;
@@ -44,7 +45,7 @@ class KalisanColorSeederTest extends TestCase
     {
         $kalisan = Brand::where('name', 'Kalisan')->firstOrFail();
 
-        $this->assertSame(103, Color::where('brand_id', $kalisan->id)->count());
+        $this->assertSame(132, Color::where('brand_id', $kalisan->id)->count());
     }
 
     public function test_texture_seeder_adds_kalisan_textures(): void
@@ -60,6 +61,7 @@ class KalisanColorSeederTest extends TestCase
             'Pearl (K)',
             'Crystal (K)',
             'Mirror (K)',
+            'Aura (K)',
         ];
 
         foreach ($expected as $name) {
@@ -114,6 +116,45 @@ class KalisanColorSeederTest extends TestCase
         }
     }
 
+    public function test_aura_colors_use_aura_texture(): void
+    {
+        $kalisan = Brand::where('name', 'Kalisan')->firstOrFail();
+        $aura = Texture::where('name', 'Aura (K)')->where('brand_id', $kalisan->id)->firstOrFail();
+
+        $names = ['Aura Beige Cream', 'Aura Ice Blue', 'Aura Ice Mint', 'Aura Ivory White', 'Aura Lavender Fog', 'Aura Antique Gold'];
+
+        foreach ($names as $name) {
+            $color = Color::where('name', $name)->where('brand_id', $kalisan->id)->first();
+            $this->assertNotNull($color, "Aura color '{$name}' not found");
+            $this->assertSame($aura->id, $color->texture_id);
+        }
+    }
+
+    public function test_assortment_colors_are_seeded_in_assortment_family(): void
+    {
+        $kalisan = Brand::where('name', 'Kalisan')->firstOrFail();
+        $assortmentFamily = ColorFamily::where('name', 'Assortment')->firstOrFail();
+
+        $cases = [
+            ['name' => 'Standard Assorted',             'texture' => 'Standard (K)'],
+            ['name' => 'Standard Carnival Assortment',  'texture' => 'Standard (K)'],
+            ['name' => 'Mirror Assorted',               'texture' => 'Mirror (K)'],
+            ['name' => 'Crystal Assorted',              'texture' => 'Crystal (K)'],
+            ['name' => 'Retro Assorted',                'texture' => 'Retro (K)'],
+            ['name' => 'Macaron Pale Assorted',         'texture' => 'Macaron (K)'],
+        ];
+
+        foreach ($cases as $case) {
+            $texture = Texture::where('name', $case['texture'])->where('brand_id', $kalisan->id)->firstOrFail();
+            $color = Color::where('name', $case['name'])->where('brand_id', $kalisan->id)->first();
+
+            $this->assertNotNull($color, "Assortment color '{$case['name']}' not found");
+            $this->assertSame($assortmentFamily->id, $color->color_family_id);
+            $this->assertSame($texture->id, $color->texture_id);
+            $this->assertNull($color->color_hex);
+        }
+    }
+
     public function test_clear_transparent_has_no_hex(): void
     {
         $kalisan = Brand::where('name', 'Kalisan')->firstOrFail();
@@ -139,6 +180,6 @@ class KalisanColorSeederTest extends TestCase
 
         $this->seed(KalisanColorSeeder::class);
 
-        $this->assertSame(103, Color::where('brand_id', $kalisan->id)->count());
+        $this->assertSame(132, Color::where('brand_id', $kalisan->id)->count());
     }
 }

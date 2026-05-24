@@ -24,12 +24,6 @@ class KalisanColorSeeder extends Seeder
     public function run(): void
     {
         $kalisan = Brand::where('name', 'Kalisan')->firstOrFail();
-
-        // Skip once the table holds data — catalog data is curated by hand in production.
-        if (Color::withTrashed()->where('brand_id', $kalisan->id)->exists()) {
-            return;
-        }
-
         $latex = Material::where('name', 'Latex')->firstOrFail();
 
         $standard = $this->kalisanTexture('Standard (K)', $kalisan->id);
@@ -40,10 +34,11 @@ class KalisanColorSeeder extends Seeder
         $pearl = $this->kalisanTexture('Pearl (K)', $kalisan->id);
         $crystal = $this->kalisanTexture('Crystal (K)', $kalisan->id);
         $mirror = $this->kalisanTexture('Mirror (K)', $kalisan->id);
+        $aura = $this->kalisanTexture('Aura (K)', $kalisan->id);
 
         $families = ColorFamily::pluck('id', 'name');
 
-        $colors = $this->colorData($standard, $retro, $macaron, $opaqueSatin, $metallic, $pearl, $crystal, $mirror);
+        $colors = $this->colorData($standard, $retro, $macaron, $opaqueSatin, $metallic, $pearl, $crystal, $mirror, $aura);
 
         foreach ($colors as $data) {
             $imagePath = $this->fetchImage($data['name'], $data['image'] ?? null);
@@ -121,6 +116,7 @@ class KalisanColorSeeder extends Seeder
         Texture $pearl,
         Texture $crystal,
         Texture $mirror,
+        Texture $aura,
     ): array {
         return [
             // STANDARD — opaque pastels. PMS from PDF where listed.
@@ -162,6 +158,7 @@ class KalisanColorSeeder extends Seeder
             ['name' => 'Plum',            'texture' => $standard, 'family' => 'Purples', 'hex' => '#7A3D62', 'pms' => null,                  'sort_order' => 360, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2023/07/2353-Standard-Plum-12-inch-w-logo-1-300x300.png'],
             ['name' => 'Queen Pink',      'texture' => $standard, 'family' => 'Pinks',   'hex' => '#E6789C', 'pms' => null,                  'sort_order' => 370, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2024/02/2354-Standard-Queen-Pink-12-inch-w-logo-300x300.png'],
             ['name' => 'Periwinkle',      'texture' => $standard, 'family' => 'Blues',   'hex' => '#7C8BC4', 'pms' => null,                  'sort_order' => 380, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/02/2355-Standard-Periwinkle-12-inch-w-logo-300x300.png'],
+            ['name' => 'Transparent',     'texture' => $standard, 'family' => 'Clears',  'hex' => null,      'pms' => null,                  'sort_order' => 390, 'image' => null],
 
             // RETRO — muted vintage palette. PMS from PDF where listed.
             ['name' => 'Retro Rust Orange',   'texture' => $retro, 'family' => 'Oranges', 'hex' => '#C25B3E', 'pms' => 'PMS 7583 CP',       'sort_order' => 400, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2023/05/8001-Retro-Rust-Orange-12-18-inch-w-logo-300x300.png'],
@@ -217,10 +214,22 @@ class KalisanColorSeeder extends Seeder
             ['name' => 'Mirror Navy',        'texture' => $mirror, 'family' => 'Blues',   'hex' => '#1A2A4A', 'pms' => null, 'sort_order' => 880, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2023/05/5015-Mirror-Navy-12-18-inch-w-logo-1-300x300.png'],
             ['name' => 'Mirror Burgundy',    'texture' => $mirror, 'family' => 'Reds',    'hex' => '#6A1F30', 'pms' => null, 'sort_order' => 890, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2023/05/5016-Mirror-Burgundy-12-18-inch-w-logo-1-300x300.png'],
 
-            // METALLIC
-            ['name' => 'Metallic Gold',       'texture' => $metallic, 'family' => 'Golds',   'hex' => '#C8A951', 'pms' => null, 'sort_order' => 1050, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7002-Metallic-Gold-12-inch-w-logo-300x300.png'],
-            ['name' => 'Metallic Silver',     'texture' => $metallic, 'family' => 'Silvers', 'hex' => '#A8A9AD', 'pms' => null, 'sort_order' => 1060, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7003-Metallic-Silver-12-inch-w-logo-300x300.png'],
-            ['name' => 'Metallic Rose Gold',  'texture' => $metallic, 'family' => 'Pinks',   'hex' => '#D4A097', 'pms' => null, 'sort_order' => 1070, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7004-Metallic-Rose-Gold-12-inch-w-logo-300x300.png'],
+            // METALLIC — 3 from the website + 12 spreadsheet-only colors (11" line). Hex estimates for the latter; no images.
+            ['name' => 'Metallic Gold',           'texture' => $metallic, 'family' => 'Golds',   'hex' => '#C8A951', 'pms' => null, 'sort_order' => 1050, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7002-Metallic-Gold-12-inch-w-logo-300x300.png'],
+            ['name' => 'Metallic Silver',         'texture' => $metallic, 'family' => 'Silvers', 'hex' => '#A8A9AD', 'pms' => null, 'sort_order' => 1060, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7003-Metallic-Silver-12-inch-w-logo-300x300.png'],
+            ['name' => 'Metallic Rose Gold',      'texture' => $metallic, 'family' => 'Pinks',   'hex' => '#D4A097', 'pms' => null, 'sort_order' => 1070, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7004-Metallic-Rose-Gold-12-inch-w-logo-300x300.png'],
+            ['name' => 'Metallic Onyx Black',     'texture' => $metallic, 'family' => 'Blacks',  'hex' => '#231F20', 'pms' => null, 'sort_order' => 1080, 'image' => null],
+            ['name' => 'Metallic Red',            'texture' => $metallic, 'family' => 'Reds',    'hex' => '#C5302A', 'pms' => null, 'sort_order' => 1085, 'image' => null],
+            ['name' => 'Metallic Orange',         'texture' => $metallic, 'family' => 'Oranges', 'hex' => '#FF8038', 'pms' => null, 'sort_order' => 1086, 'image' => null],
+            ['name' => 'Metallic Yellow',         'texture' => $metallic, 'family' => 'Yellows', 'hex' => '#F9DD16', 'pms' => null, 'sort_order' => 1087, 'image' => null],
+            ['name' => 'Metallic Goldenrod',      'texture' => $metallic, 'family' => 'Yellows', 'hex' => '#FFCD00', 'pms' => null, 'sort_order' => 1088, 'image' => null],
+            ['name' => 'Metallic Lime',           'texture' => $metallic, 'family' => 'Greens',  'hex' => '#C8E400', 'pms' => null, 'sort_order' => 1089, 'image' => null],
+            ['name' => 'Metallic Emerald Green',  'texture' => $metallic, 'family' => 'Greens',  'hex' => '#009A44', 'pms' => null, 'sort_order' => 1091, 'image' => null],
+            ['name' => 'Metallic Turquoise',      'texture' => $metallic, 'family' => 'Blues',   'hex' => '#009CA6', 'pms' => null, 'sort_order' => 1092, 'image' => null],
+            ['name' => 'Metallic Sapphire Blue',  'texture' => $metallic, 'family' => 'Blues',   'hex' => '#005E8E', 'pms' => null, 'sort_order' => 1093, 'image' => null],
+            ['name' => 'Metallic Midnight Blue',  'texture' => $metallic, 'family' => 'Blues',   'hex' => '#1B3D6B', 'pms' => null, 'sort_order' => 1094, 'image' => null],
+            ['name' => 'Metallic Violet',         'texture' => $metallic, 'family' => 'Purples', 'hex' => '#6B5BC8', 'pms' => null, 'sort_order' => 1095, 'image' => null],
+            ['name' => 'Metallic Fuchsia',        'texture' => $metallic, 'family' => 'Pinks',   'hex' => '#DB3EB1', 'pms' => null, 'sort_order' => 1096, 'image' => null],
 
             // PEARL
             ['name' => 'Pearl Pink',     'texture' => $pearl, 'family' => 'Pinks',   'hex' => '#F4B8C4', 'pms' => null, 'sort_order' => 900, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2025/03/7005-Pearl-Pink-12-inch-w-logo-300x300.png'],
@@ -229,6 +238,7 @@ class KalisanColorSeeder extends Seeder
             ['name' => 'Pearl Green',    'texture' => $pearl, 'family' => 'Greens',  'hex' => '#9FCFA0', 'pms' => null, 'sort_order' => 930, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2024/10/7008-Pearl-Green-12-inch-w-logo-300x300.png'],
             ['name' => 'Pearl Salmon',   'texture' => $pearl, 'family' => 'Pinks',   'hex' => '#F4C0A8', 'pms' => null, 'sort_order' => 940, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2024/10/7009-Pearl-Salmon-12-inch-w-logo-300x300.png'],
             ['name' => 'Pearl Lilac',    'texture' => $pearl, 'family' => 'Purples', 'hex' => '#C9B8D9', 'pms' => null, 'sort_order' => 950, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2024/10/7010-Pearl-Lilac-12-inch-w-logo-300x300.png'],
+            ['name' => 'Pearl White',    'texture' => $pearl, 'family' => 'Whites',  'hex' => '#F5F0E8', 'pms' => null, 'sort_order' => 955, 'image' => null],
 
             // OPAQUE SATIN
             ['name' => 'Opaque Satin Snow White', 'texture' => $opaqueSatin, 'family' => 'Whites', 'hex' => '#F8F6F1', 'pms' => null, 'sort_order' => 1090, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2024/10/7050-Opaque-Satin-Snow-White-12-18-inch-w-logo-2-300x300.png'],
@@ -241,6 +251,26 @@ class KalisanColorSeeder extends Seeder
             ['name' => 'Crystal Turquoise',  'texture' => $crystal, 'family' => 'Blues',   'hex' => '#009A8B', 'pms' => null, 'sort_order' => 1010, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2021/01/yesil-300x300.png'],
             ['name' => 'Crystal Blue',       'texture' => $crystal, 'family' => 'Blues',   'hex' => '#1E78C8', 'pms' => null, 'sort_order' => 1020, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2021/01/mavi-300x300.png'],
             ['name' => 'Crystal Violet',     'texture' => $crystal, 'family' => 'Purples', 'hex' => '#5E2D86', 'pms' => null, 'sort_order' => 1030, 'image' => 'https://en.kalisan.com.tr/wp-content/uploads/2021/01/mor-300x300.png'],
+
+            // AURA — Kalisan's iridescent satin line. Hex estimates; images deferred.
+            ['name' => 'Aura Beige Cream',   'texture' => $aura, 'family' => 'Whites',  'hex' => '#E8D8C0', 'pms' => null, 'sort_order' => 1100, 'image' => null],
+            ['name' => 'Aura Ice Blue',      'texture' => $aura, 'family' => 'Blues',   'hex' => '#C8DCEA', 'pms' => null, 'sort_order' => 1110, 'image' => null],
+            ['name' => 'Aura Ice Mint',      'texture' => $aura, 'family' => 'Greens',  'hex' => '#C8E4D2', 'pms' => null, 'sort_order' => 1120, 'image' => null],
+            ['name' => 'Aura Ivory White',   'texture' => $aura, 'family' => 'Whites',  'hex' => '#F2EBDC', 'pms' => null, 'sort_order' => 1130, 'image' => null],
+            ['name' => 'Aura Lavender Fog',  'texture' => $aura, 'family' => 'Purples', 'hex' => '#CFC4D8', 'pms' => null, 'sort_order' => 1140, 'image' => null],
+            ['name' => 'Aura Antique Gold',  'texture' => $aura, 'family' => 'Golds',   'hex' => '#C8A878', 'pms' => null, 'sort_order' => 1150, 'image' => null],
+
+            // ASSORTMENTS — one Color per named assortment, pinned to the matching texture.
+            // hex = null (no single representative color); display falls back to the family swatch.
+            ['name' => 'Standard Assorted',             'texture' => $standard, 'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1200, 'image' => null],
+            ['name' => 'Standard Carnival Assortment',  'texture' => $standard, 'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1210, 'image' => null],
+            ['name' => 'Standard Rainbow Assortment',   'texture' => $standard, 'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1220, 'image' => null],
+            ['name' => 'Standard Character Assortment', 'texture' => $standard, 'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1230, 'image' => null],
+            ['name' => 'Macaron Assorted',              'texture' => $macaron,  'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1240, 'image' => null],
+            ['name' => 'Macaron Pale Assorted',         'texture' => $macaron,  'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1250, 'image' => null],
+            ['name' => 'Mirror Assorted',               'texture' => $mirror,   'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1260, 'image' => null],
+            ['name' => 'Crystal Assorted',              'texture' => $crystal,  'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1270, 'image' => null],
+            ['name' => 'Retro Assorted',                'texture' => $retro,    'family' => 'Assortment', 'hex' => null, 'pms' => null, 'sort_order' => 1280, 'image' => null],
         ];
     }
 }

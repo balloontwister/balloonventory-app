@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             QualatexColorSeeder::class,
             TufTexColorSeeder::class,
             KalisanTextureSeeder::class,
+            KalisanBalloonSizeSeeder::class,
             KalisanColorSeeder::class,
         ]);
     }

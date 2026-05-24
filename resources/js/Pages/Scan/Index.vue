@@ -74,7 +74,9 @@ function closeCamera() {
 }
 
 function onCameraDetected(upc) {
-    closeCamera();
+    // CameraScanner now owns the close timing — it shows a "Got it!"
+    // confirmation overlay for ~700ms before emitting `close`. We just kick
+    // off the lookup in parallel here.
     processScan(upc);
 }
 
@@ -442,12 +444,16 @@ const contextHintKey = computed(() => {
             </div>
         </div>
 
-        <!-- ── Camera scanner modal ───────────────────────────────────────────── -->
-        <Modal :show="showCamera" max-width="md" @close="closeCamera">
+        <!-- ── Camera scanner modal ─────────────────────────────────────────────
+             :closeable="false" — backdrop tap and Escape do NOT dismiss this
+             modal. iOS users frequently tap the screen to focus the camera,
+             which previously hit the backdrop and killed the modal. Closing
+             is owned by CameraScanner's X button and its post-detection
+             auto-close. -->
+        <Modal :show="showCamera" max-width="md" :closeable="false">
             <div class="p-2">
                 <CameraScanner
                     @detected="onCameraDetected"
-                    @error="closeCamera"
                     @close="closeCamera"
                 />
             </div>

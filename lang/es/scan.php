@@ -42,6 +42,9 @@ return [
     'camera_permission_denied' => 'Se denegó el acceso a la cámara. Habilítalo en la configuración del navegador e inténtalo de nuevo.',
     'camera_not_found' => 'No se encontró ninguna cámara en este dispositivo.',
     'camera_in_use' => 'La cámara está en uso por otra aplicación. Ciérrala e inténtalo de nuevo.',
+    'camera_hint' => 'Centra el código en el recuadro',
+    'camera_retry' => 'Reintentar',
+    'captured' => '¡Listo!',
 
     // Manual entry
     'manual_entry_title' => 'Escribir un código',

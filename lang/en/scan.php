@@ -42,6 +42,9 @@ return [
     'camera_permission_denied' => 'Camera access was denied. Enable it in your browser settings and try again.',
     'camera_not_found' => 'No camera was found on this device.',
     'camera_in_use' => 'The camera is in use by another app. Close it and try again.',
+    'camera_hint' => 'Center the barcode in the box',
+    'camera_retry' => 'Retry',
+    'captured' => 'Got it!',
 
     // Manual entry
     'manual_entry_title' => 'Type a barcode',

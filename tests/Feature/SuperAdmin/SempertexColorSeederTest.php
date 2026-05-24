@@ -44,7 +44,7 @@ class SempertexColorSeederTest extends TestCase
     {
         $sempertex = Brand::where('name', 'Sempertex')->firstOrFail();
 
-        $this->assertSame(92, Color::where('brand_id', $sempertex->id)->count());
+        $this->assertSame(102, Color::where('brand_id', $sempertex->id)->count());
     }
 
     public function test_texture_seeder_adds_sempertex_textures(): void
@@ -154,6 +154,6 @@ class SempertexColorSeederTest extends TestCase
 
         $this->seed(SempertexColorSeeder::class);
 
-        $this->assertSame(92, Color::where('brand_id', $sempertex->id)->count());
+        $this->assertSame(102, Color::where('brand_id', $sempertex->id)->count());
     }
 }

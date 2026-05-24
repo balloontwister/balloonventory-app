@@ -62,8 +62,8 @@
     "hex": "#E4002B",
     "sort_order": 60,
     "cluster_image_filename": "FashionRed_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R12-Inf-Happy-Mothers-Day-015.jpg?v=1643309131",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-infinity-happy-mothers-day-fashion-rojo"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Rojo-Red_015_e474142d-db90-42e8-a19c-5279fbd84799.jpg?v=1756735593",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-rojo"
   },
   {
     "name": "Deluxe Imperial Red",
@@ -161,8 +161,8 @@
     "hex": "#97D700",
     "sort_order": 150,
     "cluster_image_filename": "DeluxeKeyLime_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R12-Inf-Polka-Dots-031-1.jpg?v=1643309451",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-infinity-polka-blanco-fashion-verde-lima"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12VerdeLima-LimaGreen_031.jpg?v=1756736236",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-verde-lima"
   },
   {
     "name": "Fashion Forest Green",
@@ -227,8 +227,8 @@
     "hex": "#002395",
     "sort_order": 210,
     "cluster_image_filename": "FashionRoyalBlue_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R12-Inf-Polka-Dots-041.jpg?v=1643309413",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-infinity-polka-blanco-fashion-azul-rey"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12AzulRey-RoyalBlue_041.jpg?v=1756736716",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-azul-rey"
   },
   {
     "name": "Deluxe Periwinkle Blue",
@@ -304,8 +304,8 @@
     "hex": "#FE5000",
     "sort_order": 280,
     "cluster_image_filename": "FashionOrange_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R12-Inf-Halloween-Noche-061.jpg?v=1643308964",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-infinity-halloween-noche-fashion-naranja"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Naranja-Orange_061_8b373386-b258-4c6e-908c-465f9dfa24bc.jpg?v=1756737442",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-naranja"
   },
   {
     "name": "Deluxe Sunset Orange",
@@ -381,8 +381,8 @@
     "hex": "#231F20",
     "sort_order": 350,
     "cluster_image_filename": "DeluxeBlack_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12InfHappyBirthdayFluorescentes-080.jpg?v=1740496819",
-    "shopify_handle": "globo-latex-redondo-infinity-happy-birthday-fluorescente-fashion-negro"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Negro-Black_080_cae571e1-2ab4-4cc7-bcce-52cb0c423809.jpg?v=1756738321",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-negro"
   },
   {
     "name": "Deluxe Urban Grey",
@@ -425,8 +425,8 @@
     "hex": "#FFFFFF",
     "sort_order": 390,
     "cluster_image_filename": "FashionWhite_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R12-2S-Sandia-005.jpg?v=1643307574",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-2-caras-sandia-fashion-blanco"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Blanco-White_005.jpg?v=1756734675",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-blanco"
   },
   {
     "name": "Crystal Clear",
@@ -436,8 +436,118 @@
     "hex": null,
     "sort_order": 400,
     "cluster_image_filename": "CrystalClear_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R12-Inf-Corazones-Tres-Tintas-390.jpg?v=1643308335",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-infinity-corazones-3-tintas-fashion-transparente"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12CristalTransparente-CrystalClear_390.jpg?v=1756738659",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-fashion-transparente"
+  },
+  {
+    "name": "Crystal Yellow",
+    "texture": "Crystal (S)",
+    "family": "Yellows",
+    "pms": null,
+    "hex": "#F4E040",
+    "sort_order": 420,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12_320-Amarillo.jpg?v=1643307641",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-amarillo"
+  },
+  {
+    "name": "Crystal Red",
+    "texture": "Crystal (S)",
+    "family": "Reds",
+    "pms": null,
+    "hex": "#C8102E",
+    "sort_order": 425,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12_315-Rojo.jpg?v=1643307709",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-rojo"
+  },
+  {
+    "name": "Crystal Fuchsia",
+    "texture": "Crystal (S)",
+    "family": "Pinks",
+    "pms": null,
+    "hex": "#D44390",
+    "sort_order": 430,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12_312-Fucsia.jpg?v=1643307653",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-fucsia"
+  },
+  {
+    "name": "Crystal Green",
+    "texture": "Crystal (S)",
+    "family": "Greens",
+    "pms": null,
+    "hex": "#009A44",
+    "sort_order": 435,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12_330-Verde.jpg?v=1643307720",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-verde"
+  },
+  {
+    "name": "Crystal Blue",
+    "texture": "Crystal (S)",
+    "family": "Blues",
+    "pms": null,
+    "hex": "#1E78C8",
+    "sort_order": 440,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12_340-Azul.jpg?v=1643307647",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-azul"
+  },
+  {
+    "name": "Crystal Pastel Yellow",
+    "texture": "Crystal (S)",
+    "family": "Yellows",
+    "pms": null,
+    "hex": "#F9EE9C",
+    "sort_order": 450,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12-C-PASTEL-AMARILLO.jpg?v=1701115574",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-pastel-amarillo"
+  },
+  {
+    "name": "Crystal Pastel Pink",
+    "texture": "Crystal (S)",
+    "family": "Pinks",
+    "pms": null,
+    "hex": "#F5C8D2",
+    "sort_order": 455,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12-Crystal_Pastel-309.jpg?v=1763645318",
+    "shopify_handle": "globo-latex-redondo-cristal-pastel-rosado"
+  },
+  {
+    "name": "Crystal Pastel Lilac",
+    "texture": "Crystal (S)",
+    "family": "Purples",
+    "pms": null,
+    "hex": "#D7BEDF",
+    "sort_order": 460,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/350.png?v=1643307685",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-pastel-lila"
+  },
+  {
+    "name": "Crystal Pastel Green",
+    "texture": "Crystal (S)",
+    "family": "Greens",
+    "pms": null,
+    "hex": "#B5D8B4",
+    "sort_order": 465,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12-C-PASTEL-VERDE.jpg?v=1643307703",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-cristal-pastel-verde"
+  },
+  {
+    "name": "Crystal Pastel Blue",
+    "texture": "Crystal (S)",
+    "family": "Blues",
+    "pms": null,
+    "hex": "#B5D8E8",
+    "sort_order": 470,
+    "cluster_image_filename": null,
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/R-12-C-PASTEL-AZUL_fa345660-95f4-4e86-a4d0-6db85993b253.jpg?v=1672436505",
+    "shopify_handle": "globo-latex-redondo-cristal-pastel-azul"
   },
   {
     "name": "Deluxe Purple Orchid",
@@ -524,8 +634,8 @@
     "hex": "#F4C2C2",
     "sort_order": 600,
     "cluster_image_filename": "PastelMattePink_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12-Imp-ItsaGirl.jpg?v=1747952584",
-    "shopify_handle": "globo-latex-redondo-2-caras-its-a-girl-pastel-mate-rosado"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Rosado-Pink_609_9e1146f9-0a40-419d-80cc-d8ad213811e9.jpg?v=1756754625",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-pastel-mate-rosado"
   },
   {
     "name": "Pastel Matte Yellow",
@@ -557,8 +667,8 @@
     "hex": "#BCD4DE",
     "sort_order": 630,
     "cluster_image_filename": "PastelMatteBlue_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12-Imp-ItsaBoy.jpg?v=1747952148",
-    "shopify_handle": "globo-latex-redondo-2-caras-its-a-boy-pastel-mate-azul"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Azul-Blue_640.jpg?v=1756754628",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-pastel-mate-azul"
   },
   {
     "name": "Pastel Matte Lilac",
@@ -623,8 +733,8 @@
     "hex": "#E8C9C0",
     "sort_order": 710,
     "cluster_image_filename": "PastelDuskRose_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/babyrosa_e8f85cd4-d14e-47cf-bd34-fccd0792a297.jpg?v=1682716972",
-    "shopify_handle": "globo-latex-redondo-infinity-baby-pastel-dusk-rosa"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Rosa-Rose_110.jpg?v=1756753499",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-pastel-dusk-rosa"
   },
   {
     "name": "Pastel Dusk Green Tea",
@@ -645,8 +755,8 @@
     "hex": "#A4BBCC",
     "sort_order": 730,
     "cluster_image_filename": "PastelDuskBlue_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12InfBABY140.jpg?v=1706544729",
-    "shopify_handle": "globo-latex-redondo-infinity-baby-pastel-dusk-azul"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Azul-Blue_140.jpg?v=1756753500",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-pastel-dusk-azul"
   },
   {
     "name": "Pastel Dusk Lavender",
@@ -799,8 +909,8 @@
     "hex": "#C8A951",
     "sort_order": 980,
     "cluster_image_filename": "ReflexGold_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/Globo-R12-Mensajes-Grado-Dorado_WEB.jpg?v=1643307338",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-2-caras-mensajes-grado-reflex-dorado"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Dorado-Gold_970.jpg?v=1756757460",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-reflex-dorado"
   },
   {
     "name": "Reflex Champagne",
@@ -821,8 +931,8 @@
     "hex": "#A8A9AD",
     "sort_order": 1000,
     "cluster_image_filename": "ReflexSilver_Latex_Clusters.jpg",
-    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/products/Globo-R12-Mensajes-Grado-Plata_WEB.jpg?v=1643307343",
-    "shopify_handle": "globo-para-fiesta-latex-redondo-2-caras-mensajes-grado-reflex-plata"
+    "single_image_url": "https://cdn.shopify.com/s/files/1/0593/1981/2289/files/R12Plata-Silver_981.jpg?v=1756757458",
+    "shopify_handle": "globo-para-fiesta-latex-redondo-reflex-plata"
   },
   {
     "name": "Reflex Galaxy Blue",

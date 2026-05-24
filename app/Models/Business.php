@@ -46,11 +46,6 @@ class Business extends Model
                 $model->plan = BusinessPlan::Solo;
             }
         });
-
-        // Seed the Favorites list and prevent multiple Favorites rows.
-        static::created(function (self $model) {
-            // Favorites list is seeded via the BusinessObserver to keep this clean.
-        });
     }
 
     public function memberships(): HasMany
@@ -66,6 +61,26 @@ class Business extends Model
     public function favoritesList(): ?BalloonList
     {
         return $this->lists()->where('is_business_favorites', true)->first();
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
+
+    public function defaultLocation(): ?Location
+    {
+        return $this->locations()->where('is_default', true)->first();
+    }
+
+    public function bins(): HasMany
+    {
+        return $this->hasMany(Bin::class);
+    }
+
+    public function defaultBin(): ?Bin
+    {
+        return $this->bins()->where('is_default', true)->first();
     }
 
     public function stockLevels(): HasMany

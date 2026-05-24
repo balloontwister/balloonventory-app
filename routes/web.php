@@ -69,6 +69,13 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     })->name('dashboard');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/skus/{sku}', [InventoryController::class, 'show'])->name('inventory.sku.show');
+    Route::post('/inventory/skus', [InventoryController::class, 'store'])->name('inventory.sku.store');
+    Route::delete('/inventory/skus/{sku}', [InventoryController::class, 'destroy'])->name('inventory.sku.destroy');
+    Route::patch('/inventory/skus/{sku}/override', [InventoryController::class, 'updateOverride'])->name('inventory.override.update');
+    Route::post('/inventory/skus/{sku}/lists', [InventoryController::class, 'addToList'])->name('inventory.sku.add-to-list');
+    Route::post('/favorites/{sku}', [InventoryController::class, 'addFavorite'])->name('favorites.add');
+    Route::post('/favorites/{sku}/remove', [InventoryController::class, 'removeFavorite'])->name('favorites.remove');
     Route::get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
     Route::get('/reorder', [ReorderController::class, 'index'])->name('reorder.index');

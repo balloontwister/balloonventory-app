@@ -40,6 +40,7 @@ class Sku extends Model
         'discontinued_at',
         'product_version',
         'owned_by_business_id',
+        'url',
     ];
 
     protected $casts = [

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BalloonList;
+use App\Models\Bin;
 use App\Models\Business;
+use App\Models\Location;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
@@ -50,6 +52,20 @@ class BusinessController extends Controller
             'name' => 'Favorites',
             'is_business_favorites' => true,
             'created_by_user_id' => $request->user()->id,
+        ]);
+
+        // Seed the Default location and Default bin for inventory storage.
+        $location = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $business->id,
+            'name' => 'Default',
+            'is_default' => true,
+        ]);
+
+        Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $business->id,
+            'location_id' => $location->id,
+            'name' => 'Default',
+            'is_default' => true,
         ]);
 
         $request->session()->put('current_business_id', $business->id);

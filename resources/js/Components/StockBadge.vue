@@ -2,17 +2,23 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-    count: { type: Number, required: true },
+    fullBags: { type: Number, required: true },
+    openBags: { type: Number, default: 0 },
     lowThreshold: { type: Number, default: 3 },
 });
 
+const total = computed(() => props.fullBags + props.openBags);
+
 const state = computed(() => {
-    if (props.count <= 0) return 'out';
-    if (props.count <= props.lowThreshold) return 'low';
+    if (total.value <= 0) return 'out';
+    if (total.value <= props.lowThreshold) return 'low';
     return 'in';
 });
 
-const label = computed(() => `${props.count} bags`);
+const label = computed(() => {
+    if (props.openBags > 0) return `${props.fullBags} + ${props.openBags} open`;
+    return `${props.fullBags} bags`;
+});
 </script>
 
 <template>

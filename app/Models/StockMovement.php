@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StockDirection;
 use App\Models\Concerns\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,9 +23,11 @@ class StockMovement extends Model
     protected $fillable = [
         'business_id',
         'sku_id',
+        'bin_id',
         'user_id',
         'direction',
-        'quantity_change',
+        'full_bags_change',
+        'open_bags_change',
         'upc_scanned',
         'job_id',
         'notes',
@@ -34,7 +37,9 @@ class StockMovement extends Model
     protected function casts(): array
     {
         return [
-            'quantity_change' => 'decimal:2',
+            'direction' => StockDirection::class,
+            'full_bags_change' => 'integer',
+            'open_bags_change' => 'integer',
             'created_at' => 'datetime',
         ];
     }
@@ -61,6 +66,11 @@ class StockMovement extends Model
     public function sku(): BelongsTo
     {
         return $this->belongsTo(Sku::class);
+    }
+
+    public function bin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class);
     }
 
     public function user(): BelongsTo

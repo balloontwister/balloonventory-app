@@ -58,6 +58,8 @@ UPDATE stock_level SET quantity = quantity + $3 WHERE sku_id = $2;
 
 Tenant-scoped (every row belongs to exactly one business; every query MUST filter by `business_id`):
 
+- `location`
+- `bin`
 - `business_sku_override`
 - `stock_level`
 - `stock_movement`
@@ -331,6 +333,7 @@ A balloon SKU. The hybrid catalog lives here. A row is either **shared** (visibl
 - `is_active` (boolean, default true) — soft toggle for SKU visibility in catalogs
 - `discontinued_at` (timestamp, nullable) — when the manufacturer discontinued this SKU
 - `product_version` (text, nullable) — version/revision of the product
+- `url` (text, nullable) — purchase or product URL; primarily for private SKUs (e.g. link to supplier or Amazon listing)
 - `owned_by_business_id` (uuid, nullable, fk → business.id) — `NULL` means shared catalog. Set means private to that business.
 - `created_at`, `updated_at`, `deleted_at`
 
@@ -451,6 +454,46 @@ Self-referential many-to-many linking different SKU rows that represent the same
 
 Both directions are stored. The application layer prevents self-referencing rows (`sku_id = identical_sku_id`). When a SKU is deleted, all its identical_skus pivot rows are cascade-deleted.
 
+### `location`
+
+A named physical space within a business (e.g. Studio, Warehouse, Van). The parent level in the two-level storage hierarchy. Every business is auto-seeded with one Default location at registration.
+
+- `id` (uuid, pk)
+- `business_id` (uuid, NOT NULL, fk → business.id, idx)
+- `name` (text) — e.g. `Studio`, `Warehouse`, `Van`
+- `description` (text, nullable) — free-text description of the space
+- `is_default` (boolean, default false, idx) — exactly one `true` per business; auto-created at registration; cannot be deleted
+- `sort_order` (integer, default 0)
+- `created_at`, `updated_at`, `deleted_at`
+
+App-layer rule: one active `is_default = true` per business. The `Location` model's `deleting` hook throws a `RuntimeException` if `is_default = true`.
+
+### `bin`
+
+A physical storage container within a location (e.g. Bin #9, a plastic box on Studio Rack 2). The child level in the two-level storage hierarchy. Every business is auto-seeded with one Default bin (in the Default location) at registration.
+
+- `id` (uuid, pk)
+- `business_id` (uuid, NOT NULL, fk → business.id, idx)
+- `location_id` (uuid, NOT NULL, fk → location.id, idx) — the room/space this bin lives in
+- `number` (unsigned smallint, nullable) — numeric reference printed on the label, e.g. `9`
+- `name` (text) — human label, e.g. `Bin #9` or user-chosen
+- `description` (text, nullable) — physical position, e.g. `Studio Rack 2, Row 3`
+- `scan_code` (text, nullable, unique platform-wide) — internal code in format `BIN-{8-char token}`, auto-generated on creation; used to print a QR label for the bin. When scanned from the Scan page, switches into bin-contents mode showing all SKUs in that bin (UI deferred — field is ready).
+- `is_default` (boolean, default false, idx) — exactly one `true` per business; cannot be deleted
+- `sort_order` (integer, default 0)
+- `created_at`, `updated_at`, `deleted_at`
+
+The Default bin is used by every business without location awareness. The UI suppresses bin/location controls entirely when a business has only one bin. Creating a second bin reveals the bin UI without changing any existing workflow.
+
+**Printed label format:**
+```
+Bin #9
+Studio Rack 2, Row 3
+[QR code encoding scan_code]
+```
+
+**Deferred:** Scan-page bin-contents view (handler for `BIN-{token}` codes on the Scan page). The `scan_code` field and generation are live; the Scan page handler is a future sprint.
+
 ### `business_sku_override`
 
 A business's per-SKU customization layer over a shared catalog SKU. Only meaningful for shared SKUs (`sku.owned_by_business_id IS NULL`). For private SKUs, edits go directly on the `sku` row since the business owns it.
@@ -460,23 +503,28 @@ A business's per-SKU customization layer over a shared catalog SKU. Only meaning
 - `sku_id` (uuid, fk → sku.id, idx)
 - `custom_name` (text, nullable) — `NULL` means use catalog name
 - `custom_color_hex` (text, nullable) — `NULL` means use catalog hex
-- `reorder_threshold` (decimal, nullable) — `NULL` means no low-stock alert
 - `notes` (text, nullable) — free-text notes for this business's users
-- `is_hidden` (boolean, default false) — business doesn't use this SKU; hide from search
 - `created_at`, `updated_at`, `deleted_at`
 - `unique(business_id, sku_id, deleted_at)`
 
+Removed columns: `reorder_threshold` (moved to Favorites `list_item.planned_quantity`) and `is_hidden` (superseded by soft-deleting the `stock_level` row via "Remove from Inventory").
+
 ### `stock_level`
 
-Aggregate stock count per business per SKU. One row per (business, SKU) pair. No per-bag instances.
+Aggregate stock count per business per SKU per bin. One row per (business, SKU, bin) combination.
 
 - `id` (uuid, pk)
 - `business_id` (uuid, fk → business.id, idx)
 - `sku_id` (uuid, fk → sku.id, idx)
-- `quantity` (decimal, default 0) — number of bags. Decimal supports partial bags (e.g. 12.4).
+- `bin_id` (uuid, NOT NULL, fk → bin.id, idx) — which bin holds this stock; every business always has a Default bin
+- `full_bags` (integer, default 0) — count of sealed/complete bags
+- `open_bags` (integer, default 0) — count of partially-used bags
 - `last_movement_at` (timestamp, nullable) — denormalized from latest stock_movement for fast sort
-- `created_at`, `updated_at` (no `deleted_at` — quantity 0 is the empty state)
-- `unique(business_id, sku_id)`
+- `created_at`, `updated_at`, `deleted_at`
+
+App-layer uniqueness: one active row per `(business_id, sku_id, bin_id)`. Soft deletes: "Remove from Inventory" soft-deletes this row and writes a `stock_movement` with `direction = removed`. Re-adding the SKU creates a fresh row; all prior movement history remains visible via `(business_id, sku_id)` queries on `stock_movement`.
+
+Most businesses will have all stock in the Default bin, so most queries of the form `WHERE business_id = ? AND sku_id = ?` will naturally return one row. Multi-bin users query `WHERE business_id = ? AND sku_id = ?` across multiple rows and sum or display per-bin.
 
 ### `stock_movement`
 
@@ -485,11 +533,13 @@ The audit log. Every Check In and Check Out writes one row. Immutable: no update
 - `id` (uuid, pk)
 - `business_id` (uuid, fk → business.id, idx)
 - `sku_id` (uuid, fk → sku.id, idx)
-- `user_id` (uuid, fk → user.id, idx) — who performed the scan
-- `direction` (enum: `in`, `out`)
-- `quantity_change` (decimal, positive) — always positive; direction tells you sign
-- `upc_scanned` (text, nullable) — the raw UPC if entered via scanner; null if manual count adjustment
-- `job_id` (uuid, nullable, fk → job.id, idx) — set when this Check Out is associated with a planned job; informational only, no reconciliation
+- `bin_id` (uuid, nullable, fk → bin.id, idx) — which bin was affected; nullable so pre-bin-era rows remain valid
+- `user_id` (uuid, fk → user.id, idx) — who performed the action
+- `direction` (enum: `in`, `out`, `removed`, `restored`, `adjusted`) — `removed` = SKU soft-deleted from inventory; `restored` = re-added; `adjusted` = future manual correction
+- `full_bags_change` (integer, default 0) — always positive; direction gives sign
+- `open_bags_change` (integer, default 0) — always positive; direction gives sign
+- `upc_scanned` (text, nullable) — the raw UPC if entered via scanner; null if manual
+- `job_id` (uuid, nullable, fk → job.id, idx) — set when this Check Out is associated with a planned job; informational only
 - `notes` (text, nullable)
 - `created_at` (no `updated_at`, no `deleted_at` — append-only)
 - `idx(business_id, sku_id, created_at)` for fast per-SKU history reads
@@ -552,7 +602,7 @@ A single SKU on a list with optional planned quantity and a manual sort order.
 - `id` (uuid, pk)
 - `list_id` (uuid, fk → list.id, idx)
 - `sku_id` (uuid, fk → sku.id, idx)
-- `planned_quantity` (decimal, nullable) — Amazon-wishlist style; null means "want this on the list, no specific count"
+- `planned_quantity` (decimal, nullable) — for custom Lists: planned bags for a job or event. For the Favorites list specifically: the minimum stock threshold (reorder floor). `NULL` means "we always keep this, no specific floor." When `stock_level.full_bags < planned_quantity` for a Favorites entry, the SKU appears on the Reorder page.
 - `sort_order` (integer, default 0) — for manual drag-reorder; ties broken by `created_at` ascending
 - `notes` (text, nullable)
 - `created_at`, `updated_at`, `deleted_at`
@@ -679,7 +729,9 @@ Creating a reply auto-archives the parent ticket (`archived_at = now()`).
 ```
 user ──< membership >── business
                           │
-                          ├──< stock_level >── sku ──> brand ──< brand_gs1_prefix
+                          ├──< location ──< bin
+                          │
+                          ├──< stock_level (business_id, sku_id, bin_id) >── sku ──> brand ──< brand_gs1_prefix
                           │                    │   ──> balloon_size ──> size (Size Family)
                           │                    │   │               ──> brand
                           │                    │   │               ──> material

@@ -51,4 +51,11 @@ return [
     'auth' => [
         'verification_code_resent' => 'A new code has been sent.',
     ],
+
+    'inventory' => [
+        'sku_added' => 'Added to your inventory.',
+        'sku_removed' => 'Removed from inventory.',
+        'override_saved' => 'Changes saved.',
+        'added_to_list' => 'Added to ":list".',
+    ],
 ];

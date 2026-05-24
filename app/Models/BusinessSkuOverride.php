@@ -22,18 +22,8 @@ class BusinessSkuOverride extends Model
         'sku_id',
         'custom_name',
         'custom_color_hex',
-        'reorder_threshold',
         'notes',
-        'is_hidden',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'reorder_threshold' => 'decimal:2',
-            'is_hidden' => 'boolean',
-        ];
-    }
 
     protected static function boot(): void
     {

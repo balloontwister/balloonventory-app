@@ -6,10 +6,11 @@ use App\Models\Concerns\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class StockLevel extends Model
+class Location extends Model
 {
     use BelongsToBusiness, HasFactory, SoftDeletes;
 
@@ -19,19 +20,17 @@ class StockLevel extends Model
 
     protected $fillable = [
         'business_id',
-        'sku_id',
-        'bin_id',
-        'full_bags',
-        'open_bags',
-        'last_movement_at',
+        'name',
+        'description',
+        'is_default',
+        'sort_order',
     ];
 
     protected function casts(): array
     {
         return [
-            'full_bags' => 'integer',
-            'open_bags' => 'integer',
-            'last_movement_at' => 'datetime',
+            'is_default' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -44,6 +43,12 @@ class StockLevel extends Model
                 $model->id = (string) Str::uuid7();
             }
         });
+
+        static::deleting(function (self $model) {
+            if ($model->is_default) {
+                throw new \RuntimeException('The Default location cannot be deleted.');
+            }
+        });
     }
 
     public function business(): BelongsTo
@@ -51,13 +56,8 @@ class StockLevel extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function sku(): BelongsTo
+    public function bins(): HasMany
     {
-        return $this->belongsTo(Sku::class);
-    }
-
-    public function bin(): BelongsTo
-    {
-        return $this->belongsTo(Bin::class);
+        return $this->hasMany(Bin::class);
     }
 }

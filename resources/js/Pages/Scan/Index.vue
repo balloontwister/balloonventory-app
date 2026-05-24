@@ -97,10 +97,16 @@ function openManualEntry() {
     scanFieldRef.value?.pause();
     showManualEntry.value = true;
 
-    // Focus the input as soon as it's in the DOM. iOS sometimes needs this
-    // to bring up the on-screen keyboard for inputs inside a <dialog>.
+    // Two-stage focus: nextTick handles most browsers; the timeout handles
+    // cases where the Modal's open animation (Vue Transition, 200ms) or the
+    // <dialog> showModal() activation steals focus from a focus() call made
+    // too early. Re-focusing inside a short timeout is a no-op on browsers
+    // that already focused correctly.
     nextTick(() => {
         manualInputRef.value?.focus();
+        setTimeout(() => {
+            manualInputRef.value?.focus();
+        }, 250);
     });
 }
 
@@ -518,7 +524,7 @@ const contextHintKey = computed(() => {
                         <input
                             id="manual-upc-input"
                             ref="manualInputRef"
-                            v-model="manualUpc"
+                            :value="manualUpc"
                             type="text"
                             inputmode="numeric"
                             enterkeyhint="done"
@@ -528,7 +534,7 @@ const contextHintKey = computed(() => {
                             spellcheck="false"
                             class="h-14 w-full rounded-md border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-wider text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                             placeholder="012345678901"
-                            @keydown.stop
+                            @input="manualUpc = $event.target.value"
                             @keydown.enter.prevent="submitManualEntry"
                         />
                     </div>

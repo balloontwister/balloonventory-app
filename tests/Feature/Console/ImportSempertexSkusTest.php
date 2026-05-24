@@ -66,18 +66,18 @@ class ImportSempertexSkusTest extends TestCase
     {
         return [
             // Same physical balloon in two pack sizes — should link via identical_skus.
-            ['warehouse_sku' => '20000001', 'raw_name' => 'GLOBO REDONDO FASHION ROJO',     'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',         'packaging' => 'Loose', 'count_per_bag' => 12],
-            ['warehouse_sku' => '20000002', 'raw_name' => 'GLOBO REDONDO FASHION ROJO',     'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',         'packaging' => 'Loose', 'count_per_bag' => 50],
+            ['warehouse_sku' => '20000001', 'raw_name' => 'R-12 Fashion Red - 12CT',          'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',         'packaging' => 'Loose', 'count_per_bag' => 12],
+            ['warehouse_sku' => '20000002', 'raw_name' => 'R-12 Fashion Red - 50CT',          'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',         'packaging' => 'Loose', 'count_per_bag' => 50],
             // Crystal jewel-tone (added in PR #42)
-            ['warehouse_sku' => '20000003', 'raw_name' => 'GLOBO REDONDO CRISTAL ROJO',     'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Crystal (S)', 'color_resolved' => 'Crystal Red',         'packaging' => 'Loose', 'count_per_bag' => 50],
+            ['warehouse_sku' => '20000003', 'raw_name' => 'R-12 Crystal Red - 50CT',          'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Crystal (S)', 'color_resolved' => 'Crystal Red',         'packaging' => 'Loose', 'count_per_bag' => 50],
             // Pastel Dusk multi-word texture
-            ['warehouse_sku' => '20000004', 'raw_name' => 'GLOBO REDONDO PASTEL DUSK AZUL', 'shape_label' => 'Round', 'size_resolved' => 'R-5',  'texture_resolved' => 'Pastel Dusk (S)', 'color_resolved' => 'Pastel Dusk Blue', 'packaging' => 'Loose', 'count_per_bag' => 100],
+            ['warehouse_sku' => '20000004', 'raw_name' => 'R-5 Pastel Dusk Blue - 100CT',     'shape_label' => 'Round', 'size_resolved' => 'R-5',  'texture_resolved' => 'Pastel Dusk (S)', 'color_resolved' => 'Pastel Dusk Blue', 'packaging' => 'Loose', 'count_per_bag' => 100],
             // Satin (Sempertex Colombia line added with the SKU import)
-            ['warehouse_sku' => '20000005', 'raw_name' => 'GLOBO LINK-O-LOON® SATIN PERLA', 'shape_label' => 'Link',  'size_resolved' => 'LOL-12', 'texture_resolved' => 'Satin (S)', 'color_resolved' => 'Satin Pearl',         'packaging' => 'Loose', 'count_per_bag' => 20],
+            ['warehouse_sku' => '20000005', 'raw_name' => 'LOL-12 Satin Pearl - 20CT',        'shape_label' => 'Link',  'size_resolved' => 'LOL-12', 'texture_resolved' => 'Satin (S)', 'color_resolved' => 'Satin Pearl',         'packaging' => 'Loose', 'count_per_bag' => 20],
             // Heart shape (C-12)
-            ['warehouse_sku' => '20000006', 'raw_name' => 'GLOBO CORAZON FASHION ROJO',    'shape_label' => 'Heart', 'size_resolved' => 'C-12', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',         'packaging' => 'Loose', 'count_per_bag' => 50],
+            ['warehouse_sku' => '20000006', 'raw_name' => 'C-12 Fashion Red - 50CT',          'shape_label' => 'Heart', 'size_resolved' => 'C-12', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',         'packaging' => 'Loose', 'count_per_bag' => 50],
             // Modeling twist (T260 → 260-S, the now-corrected Non-round shape)
-            ['warehouse_sku' => '20000007', 'raw_name' => 'GLOBO TUBITO FASHION ROJO',     'shape_label' => 'Modeling', 'size_resolved' => '260-S', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',      'packaging' => 'Loose', 'count_per_bag' => 100],
+            ['warehouse_sku' => '20000007', 'raw_name' => '260-S Fashion Red - 100CT',        'shape_label' => 'Modeling', 'size_resolved' => '260-S', 'texture_resolved' => 'Fashion (S)', 'color_resolved' => 'Fashion Red',      'packaging' => 'Loose', 'count_per_bag' => 100],
         ];
     }
 
@@ -150,7 +150,7 @@ class ImportSempertexSkusTest extends TestCase
     {
         $rows = $this->fixtureRows();
         $rows[] = [
-            'warehouse_sku' => '29999999', 'raw_name' => 'GLOBO REDONDO FASHION UNICORNIO',
+            'warehouse_sku' => '29999999', 'raw_name' => 'R-12 Fashion Unicorn - 50CT',
             'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Fashion (S)',
             'color_resolved' => 'Fashion Unicorn', 'packaging' => 'Loose', 'count_per_bag' => 50,
         ];

@@ -78,6 +78,10 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::post('/favorites/{sku}/remove', [InventoryController::class, 'removeFavorite'])->name('favorites.remove');
     Route::get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
+    Route::post('/scan/lookup', [ScanController::class, 'lookup'])->name('scan.lookup');
+    Route::post('/scan/check-in', [ScanController::class, 'checkIn'])->name('scan.check-in');
+    Route::post('/scan/check-out', [ScanController::class, 'checkOut'])->name('scan.check-out');
+    Route::post('/scan/undo/{stockMovement}', [ScanController::class, 'undo'])->name('scan.undo');
     Route::get('/reorder', [ReorderController::class, 'index'])->name('reorder.index');
 
     Route::get('/account', [AccountController::class, 'index'])->name('account.index');

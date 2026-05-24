@@ -1,14 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import BalloonSwatch from '@/Components/BalloonSwatch.vue';
-import SizeChip from '@/Components/SizeChip.vue';
-import BrandTag from '@/Components/BrandTag.vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 
 const props = defineProps({
     scan: {
         type: Object,
         required: true,
-        // { id, sku: { name, hex, finish, size, brand }, delta, workflow }
+        // { movement_id, direction, full_bags_change, open_bags_change,
+        //   sku: { name, computed_name, color: { color_hex }, brand: { abbreviation },
+        //          balloon_size: { name, shape: { name } } } }
     },
 });
 
@@ -17,16 +16,45 @@ const emit = defineEmits(['undo']);
 const LIFETIME_MS = 4000;
 const visible = ref(true);
 
+let dismissTimer = null;
+
 onMounted(() => {
-    setTimeout(() => {
+    dismissTimer = setTimeout(() => {
         visible.value = false;
     }, LIFETIME_MS);
 });
 
-const borderColor =
-    props.scan.workflow === 'check_in'
-        ? 'var(--color-success)'
-        : 'var(--color-warning)';
+onBeforeUnmount(() => {
+    if (dismissTimer) {
+        clearTimeout(dismissTimer);
+        dismissTimer = null;
+    }
+});
+
+const isCheckIn = computed(() => props.scan.direction === 'in');
+
+const delta = computed(() => {
+    const total =
+        (props.scan.full_bags_change ?? 0) + (props.scan.open_bags_change ?? 0);
+    return isCheckIn.value ? `+${total}` : `−${total}`;
+});
+
+const bagBadgeKey = computed(() => {
+    const open = (props.scan.open_bags_change ?? 0) > 0;
+    const full = (props.scan.full_bags_change ?? 0) > 0;
+
+    if (open && !full) return 'scan.bag_open';
+    if (open && full) return 'scan.bag_mixed';
+    return null; // Default case (full only) — no badge needed
+});
+
+const borderColor = computed(() =>
+    isCheckIn.value ? 'var(--color-success)' : 'var(--color-warning)',
+);
+
+const displayName = computed(
+    () => props.scan.sku?.computed_name ?? props.scan.sku?.name ?? null,
+);
 </script>
 
 <template>
@@ -41,36 +69,46 @@ const borderColor =
             class="flex h-12 items-center gap-2 rounded-md border border-border bg-surface px-3"
             :style="{ borderLeft: `4px solid ${borderColor}` }"
         >
-            <BalloonSwatch
-                :hex="scan.sku.hex"
-                :finish="scan.sku.finish"
-                :size="20"
+            <!-- Color swatch -->
+            <span
+                v-if="scan.sku?.color?.color_hex"
+                class="inline-block h-5 w-5 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
+                :style="{ backgroundColor: scan.sku.color.color_hex }"
             />
 
             <span
                 class="min-w-0 flex-1 truncate font-sans text-[14px] text-ink-primary"
             >
-                {{ scan.sku.name }}
+                {{ displayName ?? $t('scan.unknown_sku') }}
             </span>
 
-            <SizeChip :size="scan.sku.size" />
-            <BrandTag :brand="scan.sku.brand" />
-
-            <!-- delta -->
-            <span class="font-mono text-[16px] font-semibold text-accent">
-                {{ scan.delta > 0 ? `+${scan.delta}` : scan.delta }}
+            <!-- Bag type badge -->
+            <span
+                v-if="bagBadgeKey"
+                class="bg-ink-tertiary/15 shrink-0 rounded-full px-2 py-0.5 font-sans text-[11px] font-medium text-ink-secondary"
+            >
+                {{ $t(bagBadgeKey) }}
             </span>
 
-            <!-- undo -->
+            <!-- Delta -->
+            <span
+                class="font-mono text-[16px] font-semibold tabular-nums"
+                :class="isCheckIn ? 'text-success' : 'text-warning'"
+            >
+                {{ delta }}
+            </span>
+
+            <!-- Undo -->
             <button
                 type="button"
-                class="ml-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-ink-tertiary hover:text-danger"
-                title="Undo"
-                @click="emit('undo', scan.id)"
+                class="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-tertiary hover:text-danger"
+                :title="$t('scan.undo')"
+                :aria-label="$t('scan.undo')"
+                @click="emit('undo', scan.movement_id)"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 16 16"
+                    viewBox="0 0 20 20"
                     fill="currentColor"
                     class="h-4 w-4"
                 >

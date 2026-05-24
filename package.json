@@ -30,6 +30,7 @@
         "vue": "^3.4.0"
     },
     "dependencies": {
+        "@ericblade/quagga2": "^1.12.1",
         "reka-ui": "^2.9.7"
     }
 }

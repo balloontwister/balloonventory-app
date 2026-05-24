@@ -46,6 +46,7 @@ class KalisanTextureSeeder extends Seeder
             ['name' => 'Pearl (K)',        'family' => 'Metallic', 'sort_order' => 250],
             ['name' => 'Crystal (K)',      'family' => 'Crystal',  'sort_order' => 260],
             ['name' => 'Mirror (K)',       'family' => 'Chrome',   'sort_order' => 270],
+            ['name' => 'Aura (K)',         'family' => 'Silk',     'sort_order' => 280],
         ];
 
         foreach ($textures as $data) {

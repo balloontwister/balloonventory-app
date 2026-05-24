@@ -35,6 +35,7 @@ class SizeSeeder extends Seeder
             ['name' => '5-inch',  'alt_imperial_name' => '6-inch',  'diameter_cm' => 13,  'sort_order' => 10],
             ['name' => '11-inch', 'alt_imperial_name' => '12-inch', 'diameter_cm' => 30,  'sort_order' => 30],
             ['name' => '16-inch', 'alt_imperial_name' => null,      'diameter_cm' => 40,  'sort_order' => 50],
+            ['name' => '18-inch', 'alt_imperial_name' => null,      'diameter_cm' => 45,  'sort_order' => 55],
             ['name' => '24-inch', 'alt_imperial_name' => null,      'diameter_cm' => 60,  'sort_order' => 60],
             ['name' => '36-inch', 'alt_imperial_name' => null,      'diameter_cm' => 90,  'sort_order' => 70],
             ['name' => '72-inch', 'alt_imperial_name' => null,      'diameter_cm' => 180, 'sort_order' => 80],

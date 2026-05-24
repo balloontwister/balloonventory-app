@@ -31,6 +31,7 @@ class ColorFamilySeeder extends Seeder
             ['name' => 'Silvers',  'sort_order' => 110, 'fallback_color_hex' => '#9CA3AF'],
             ['name' => 'Golds',    'sort_order' => 120, 'fallback_color_hex' => '#D4A017'],
             ['name' => 'Clears',   'sort_order' => 130, 'fallback_color_hex' => '#E5E7EB'],
+            ['name' => 'Assortment', 'sort_order' => 150, 'fallback_color_hex' => '#0432FF'],
         ];
 
         foreach ($families as $data) {

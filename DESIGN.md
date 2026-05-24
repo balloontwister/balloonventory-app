@@ -268,21 +268,24 @@ Inline banner above an inventory table or on the dashboard.
 
 ### ScanField (domain component)
 
-The primary inventory input. Default focus on Check In and Check Out views. Most barcode scanners emit fast keystrokes ending in Enter, so ScanField captures input passively without requiring the user to click into it.
+The primary inventory input. A single editable input that accepts USB scanner output, phone-camera-detected codes, and human typing through one path. The field is the default-focused element on the Scan view and reclaims focus after every committed scan.
 
 - Full-width input, 56px tall (taller than standard so status is readable from arm's length)
 - `surface` background, 2px `border-strong`, `rounded.md`
 - Armed state (default): 2px `accent` border, label "Ready to scan" in eyebrow type, plus the current workflow ("Checking in to [Business Name]" or "Checking out for [Job Name] · [Business Name]") in body text below the field
-- Status dot in the top-right corner: `success` when armed, `ink-tertiary` when blurred
-- Manual entry icon (keyboard glyph) on the right opens a numeric keypad fallback for damaged or missing barcodes
+- Status dot in the top-right corner: `success` when armed, `warning` when looking up or duplicate, `danger` on error
+- Camera icon to the immediate left of the status dot opens the live viewfinder modal. There is intentionally no separate keyboard icon — the field itself accepts typing, so a parallel modal would be redundant
 - On successful scan: 200ms `accent-soft` flash across the field, then it clears and re-arms automatically
-- On unknown UPC: 200ms `warning-soft` flash, inline message "Unknown UPC — tap to assign SKU" with a one-tap path to either link this UPC to an existing SKU or create a new one
-- On duplicate scan within 2 seconds: subtle 100ms ripple, no toast, count merges into the previous toast
-- Mobile: same field behavior, plus a "Use camera" secondary button that opens a full-screen camera scanner overlay
+- On unknown UPC: a `warning-soft` banner appears below the field with the raw UPC in monospace and an "Assign to SKU" button that routes to the inventory catalog pre-filled with the scanned code
+- On duplicate scan (UPC already in recent scans): 600ms `warning-soft` flash with "Already scanned" eyebrow text. The duplicate is NOT recommitted to the server — the field flashes and clears
+- Mobile: same field behavior. Tapping the field brings up the on-screen numeric keypad (via `inputmode=numeric`, `enterkeyhint=done`). The camera icon opens the viewfinder
+- USB barcode scanners type their characters into whichever input is focused and press Enter on completion. With the field default-focused and auto-refocused after each commit, scanning works without any document-level keydown shim
 
-ScanField must reclaim focus when scan input is detected anywhere in the document (rapid keystrokes ending in Enter), even if another input is currently focused. The user should never have to click back into the scan box.
+The input commits on Enter when the trimmed value is ≥ 4 characters. After commit, the field clears and (if `externalStatus` returns to null, meaning the parent finished processing) re-focuses automatically.
 
-For partial-bag check-ins, the user can tap a recent ScanToast to override the count from `+1` to a smaller number (e.g. `+0.4` for a 40% bag) without breaking the scan flow.
+**What this replaces:** an earlier iteration used a `readonly` field with a document-level keydown HID buffer and a separate "Type a barcode" modal triggered by a keyboard icon. That pattern conflicted with the modal on iOS Safari + `<dialog>` and on desktop Chromium. Direct typing is strictly better — the modal added a focus trap, an extra tap, and a buffer-timing failure mode. See the memory note `scan-field-input-pattern` for the full history.
+
+For partial-bag check-ins, the user controls quantity + open-bag state via the `QuantityStepper` and the open-bag checkbox above the field — set once and scan many. Tapping a recent toast undoes its movement; partial bags are entered before the scan, not after.
 
 ### ScanToast
 

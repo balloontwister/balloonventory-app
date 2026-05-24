@@ -33,6 +33,8 @@ class ImportSempertexSkus extends Command
         /** @var array<int, array<string, mixed>> $rows */
         $rows = json_decode(file_get_contents($jsonPath), true);
 
+        [$rows, $dedupeWarnings] = $this->dedupeByWarehouseSku($rows);
+
         $brand = Brand::where('name', 'Sempertex')->firstOrFail();
 
         $balloonSizes = BalloonSize::where('brand_id', $brand->id)->get()->keyBy('name');
@@ -46,7 +48,7 @@ class ImportSempertexSkus extends Command
 
         $toInsert = [];
         $toUpdate = [];
-        $warnings = [];
+        $warnings = $dedupeWarnings;
 
         foreach ($rows as $row) {
             $size = $balloonSizes->get($row['size_resolved']);
@@ -155,6 +157,40 @@ class ImportSempertexSkus extends Command
         $this->info('Done. Inserted '.count($toInsert).', updated '.count($toUpdate).'.');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Drop rows that repeat a warehouse_sku already seen earlier in the input.
+     * Without this, two rows sharing a warehouse_sku both miss the existing-by-
+     * warehouse_sku lookup (loaded once before the loop) and both INSERT —
+     * producing duplicate Sku rows for what should be one physical product.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array{0: array<int, array<string, mixed>>, 1: array<int, string>}
+     */
+    private function dedupeByWarehouseSku(array $rows): array
+    {
+        $seen = [];
+        $deduped = [];
+        $warnings = [];
+
+        foreach ($rows as $row) {
+            $sku = $row['warehouse_sku'] ?? null;
+            if (! $sku) {
+                $deduped[] = $row;
+
+                continue;
+            }
+            if (isset($seen[$sku])) {
+                $warnings[] = "Duplicate warehouse_sku '{$sku}' in input — keeping first '{$seen[$sku]}', skipping '{$row['raw_name']}'";
+
+                continue;
+            }
+            $seen[$sku] = $row['raw_name'];
+            $deduped[] = $row;
+        }
+
+        return [$deduped, $warnings];
     }
 
     /**

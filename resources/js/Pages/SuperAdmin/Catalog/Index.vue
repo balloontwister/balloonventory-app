@@ -13,17 +13,21 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     brands: { type: Array, required: true },
     sizes: { type: Array, required: true },
+    shapes: { type: Array, required: true },
     textureFamilies: { type: Array, required: true },
     colorFamilies: { type: Array, required: true },
     materials: { type: Array, required: true },
+    themes: { type: Array, required: true },
 });
 
 const search = ref(props.filters.search ?? '');
 const brand = ref(props.filters.brand ?? '');
 const size = ref(props.filters.size ?? '');
+const shape = ref(props.filters.shape ?? '');
 const textureFamily = ref(props.filters.texture_family ?? '');
 const colorFamily = ref(props.filters.color_family ?? '');
 const material = ref(props.filters.material ?? '');
+const theme = ref(props.filters.theme ?? '');
 const printed = ref(props.filters.printed ?? '');
 
 let debounce;
@@ -36,9 +40,11 @@ function applyFilters() {
                 search: search.value || undefined,
                 brand: brand.value || undefined,
                 size: size.value || undefined,
+                shape: shape.value || undefined,
                 texture_family: textureFamily.value || undefined,
                 color_family: colorFamily.value || undefined,
                 material: material.value || undefined,
+                theme: theme.value || undefined,
                 printed: printed.value || undefined,
             },
             { preserveState: true, replace: true },
@@ -46,19 +52,21 @@ function applyFilters() {
     }, 350);
 }
 
-watch([search, brand, size, textureFamily, colorFamily, material, printed], applyFilters);
+watch([search, brand, size, shape, textureFamily, colorFamily, material, theme, printed], applyFilters);
 
 const hasActiveFilters = computed(
-    () => !!(search.value || brand.value || size.value || textureFamily.value || colorFamily.value || material.value || printed.value),
+    () => !!(search.value || brand.value || size.value || shape.value || textureFamily.value || colorFamily.value || material.value || theme.value || printed.value),
 );
 
 function resetFilters() {
     search.value = '';
     brand.value = '';
     size.value = '';
+    shape.value = '';
     textureFamily.value = '';
     colorFamily.value = '';
     material.value = '';
+    theme.value = '';
     printed.value = '';
 }
 
@@ -177,6 +185,18 @@ function destroy(sku) {
             </select>
 
             <select
+                v-model="shape"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_shapes') }}
+                </option>
+                <option v-for="sh in shapes" :key="sh.id" :value="sh.id">
+                    {{ sh.name }}
+                </option>
+            </select>
+
+            <select
                 v-model="textureFamily"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
@@ -209,6 +229,18 @@ function destroy(sku) {
                 </option>
                 <option v-for="m in materials" :key="m.id" :value="m.id">
                     {{ m.name }}
+                </option>
+            </select>
+
+            <select
+                v-model="theme"
+                class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+            >
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_themes') }}
+                </option>
+                <option v-for="th in themes" :key="th.id" :value="th.id">
+                    {{ th.name }}
                 </option>
             </select>
 

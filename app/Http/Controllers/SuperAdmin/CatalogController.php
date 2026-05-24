@@ -34,9 +34,11 @@ class CatalogController extends Controller
         $request->validate([
             'brand' => ['nullable', 'uuid'],
             'size' => ['nullable', 'uuid'],
+            'shape' => ['nullable', 'uuid'],
             'texture_family' => ['nullable', 'uuid'],
             'color_family' => ['nullable', 'uuid'],
             'material' => ['nullable', 'uuid'],
+            'theme' => ['nullable', 'uuid'],
             'printed' => ['nullable', 'in:0,1'],
             'search' => ['nullable', 'string', 'max:255'],
         ]);
@@ -74,6 +76,15 @@ class CatalogController extends Controller
             $query->whereHas('balloonSize', function ($q) use ($request) {
                 $q->where('size_id', $request->size);
             });
+        }
+
+        if ($request->filled('shape')) {
+            // Shape lives on balloon_size, not directly on sku.
+            $query->whereHas('balloonSize', fn ($q) => $q->where('shape_id', $request->shape));
+        }
+
+        if ($request->filled('theme')) {
+            $query->whereHas('themes', fn ($q) => $q->where('themes.id', $request->theme));
         }
 
         if ($request->filled('texture_family')) {
@@ -125,12 +136,14 @@ class CatalogController extends Controller
 
         return Inertia::render('SuperAdmin/Catalog/Index', [
             'skus' => $skus,
-            'filters' => $request->only(['brand', 'size', 'texture_family', 'color_family', 'material', 'printed', 'search']),
+            'filters' => $request->only(['brand', 'size', 'shape', 'texture_family', 'color_family', 'material', 'theme', 'printed', 'search']),
             'brands' => Brand::orderBy('sort_order')->get(['id', 'name', 'abbreviation']),
             'sizes' => Size::orderBy('sort_order')->get(['id', 'name']),
+            'shapes' => $this->translated(Shape::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
             'textureFamilies' => TextureFamily::orderBy('sort_order')->get(['id', 'name']),
             'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
             'materials' => $this->translated(Material::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
+            'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->get(['id', 'name'])),
         ]);
     }
 

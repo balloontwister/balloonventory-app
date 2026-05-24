@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\SuperAdmin;
 
+use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Material;
+use App\Models\Shape;
 use App\Models\Sku;
 use App\Models\Texture;
 use App\Models\TextureFamily;
+use App\Models\Theme;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -139,6 +142,46 @@ class CatalogIndexFilterTest extends TestCase
 
         $response->assertStatus(302);
         $response->assertSessionHasErrors('brand');
+    }
+
+    public function test_shape_filter_narrows_results_to_that_shape(): void
+    {
+        $round = Shape::factory()->create();
+        $heart = Shape::factory()->create();
+
+        $roundSize = BalloonSize::factory()->create(['shape_id' => $round->id]);
+        $heartSize = BalloonSize::factory()->create(['shape_id' => $heart->id]);
+
+        Sku::factory()->create(['name' => 'Round SKU', 'brand_id' => $this->brand->id, 'balloon_size_id' => $roundSize->id]);
+        Sku::factory()->create(['name' => 'Heart SKU', 'brand_id' => $this->brand->id, 'balloon_size_id' => $heartSize->id]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus', ['shape' => $round->id]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Round SKU')->etc())
+            );
+    }
+
+    public function test_theme_filter_narrows_results_to_that_theme(): void
+    {
+        $birthday = Theme::factory()->create();
+        $wedding = Theme::factory()->create();
+
+        $birthdaySku = Sku::factory()->create(['name' => 'Birthday SKU', 'brand_id' => $this->brand->id]);
+        $weddingSku = Sku::factory()->create(['name' => 'Wedding SKU', 'brand_id' => $this->brand->id]);
+        // An untagged SKU must also be excluded by the theme filter.
+        Sku::factory()->create(['name' => 'Untagged SKU', 'brand_id' => $this->brand->id]);
+
+        $birthdaySku->themes()->attach($birthday->id);
+        $weddingSku->themes()->attach($wedding->id);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus', ['theme' => $birthday->id]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Birthday SKU')->etc())
+            );
     }
 
     public function test_no_filters_returns_all_shared_skus(): void

@@ -165,6 +165,31 @@ class ImportSempertexSkusTest extends TestCase
         $this->assertSame(7, Sku::where('brand_id', $this->sempertex()->id)->count());
     }
 
+    public function test_duplicate_warehouse_sku_in_input_is_warned_and_inserts_only_once(): void
+    {
+        $rows = $this->fixtureRows();
+        // Repeat warehouse_sku 20000001 with a slightly different name to prove
+        // the second occurrence is dropped (not just silently merged).
+        $rows[] = [
+            'warehouse_sku' => '20000001', 'raw_name' => 'R-12 Fashion Red - 12CT (DUPE)',
+            'shape_label' => 'Round', 'size_resolved' => 'R-12', 'texture_resolved' => 'Fashion (S)',
+            'color_resolved' => 'Fashion Red', 'packaging' => 'Loose', 'count_per_bag' => 12,
+        ];
+        file_put_contents($this->jsonPath, json_encode($rows));
+
+        $this->artisan('catalog:import-sempertex', ['--path' => $this->jsonPath, '--execute' => true])
+            ->expectsOutputToContain("Duplicate warehouse_sku '20000001'")
+            ->expectsConfirmation('There are 1 warnings. Continue anyway?', 'yes')
+            ->assertSuccessful();
+
+        // Still 7 rows — the dupe did not create an 8th.
+        $this->assertSame(7, Sku::where('brand_id', $this->sempertex()->id)->count());
+
+        // First occurrence's name wins, not the "(DUPE)" suffix.
+        $sku = Sku::where('warehouse_sku', '20000001')->firstOrFail();
+        $this->assertSame('R-12 Fashion Red - 12CT', $sku->name);
+    }
+
     private function sempertex(): Brand
     {
         return Brand::where('name', 'Sempertex')->firstOrFail();

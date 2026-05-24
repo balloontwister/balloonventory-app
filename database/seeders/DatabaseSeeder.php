@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             KalisanTextureSeeder::class,
             KalisanBalloonSizeSeeder::class,
             KalisanColorSeeder::class,
+            SempertexTextureSeeder::class,
+            SempertexColorSeeder::class,
         ]);
     }
 }

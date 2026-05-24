@@ -46,11 +46,7 @@ return [
     'camera_retry' => 'Reintentar',
     'captured' => '¡Listo!',
 
-    // Manual entry
-    'manual_entry_title' => 'Escribir un código',
-    'manual_entry_label' => 'UPC o EAN',
-    'manual_entry_scan' => 'Escanear',
-    'cancel' => 'Cancelar',
+    // General actions
     'close' => 'Cerrar',
 
     // Unknown UPC

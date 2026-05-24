@@ -6,7 +6,7 @@ import CameraScanner from '@/Components/CameraScanner.vue';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import Modal from '@/Components/Modal.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed, nextTick, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onBeforeUnmount, watch } from 'vue';
 
 // ── Mode ────────────────────────────────────────────────────────────────────────
 const mode = ref('add'); // add | remove
@@ -58,6 +58,10 @@ onBeforeUnmount(() => {
 
 // ── Camera ──────────────────────────────────────────────────────────────────────
 const showCamera = ref(false);
+// Template ref to ScanField — used to re-focus the input after closing the
+// camera modal (the modal steals focus while it's open).
+const scanFieldRef = ref(null);
+
 const cameraSupported = computed(() => {
     if (typeof navigator === 'undefined') return false;
     if (typeof window !== 'undefined' && 'BarcodeDetector' in window)
@@ -66,59 +70,18 @@ const cameraSupported = computed(() => {
 });
 
 function openCamera() {
-    scanFieldRef.value?.pause();
     showCamera.value = true;
 }
 
 function closeCamera() {
     showCamera.value = false;
-    scanFieldRef.value?.resume();
+    // Restore focus to the scan field so the next scan/type lands there.
+    scanFieldRef.value?.focusInput();
 }
 
 function onCameraDetected(upc) {
-    // CameraScanner now owns the close timing — it shows a "Got it!"
-    // confirmation overlay for ~700ms before emitting `close`. We just kick
-    // off the lookup in parallel here.
-    processScan(upc);
-}
-
-// ── Manual entry ────────────────────────────────────────────────────────────────
-const showManualEntry = ref(false);
-const manualUpc = ref('');
-const manualInputRef = ref(null);
-// ScanField exposes pause()/resume() so we can suspend the global HID
-// keydown capture while a modal input is focused. Without this, iOS Safari
-// + <dialog> + an external keydown listener has been seen to drop characters
-// from inputs inside the dialog.
-const scanFieldRef = ref(null);
-
-function openManualEntry() {
-    manualUpc.value = '';
-    scanFieldRef.value?.pause();
-    showManualEntry.value = true;
-
-    // Two-stage focus: nextTick handles most browsers; the timeout handles
-    // cases where the Modal's open animation (Vue Transition, 200ms) or the
-    // <dialog> showModal() activation steals focus from a focus() call made
-    // too early. Re-focusing inside a short timeout is a no-op on browsers
-    // that already focused correctly.
-    nextTick(() => {
-        manualInputRef.value?.focus();
-        setTimeout(() => {
-            manualInputRef.value?.focus();
-        }, 250);
-    });
-}
-
-function closeManualEntry() {
-    showManualEntry.value = false;
-    scanFieldRef.value?.resume();
-}
-
-function submitManualEntry() {
-    const upc = manualUpc.value.trim();
-    if (upc.length < 4) return;
-    closeManualEntry();
+    // CameraScanner shows a "Got it!" overlay for ~700ms before emitting
+    // close. We start the lookup in parallel here.
     processScan(upc);
 }
 
@@ -297,7 +260,10 @@ const contextHintKey = computed(() => {
                 </div>
             </div>
 
-            <!-- ── Scan input ─────────────────────────────────────────────────── -->
+            <!-- ── Scan input ───────────────────────────────────────────────────
+                 The field now accepts typed input directly. USB scanners and
+                 humans share one path: type or scan, then press Enter.
+                 The previous "keyboard icon → modal" pattern was removed. -->
             <ScanField
                 ref="scanFieldRef"
                 :workflow="isAdding ? 'check_in' : 'check_out'"
@@ -307,7 +273,6 @@ const contextHintKey = computed(() => {
                 :camera-supported="cameraSupported"
                 @scan="processScan"
                 @camera="openCamera"
-                @manual-entry="openManualEntry"
             />
 
             <!-- ── Unknown UPC banner ─────────────────────────────────────────── -->
@@ -479,83 +444,6 @@ const contextHintKey = computed(() => {
                     @detected="onCameraDetected"
                     @close="closeCamera"
                 />
-            </div>
-        </Modal>
-
-        <!-- ── Manual entry modal ─────────────────────────────────────────────── -->
-        <Modal :show="showManualEntry" max-width="sm" @close="closeManualEntry">
-            <div class="p-6">
-                <div class="mb-4 flex items-start justify-between">
-                    <h2
-                        class="font-sans text-[17px] font-semibold text-ink-primary"
-                    >
-                        {{ $t('scan.manual_entry_title') }}
-                    </h2>
-                    <button
-                        type="button"
-                        class="ml-4 flex h-7 w-7 items-center justify-center rounded text-ink-tertiary hover:bg-background hover:text-ink-primary"
-                        :aria-label="$t('scan.close')"
-                        @click="closeManualEntry"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            class="h-4 w-4"
-                        >
-                            <path
-                                d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
-                            />
-                        </svg>
-                    </button>
-                </div>
-
-                <form
-                    class="flex flex-col gap-4"
-                    @submit.prevent="submitManualEntry"
-                >
-                    <div>
-                        <label
-                            for="manual-upc-input"
-                            class="mb-1 block font-sans text-[13px] font-medium text-ink-secondary"
-                        >
-                            {{ $t('scan.manual_entry_label') }}
-                        </label>
-                        <input
-                            id="manual-upc-input"
-                            ref="manualInputRef"
-                            :value="manualUpc"
-                            type="text"
-                            inputmode="numeric"
-                            enterkeyhint="done"
-                            autocomplete="off"
-                            autocapitalize="off"
-                            autocorrect="off"
-                            spellcheck="false"
-                            class="h-14 w-full rounded-md border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-wider text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                            placeholder="012345678901"
-                            @input="manualUpc = $event.target.value"
-                            @keydown.enter.prevent="submitManualEntry"
-                        />
-                    </div>
-
-                    <div class="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="rounded-md border border-border-strong bg-surface px-4 py-2 font-sans text-[14px] text-ink-primary hover:bg-background"
-                            @click="closeManualEntry"
-                        >
-                            {{ $t('scan.cancel') }}
-                        </button>
-                        <button
-                            type="submit"
-                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-medium text-accent-on hover:bg-accent-hover disabled:opacity-40"
-                            :disabled="manualUpc.trim().length < 4"
-                        >
-                            {{ $t('scan.manual_entry_scan') }}
-                        </button>
-                    </div>
-                </form>
             </div>
         </Modal>
     </AuthenticatedLayout>

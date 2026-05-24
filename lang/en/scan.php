@@ -46,11 +46,7 @@ return [
     'camera_retry' => 'Retry',
     'captured' => 'Got it!',
 
-    // Manual entry
-    'manual_entry_title' => 'Type a barcode',
-    'manual_entry_label' => 'UPC or EAN',
-    'manual_entry_scan' => 'Scan',
-    'cancel' => 'Cancel',
+    // General actions
     'close' => 'Close',
 
     // Unknown UPC

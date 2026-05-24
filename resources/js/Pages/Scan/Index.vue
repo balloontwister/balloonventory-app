@@ -6,7 +6,7 @@ import CameraScanner from '@/Components/CameraScanner.vue';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import Modal from '@/Components/Modal.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount, watch } from 'vue';
 
 // ── Mode ────────────────────────────────────────────────────────────────────────
 const mode = ref('add'); // add | remove
@@ -66,11 +66,13 @@ const cameraSupported = computed(() => {
 });
 
 function openCamera() {
+    scanFieldRef.value?.pause();
     showCamera.value = true;
 }
 
 function closeCamera() {
     showCamera.value = false;
+    scanFieldRef.value?.resume();
 }
 
 function onCameraDetected(upc) {
@@ -83,14 +85,28 @@ function onCameraDetected(upc) {
 // ── Manual entry ────────────────────────────────────────────────────────────────
 const showManualEntry = ref(false);
 const manualUpc = ref('');
+const manualInputRef = ref(null);
+// ScanField exposes pause()/resume() so we can suspend the global HID
+// keydown capture while a modal input is focused. Without this, iOS Safari
+// + <dialog> + an external keydown listener has been seen to drop characters
+// from inputs inside the dialog.
+const scanFieldRef = ref(null);
 
 function openManualEntry() {
     manualUpc.value = '';
+    scanFieldRef.value?.pause();
     showManualEntry.value = true;
+
+    // Focus the input as soon as it's in the DOM. iOS sometimes needs this
+    // to bring up the on-screen keyboard for inputs inside a <dialog>.
+    nextTick(() => {
+        manualInputRef.value?.focus();
+    });
 }
 
 function closeManualEntry() {
     showManualEntry.value = false;
+    scanFieldRef.value?.resume();
 }
 
 function submitManualEntry() {
@@ -277,6 +293,7 @@ const contextHintKey = computed(() => {
 
             <!-- ── Scan input ─────────────────────────────────────────────────── -->
             <ScanField
+                ref="scanFieldRef"
                 :workflow="isAdding ? 'check_in' : 'check_out'"
                 :recent-scans="recentScans"
                 :external-status="scanStatus"
@@ -500,12 +517,18 @@ const contextHintKey = computed(() => {
                         </label>
                         <input
                             id="manual-upc-input"
+                            ref="manualInputRef"
                             v-model="manualUpc"
                             type="text"
                             inputmode="numeric"
+                            enterkeyhint="done"
                             autocomplete="off"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            spellcheck="false"
                             class="h-14 w-full rounded-md border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-wider text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                             placeholder="012345678901"
+                            @keydown.stop
                             @keydown.enter.prevent="submitManualEntry"
                         />
                     </div>

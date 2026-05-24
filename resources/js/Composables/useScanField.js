@@ -7,6 +7,7 @@ export function useScanField(onScan) {
     const inputRef = ref(null);
     let buffer = '';
     let bufferTimer = null;
+    let paused = false;
 
     function focusInput() {
         inputRef.value?.focus();
@@ -21,7 +22,20 @@ export function useScanField(onScan) {
         bufferTimer = null;
     }
 
+    function pause() {
+        paused = true;
+        buffer = '';
+        clearTimeout(bufferTimer);
+        bufferTimer = null;
+    }
+
+    function resume() {
+        paused = false;
+    }
+
     function handleGlobalKeydown(e) {
+        if (paused) return;
+
         const isOtherInput =
             e.target !== inputRef.value &&
             (e.target.tagName === 'INPUT' ||
@@ -58,5 +72,5 @@ export function useScanField(onScan) {
         clearTimeout(bufferTimer);
     });
 
-    return { inputRef, focusInput };
+    return { inputRef, focusInput, pause, resume };
 }

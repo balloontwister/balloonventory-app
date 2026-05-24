@@ -63,7 +63,12 @@ watch(
     },
 );
 
-const { inputRef } = useScanField(handleScan);
+const { inputRef, pause, resume } = useScanField(handleScan);
+
+// Allow the parent page to pause the global keydown capture while a modal
+// is open (manual entry, camera). Without this, the HID buffer can swallow
+// keys typed into other inputs on iOS Safari + <dialog>.
+defineExpose({ pause, resume });
 
 const fieldBg = computed(() => {
     if (status.value === 'success') return 'var(--color-accent-soft)';

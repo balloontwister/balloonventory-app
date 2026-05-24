@@ -1,2 +1,11 @@
 *
 !.gitignore
+
+# Sempertex cluster swatches have no CDN — keep them in the repo so production
+# gets them via deploy instead of needing an out-of-band SCP.
+!color-images/
+color-images/*
+!color-images/sempertex/
+color-images/sempertex/*
+!color-images/sempertex/clusters/
+!color-images/sempertex/clusters/*

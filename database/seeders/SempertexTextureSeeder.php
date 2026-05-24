@@ -45,6 +45,7 @@ class SempertexTextureSeeder extends Seeder
             ['name' => 'Pearl (S)',        'family' => 'Metallic', 'sort_order' => 360],
             ['name' => 'Reflex (S)',       'family' => 'Chrome',   'sort_order' => 370],
             ['name' => 'Silk (S)',         'family' => 'Silk',     'sort_order' => 380],
+            ['name' => 'Satin (S)',        'family' => 'Silk',     'sort_order' => 385],
             ['name' => 'Metallic (S)',     'family' => 'Metallic', 'sort_order' => 390],
         ];
 

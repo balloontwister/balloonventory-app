@@ -166,6 +166,9 @@ return [
     'url' => 'The :attribute field must be a valid URL.',
     'ulid' => 'The :attribute field must be a valid ULID.',
     'uuid' => 'The :attribute field must be a valid UUID.',
+    'valid_gtin' => 'The :attribute field must be a valid barcode (UPC, EAN, or GTIN).',
+    'valid_gtin_length' => 'The :attribute field must be 8, 12, 13, or 14 digits (got :length).',
+    'valid_gtin_check_digit' => 'The :attribute check digit is wrong (expected :expected, got :got). Re-check the digits on the bag.',
 
     /*
     |--------------------------------------------------------------------------

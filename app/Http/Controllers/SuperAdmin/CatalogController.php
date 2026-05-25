@@ -17,6 +17,7 @@ use App\Models\Size;
 use App\Models\Sku;
 use App\Models\TextureFamily;
 use App\Models\Theme;
+use App\Rules\ValidGtin;
 use App\Services\ImageAttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -379,8 +380,8 @@ class CatalogController extends Controller
             'is_printed' => ['boolean'],
             'default_count_per_bag' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'warehouse_sku' => ['nullable', 'string', 'max:100', $whSkuUnique],
-            'upc' => ['nullable', 'string', 'max:50', $upcUnique],
-            'ean' => ['nullable', 'string', 'max:50'],
+            'upc' => ['nullable', 'string', 'max:50', new ValidGtin, $upcUnique],
+            'ean' => ['nullable', 'string', 'max:50', new ValidGtin],
             'asin' => ['nullable', 'string', 'max:50'],
             'mfg_no' => ['nullable', 'string', 'max:100'],
             'packaging_id' => ['nullable', 'uuid', 'exists:packaging_types,id'],

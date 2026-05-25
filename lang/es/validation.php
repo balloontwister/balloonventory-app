@@ -166,6 +166,9 @@ return [
     'url' => 'El campo :attribute debe ser una URL válida.',
     'ulid' => 'El campo :attribute debe ser un ULID válido.',
     'uuid' => 'El campo :attribute debe ser un UUID válido.',
+    'valid_gtin' => 'El campo :attribute debe ser un código de barras válido (UPC, EAN o GTIN).',
+    'valid_gtin_length' => 'El campo :attribute debe tener 8, 12, 13 o 14 dígitos (tiene :length).',
+    'valid_gtin_check_digit' => 'El dígito de verificación de :attribute es incorrecto (se esperaba :expected, se obtuvo :got). Vuelve a revisar los dígitos en la bolsa.',
 
     /*
     |--------------------------------------------------------------------------

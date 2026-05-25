@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Gtin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,8 +80,31 @@ class Sku extends Model
 
     public function setUpcAttribute(?string $value): void
     {
+        $this->attributes['upc'] = $this->normalizeBarcode($value);
+    }
+
+    public function setEanAttribute(?string $value): void
+    {
+        $this->attributes['ean'] = $this->normalizeBarcode($value);
+    }
+
+    /**
+     * Normalize a UPC/EAN input on save: trim, treat "na"/"n/a"/empty as null,
+     * and strip non-digit separators (spaces, dashes) from anything else so
+     * the stored value is canonical digit-only. Validation of length and
+     * check digit is the controller's job — this method only cleans format.
+     */
+    private function normalizeBarcode(?string $value): ?string
+    {
         $normalized = strtolower(trim((string) $value));
-        $this->attributes['upc'] = in_array($normalized, ['', 'na', 'n/a'], true) ? null : $value;
+
+        if (in_array($normalized, ['', 'na', 'n/a'], true)) {
+            return null;
+        }
+
+        $digits = Gtin::digitsOnly($value);
+
+        return $digits === '' ? $value : $digits;
     }
 
     private static function deriveGs1Prefix(?string $upc, ?string $brandId): ?string

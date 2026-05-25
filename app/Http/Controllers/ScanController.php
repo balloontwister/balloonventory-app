@@ -14,6 +14,7 @@ use App\Services\BarcodeMatcher;
 use App\Support\BusinessContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -37,62 +38,103 @@ class ScanController extends Controller
 
         $result = $this->barcodeMatcher->match($request->input('upc'), $businessId);
 
+        // Common metadata returned in every response so the frontend can
+        // decide what to do with the scan (auto-record, prompt to confirm,
+        // route to the "add new UPC" flow) without an extra round-trip.
+        $meta = [
+            'gtin14' => $result['gtin14'],
+            'is_valid_gtin' => $result['is_valid_gtin'],
+        ];
+
         if ($result['candidates'] === []) {
-            return response()->json(['found' => false]);
+            return response()->json($meta + [
+                'found' => false,
+                'auto_apply' => false,
+            ]);
         }
 
-        $top = $result['candidates'][0];
+        // Batch-load relations + stock levels for every candidate so the
+        // confirm-match UI can render any of them without a second request.
+        $candidateIds = array_map(static fn (array $c) => $c['sku']->id, $result['candidates']);
 
-        // Reload with eager relations for the response payload. The matcher
-        // returns a lightweight Sku model; the frontend needs brand, color,
-        // and balloon_size details to render the recent-scans row.
-        $sku = Sku::with([
+        $skus = Sku::with([
             'brand:id,name,abbreviation',
             'balloonSize' => fn ($q) => $q->with(['shape:id,name', 'size:id,name']),
             'color' => fn ($q) => $q->with(['colorFamily:id,name', 'texture:id,name']),
             'material:id,name',
-        ])->findOrFail($top['sku']->id);
+        ])
+            ->whereIn('id', $candidateIds)
+            ->get()
+            ->keyBy('id');
 
-        $stockLevels = StockLevel::where('sku_id', $sku->id)
-            ->select('full_bags', 'open_bags')
-            ->get();
+        $stockBySkuId = StockLevel::whereIn('sku_id', $candidateIds)
+            ->select('sku_id', 'full_bags', 'open_bags')
+            ->get()
+            ->groupBy('sku_id');
 
-        return response()->json([
+        $candidates = array_map(function (array $c) use ($skus, $stockBySkuId) {
+            $sku = $skus[$c['sku']->id];
+
+            return [
+                'match' => $c['match'],
+                'score' => $c['score'],
+                'sku' => $this->serializeSku($sku, $stockBySkuId->get($sku->id, collect())),
+            ];
+        }, $result['candidates']);
+
+        $top = $candidates[0];
+        $autoApply = count($candidates) === 1 && $top['score'] >= 100;
+
+        return response()->json($meta + [
             'found' => true,
+            'auto_apply' => $autoApply,
             'match_type' => $top['match'],
-            'sku' => [
-                'id' => $sku->id,
-                'name' => $sku->name,
-                'computed_name' => $sku->computed_name,
-                'warehouse_sku' => $sku->warehouse_sku,
-                'upc' => $sku->upc,
-                'default_count_per_bag' => $sku->default_count_per_bag,
-                'color' => $sku->color ? [
-                    'id' => $sku->color->id,
-                    'name' => $sku->color->name,
-                    'color_hex' => $sku->color->color_hex,
-                ] : null,
-                'brand' => $sku->brand ? [
-                    'id' => $sku->brand->id,
-                    'name' => $sku->brand->name,
-                    'abbreviation' => $sku->brand->abbreviation,
-                ] : null,
-                'balloon_size' => $sku->balloonSize ? [
-                    'id' => $sku->balloonSize->id,
-                    'name' => $sku->balloonSize->name,
-                    'shape' => $sku->balloonSize->shape ? [
-                        'id' => $sku->balloonSize->shape->id,
-                        'name' => $sku->balloonSize->shape->name,
-                    ] : null,
-                    'size' => $sku->balloonSize->size ? [
-                        'id' => $sku->balloonSize->size->id,
-                        'name' => $sku->balloonSize->size->name,
-                    ] : null,
-                ] : null,
-                'full_bags_total' => (int) $stockLevels->sum('full_bags'),
-                'open_bags_total' => (int) $stockLevels->sum('open_bags'),
-            ],
+            'sku' => $top['sku'],
+            'candidates' => $candidates,
         ]);
+    }
+
+    /**
+     * Shape a Sku model into the array the frontend expects. Stock levels are
+     * pre-grouped by sku_id and passed in to avoid an N+1 across candidates.
+     *
+     * @param  Collection<int,StockLevel>  $stockLevels
+     * @return array<string,mixed>
+     */
+    private function serializeSku(Sku $sku, $stockLevels): array
+    {
+        return [
+            'id' => $sku->id,
+            'name' => $sku->name,
+            'computed_name' => $sku->computed_name,
+            'warehouse_sku' => $sku->warehouse_sku,
+            'upc' => $sku->upc,
+            'default_count_per_bag' => $sku->default_count_per_bag,
+            'color' => $sku->color ? [
+                'id' => $sku->color->id,
+                'name' => $sku->color->name,
+                'color_hex' => $sku->color->color_hex,
+            ] : null,
+            'brand' => $sku->brand ? [
+                'id' => $sku->brand->id,
+                'name' => $sku->brand->name,
+                'abbreviation' => $sku->brand->abbreviation,
+            ] : null,
+            'balloon_size' => $sku->balloonSize ? [
+                'id' => $sku->balloonSize->id,
+                'name' => $sku->balloonSize->name,
+                'shape' => $sku->balloonSize->shape ? [
+                    'id' => $sku->balloonSize->shape->id,
+                    'name' => $sku->balloonSize->shape->name,
+                ] : null,
+                'size' => $sku->balloonSize->size ? [
+                    'id' => $sku->balloonSize->size->id,
+                    'name' => $sku->balloonSize->size->name,
+                ] : null,
+            ] : null,
+            'full_bags_total' => (int) $stockLevels->sum('full_bags'),
+            'open_bags_total' => (int) $stockLevels->sum('open_bags'),
+        ];
     }
 
     public function checkIn(Request $request): JsonResponse

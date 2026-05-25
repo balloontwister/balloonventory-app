@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\BalloonList;
 use App\Models\Bin;
+use App\Models\Brand;
+use App\Models\BrandGs1Prefix;
 use App\Models\Business;
 use App\Models\Job;
 use App\Models\Location;
@@ -129,6 +131,108 @@ class ScanControllerTest extends TestCase
                 'match_type' => 'gtin_exact',
                 'sku' => ['id' => $this->sku->id],
             ]);
+    }
+
+    public function test_lookup_returns_candidates_array_and_auto_apply_for_unique_exact_match(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '012345678901'])
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'auto_apply' => true,
+                'match_type' => 'gtin_exact',
+                'candidates' => [
+                    [
+                        'match' => 'gtin_exact',
+                        'score' => 100,
+                        'sku' => ['id' => $this->sku->id],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_lookup_exposes_gtin14_and_is_valid_gtin(): void
+    {
+        $response = $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '012345678905']) // valid check digit
+            ->assertOk();
+
+        $response->assertJsonPath('gtin14', '00012345678905');
+        $response->assertJsonPath('is_valid_gtin', true);
+    }
+
+    public function test_lookup_reports_invalid_gtin_when_check_digit_fails(): void
+    {
+        // Fixture uses 012345678901 — body 01234567890, expected check 5,
+        // stored 1. Matches the SKU (exact digit equality) but is_valid_gtin
+        // should still report the truth about the scan itself.
+        $response = $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '012345678901'])
+            ->assertOk();
+
+        $response->assertJsonPath('is_valid_gtin', false);
+    }
+
+    public function test_lookup_returns_not_found_includes_gtin14_and_auto_apply_false(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '999999999993'])
+            ->assertOk()
+            ->assertJson([
+                'found' => false,
+                'auto_apply' => false,
+                'gtin14' => '00999999999993',
+                'is_valid_gtin' => true,
+            ]);
+    }
+
+    public function test_lookup_auto_apply_false_for_low_confidence_match(): void
+    {
+        // GS1-prefix fallback (score 60) — no UPC stored, just warehouse_sku.
+        $brand = Brand::factory()->create();
+        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
+        $inferred = Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'upc' => null,
+            'warehouse_sku' => '43734',
+            'name' => 'Inferred Match',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '071444437345'])
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'auto_apply' => false,
+                'match_type' => 'gs1_warehouse_sku',
+                'candidates' => [
+                    [
+                        'match' => 'gs1_warehouse_sku',
+                        'score' => 60,
+                        'sku' => ['id' => $inferred->id],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_lookup_auto_apply_false_when_multiple_candidates(): void
+    {
+        // Both SKUs share the scan's GS1 prefix and contain its tail in
+        // their warehouse_sku — the matcher returns two candidates, so we
+        // must not auto-apply even though each is a valid GS1 hit.
+        $brand = Brand::factory()->create();
+        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
+        Sku::factory()->create(['brand_id' => $brand->id, 'upc' => null, 'warehouse_sku' => '43734', 'name' => 'A']);
+        Sku::factory()->create(['brand_id' => $brand->id, 'upc' => null, 'mfg_no' => '43734', 'name' => 'B']);
+
+        $response = $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '071444437345'])
+            ->assertOk();
+
+        $response->assertJsonPath('found', true);
+        $response->assertJsonPath('auto_apply', false);
+        $this->assertCount(2, $response->json('candidates'));
     }
 
     public function test_lookup_requires_upc(): void

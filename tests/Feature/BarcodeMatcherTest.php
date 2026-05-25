@@ -244,6 +244,62 @@ class BarcodeMatcherTest extends TestCase
         $this->assertSame([], $result['candidates']);
     }
 
+    public function test_matches_when_stored_upc_is_missing_its_check_digit(): void
+    {
+        // Some imports truncated the trailing check digit. Scan is the full
+        // 12-digit UPC-A; stored value is 11 digits.
+        $sku = Sku::factory()->create([
+            'upc' => '03062557539',
+        ]);
+
+        $result = $this->matcher->match('030625575393', $this->business->id);
+
+        $this->assertCount(1, $result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_UPC_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
+    }
+
+    public function test_matches_when_scanner_prepended_zero_and_stored_upc_missing_check_digit(): void
+    {
+        // Real-world Sempertex case: scanner emitted 13-digit EAN-13 with a
+        // country-code zero, and the stored UPC is 11 digits because the
+        // importer dropped the check digit.
+        $sku = Sku::factory()->create([
+            'upc' => '03062557539',
+        ]);
+
+        $result = $this->matcher->match('0030625575393', $this->business->id);
+
+        $this->assertNotEmpty($result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_UPC_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
+    }
+
+    public function test_matches_when_stored_ean_is_missing_its_check_digit(): void
+    {
+        $sku = Sku::factory()->create([
+            'upc' => null,
+            'ean' => '400638133393',
+        ]);
+
+        $result = $this->matcher->match('4006381333931', $this->business->id);
+
+        $this->assertCount(1, $result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_EAN_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
+    }
+
+    public function test_check_digit_strip_is_skipped_for_short_scans(): void
+    {
+        // A scan of 8 digits or fewer should not produce a 7-or-shorter needle
+        // — too easy to collide with unrelated SKUs.
+        Sku::factory()->create(['upc' => '1234567']);
+
+        $result = $this->matcher->match('12345678', $this->business->id);
+
+        $this->assertSame([], $result['candidates']);
+    }
+
     public function test_gs1_prefix_match_handles_scanner_prepended_leading_zero(): void
     {
         // Regression: a scanner read Sempertex's 12-digit UPC-A as a 13-digit

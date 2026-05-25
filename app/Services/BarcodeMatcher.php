@@ -20,6 +20,12 @@ class BarcodeMatcher
     /** Match against `sku.ean` after normalizing a leading zero on either side. */
     public const MATCH_EAN_LEADING_ZERO = 'ean_leading_zero';
 
+    /** Match against `sku.upc` after dropping the trailing check digit from the scan. */
+    public const MATCH_UPC_MISSING_CHECK_DIGIT = 'upc_missing_check_digit';
+
+    /** Match against `sku.ean` after dropping the trailing check digit from the scan. */
+    public const MATCH_EAN_MISSING_CHECK_DIGIT = 'ean_missing_check_digit';
+
     /** Exact match against `sku.asin` (alphanumeric, raw input). */
     public const MATCH_ASIN_EXACT = 'asin_exact';
 
@@ -32,12 +38,17 @@ class BarcodeMatcher
     /** Scan starts with a brand's GS1 prefix and contains the SKU's `asin`. */
     public const MATCH_GS1_ASIN = 'gs1_asin';
 
+    /** Minimum digit length (post-strip) required for the check-digit fallback to fire. */
+    private const MIN_CHECK_DIGIT_STRIP_LENGTH = 8;
+
     /** @var array<string,int> */
     private const SCORES = [
         self::MATCH_UPC_EXACT => 100,
         self::MATCH_EAN_EXACT => 95,
         self::MATCH_UPC_LEADING_ZERO => 90,
         self::MATCH_EAN_LEADING_ZERO => 85,
+        self::MATCH_UPC_MISSING_CHECK_DIGIT => 80,
+        self::MATCH_EAN_MISSING_CHECK_DIGIT => 78,
         self::MATCH_ASIN_EXACT => 75,
         self::MATCH_GS1_WAREHOUSE_SKU => 60,
         self::MATCH_GS1_MFG_NO => 60,
@@ -52,8 +63,11 @@ class BarcodeMatcher
      *   2. Leading-zero variants — scanners sometimes prepend a zero (turning a
      *      12-digit UPC-A into a 13-digit EAN-13) or the database may store
      *      `'0' + upc` in the `ean` column. Both directions are checked.
-     *   3. Exact `asin` match (raw input, since ASINs are alphanumeric).
-     *   4. Brand GS1 prefix match: if the scanned digits start with a known
+     *   3. Missing-check-digit variants — some imports dropped the trailing
+     *      check digit. The scan minus its last digit (and each leading-zero
+     *      variant minus its last digit) is matched against `upc` / `ean`.
+     *   4. Exact `asin` match (raw input, since ASINs are alphanumeric).
+     *   5. Brand GS1 prefix match: if the scanned digits start with a known
      *      brand's GS1 company prefix, look for SKUs under that brand whose
      *      `warehouse_sku`, `mfg_no`, or `asin` is contained in the remainder
      *      of the scanned digits.
@@ -85,6 +99,16 @@ class BarcodeMatcher
             if ($leadingZeroVariants !== []) {
                 $this->collectExactColumnMatches($hits, $businessId, 'upc', $leadingZeroVariants, self::MATCH_UPC_LEADING_ZERO);
                 $this->collectExactColumnMatches($hits, $businessId, 'ean', $leadingZeroVariants, self::MATCH_EAN_LEADING_ZERO);
+            }
+
+            // Some import paths dropped the trailing check digit. Try every
+            // digit form with its last digit stripped. Guarded by a minimum
+            // length so a short scan can't collapse to a 1-2 char needle that
+            // matches half the catalog.
+            $missingCheckDigitVariants = $this->missingCheckDigitVariants($normalized, $leadingZeroVariants);
+            if ($missingCheckDigitVariants !== []) {
+                $this->collectExactColumnMatches($hits, $businessId, 'upc', $missingCheckDigitVariants, self::MATCH_UPC_MISSING_CHECK_DIGIT);
+                $this->collectExactColumnMatches($hits, $businessId, 'ean', $missingCheckDigitVariants, self::MATCH_EAN_MISSING_CHECK_DIGIT);
             }
         }
 
@@ -133,6 +157,29 @@ class BarcodeMatcher
         // Scanner emitted bare UPC-A (12 digits) — try the EAN-13 form (0 + UPC).
         if (strlen($digits) === 12) {
             $variants[] = '0'.$digits;
+        }
+
+        return array_values(array_unique($variants));
+    }
+
+    /**
+     * Drop the trailing digit from every supplied digit form. Used to match
+     * SKUs whose stored UPC/EAN lost its check digit during import (e.g.
+     * spreadsheet truncation). Results below the minimum-length threshold are
+     * discarded so a short scan can't collapse into a near-empty needle.
+     *
+     * @param  array<int, string>  $extras
+     * @return array<int, string>
+     */
+    private function missingCheckDigitVariants(string $normalized, array $extras): array
+    {
+        $variants = [];
+
+        foreach ([$normalized, ...$extras] as $form) {
+            if (strlen($form) <= self::MIN_CHECK_DIGIT_STRIP_LENGTH) {
+                continue;
+            }
+            $variants[] = substr($form, 0, -1);
         }
 
         return array_values(array_unique($variants));

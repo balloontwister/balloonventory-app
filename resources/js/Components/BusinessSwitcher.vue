@@ -4,7 +4,8 @@ import { Link, router } from '@inertiajs/vue3';
 import RoleBadge from '@/Components/RoleBadge.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 
-const { business, businesses, userRole, businessColor, businessLogoUrl } = useBusiness();
+const { business, businesses, userRole, businessColor, businessLogoUrl } =
+    useBusiness();
 
 const open = ref(false);
 

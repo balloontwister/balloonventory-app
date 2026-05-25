@@ -22,31 +22,31 @@ defineProps({
                     button-class="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
                 />
                 <nav v-if="canLogin" class="flex items-center gap-3">
-                <Link
-                    v-if="$page.props.auth.user"
-                    :href="route('dashboard')"
-                    class="rounded-md px-4 py-2 font-sans text-[14px] font-medium text-ink-primary transition hover:text-ink-secondary"
-                >
-                    {{ $t('welcome.nav.dashboard') }}
-                </Link>
-
-                <template v-else>
                     <Link
-                        :href="route('login')"
-                        class="rounded-md px-4 py-2 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
+                        v-if="$page.props.auth.user"
+                        :href="route('dashboard')"
+                        class="rounded-md px-4 py-2 font-sans text-[14px] font-medium text-ink-primary transition hover:text-ink-secondary"
                     >
-                        {{ $t('welcome.nav.log_in') }}
+                        {{ $t('welcome.nav.dashboard') }}
                     </Link>
 
-                    <Link
-                        v-if="canRegister"
-                        :href="route('register')"
-                        class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-medium text-accent-on transition hover:bg-accent-hover"
-                    >
-                        {{ $t('welcome.nav.get_started') }}
-                    </Link>
-                </template>
-            </nav>
+                    <template v-else>
+                        <Link
+                            :href="route('login')"
+                            class="rounded-md px-4 py-2 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
+                        >
+                            {{ $t('welcome.nav.log_in') }}
+                        </Link>
+
+                        <Link
+                            v-if="canRegister"
+                            :href="route('register')"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-medium text-accent-on transition hover:bg-accent-hover"
+                        >
+                            {{ $t('welcome.nav.get_started') }}
+                        </Link>
+                    </template>
+                </nav>
             </div>
         </header>
 

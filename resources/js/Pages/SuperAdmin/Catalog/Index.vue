@@ -52,10 +52,34 @@ function applyFilters() {
     }, 350);
 }
 
-watch([search, brand, size, shape, textureFamily, colorFamily, material, theme, printed], applyFilters);
+watch(
+    [
+        search,
+        brand,
+        size,
+        shape,
+        textureFamily,
+        colorFamily,
+        material,
+        theme,
+        printed,
+    ],
+    applyFilters,
+);
 
 const hasActiveFilters = computed(
-    () => !!(search.value || brand.value || size.value || shape.value || textureFamily.value || colorFamily.value || material.value || theme.value || printed.value),
+    () =>
+        !!(
+            search.value ||
+            brand.value ||
+            size.value ||
+            shape.value ||
+            textureFamily.value ||
+            colorFamily.value ||
+            material.value ||
+            theme.value ||
+            printed.value
+        ),
 );
 
 function resetFilters() {
@@ -88,7 +112,6 @@ function destroy(sku) {
         preserveScroll: true,
     });
 }
-
 </script>
 
 <template>
@@ -203,7 +226,11 @@ function destroy(sku) {
                 <option value="">
                     {{ $t('catalog.skus.filter_all_textures') }}
                 </option>
-                <option v-for="tf in textureFamilies" :key="tf.id" :value="tf.id">
+                <option
+                    v-for="tf in textureFamilies"
+                    :key="tf.id"
+                    :value="tf.id"
+                >
                     {{ tf.name }}
                 </option>
             </select>

@@ -58,7 +58,10 @@ const submit = () => form.patch(route('settings.preferences.update'));
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink :href="route('account.index')" :label="$t('nav.account')" />
+            <BackLink
+                :href="route('account.index')"
+                :label="$t('nav.account')"
+            />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >

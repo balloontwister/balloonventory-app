@@ -23,7 +23,10 @@ const submitAvatar = () =>
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink :href="route('account.index')" :label="$t('nav.account')" />
+            <BackLink
+                :href="route('account.index')"
+                :label="$t('nav.account')"
+            />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >
@@ -65,7 +68,11 @@ const submitAvatar = () =>
                         <div class="flex items-center gap-4">
                             <button
                                 type="button"
-                                :disabled="avatarForm.processing || (!avatarForm.avatar && !avatarForm.avatar_clear)"
+                                :disabled="
+                                    avatarForm.processing ||
+                                    (!avatarForm.avatar &&
+                                        !avatarForm.avatar_clear)
+                                "
                                 class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
                                 @click="submitAvatar"
                             >

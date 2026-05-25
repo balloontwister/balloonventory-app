@@ -18,10 +18,16 @@ const props = defineProps({
     reorderQuantity: { type: [Number, String], default: null },
 });
 
-const displayName = computed(() => props.override?.custom_name || props.sku.name);
+const displayName = computed(
+    () => props.override?.custom_name || props.sku.name,
+);
 
-const totalFullBags = computed(() => props.stockLevels.reduce((sum, l) => sum + (l.full_bags ?? 0), 0));
-const totalOpenBags = computed(() => props.stockLevels.reduce((sum, l) => sum + (l.open_bags ?? 0), 0));
+const totalFullBags = computed(() =>
+    props.stockLevels.reduce((sum, l) => sum + (l.full_bags ?? 0), 0),
+);
+const totalOpenBags = computed(() =>
+    props.stockLevels.reduce((sum, l) => sum + (l.open_bags ?? 0), 0),
+);
 
 const overrideForm = useForm({
     custom_name: props.override?.custom_name ?? '',
@@ -58,9 +64,12 @@ function movementSummary(movement) {
 
 function formatDate(value) {
     if (!value) return '—';
-    return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(value).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
 }
-
 </script>
 
 <template>
@@ -68,11 +77,13 @@ function formatDate(value) {
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink :href="route('inventory.index')" :label="$t('inventory.show.back')" />
+            <BackLink
+                :href="route('inventory.index')"
+                :label="$t('inventory.show.back')"
+            />
         </template>
 
         <div class="mx-auto max-w-2xl space-y-8">
-
             <!-- SKU header -->
             <div class="flex items-start gap-3">
                 <span
@@ -81,15 +92,24 @@ function formatDate(value) {
                     :style="{ backgroundColor: sku.color.color_hex }"
                 />
                 <div class="min-w-0 flex-1">
-                    <h1 class="font-display text-[22px] font-semibold text-ink-primary">
+                    <h1
+                        class="font-display text-[22px] font-semibold text-ink-primary"
+                    >
                         {{ displayName }}
                     </h1>
-                    <p v-if="override?.custom_name" class="mt-0.5 font-sans text-[13px] text-ink-tertiary">
+                    <p
+                        v-if="override?.custom_name"
+                        class="mt-0.5 font-sans text-[13px] text-ink-tertiary"
+                    >
                         Catalog name: {{ sku.name }}
                     </p>
-                    <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-sans text-[13px] text-ink-secondary">
+                    <div
+                        class="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-sans text-[13px] text-ink-secondary"
+                    >
                         <span v-if="sku.brand">{{ sku.brand.name }}</span>
-                        <span v-if="sku.balloon_size">{{ sku.balloon_size.name }}</span>
+                        <span v-if="sku.balloon_size">{{
+                            sku.balloon_size.name
+                        }}</span>
                         <span v-if="sku.color">{{ sku.color.name }}</span>
                         <span v-if="sku.material">{{ sku.material.name }}</span>
                     </div>
@@ -104,13 +124,23 @@ function formatDate(value) {
 
             <!-- Stock section -->
             <section>
-                <h2 class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
                     {{ $t('inventory.show.section_stock') }}
                 </h2>
                 <div class="flex items-center gap-4">
-                    <StockBadge :full-bags="totalFullBags" :open-bags="totalOpenBags" />
+                    <StockBadge
+                        :full-bags="totalFullBags"
+                        :open-bags="totalOpenBags"
+                    />
                     <span class="font-sans text-[13px] text-ink-secondary">
-                        across {{ stockLevels.length === 1 ? '1 bin' : `${stockLevels.length} bins` }}
+                        across
+                        {{
+                            stockLevels.length === 1
+                                ? '1 bin'
+                                : `${stockLevels.length} bins`
+                        }}
                     </span>
                 </div>
 
@@ -126,42 +156,72 @@ function formatDate(value) {
                             <span class="mx-1 text-ink-tertiary">/</span>
                             {{ level.bin?.name ?? 'Default' }}
                         </span>
-                        <StockBadge :full-bags="level.full_bags ?? 0" :open-bags="level.open_bags ?? 0" />
+                        <StockBadge
+                            :full-bags="level.full_bags ?? 0"
+                            :open-bags="level.open_bags ?? 0"
+                        />
                     </div>
                 </div>
 
                 <!-- Reorder quantity from Favorites -->
-                <div v-if="reorderQuantity !== null" class="mt-3 flex items-center gap-2">
-                    <span class="font-sans text-[13px] text-ink-secondary">{{ $t('inventory.show.reorder_label') }}:</span>
-                    <span class="font-mono text-[13px] font-medium text-ink-primary">{{ reorderQuantity }}</span>
-                    <span class="font-sans text-[12px] text-ink-tertiary">— {{ $t('inventory.show.reorder_hint') }}</span>
+                <div
+                    v-if="reorderQuantity !== null"
+                    class="mt-3 flex items-center gap-2"
+                >
+                    <span class="font-sans text-[13px] text-ink-secondary"
+                        >{{ $t('inventory.show.reorder_label') }}:</span
+                    >
+                    <span
+                        class="font-mono text-[13px] font-medium text-ink-primary"
+                        >{{ reorderQuantity }}</span
+                    >
+                    <span class="font-sans text-[12px] text-ink-tertiary"
+                        >— {{ $t('inventory.show.reorder_hint') }}</span
+                    >
                 </div>
             </section>
 
             <!-- Override / customizations section -->
             <section>
-                <h2 class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
                     {{ $t('inventory.show.section_override') }}
                 </h2>
 
-                <form @submit.prevent="saveOverride" class="flex flex-col gap-4">
+                <form
+                    @submit.prevent="saveOverride"
+                    class="flex flex-col gap-4"
+                >
                     <!-- Custom name -->
                     <div class="flex flex-col gap-1">
                         <label
                             for="custom-name"
                             class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
-                            {{ $t('inventory.show.override_custom_name_label') }}
+                            {{
+                                $t('inventory.show.override_custom_name_label')
+                            }}
                         </label>
                         <input
                             id="custom-name"
                             v-model="overrideForm.custom_name"
                             type="text"
-                            :placeholder="$t('inventory.show.override_custom_name_placeholder')"
+                            :placeholder="
+                                $t(
+                                    'inventory.show.override_custom_name_placeholder',
+                                )
+                            "
                             class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                            :class="{ 'border-danger focus:border-danger focus:ring-danger-soft': overrideForm.errors.custom_name }"
+                            :class="{
+                                'border-danger focus:border-danger focus:ring-danger-soft':
+                                    overrideForm.errors.custom_name,
+                            }"
                         />
-                        <p v-if="overrideForm.errors.custom_name" class="font-sans text-[13px] text-danger">
+                        <p
+                            v-if="overrideForm.errors.custom_name"
+                            class="font-sans text-[13px] text-danger"
+                        >
                             {{ overrideForm.errors.custom_name }}
                         </p>
                     </div>
@@ -182,15 +242,28 @@ function formatDate(value) {
                                 placeholder="#RRGGBB"
                                 maxlength="7"
                                 class="w-32 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                :class="{ 'border-danger focus:border-danger focus:ring-danger-soft': overrideForm.errors.custom_color_hex }"
+                                :class="{
+                                    'border-danger focus:border-danger focus:ring-danger-soft':
+                                        overrideForm.errors.custom_color_hex,
+                                }"
                             />
                             <span
-                                v-if="overrideForm.custom_color_hex?.match(/^#[0-9a-fA-F]{6}$/)"
+                                v-if="
+                                    overrideForm.custom_color_hex?.match(
+                                        /^#[0-9a-fA-F]{6}$/,
+                                    )
+                                "
                                 class="inline-block h-7 w-7 rounded ring-1 ring-inset ring-black/10"
-                                :style="{ backgroundColor: overrideForm.custom_color_hex }"
+                                :style="{
+                                    backgroundColor:
+                                        overrideForm.custom_color_hex,
+                                }"
                             />
                         </div>
-                        <p v-if="overrideForm.errors.custom_color_hex" class="font-sans text-[13px] text-danger">
+                        <p
+                            v-if="overrideForm.errors.custom_color_hex"
+                            class="font-sans text-[13px] text-danger"
+                        >
                             {{ overrideForm.errors.custom_color_hex }}
                         </p>
                     </div>
@@ -207,11 +280,19 @@ function formatDate(value) {
                             id="notes"
                             v-model="overrideForm.notes"
                             rows="3"
-                            :placeholder="$t('inventory.show.override_notes_placeholder')"
+                            :placeholder="
+                                $t('inventory.show.override_notes_placeholder')
+                            "
                             class="resize-y rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                            :class="{ 'border-danger focus:border-danger focus:ring-danger-soft': overrideForm.errors.notes }"
+                            :class="{
+                                'border-danger focus:border-danger focus:ring-danger-soft':
+                                    overrideForm.errors.notes,
+                            }"
                         />
-                        <p v-if="overrideForm.errors.notes" class="font-sans text-[13px] text-danger">
+                        <p
+                            v-if="overrideForm.errors.notes"
+                            class="font-sans text-[13px] text-danger"
+                        >
                             {{ overrideForm.errors.notes }}
                         </p>
                     </div>
@@ -230,15 +311,23 @@ function formatDate(value) {
 
             <!-- Recent activity section -->
             <section>
-                <h2 class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
                     {{ $t('inventory.show.section_history') }}
                 </h2>
 
-                <p v-if="recentMovements.length === 0" class="font-sans text-[14px] text-ink-tertiary">
+                <p
+                    v-if="recentMovements.length === 0"
+                    class="font-sans text-[14px] text-ink-tertiary"
+                >
                     {{ $t('inventory.show.history_no_activity') }}
                 </p>
 
-                <div v-else class="overflow-hidden rounded-lg border border-border">
+                <div
+                    v-else
+                    class="overflow-hidden rounded-lg border border-border"
+                >
                     <table class="w-full">
                         <tbody class="divide-y divide-border">
                             <tr
@@ -246,21 +335,31 @@ function formatDate(value) {
                                 :key="movement.id"
                                 class="px-3 py-3"
                             >
-                                <td class="px-3 py-2.5 font-sans text-[13px] text-ink-secondary">
+                                <td
+                                    class="px-3 py-2.5 font-sans text-[13px] text-ink-secondary"
+                                >
                                     {{ formatDate(movement.created_at) }}
                                 </td>
                                 <td class="px-3 py-2.5">
-                                    <span class="font-sans text-[13px] font-medium text-ink-primary">
+                                    <span
+                                        class="font-sans text-[13px] font-medium text-ink-primary"
+                                    >
                                         {{ directionLabel(movement.direction) }}
                                     </span>
                                 </td>
-                                <td class="px-3 py-2.5 font-mono text-[13px] text-ink-secondary">
+                                <td
+                                    class="px-3 py-2.5 font-mono text-[13px] text-ink-secondary"
+                                >
                                     {{ movementSummary(movement) }}
                                 </td>
-                                <td class="px-3 py-2.5 font-sans text-[13px] text-ink-secondary">
+                                <td
+                                    class="px-3 py-2.5 font-sans text-[13px] text-ink-secondary"
+                                >
                                     {{ movement.user?.name ?? '—' }}
                                 </td>
-                                <td class="px-3 py-2.5 font-sans text-[13px] text-ink-tertiary">
+                                <td
+                                    class="px-3 py-2.5 font-sans text-[13px] text-ink-tertiary"
+                                >
                                     {{ movement.notes ?? '' }}
                                 </td>
                             </tr>

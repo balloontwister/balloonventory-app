@@ -22,7 +22,9 @@ const props = defineProps({
 
         <div class="mb-6">
             <BackLink
-                :href="route('super-admin.catalog.colors') + '#color-' + color.id"
+                :href="
+                    route('super-admin.catalog.colors') + '#color-' + color.id
+                "
                 :label="$t('catalog.tabs.colors')"
             />
         </div>
@@ -57,9 +59,7 @@ const props = defineProps({
                 </div>
 
                 <Link
-                    :href="
-                        route('super-admin.catalog.colors.edit', color.id)
-                    "
+                    :href="route('super-admin.catalog.colors.edit', color.id)"
                     class="shrink-0 rounded-md border border-border px-4 py-2 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                 >
                     {{ $t('catalog.actions.edit') }}
@@ -83,10 +83,7 @@ const props = defineProps({
                         class="h-48 w-48 rounded-lg object-contain ring-1 ring-inset ring-border"
                     />
                 </div>
-                <div
-                    v-if="color.cluster_image_url"
-                    class="flex flex-col gap-1"
-                >
+                <div v-if="color.cluster_image_url" class="flex flex-col gap-1">
                     <span
                         class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
                     >

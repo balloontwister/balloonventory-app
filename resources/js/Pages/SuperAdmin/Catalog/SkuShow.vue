@@ -118,128 +118,207 @@ const props = defineProps({
             </div>
 
             <!-- Details -->
-            <dl class="mb-6 divide-y divide-border rounded-lg border border-border">
+            <dl
+                class="mb-6 divide-y divide-border rounded-lg border border-border"
+            >
                 <div
                     v-if="sku.warehouse_sku"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.warehouse_sku') }}</dt>
-                    <dd class="font-mono text-[13px] text-ink-primary">{{ sku.warehouse_sku }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.warehouse_sku') }}
+                    </dt>
+                    <dd class="font-mono text-[13px] text-ink-primary">
+                        {{ sku.warehouse_sku }}
+                    </dd>
                 </div>
-                <div
-                    v-if="sku.upc"
-                    class="flex items-center gap-3 px-4 py-3"
-                >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.upc') }}</dt>
-                    <dd class="font-mono text-[13px] text-ink-primary">{{ sku.upc }}</dd>
+                <div v-if="sku.upc" class="flex items-center gap-3 px-4 py-3">
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.upc') }}
+                    </dt>
+                    <dd class="font-mono text-[13px] text-ink-primary">
+                        {{ sku.upc }}
+                    </dd>
                 </div>
-                <div
-                    v-if="sku.ean"
-                    class="flex items-center gap-3 px-4 py-3"
-                >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.ean') }}</dt>
-                    <dd class="font-mono text-[13px] text-ink-primary">{{ sku.ean }}</dd>
+                <div v-if="sku.ean" class="flex items-center gap-3 px-4 py-3">
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.ean') }}
+                    </dt>
+                    <dd class="font-mono text-[13px] text-ink-primary">
+                        {{ sku.ean }}
+                    </dd>
                 </div>
-                <div
-                    v-if="sku.asin"
-                    class="flex items-center gap-3 px-4 py-3"
-                >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.asin') }}</dt>
-                    <dd class="font-mono text-[13px] text-ink-primary">{{ sku.asin }}</dd>
+                <div v-if="sku.asin" class="flex items-center gap-3 px-4 py-3">
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.asin') }}
+                    </dt>
+                    <dd class="font-mono text-[13px] text-ink-primary">
+                        {{ sku.asin }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.mfg_no"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.mfg_no') }}</dt>
-                    <dd class="font-mono text-[13px] text-ink-primary">{{ sku.mfg_no }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.mfg_no') }}
+                    </dt>
+                    <dd class="font-mono text-[13px] text-ink-primary">
+                        {{ sku.mfg_no }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.material"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.material') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.material.name }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.material') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.material.name }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.balloon_size"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.size') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.balloon_size.name }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.size') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.balloon_size.name }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.balloon_size?.shape"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.shape') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.balloon_size.shape.name }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.shape') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.balloon_size.shape.name }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.color?.texture"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.texture') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.color.texture.name }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.texture') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.color.texture.name }}
+                    </dd>
                 </div>
-                <div
-                    v-if="sku.color"
-                    class="flex items-center gap-3 px-4 py-3"
-                >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.color') }}</dt>
+                <div v-if="sku.color" class="flex items-center gap-3 px-4 py-3">
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.color') }}
+                    </dt>
                     <dd class="flex items-center gap-2">
                         <span
                             v-if="sku.color.color_hex"
                             class="h-4 w-4 rounded-sm ring-1 ring-inset ring-black/10"
                             :style="{ backgroundColor: sku.color.color_hex }"
                         />
-                        <span class="font-sans text-[13px] text-ink-primary">{{ sku.color.name }}</span>
+                        <span class="font-sans text-[13px] text-ink-primary">{{
+                            sku.color.name
+                        }}</span>
                     </dd>
                 </div>
                 <div
                     v-if="sku.packaging_type"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.packaging') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.packaging_type.name }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.packaging') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.packaging_type.name }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.price_code"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.price_code') }}</dt>
-                    <dd class="font-mono text-[13px] text-ink-primary">{{ sku.price_code.code }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.price_code') }}
+                    </dt>
+                    <dd class="font-mono text-[13px] text-ink-primary">
+                        {{ sku.price_code.code }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.default_count_per_bag"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.count_per_bag') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.default_count_per_bag }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.count_per_bag') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.default_count_per_bag }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.product_version"
                     class="flex items-center gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.version') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.product_version }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.version') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.product_version }}
+                    </dd>
                 </div>
                 <div
                     v-if="sku.description"
                     class="flex items-start gap-3 px-4 py-3"
                 >
-                    <dt class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary">{{ $t('catalog.sku_show.description') }}</dt>
-                    <dd class="font-sans text-[13px] text-ink-primary">{{ sku.description }}</dd>
+                    <dt
+                        class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
+                    >
+                        {{ $t('catalog.sku_show.description') }}
+                    </dt>
+                    <dd class="font-sans text-[13px] text-ink-primary">
+                        {{ sku.description }}
+                    </dd>
                 </div>
             </dl>
 
             <!-- Print details -->
             <template v-if="sku.is_printed">
-                <div
-                    v-if="sku.themes?.length"
-                    class="mb-4"
-                >
-                    <h3 class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <div v-if="sku.themes?.length" class="mb-4">
+                    <h3
+                        class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
                         {{ $t('catalog.sku_show.themes') }}
                     </h3>
                     <div class="flex flex-wrap gap-2">
@@ -252,11 +331,10 @@ const props = defineProps({
                         </span>
                     </div>
                 </div>
-                <div
-                    v-if="sku.print_colors?.length"
-                    class="mb-4"
-                >
-                    <h3 class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <div v-if="sku.print_colors?.length" class="mb-4">
+                    <h3
+                        class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
                         {{ $t('catalog.sku_show.print_colors') }}
                     </h3>
                     <div class="flex flex-wrap gap-2">
@@ -269,11 +347,10 @@ const props = defineProps({
                         </span>
                     </div>
                 </div>
-                <div
-                    v-if="sku.print_sides?.length"
-                    class="mb-4"
-                >
-                    <h3 class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <div v-if="sku.print_sides?.length" class="mb-4">
+                    <h3
+                        class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
                         {{ $t('catalog.sku_show.print_sides') }}
                     </h3>
                     <div class="flex flex-wrap gap-2">

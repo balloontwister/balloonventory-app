@@ -28,7 +28,8 @@ const isEdit = computed(() => !!props.sku);
 // On edit, derive the initial shape from the balloon size already selected.
 const selectedShape = ref(
     props.sku?.balloon_size_id
-        ? (props.balloonSizes.find((bs) => bs.id === props.sku.balloon_size_id)?.shape_id ?? '')
+        ? (props.balloonSizes.find((bs) => bs.id === props.sku.balloon_size_id)
+              ?.shape_id ?? '')
         : '',
 );
 
@@ -65,7 +66,9 @@ const form = useForm({
 watch(
     () => form.brand_id,
     (newBrand) => {
-        const selectedColor = allColors.value.find((c) => c.id === form.color_id);
+        const selectedColor = allColors.value.find(
+            (c) => c.id === form.color_id,
+        );
         if (
             selectedColor &&
             selectedColor.brand_id &&
@@ -117,8 +120,10 @@ const availableShapes = computed(() => {
     const shapeIds = new Set(
         props.balloonSizes
             .filter((bs) => {
-                if (form.brand_id && bs.brand_id !== form.brand_id) return false;
-                if (form.material_id && bs.material_id !== form.material_id) return false;
+                if (form.brand_id && bs.brand_id !== form.brand_id)
+                    return false;
+                if (form.material_id && bs.material_id !== form.material_id)
+                    return false;
                 return true;
             })
             .map((bs) => bs.shape_id),
@@ -130,8 +135,10 @@ const availableShapes = computed(() => {
 const filteredBalloonSizes = computed(() => {
     return props.balloonSizes.filter((bs) => {
         if (form.brand_id && bs.brand_id !== form.brand_id) return false;
-        if (form.material_id && bs.material_id !== form.material_id) return false;
-        if (selectedShape.value && bs.shape_id !== selectedShape.value) return false;
+        if (form.material_id && bs.material_id !== form.material_id)
+            return false;
+        if (selectedShape.value && bs.shape_id !== selectedShape.value)
+            return false;
         return true;
     });
 });
@@ -205,10 +212,18 @@ const selectClass =
         <template #header>
             <div class="flex items-center gap-3">
                 <Link
-                    :href="isEdit ? route('super-admin.catalog.skus.show', sku.id) : route('super-admin.catalog.skus')"
+                    :href="
+                        isEdit
+                            ? route('super-admin.catalog.skus.show', sku.id)
+                            : route('super-admin.catalog.skus')
+                    "
                     class="font-sans text-[14px] text-ink-secondary hover:text-ink-primary"
                 >
-                    {{ isEdit ? sku.name : $t('catalog.sku_form.back_to_catalog') }}
+                    {{
+                        isEdit
+                            ? sku.name
+                            : $t('catalog.sku_form.back_to_catalog')
+                    }}
                 </Link>
                 <span class="text-ink-tertiary">/</span>
                 <h1
@@ -342,12 +357,13 @@ const selectClass =
                                     id="mfg_no"
                                     v-model="form.mfg_no"
                                     :placeholder="
-                                        $t('catalog.sku_form.mfg_no_placeholder')
+                                        $t(
+                                            'catalog.sku_form.mfg_no_placeholder',
+                                        )
                                     "
                                     :error="form.errors.mfg_no"
                                 />
                             </div>
-
                         </div>
                     </div>
 
@@ -398,7 +414,9 @@ const selectClass =
                                 </label>
                                 <select
                                     v-model="selectedShape"
-                                    :disabled="!form.brand_id || !form.material_id"
+                                    :disabled="
+                                        !form.brand_id || !form.material_id
+                                    "
                                     :class="selectClass"
                                 >
                                     <option value="">
@@ -419,11 +437,17 @@ const selectClass =
                                 <label
                                     class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                                 >
-                                    {{ $t('catalog.sku_form.balloon_size_label') }}
+                                    {{
+                                        $t(
+                                            'catalog.sku_form.balloon_size_label',
+                                        )
+                                    }}
                                 </label>
                                 <select
                                     v-model="form.balloon_size_id"
-                                    :disabled="!form.brand_id || !form.material_id"
+                                    :disabled="
+                                        !form.brand_id || !form.material_id
+                                    "
                                     :class="selectClass"
                                 >
                                     <option value="">
@@ -519,10 +543,7 @@ const selectClass =
                                 >
                                     {{ $t('catalog.sku_form.texture_label') }}
                                 </label>
-                                <div
-                                    :class="selectClass"
-                                    class="opacity-60"
-                                >
+                                <div :class="selectClass" class="opacity-60">
                                     {{ derivedTexture.name }}
                                 </div>
                             </div>
@@ -601,7 +622,9 @@ const selectClass =
                             <h3
                                 class="mb-1 font-sans text-[13px] font-semibold text-ink-primary"
                             >
-                                {{ $t('catalog.sku_form.print_colors_heading') }}
+                                {{
+                                    $t('catalog.sku_form.print_colors_heading')
+                                }}
                             </h3>
                             <p
                                 class="mb-3 font-sans text-[13px] text-ink-secondary"
@@ -693,9 +716,7 @@ const selectClass =
                                     class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                                 >
                                     {{
-                                        $t(
-                                            'catalog.sku_form.price_code_label',
-                                        )
+                                        $t('catalog.sku_form.price_code_label')
                                     }}
                                 </label>
                                 <select
@@ -741,11 +762,7 @@ const selectClass =
                                 <label
                                     class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                                 >
-                                    {{
-                                        $t(
-                                            'catalog.sku_form.packaging_label',
-                                        )
-                                    }}
+                                    {{ $t('catalog.sku_form.packaging_label') }}
                                 </label>
                                 <select
                                     v-model="form.packaging_id"
@@ -773,9 +790,7 @@ const selectClass =
                             <!-- Product version -->
                             <AppInput
                                 :label="
-                                    $t(
-                                        'catalog.sku_form.product_version_label',
-                                    )
+                                    $t('catalog.sku_form.product_version_label')
                                 "
                                 id="product_version"
                                 v-model="form.product_version"
@@ -827,11 +842,7 @@ const selectClass =
                             <label
                                 class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                             >
-                                {{
-                                    $t(
-                                        'catalog.sku_form.description_label',
-                                    )
-                                }}
+                                {{ $t('catalog.sku_form.description_label') }}
                             </label>
                             <textarea
                                 id="description"
@@ -863,9 +874,7 @@ const selectClass =
                         <div class="flex flex-col gap-4">
                             <ImageUpload
                                 :label="
-                                    $t(
-                                        'catalog.sku_form.single_image_label',
-                                    )
+                                    $t('catalog.sku_form.single_image_label')
                                 "
                                 v-model:file="form.single_image"
                                 v-model:clear="form.single_image_clear"
@@ -874,9 +883,7 @@ const selectClass =
                             />
                             <ImageUpload
                                 :label="
-                                    $t(
-                                        'catalog.sku_form.cluster_image_label',
-                                    )
+                                    $t('catalog.sku_form.cluster_image_label')
                                 "
                                 v-model:file="form.cluster_image"
                                 v-model:clear="form.cluster_image_clear"
@@ -903,7 +910,14 @@ const selectClass =
                             }}
                         </AppButton>
                         <Link
-                            :href="isEdit ? route('super-admin.catalog.skus.show', sku.id) : route('super-admin.catalog.skus')"
+                            :href="
+                                isEdit
+                                    ? route(
+                                          'super-admin.catalog.skus.show',
+                                          sku.id,
+                                      )
+                                    : route('super-admin.catalog.skus')
+                            "
                         >
                             <AppButton
                                 variant="secondary"

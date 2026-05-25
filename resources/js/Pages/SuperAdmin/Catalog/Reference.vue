@@ -779,7 +779,8 @@ const selectClass =
                                             "
                                             v-model="editForm.alt_imperial_name"
                                             :error="
-                                                editForm.errors.alt_imperial_name
+                                                editForm.errors
+                                                    .alt_imperial_name
                                             "
                                         />
                                     </div>
@@ -993,12 +994,14 @@ const selectClass =
                                         </select>
                                         <p
                                             v-if="
-                                                editForm.errors.texture_family_id
+                                                editForm.errors
+                                                    .texture_family_id
                                             "
                                             class="mt-1 font-sans text-[13px] text-danger"
                                         >
                                             {{
-                                                editForm.errors.texture_family_id
+                                                editForm.errors
+                                                    .texture_family_id
                                             }}
                                         </p>
                                     </div>
@@ -1145,7 +1148,9 @@ const selectClass =
                                     <div v-if="hasCluster" class="w-72">
                                         <ImageUpload
                                             label="Cluster"
-                                            v-model:file="editForm.cluster_image"
+                                            v-model:file="
+                                                editForm.cluster_image
+                                            "
                                             v-model:clear="
                                                 editForm.cluster_image_clear
                                             "

@@ -39,10 +39,17 @@ function submit() {
 }
 
 const filteredTextures = computed(() =>
-    form.brand_id ? props.textures.filter((t) => t.brand_id === form.brand_id) : [],
+    form.brand_id
+        ? props.textures.filter((t) => t.brand_id === form.brand_id)
+        : [],
 );
 
-watch(() => form.brand_id, () => { form.texture_id = ''; });
+watch(
+    () => form.brand_id,
+    () => {
+        form.texture_id = '';
+    },
+);
 
 const selectClass =
     'w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft';
@@ -117,7 +124,11 @@ const selectClass =
                         >
                             {{ $t('catalog.colors.brand_label') }}
                         </label>
-                        <select v-model="form.brand_id" required :class="selectClass">
+                        <select
+                            v-model="form.brand_id"
+                            required
+                            :class="selectClass"
+                        >
                             <option value="">
                                 {{ $t('catalog.colors.select_placeholder') }}
                             </option>
@@ -142,7 +153,11 @@ const selectClass =
                         >
                             {{ $t('catalog.colors.texture_label') }}
                         </label>
-                        <select v-model="form.texture_id" required :class="selectClass">
+                        <select
+                            v-model="form.texture_id"
+                            required
+                            :class="selectClass"
+                        >
                             <option value="">
                                 {{ $t('catalog.colors.select_placeholder') }}
                             </option>
@@ -224,7 +239,9 @@ const selectClass =
                         }}
                     </AppButton>
                     <Link
-                        :href="route('super-admin.catalog.colors.show', color.id)"
+                        :href="
+                            route('super-admin.catalog.colors.show', color.id)
+                        "
                         class="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-surface px-4 py-[10px] font-sans text-[14px] font-medium leading-none text-ink-primary transition-colors hover:bg-background"
                     >
                         {{ $t('catalog.actions.cancel') }}

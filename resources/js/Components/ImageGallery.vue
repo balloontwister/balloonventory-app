@@ -20,12 +20,13 @@ const cleanUrls = computed(() => {
     return arr.filter(Boolean);
 });
 
-const sizeClass = computed(() =>
-    ({
-        xs: 'h-6 w-6',
-        sm: 'h-10 w-10',
-        md: 'h-16 w-16',
-    })[props.size],
+const sizeClass = computed(
+    () =>
+        ({
+            xs: 'h-6 w-6',
+            sm: 'h-10 w-10',
+            md: 'h-16 w-16',
+        })[props.size],
 );
 </script>
 

@@ -48,10 +48,9 @@ function cancelDemote() {
 }
 
 function demote(user) {
-    router.delete(
-        route('super-admin.users.demote', user.id),
-        { preserveScroll: true },
-    );
+    router.delete(route('super-admin.users.demote', user.id), {
+        preserveScroll: true,
+    });
     confirmingDemote.value = null;
 }
 
@@ -104,7 +103,9 @@ function adminLevelLabel(level) {
                                     {{ $t('super_admin.users.col_email') }}
                                 </th>
                                 <th class="px-6 py-3 font-medium">
-                                    {{ $t('super_admin.users.col_admin_level') }}
+                                    {{
+                                        $t('super_admin.users.col_admin_level')
+                                    }}
                                 </th>
                                 <th class="px-6 py-3 font-medium">
                                     {{ $t('super_admin.users.col_registered') }}
@@ -124,7 +125,7 @@ function adminLevelLabel(level) {
                             <tr
                                 v-for="user in users"
                                 :key="user.id"
-                                class="border-b border-border/50 last:border-0"
+                                class="border-border/50 border-b last:border-0"
                                 :class="{ 'opacity-50': user.deleted_at }"
                             >
                                 <td class="px-6 py-3 text-ink-primary">
@@ -147,12 +148,12 @@ function adminLevelLabel(level) {
                                 </td>
                                 <td class="px-6 py-3">
                                     <span
-                                        v-if="user.admin_level === 'super_admin'"
+                                        v-if="
+                                            user.admin_level === 'super_admin'
+                                        "
                                         class="inline-flex rounded-full bg-accent-soft px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
                                     >
-                                        {{
-                                            adminLevelLabel(user.admin_level)
-                                        }}
+                                        {{ adminLevelLabel(user.admin_level) }}
                                     </span>
                                     <span
                                         v-else-if="
@@ -160,17 +161,10 @@ function adminLevelLabel(level) {
                                         "
                                         class="inline-flex rounded-full bg-success-soft px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-success"
                                     >
-                                        {{
-                                            adminLevelLabel(user.admin_level)
-                                        }}
+                                        {{ adminLevelLabel(user.admin_level) }}
                                     </span>
-                                    <span
-                                        v-else
-                                        class="text-ink-tertiary"
-                                    >
-                                        {{
-                                            $t('super_admin.users.level_none')
-                                        }}
+                                    <span v-else class="text-ink-tertiary">
+                                        {{ $t('super_admin.users.level_none') }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-3 text-ink-secondary">
@@ -181,13 +175,12 @@ function adminLevelLabel(level) {
                                 </td>
 
                                 <!-- Actions (Super Admin only) -->
-                                <td
-                                    v-if="isSuperAdmin"
-                                    class="px-6 py-3"
-                                >
+                                <td v-if="isSuperAdmin" class="px-6 py-3">
                                     <!-- Super Admin: no action -->
                                     <span
-                                        v-if="user.admin_level === 'super_admin'"
+                                        v-if="
+                                            user.admin_level === 'super_admin'
+                                        "
                                         class="text-ink-tertiary"
                                     >
                                         —

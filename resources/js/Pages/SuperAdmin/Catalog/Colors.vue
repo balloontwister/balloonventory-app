@@ -46,7 +46,13 @@ function applyFilters() {
 watch([brand, material, colorFamily, textureFamily], applyFilters);
 
 const hasActiveFilters = computed(
-    () => !!(brand.value || material.value || colorFamily.value || textureFamily.value),
+    () =>
+        !!(
+            brand.value ||
+            material.value ||
+            colorFamily.value ||
+            textureFamily.value
+        ),
 );
 
 function resetFilters() {
@@ -148,8 +154,18 @@ const editFormTextures = computed(() =>
         : [],
 );
 
-watch(() => addForm.brand_id, () => { addForm.texture_id = ''; });
-watch(() => editForm.brand_id, () => { editForm.texture_id = ''; });
+watch(
+    () => addForm.brand_id,
+    () => {
+        addForm.texture_id = '';
+    },
+);
+watch(
+    () => editForm.brand_id,
+    () => {
+        editForm.texture_id = '';
+    },
+);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const allColors = computed(() => props.colors.data);
@@ -210,7 +226,9 @@ const selectClass =
                 v-model="brand"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">{{ $t('catalog.skus.filter_all_brands') }}</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_brands') }}
+                </option>
                 <option v-for="b in brands" :key="b.id" :value="b.id">
                     {{ b.abbreviation }} — {{ b.name }}
                 </option>
@@ -219,7 +237,9 @@ const selectClass =
                 v-model="material"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">{{ $t('catalog.skus.filter_all_materials') }}</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_materials') }}
+                </option>
                 <option v-for="m in materials" :key="m.id" :value="m.id">
                     {{ m.name }}
                 </option>
@@ -228,7 +248,9 @@ const selectClass =
                 v-model="colorFamily"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">{{ $t('catalog.skus.filter_all_colors') }}</option>
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_colors') }}
+                </option>
                 <option v-for="cf in colorFamilies" :key="cf.id" :value="cf.id">
                     {{ cf.name }}
                 </option>
@@ -237,8 +259,14 @@ const selectClass =
                 v-model="textureFamily"
                 class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
             >
-                <option value="">{{ $t('catalog.skus.filter_all_textures') }}</option>
-                <option v-for="tf in textureFamilies" :key="tf.id" :value="tf.id">
+                <option value="">
+                    {{ $t('catalog.skus.filter_all_textures') }}
+                </option>
+                <option
+                    v-for="tf in textureFamilies"
+                    :key="tf.id"
+                    :value="tf.id"
+                >
                     {{ tf.name }}
                 </option>
             </select>
@@ -257,8 +285,12 @@ const selectClass =
             <p class="font-sans text-[13px] text-ink-secondary">
                 {{
                     totalColors === 1
-                        ? $t('catalog.colors.count_singular', { count: totalColors })
-                        : $t('catalog.colors.count_plural', { count: totalColors })
+                        ? $t('catalog.colors.count_singular', {
+                              count: totalColors,
+                          })
+                        : $t('catalog.colors.count_plural', {
+                              count: totalColors,
+                          })
                 }}
             </p>
             <AppButton variant="primary" @click="showAddForm = !showAddForm">
@@ -328,7 +360,11 @@ const selectClass =
                         >
                             {{ $t('catalog.colors.brand_label') }}
                         </label>
-                        <select v-model="addForm.brand_id" required :class="selectClass">
+                        <select
+                            v-model="addForm.brand_id"
+                            required
+                            :class="selectClass"
+                        >
                             <option value="">
                                 {{ $t('catalog.colors.select_placeholder') }}
                             </option>
@@ -353,7 +389,11 @@ const selectClass =
                         >
                             {{ $t('catalog.colors.texture_label') }}
                         </label>
-                        <select v-model="addForm.texture_id" required :class="selectClass">
+                        <select
+                            v-model="addForm.texture_id"
+                            required
+                            :class="selectClass"
+                        >
                             <option value="">
                                 {{ $t('catalog.colors.select_placeholder') }}
                             </option>
@@ -469,10 +509,7 @@ const selectClass =
                             {{ $t('catalog.colors.empty_family') }}
                         </td>
                     </tr>
-                    <template
-                        v-for="color in colors.data"
-                        :key="color.id"
-                    >
+                    <template v-for="color in colors.data" :key="color.id">
                         <!-- View row -->
                         <tr
                             v-if="editingId !== color.id"
@@ -506,7 +543,9 @@ const selectClass =
                                 </Link>
                             </td>
                             <td class="px-3 py-2.5">
-                                <span class="font-sans text-[13px] text-ink-secondary">
+                                <span
+                                    class="font-sans text-[13px] text-ink-secondary"
+                                >
                                     {{ color.color_family?.name }}
                                 </span>
                             </td>
@@ -565,9 +604,7 @@ const selectClass =
                         <tr v-else class="bg-accent-soft/20">
                             <td colspan="7" class="px-4 py-3">
                                 <form @submit.prevent="submitEdit(color)">
-                                    <div
-                                        class="flex flex-wrap items-end gap-3"
-                                    >
+                                    <div class="flex flex-wrap items-end gap-3">
                                         <div class="w-44">
                                             <AppInput
                                                 :label="
@@ -576,9 +613,7 @@ const selectClass =
                                                     )
                                                 "
                                                 v-model="editForm.name"
-                                                :error="
-                                                    editForm.errors.name
-                                                "
+                                                :error="editForm.errors.name"
                                                 required
                                             />
                                         </div>
@@ -683,9 +718,7 @@ const selectClass =
                                                             'catalog.colors.hex_short_label',
                                                         )
                                                     "
-                                                    v-model="
-                                                        editForm.color_hex
-                                                    "
+                                                    v-model="editForm.color_hex"
                                                     placeholder="#000000"
                                                     :error="
                                                         editForm.errors
@@ -707,8 +740,7 @@ const selectClass =
                                                     color.single_image_url
                                                 "
                                                 :error="
-                                                    editForm.errors
-                                                        .single_image
+                                                    editForm.errors.single_image
                                                 "
                                             />
                                         </div>
@@ -735,15 +767,9 @@ const selectClass =
                                                 type="submit"
                                                 variant="primary"
                                                 size="sm"
-                                                :disabled="
-                                                    editForm.processing
-                                                "
+                                                :disabled="editForm.processing"
                                             >
-                                                {{
-                                                    $t(
-                                                        'catalog.actions.save',
-                                                    )
-                                                }}
+                                                {{ $t('catalog.actions.save') }}
                                             </AppButton>
                                             <AppButton
                                                 type="button"
@@ -752,9 +778,7 @@ const selectClass =
                                                 @click="cancelEdit"
                                             >
                                                 {{
-                                                    $t(
-                                                        'catalog.actions.cancel',
-                                                    )
+                                                    $t('catalog.actions.cancel')
                                                 }}
                                             </AppButton>
                                         </div>

@@ -51,10 +51,22 @@ function applyFilters() {
     }, 350);
 }
 
-watch([search, brand, size, shape, textureFamily, colorFamily, material, sort], applyFilters);
+watch(
+    [search, brand, size, shape, textureFamily, colorFamily, material, sort],
+    applyFilters,
+);
 
 const hasActiveFilters = computed(
-    () => !!(search.value || brand.value || size.value || shape.value || textureFamily.value || colorFamily.value || material.value),
+    () =>
+        !!(
+            search.value ||
+            brand.value ||
+            size.value ||
+            shape.value ||
+            textureFamily.value ||
+            colorFamily.value ||
+            material.value
+        ),
 );
 
 function resetFilters() {
@@ -70,14 +82,20 @@ function resetFilters() {
 // ── Add to inventory (from catalog fallback) ──────────────────────────────────
 
 function addToInventory(sku) {
-    router.post(route('inventory.sku.store'), { sku_id: sku.id }, { preserveScroll: true });
+    router.post(
+        route('inventory.sku.store'),
+        { sku_id: sku.id },
+        { preserveScroll: true },
+    );
 }
 
 // ── Remove from inventory ─────────────────────────────────────────────────────
 
 function removeSku(sku) {
     if (!confirm(`Remove "${sku.name}" from your inventory?`)) return;
-    router.delete(route('inventory.sku.destroy', sku.id), { preserveScroll: true });
+    router.delete(route('inventory.sku.destroy', sku.id), {
+        preserveScroll: true,
+    });
 }
 
 // ── Add to list modal ─────────────────────────────────────────────────────────
@@ -87,7 +105,9 @@ const showAddToListModal = computed(() => addToListSku.value !== null);
 
 const addToListForm = useForm({ list_id: '' });
 
-const nonFavoriteLists = computed(() => props.lists.filter((l) => !l.is_business_favorites));
+const nonFavoriteLists = computed(() =>
+    props.lists.filter((l) => !l.is_business_favorites),
+);
 
 function openAddToList(sku) {
     addToListSku.value = sku;
@@ -103,10 +123,13 @@ function closeAddToListModal() {
 }
 
 function submitAddToList() {
-    addToListForm.post(route('inventory.sku.add-to-list', addToListSku.value.id), {
-        preserveScroll: true,
-        onSuccess: () => closeAddToListModal(),
-    });
+    addToListForm.post(
+        route('inventory.sku.add-to-list', addToListSku.value.id),
+        {
+            preserveScroll: true,
+            onSuccess: () => closeAddToListModal(),
+        },
+    );
 }
 
 // ── Bag count display ─────────────────────────────────────────────────────────
@@ -149,7 +172,9 @@ function isFavorite(sku) {
                     />
                 </svg>
                 <div>
-                    <p class="font-sans text-[17px] font-semibold text-ink-primary">
+                    <p
+                        class="font-sans text-[17px] font-semibold text-ink-primary"
+                    >
                         {{ $t('inventory.empty_heading') }}
                     </p>
                     <p class="mt-1 font-sans text-[14px] text-ink-secondary">
@@ -180,7 +205,9 @@ function isFavorite(sku) {
                     v-model="brand"
                     class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                 >
-                    <option value="">{{ $t('inventory.toolbar.filter_all_brands') }}</option>
+                    <option value="">
+                        {{ $t('inventory.toolbar.filter_all_brands') }}
+                    </option>
                     <option v-for="b in brands" :key="b.id" :value="b.id">
                         {{ b.abbreviation }} — {{ b.name }}
                     </option>
@@ -190,40 +217,68 @@ function isFavorite(sku) {
                     v-model="size"
                     class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                 >
-                    <option value="">{{ $t('inventory.toolbar.filter_all_sizes') }}</option>
-                    <option v-for="s in sizes" :key="s.id" :value="s.id">{{ s.name }}</option>
+                    <option value="">
+                        {{ $t('inventory.toolbar.filter_all_sizes') }}
+                    </option>
+                    <option v-for="s in sizes" :key="s.id" :value="s.id">
+                        {{ s.name }}
+                    </option>
                 </select>
 
                 <select
                     v-model="shape"
                     class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                 >
-                    <option value="">{{ $t('inventory.toolbar.filter_all_shapes') }}</option>
-                    <option v-for="sh in shapes" :key="sh.id" :value="sh.id">{{ sh.name }}</option>
+                    <option value="">
+                        {{ $t('inventory.toolbar.filter_all_shapes') }}
+                    </option>
+                    <option v-for="sh in shapes" :key="sh.id" :value="sh.id">
+                        {{ sh.name }}
+                    </option>
                 </select>
 
                 <select
                     v-model="textureFamily"
                     class="hidden rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft lg:block"
                 >
-                    <option value="">{{ $t('inventory.toolbar.filter_all_textures') }}</option>
-                    <option v-for="tf in textureFamilies" :key="tf.id" :value="tf.id">{{ tf.name }}</option>
+                    <option value="">
+                        {{ $t('inventory.toolbar.filter_all_textures') }}
+                    </option>
+                    <option
+                        v-for="tf in textureFamilies"
+                        :key="tf.id"
+                        :value="tf.id"
+                    >
+                        {{ tf.name }}
+                    </option>
                 </select>
 
                 <select
                     v-model="colorFamily"
                     class="hidden rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft lg:block"
                 >
-                    <option value="">{{ $t('inventory.toolbar.filter_all_colors') }}</option>
-                    <option v-for="cf in colorFamilies" :key="cf.id" :value="cf.id">{{ cf.name }}</option>
+                    <option value="">
+                        {{ $t('inventory.toolbar.filter_all_colors') }}
+                    </option>
+                    <option
+                        v-for="cf in colorFamilies"
+                        :key="cf.id"
+                        :value="cf.id"
+                    >
+                        {{ cf.name }}
+                    </option>
                 </select>
 
                 <select
                     v-model="material"
                     class="hidden rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft xl:block"
                 >
-                    <option value="">{{ $t('inventory.toolbar.filter_all_materials') }}</option>
-                    <option v-for="m in materials" :key="m.id" :value="m.id">{{ m.name }}</option>
+                    <option value="">
+                        {{ $t('inventory.toolbar.filter_all_materials') }}
+                    </option>
+                    <option v-for="m in materials" :key="m.id" :value="m.id">
+                        {{ m.name }}
+                    </option>
                 </select>
 
                 <AppButton
@@ -243,11 +298,21 @@ function isFavorite(sku) {
                         v-model="sort"
                         class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                     >
-                        <option value="recent">{{ $t('inventory.toolbar.sort_recent') }}</option>
-                        <option value="name">{{ $t('inventory.toolbar.sort_name') }}</option>
-                        <option value="color_family">{{ $t('inventory.toolbar.sort_color_family') }}</option>
-                        <option value="shape">{{ $t('inventory.toolbar.sort_shape') }}</option>
-                        <option value="size">{{ $t('inventory.toolbar.sort_size') }}</option>
+                        <option value="recent">
+                            {{ $t('inventory.toolbar.sort_recent') }}
+                        </option>
+                        <option value="name">
+                            {{ $t('inventory.toolbar.sort_name') }}
+                        </option>
+                        <option value="color_family">
+                            {{ $t('inventory.toolbar.sort_color_family') }}
+                        </option>
+                        <option value="shape">
+                            {{ $t('inventory.toolbar.sort_shape') }}
+                        </option>
+                        <option value="size">
+                            {{ $t('inventory.toolbar.sort_size') }}
+                        </option>
                     </select>
                 </div>
             </div>
@@ -256,8 +321,12 @@ function isFavorite(sku) {
             <p class="mb-3 font-sans text-[13px] text-ink-secondary">
                 {{
                     skus.total === 1
-                        ? $t('inventory.count_singular', { count: skus.total.toLocaleString() })
-                        : $t('inventory.count_plural', { count: skus.total.toLocaleString() })
+                        ? $t('inventory.count_singular', {
+                              count: skus.total.toLocaleString(),
+                          })
+                        : $t('inventory.count_plural', {
+                              count: skus.total.toLocaleString(),
+                          })
                 }}
             </p>
 
@@ -266,16 +335,24 @@ function isFavorite(sku) {
                 <table class="w-full">
                     <thead>
                         <tr class="border-b border-border bg-background">
-                            <th class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                            <th
+                                class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                            >
                                 {{ $t('inventory.col_name') }}
                             </th>
-                            <th class="hidden px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary sm:table-cell">
+                            <th
+                                class="hidden px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary sm:table-cell"
+                            >
                                 {{ $t('inventory.col_brand') }}
                             </th>
-                            <th class="hidden px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary md:table-cell">
+                            <th
+                                class="hidden px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary md:table-cell"
+                            >
                                 {{ $t('inventory.col_size') }}
                             </th>
-                            <th class="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                            <th
+                                class="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                            >
                                 {{ $t('inventory.col_bags') }}
                             </th>
                             <th class="w-28 px-3 py-2.5"></th>
@@ -283,8 +360,16 @@ function isFavorite(sku) {
                     </thead>
                     <tbody class="divide-y divide-border">
                         <!-- Empty search result -->
-                        <tr v-if="skus.data.length === 0 && catalogSkus.length === 0">
-                            <td colspan="5" class="px-4 py-10 text-center font-sans text-[14px] text-ink-tertiary">
+                        <tr
+                            v-if="
+                                skus.data.length === 0 &&
+                                catalogSkus.length === 0
+                            "
+                        >
+                            <td
+                                colspan="5"
+                                class="px-4 py-10 text-center font-sans text-[14px] text-ink-tertiary"
+                            >
                                 No balloons match your search.
                             </td>
                         </tr>
@@ -294,7 +379,7 @@ function isFavorite(sku) {
                             v-for="sku in skus.data"
                             :key="sku.id"
                             :id="`sku-${sku.id}`"
-                            class="group transition hover:bg-accent-soft/40"
+                            class="hover:bg-accent-soft/40 group transition"
                         >
                             <td class="px-3 py-3">
                                 <div class="flex min-w-0 items-center gap-2">
@@ -302,10 +387,15 @@ function isFavorite(sku) {
                                     <span
                                         v-if="sku.color?.color_hex"
                                         class="inline-block h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
-                                        :style="{ backgroundColor: sku.color.color_hex }"
+                                        :style="{
+                                            backgroundColor:
+                                                sku.color.color_hex,
+                                        }"
                                     />
                                     <Link
-                                        :href="route('inventory.sku.show', sku.id)"
+                                        :href="
+                                            route('inventory.sku.show', sku.id)
+                                        "
                                         class="min-w-0 truncate font-sans text-[14px] font-medium text-ink-primary hover:underline"
                                     >
                                         {{ sku.name }}
@@ -328,9 +418,14 @@ function isFavorite(sku) {
                                 </div>
                             </td>
                             <td class="hidden px-3 py-3 sm:table-cell">
-                                <span class="font-mono text-[13px] text-ink-secondary">{{ sku.brand?.abbreviation }}</span>
+                                <span
+                                    class="font-mono text-[13px] text-ink-secondary"
+                                    >{{ sku.brand?.abbreviation }}</span
+                                >
                             </td>
-                            <td class="hidden px-3 py-3 font-mono text-[13px] text-ink-secondary md:table-cell">
+                            <td
+                                class="hidden px-3 py-3 font-mono text-[13px] text-ink-secondary md:table-cell"
+                            >
                                 {{ sku.balloon_size?.name ?? '—' }}
                             </td>
                             <td class="px-3 py-3 text-right">
@@ -340,7 +435,9 @@ function isFavorite(sku) {
                                 />
                             </td>
                             <td class="px-3 py-3">
-                                <div class="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
+                                <div
+                                    class="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100"
+                                >
                                     <FavoriteStar
                                         v-if="favoritesListId"
                                         :sku-id="sku.id"
@@ -380,35 +477,55 @@ function isFavorite(sku) {
                         <tr
                             v-for="sku in catalogSkus"
                             :key="`cat-${sku.id}`"
-                            class="group transition hover:bg-accent-soft/40"
+                            class="hover:bg-accent-soft/40 group transition"
                         >
                             <td class="px-3 py-3">
                                 <div class="flex items-center gap-2">
                                     <span
                                         v-if="sku.color?.color_hex"
                                         class="inline-block h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
-                                        :style="{ backgroundColor: sku.color.color_hex }"
+                                        :style="{
+                                            backgroundColor:
+                                                sku.color.color_hex,
+                                        }"
                                     />
-                                    <span class="font-sans text-[14px] text-ink-secondary">{{ sku.name }}</span>
+                                    <span
+                                        class="font-sans text-[14px] text-ink-secondary"
+                                        >{{ sku.name }}</span
+                                    >
                                 </div>
                             </td>
                             <td class="hidden px-3 py-3 sm:table-cell">
-                                <span class="font-mono text-[13px] text-ink-tertiary">{{ sku.brand?.abbreviation }}</span>
+                                <span
+                                    class="font-mono text-[13px] text-ink-tertiary"
+                                    >{{ sku.brand?.abbreviation }}</span
+                                >
                             </td>
-                            <td class="hidden px-3 py-3 font-mono text-[13px] text-ink-tertiary md:table-cell">
+                            <td
+                                class="hidden px-3 py-3 font-mono text-[13px] text-ink-tertiary md:table-cell"
+                            >
                                 {{ sku.balloon_size?.name ?? '—' }}
                             </td>
                             <td class="px-3 py-3 text-right">
-                                <span class="font-sans text-[13px] text-ink-tertiary">—</span>
+                                <span
+                                    class="font-sans text-[13px] text-ink-tertiary"
+                                    >—</span
+                                >
                             </td>
                             <td class="px-3 py-3">
-                                <div class="flex justify-end opacity-0 transition group-hover:opacity-100">
+                                <div
+                                    class="flex justify-end opacity-0 transition group-hover:opacity-100"
+                                >
                                     <AppButton
                                         variant="secondary"
                                         size="sm"
                                         @click="addToInventory(sku)"
                                     >
-                                        {{ $t('inventory.action_add_to_inventory') }}
+                                        {{
+                                            $t(
+                                                'inventory.action_add_to_inventory',
+                                            )
+                                        }}
                                     </AppButton>
                                 </div>
                             </td>
@@ -423,24 +540,47 @@ function isFavorite(sku) {
                 class="mt-4 flex items-center justify-between"
             >
                 <p class="font-sans text-[13px] text-ink-secondary">
-                    {{ $t('inventory.pagination_label', { current: skus.current_page, last: skus.last_page }) }}
+                    {{
+                        $t('inventory.pagination_label', {
+                            current: skus.current_page,
+                            last: skus.last_page,
+                        })
+                    }}
                 </p>
                 <div class="flex gap-2">
-                    <Link v-if="skus.prev_page_url" :href="skus.prev_page_url" preserve-state>
-                        <AppButton variant="secondary" size="sm">{{ $t('inventory.pagination_prev') }}</AppButton>
+                    <Link
+                        v-if="skus.prev_page_url"
+                        :href="skus.prev_page_url"
+                        preserve-state
+                    >
+                        <AppButton variant="secondary" size="sm">{{
+                            $t('inventory.pagination_prev')
+                        }}</AppButton>
                     </Link>
-                    <Link v-if="skus.next_page_url" :href="skus.next_page_url" preserve-state>
-                        <AppButton variant="secondary" size="sm">{{ $t('inventory.pagination_next') }}</AppButton>
+                    <Link
+                        v-if="skus.next_page_url"
+                        :href="skus.next_page_url"
+                        preserve-state
+                    >
+                        <AppButton variant="secondary" size="sm">{{
+                            $t('inventory.pagination_next')
+                        }}</AppButton>
                     </Link>
                 </div>
             </div>
         </template>
 
         <!-- Add to list modal -->
-        <Modal :show="showAddToListModal" max-width="sm" @close="closeAddToListModal">
+        <Modal
+            :show="showAddToListModal"
+            max-width="sm"
+            @close="closeAddToListModal"
+        >
             <div class="p-6">
                 <div class="mb-4 flex items-start justify-between">
-                    <h2 class="font-sans text-[17px] font-semibold text-ink-primary">
+                    <h2
+                        class="font-sans text-[17px] font-semibold text-ink-primary"
+                    >
                         {{ $t('inventory.add_to_list_heading') }}
                     </h2>
                     <button
@@ -448,23 +588,41 @@ function isFavorite(sku) {
                         class="ml-4 flex h-7 w-7 items-center justify-center rounded text-ink-tertiary hover:bg-background hover:text-ink-primary"
                         @click="closeAddToListModal"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
-                            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4"
+                        >
+                            <path
+                                d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+                            />
                         </svg>
                     </button>
                 </div>
 
-                <p v-if="nonFavoriteLists.length === 0" class="font-sans text-[14px] text-ink-secondary">
+                <p
+                    v-if="nonFavoriteLists.length === 0"
+                    class="font-sans text-[14px] text-ink-secondary"
+                >
                     {{ $t('inventory.add_to_list_no_lists') }}
                 </p>
 
-                <form v-else @submit.prevent="submitAddToList" class="flex flex-col gap-4">
+                <form
+                    v-else
+                    @submit.prevent="submitAddToList"
+                    class="flex flex-col gap-4"
+                >
                     <div class="flex flex-col gap-2">
                         <label
                             v-for="list in nonFavoriteLists"
                             :key="list.id"
                             class="flex cursor-pointer items-center gap-3 rounded-md border border-border p-3 transition"
-                            :class="addToListForm.list_id === list.id ? 'border-accent bg-accent-soft/30' : 'hover:bg-background'"
+                            :class="
+                                addToListForm.list_id === list.id
+                                    ? 'bg-accent-soft/30 border-accent'
+                                    : 'hover:bg-background'
+                            "
                         >
                             <input
                                 type="radio"
@@ -472,18 +630,28 @@ function isFavorite(sku) {
                                 v-model="addToListForm.list_id"
                                 class="accent-accent"
                             />
-                            <span class="font-sans text-[14px] text-ink-primary">{{ list.name }}</span>
+                            <span
+                                class="font-sans text-[14px] text-ink-primary"
+                                >{{ list.name }}</span
+                            >
                         </label>
                     </div>
 
                     <div class="flex justify-end gap-2">
-                        <AppButton variant="secondary" type="button" @click="closeAddToListModal">
+                        <AppButton
+                            variant="secondary"
+                            type="button"
+                            @click="closeAddToListModal"
+                        >
                             {{ $t('inventory.add_to_list_cancel') }}
                         </AppButton>
                         <AppButton
                             variant="primary"
                             type="submit"
-                            :disabled="!addToListForm.list_id || addToListForm.processing"
+                            :disabled="
+                                !addToListForm.list_id ||
+                                addToListForm.processing
+                            "
                         >
                             {{ $t('inventory.add_to_list_confirm') }}
                         </AppButton>

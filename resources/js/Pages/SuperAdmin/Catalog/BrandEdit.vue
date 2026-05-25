@@ -131,7 +131,9 @@ function submit() {
                 </fieldset>
 
                 <!-- Appearance -->
-                <fieldset class="flex flex-col gap-4 border-t border-border pt-5">
+                <fieldset
+                    class="flex flex-col gap-4 border-t border-border pt-5"
+                >
                     <legend
                         class="mb-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                     >
@@ -222,7 +224,9 @@ function submit() {
                 </fieldset>
 
                 <!-- Links -->
-                <fieldset class="flex flex-col gap-4 border-t border-border pt-5">
+                <fieldset
+                    class="flex flex-col gap-4 border-t border-border pt-5"
+                >
                     <legend
                         class="mb-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                     >
@@ -262,7 +266,9 @@ function submit() {
                         }}
                     </AppButton>
                     <Link
-                        :href="route('super-admin.catalog.brands.show', brand.id)"
+                        :href="
+                            route('super-admin.catalog.brands.show', brand.id)
+                        "
                         class="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-surface px-4 py-[10px] font-sans text-[14px] font-medium leading-none text-ink-primary transition-colors hover:bg-background"
                     >
                         {{ $t('catalog.actions.cancel') }}

@@ -76,7 +76,9 @@ function logout() {
                     >
                         {{ user.name }}
                     </p>
-                    <p class="truncate font-sans text-[13px] text-ink-secondary">
+                    <p
+                        class="truncate font-sans text-[13px] text-ink-secondary"
+                    >
                         {{ user.email }}
                     </p>
                 </div>

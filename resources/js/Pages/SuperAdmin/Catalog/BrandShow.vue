@@ -22,7 +22,13 @@ function submitPrefix() {
 }
 
 function removePrefix(prefix) {
-    if (!confirm(trans('catalog.brand_show.gs1_remove_confirm', { prefix: prefix.prefix }))) {
+    if (
+        !confirm(
+            trans('catalog.brand_show.gs1_remove_confirm', {
+                prefix: prefix.prefix,
+            }),
+        )
+    ) {
         return;
     }
     router.delete(
@@ -88,9 +94,7 @@ function removePrefix(prefix) {
                             {{ $t('catalog.brand_show.inactive_badge') }}
                         </span>
                     </div>
-                    <p
-                        class="mt-1 font-mono text-[13px] text-ink-secondary"
-                    >
+                    <p class="mt-1 font-mono text-[13px] text-ink-secondary">
                         {{ brand.abbreviation }}
                     </p>
                 </div>
@@ -106,7 +110,9 @@ function removePrefix(prefix) {
             </div>
 
             <!-- Identity / Appearance / Links -->
-            <dl class="mb-6 divide-y divide-border rounded-lg border border-border">
+            <dl
+                class="mb-6 divide-y divide-border rounded-lg border border-border"
+            >
                 <div class="flex items-center gap-3 px-4 py-3">
                     <dt
                         class="w-40 shrink-0 font-sans text-[13px] text-ink-secondary"
@@ -153,7 +159,9 @@ function removePrefix(prefix) {
                     <dd class="flex items-center gap-2">
                         <span
                             class="h-4 w-4 rounded-sm ring-1 ring-inset ring-black/10"
-                            :style="{ backgroundColor: brand.primary_color_hex }"
+                            :style="{
+                                backgroundColor: brand.primary_color_hex,
+                            }"
                         />
                         <span class="font-mono text-[13px] text-ink-primary">{{
                             brand.primary_color_hex
@@ -172,7 +180,9 @@ function removePrefix(prefix) {
                     <dd class="flex items-center gap-2">
                         <span
                             class="h-4 w-4 rounded-sm ring-1 ring-inset ring-black/10"
-                            :style="{ backgroundColor: brand.secondary_color_hex }"
+                            :style="{
+                                backgroundColor: brand.secondary_color_hex,
+                            }"
                         />
                         <span class="font-mono text-[13px] text-ink-primary">{{
                             brand.secondary_color_hex
@@ -228,17 +238,19 @@ function removePrefix(prefix) {
                     >
                         {{ $t('catalog.brand_show.description') }}
                     </dt>
-                    <dd class="whitespace-pre-line font-sans text-[13px] text-ink-primary">
+                    <dd
+                        class="whitespace-pre-line font-sans text-[13px] text-ink-primary"
+                    >
                         {{ brand.description }}
                     </dd>
                 </div>
             </dl>
 
             <!-- GS1 prefixes -->
-            <section
-                class="mb-6 rounded-lg border border-border bg-surface"
-            >
-                <header class="flex items-baseline justify-between border-b border-border px-4 py-3">
+            <section class="mb-6 rounded-lg border border-border bg-surface">
+                <header
+                    class="flex items-baseline justify-between border-b border-border px-4 py-3"
+                >
                     <h3
                         class="font-sans text-[13px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                     >

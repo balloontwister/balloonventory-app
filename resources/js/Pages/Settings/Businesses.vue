@@ -37,7 +37,10 @@ const submitLogo = () =>
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink :href="route('account.index')" :label="$t('nav.account')" />
+            <BackLink
+                :href="route('account.index')"
+                :label="$t('nav.account')"
+            />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
             >
@@ -125,12 +128,16 @@ const submitLogo = () =>
                 <div class="mt-5 flex items-start gap-6">
                     <!-- Circle preview of current logo -->
                     <img
-                        :src="logoForm.logo
-                            ? undefined
-                            : (business.logoUrl ?? undefined)"
+                        :src="
+                            logoForm.logo
+                                ? undefined
+                                : (business.logoUrl ?? undefined)
+                        "
                         :class="[
                             'h-20 w-20 shrink-0 rounded-full object-cover ring-2 ring-border',
-                            !business.logoUrl && !logoForm.logo ? 'opacity-50' : '',
+                            !business.logoUrl && !logoForm.logo
+                                ? 'opacity-50'
+                                : '',
                         ]"
                         :alt="$t('settings.businesses.logo.preview_alt')"
                     />
@@ -149,7 +156,11 @@ const submitLogo = () =>
                         <div class="flex items-center gap-4">
                             <button
                                 type="button"
-                                :disabled="logoForm.processing || (!logoForm.logo && !logoForm.logo_clear) || !canManageLogo"
+                                :disabled="
+                                    logoForm.processing ||
+                                    (!logoForm.logo && !logoForm.logo_clear) ||
+                                    !canManageLogo
+                                "
                                 class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
                                 @click="submitLogo"
                             >

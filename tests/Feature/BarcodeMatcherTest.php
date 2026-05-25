@@ -26,20 +26,23 @@ class BarcodeMatcherTest extends TestCase
         $this->business = Business::factory()->create();
     }
 
-    public function test_exact_upc_match_scores_highest(): void
+    // ── gtin_exact ───────────────────────────────────────────────────────────────
+
+    public function test_gtin_exact_match_on_stored_upc(): void
     {
-        $sku = Sku::factory()->create(['upc' => '012345678901']);
+        $sku = Sku::factory()->create(['upc' => '012345678905']);
 
-        $result = $this->matcher->match('012345678901', $this->business->id);
+        $result = $this->matcher->match('012345678905', $this->business->id);
 
-        $this->assertSame('012345678901', $result['normalized']);
+        $this->assertSame('00012345678905', $result['gtin14']);
+        $this->assertTrue($result['is_valid_gtin']);
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_UPC_EXACT, $result['candidates'][0]['match']);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_EXACT, $result['candidates'][0]['match']);
         $this->assertSame(100, $result['candidates'][0]['score']);
     }
 
-    public function test_exact_ean_match(): void
+    public function test_gtin_exact_match_on_stored_ean(): void
     {
         $sku = Sku::factory()->create([
             'upc' => null,
@@ -50,45 +53,131 @@ class BarcodeMatcherTest extends TestCase
 
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_EAN_EXACT, $result['candidates'][0]['match']);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_EXACT, $result['candidates'][0]['match']);
     }
 
     public function test_strips_separators_and_whitespace_before_matching(): void
     {
-        $sku = Sku::factory()->create(['upc' => '012345678901']);
+        $sku = Sku::factory()->create(['upc' => '012345678905']);
 
-        $result = $this->matcher->match(' 012-345-678901 ', $this->business->id);
+        $result = $this->matcher->match(' 012-345-678905 ', $this->business->id);
 
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
     }
 
-    public function test_leading_zero_prepended_by_scanner_resolves_to_upc(): void
+    // ── length variants — leading-zero and EAN/UPC interchange ──────────────────
+
+    public function test_13_digit_scan_with_country_prefix_zero_matches_12_digit_stored_upc(): void
     {
-        $sku = Sku::factory()->create(['upc' => '012345678901']);
+        // Scanner emitted UPC-A as 13-digit EAN-13 (country-code zero prepended).
+        $sku = Sku::factory()->create(['upc' => '012345678905']);
 
-        // The scanner read the 12-digit UPC-A as a 13-digit EAN-13 with a
-        // leading zero — common Honeywell/Datalogic default config.
-        $result = $this->matcher->match('0012345678901', $this->business->id);
+        $result = $this->matcher->match('0012345678905', $this->business->id);
 
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_UPC_LEADING_ZERO, $result['candidates'][0]['match']);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_EXACT, $result['candidates'][0]['match']);
     }
 
-    public function test_bare_upc_scan_matches_ean_with_leading_zero(): void
+    public function test_12_digit_scan_matches_13_digit_stored_ean(): void
     {
         $sku = Sku::factory()->create([
             'upc' => null,
-            'ean' => '0012345678901',
+            'ean' => '0012345678905',
         ]);
 
-        $result = $this->matcher->match('012345678901', $this->business->id);
+        $result = $this->matcher->match('012345678905', $this->business->id);
 
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_EAN_LEADING_ZERO, $result['candidates'][0]['match']);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_EXACT, $result['candidates'][0]['match']);
     }
+
+    public function test_gtin_14_scan_matches_12_digit_stored_upc(): void
+    {
+        // Case-pack ITF-14 scan should still resolve to the base UPC-A SKU
+        // when the indicator digit is 0 (i.e. the GTIN-14 is just the UPC-A
+        // padded with leading zeros).
+        $sku = Sku::factory()->create(['upc' => '012345678905']);
+
+        $result = $this->matcher->match('00012345678905', $this->business->id);
+
+        $this->assertCount(1, $result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+    }
+
+    // ── UPC-E expansion ─────────────────────────────────────────────────────────
+
+    public function test_upc_e_scan_expands_to_upc_a_and_matches(): void
+    {
+        // UPC-E 04252614 expands to UPC-A 042100005264. SKU stores the
+        // 12-digit UPC-A form.
+        $sku = Sku::factory()->create(['upc' => '042100005264']);
+
+        $result = $this->matcher->match('04252614', $this->business->id);
+
+        $this->assertCount(1, $result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_EXACT, $result['candidates'][0]['match']);
+    }
+
+    // ── gtin_missing_check_digit ────────────────────────────────────────────────
+
+    public function test_matches_stored_upc_missing_its_check_digit(): void
+    {
+        // Real Sempertex case: scan 0030625575393 (scanner-prepended EAN-13)
+        // against a stored UPC of 03062557539 (11 digits — importer dropped
+        // the check digit).
+        $sku = Sku::factory()->create(['upc' => '03062557539']);
+
+        $result = $this->matcher->match('0030625575393', $this->business->id);
+
+        $this->assertNotEmpty($result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
+        $this->assertSame(80, $result['candidates'][0]['score']);
+    }
+
+    public function test_matches_stored_ean_missing_its_check_digit(): void
+    {
+        $sku = Sku::factory()->create([
+            'upc' => null,
+            'ean' => '400638133393',
+        ]);
+
+        $result = $this->matcher->match('4006381333931', $this->business->id);
+
+        $this->assertCount(1, $result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
+    }
+
+    // ── is_valid_gtin metadata ──────────────────────────────────────────────────
+
+    public function test_is_valid_gtin_true_for_valid_check_digit(): void
+    {
+        $result = $this->matcher->match('012345678905', $this->business->id);
+
+        $this->assertTrue($result['is_valid_gtin']);
+    }
+
+    public function test_is_valid_gtin_false_for_invalid_check_digit(): void
+    {
+        $result = $this->matcher->match('012345678900', $this->business->id);
+
+        $this->assertFalse($result['is_valid_gtin']);
+    }
+
+    public function test_is_valid_gtin_false_for_non_gtin_length(): void
+    {
+        $result = $this->matcher->match('12345', $this->business->id);
+
+        $this->assertNull($result['gtin14']);
+        $this->assertFalse($result['is_valid_gtin']);
+    }
+
+    // ── asin ────────────────────────────────────────────────────────────────────
 
     public function test_exact_asin_match_is_alphanumeric(): void
     {
@@ -104,13 +193,13 @@ class BarcodeMatcherTest extends TestCase
         $this->assertSame(BarcodeMatcher::MATCH_ASIN_EXACT, $result['candidates'][0]['match']);
     }
 
+    // ── GS1-prefix fallback ─────────────────────────────────────────────────────
+
     public function test_gs1_prefix_plus_warehouse_sku_matches(): void
     {
         $brand = Brand::factory()->create();
         BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
 
-        // Brand has GS1 prefix 071444. SKU has no UPC but warehouse_sku 43734
-        // (a real Qualatex item code). The scanned full UPC contains both.
         $sku = Sku::factory()->create([
             'brand_id' => $brand->id,
             'upc' => null,
@@ -153,8 +242,6 @@ class BarcodeMatcherTest extends TestCase
         BrandGs1Prefix::create(['brand_id' => $brandA->id, 'prefix' => '071444']);
         BrandGs1Prefix::create(['brand_id' => $brandB->id, 'prefix' => '888888']);
 
-        // Both SKUs share the same warehouse_sku digits, but only brand A's
-        // GS1 prefix is in the scan, so only brand A's SKU should match.
         $brandASku = Sku::factory()->create([
             'brand_id' => $brandA->id,
             'upc' => null,
@@ -173,7 +260,45 @@ class BarcodeMatcherTest extends TestCase
         $this->assertSame($brandASku->id, $result['candidates'][0]['sku']->id);
     }
 
-    public function test_ranks_exact_above_gs1_inferred_match(): void
+    public function test_gs1_prefix_match_handles_scanner_prepended_leading_zero(): void
+    {
+        // Sempertex prefix 030625 only lines up after the scanner-prepended
+        // country zero is stripped.
+        $brand = Brand::factory()->create();
+        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '030625']);
+
+        $sku = Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'upc' => null,
+            'warehouse_sku' => '57539',
+        ]);
+
+        $result = $this->matcher->match('0030625575393', $this->business->id);
+
+        $this->assertNotEmpty($result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_GS1_WAREHOUSE_SKU, $result['candidates'][0]['match']);
+    }
+
+    public function test_short_warehouse_sku_does_not_create_false_positives(): void
+    {
+        $brand = Brand::factory()->create();
+        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
+
+        Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'upc' => null,
+            'warehouse_sku' => '12',
+        ]);
+
+        $result = $this->matcher->match('071444999999', $this->business->id);
+
+        $this->assertSame([], $result['candidates']);
+    }
+
+    // ── ranking ─────────────────────────────────────────────────────────────────
+
+    public function test_ranks_gtin_exact_above_gs1_inferred(): void
     {
         $brand = Brand::factory()->create();
         BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
@@ -193,30 +318,23 @@ class BarcodeMatcherTest extends TestCase
 
         $this->assertCount(2, $result['candidates']);
         $this->assertSame($exact->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_UPC_EXACT, $result['candidates'][0]['match']);
+        $this->assertSame(BarcodeMatcher::MATCH_GTIN_EXACT, $result['candidates'][0]['match']);
         $this->assertSame($inferred->id, $result['candidates'][1]['sku']->id);
         $this->assertSame(BarcodeMatcher::MATCH_GS1_WAREHOUSE_SKU, $result['candidates'][1]['match']);
     }
 
-    public function test_returns_no_candidates_when_nothing_matches(): void
-    {
-        Sku::factory()->create(['upc' => '012345678901']);
-
-        $result = $this->matcher->match('999999999999', $this->business->id);
-
-        $this->assertSame([], $result['candidates']);
-    }
+    // ── tenant scoping ──────────────────────────────────────────────────────────
 
     public function test_private_sku_is_invisible_to_other_businesses(): void
     {
         $otherBusiness = Business::factory()->create();
 
         Sku::factory()->create([
-            'upc' => '012345678901',
+            'upc' => '012345678905',
             'owned_by_business_id' => $otherBusiness->id,
         ]);
 
-        $result = $this->matcher->match('012345678901', $this->business->id);
+        $result = $this->matcher->match('012345678905', $this->business->id);
 
         $this->assertSame([], $result['candidates']);
     }
@@ -224,119 +342,35 @@ class BarcodeMatcherTest extends TestCase
     public function test_private_sku_is_visible_to_its_owning_business(): void
     {
         $sku = Sku::factory()->create([
-            'upc' => '012345678901',
+            'upc' => '012345678905',
             'owned_by_business_id' => $this->business->id,
         ]);
 
-        $result = $this->matcher->match('012345678901', $this->business->id);
+        $result = $this->matcher->match('012345678905', $this->business->id);
 
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+    }
+
+    // ── empty / no-match ────────────────────────────────────────────────────────
+
+    public function test_returns_no_candidates_when_nothing_matches(): void
+    {
+        Sku::factory()->create(['upc' => '012345678905']);
+
+        $result = $this->matcher->match('999999999999', $this->business->id);
+
+        $this->assertSame([], $result['candidates']);
     }
 
     public function test_empty_input_returns_no_candidates(): void
     {
-        Sku::factory()->create(['upc' => '012345678901']);
+        Sku::factory()->create(['upc' => '012345678905']);
 
         $result = $this->matcher->match('   ', $this->business->id);
 
         $this->assertSame('', $result['normalized']);
-        $this->assertSame([], $result['candidates']);
-    }
-
-    public function test_matches_when_stored_upc_is_missing_its_check_digit(): void
-    {
-        // Some imports truncated the trailing check digit. Scan is the full
-        // 12-digit UPC-A; stored value is 11 digits.
-        $sku = Sku::factory()->create([
-            'upc' => '03062557539',
-        ]);
-
-        $result = $this->matcher->match('030625575393', $this->business->id);
-
-        $this->assertCount(1, $result['candidates']);
-        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_UPC_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
-    }
-
-    public function test_matches_when_scanner_prepended_zero_and_stored_upc_missing_check_digit(): void
-    {
-        // Real-world Sempertex case: scanner emitted 13-digit EAN-13 with a
-        // country-code zero, and the stored UPC is 11 digits because the
-        // importer dropped the check digit.
-        $sku = Sku::factory()->create([
-            'upc' => '03062557539',
-        ]);
-
-        $result = $this->matcher->match('0030625575393', $this->business->id);
-
-        $this->assertNotEmpty($result['candidates']);
-        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_UPC_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
-    }
-
-    public function test_matches_when_stored_ean_is_missing_its_check_digit(): void
-    {
-        $sku = Sku::factory()->create([
-            'upc' => null,
-            'ean' => '400638133393',
-        ]);
-
-        $result = $this->matcher->match('4006381333931', $this->business->id);
-
-        $this->assertCount(1, $result['candidates']);
-        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_EAN_MISSING_CHECK_DIGIT, $result['candidates'][0]['match']);
-    }
-
-    public function test_check_digit_strip_is_skipped_for_short_scans(): void
-    {
-        // A scan of 8 digits or fewer should not produce a 7-or-shorter needle
-        // — too easy to collide with unrelated SKUs.
-        Sku::factory()->create(['upc' => '1234567']);
-
-        $result = $this->matcher->match('12345678', $this->business->id);
-
-        $this->assertSame([], $result['candidates']);
-    }
-
-    public function test_gs1_prefix_match_handles_scanner_prepended_leading_zero(): void
-    {
-        // Regression: a scanner read Sempertex's 12-digit UPC-A as a 13-digit
-        // EAN-13 with a country-code zero prepended. The brand's GS1 prefix
-        // (030625) only lines up after that zero is stripped, so the GS1
-        // fallback must run against the leading-zero variant too.
-        $brand = Brand::factory()->create(['name' => 'Sempertex']);
-        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '030625']);
-
-        $sku = Sku::factory()->create([
-            'brand_id' => $brand->id,
-            'upc' => null,
-            'ean' => null,
-            'warehouse_sku' => '57539',
-        ]);
-
-        $result = $this->matcher->match('0030625575393', $this->business->id);
-
-        $this->assertCount(1, $result['candidates']);
-        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
-        $this->assertSame(BarcodeMatcher::MATCH_GS1_WAREHOUSE_SKU, $result['candidates'][0]['match']);
-    }
-
-    public function test_short_warehouse_sku_does_not_create_false_positives(): void
-    {
-        $brand = Brand::factory()->create();
-        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
-
-        // A 2-character warehouse_sku would otherwise match almost any tail.
-        Sku::factory()->create([
-            'brand_id' => $brand->id,
-            'upc' => null,
-            'warehouse_sku' => '12',
-        ]);
-
-        $result = $this->matcher->match('071444999999', $this->business->id);
-
+        $this->assertNull($result['gtin14']);
         $this->assertSame([], $result['candidates']);
     }
 }

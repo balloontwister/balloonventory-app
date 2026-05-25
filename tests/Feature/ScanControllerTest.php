@@ -119,13 +119,14 @@ class ScanControllerTest extends TestCase
     public function test_lookup_resolves_scan_with_scanner_prepended_leading_zero(): void
     {
         // Scanner re-emitted the 12-digit UPC-A as a 13-digit EAN-13 with a
-        // leading zero. The matcher should still resolve it to the SKU.
+        // leading zero. After GTIN-14 canonicalization both forms collapse
+        // to the same value, so this is a plain gtin_exact match.
         $this->actingAs($this->owner)
             ->postJson(route('scan.lookup'), ['upc' => '0012345678901'])
             ->assertOk()
             ->assertJson([
                 'found' => true,
-                'match_type' => 'upc_leading_zero',
+                'match_type' => 'gtin_exact',
                 'sku' => ['id' => $this->sku->id],
             ]);
     }

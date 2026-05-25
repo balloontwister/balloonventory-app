@@ -4,27 +4,16 @@ namespace App\Services;
 
 use App\Models\BrandGs1Prefix;
 use App\Models\Sku;
+use App\Support\Gtin;
 use Illuminate\Database\Eloquent\Builder;
 
 class BarcodeMatcher
 {
-    /** Exact match against `sku.upc`. */
-    public const MATCH_UPC_EXACT = 'upc_exact';
+    /** Scan's GTIN-14 canonical form matches the stored `upc` / `ean` in any length variant. */
+    public const MATCH_GTIN_EXACT = 'gtin_exact';
 
-    /** Exact match against `sku.ean`. */
-    public const MATCH_EAN_EXACT = 'ean_exact';
-
-    /** Match against `sku.upc` after normalizing a leading zero on either side. */
-    public const MATCH_UPC_LEADING_ZERO = 'upc_leading_zero';
-
-    /** Match against `sku.ean` after normalizing a leading zero on either side. */
-    public const MATCH_EAN_LEADING_ZERO = 'ean_leading_zero';
-
-    /** Match against `sku.upc` after dropping the trailing check digit from the scan. */
-    public const MATCH_UPC_MISSING_CHECK_DIGIT = 'upc_missing_check_digit';
-
-    /** Match against `sku.ean` after dropping the trailing check digit from the scan. */
-    public const MATCH_EAN_MISSING_CHECK_DIGIT = 'ean_missing_check_digit';
+    /** Scan's GTIN-14 canonical form, minus its trailing check digit, matches the stored value. */
+    public const MATCH_GTIN_MISSING_CHECK_DIGIT = 'gtin_missing_check_digit';
 
     /** Exact match against `sku.asin` (alphanumeric, raw input). */
     public const MATCH_ASIN_EXACT = 'asin_exact';
@@ -38,17 +27,13 @@ class BarcodeMatcher
     /** Scan starts with a brand's GS1 prefix and contains the SKU's `asin`. */
     public const MATCH_GS1_ASIN = 'gs1_asin';
 
-    /** Minimum digit length (post-strip) required for the check-digit fallback to fire. */
+    /** Minimum needle length for the missing-check-digit fallback. */
     private const MIN_CHECK_DIGIT_STRIP_LENGTH = 8;
 
     /** @var array<string,int> */
     private const SCORES = [
-        self::MATCH_UPC_EXACT => 100,
-        self::MATCH_EAN_EXACT => 95,
-        self::MATCH_UPC_LEADING_ZERO => 90,
-        self::MATCH_EAN_LEADING_ZERO => 85,
-        self::MATCH_UPC_MISSING_CHECK_DIGIT => 80,
-        self::MATCH_EAN_MISSING_CHECK_DIGIT => 78,
+        self::MATCH_GTIN_EXACT => 100,
+        self::MATCH_GTIN_MISSING_CHECK_DIGIT => 80,
         self::MATCH_ASIN_EXACT => 75,
         self::MATCH_GS1_WAREHOUSE_SKU => 60,
         self::MATCH_GS1_MFG_NO => 60,
@@ -58,19 +43,22 @@ class BarcodeMatcher
     /**
      * Find candidate SKUs for a scanned barcode, ranked by confidence.
      *
-     * The matcher tries, in order:
-     *   1. Exact `upc` / `ean` match on the digits of the scan.
-     *   2. Leading-zero variants — scanners sometimes prepend a zero (turning a
-     *      12-digit UPC-A into a 13-digit EAN-13) or the database may store
-     *      `'0' + upc` in the `ean` column. Both directions are checked.
-     *   3. Missing-check-digit variants — some imports dropped the trailing
-     *      check digit. The scan minus its last digit (and each leading-zero
-     *      variant minus its last digit) is matched against `upc` / `ean`.
-     *   4. Exact `asin` match (raw input, since ASINs are alphanumeric).
-     *   5. Brand GS1 prefix match: if the scanned digits start with a known
-     *      brand's GS1 company prefix, look for SKUs under that brand whose
-     *      `warehouse_sku`, `mfg_no`, or `asin` is contained in the remainder
-     *      of the scanned digits.
+     * The matcher follows GS1 canonical-form practice: every UPC/EAN length
+     * variant (GTIN-8/12/13/14) is the same number padded with leading zeros
+     * to 14 digits, so all the per-length matching collapses into one tier.
+     * The pipeline is:
+     *
+     *   1. Pre-normalize: trim, strip non-digits, expand UPC-E to UPC-A if
+     *      applicable.
+     *   2. Build a set of plausible stored-value forms from the scan's
+     *      GTIN-14: the standard length variants (14/13/12/8) plus a
+     *      leading-zero-stripped form.
+     *   3. `gtin_exact` — stored `upc` / `ean` matches any of those forms.
+     *   4. `gtin_missing_check_digit` — same set with the trailing digit
+     *      dropped, covering imports that truncated the check digit.
+     *   5. `asin_exact` — raw scan matches stored `asin` (alphanumeric).
+     *   6. `gs1_*` fallback — scan starts with a known brand GS1 prefix and
+     *      the tail contains the SKU's warehouse_sku / mfg_no / asin.
      *
      * Results are scoped to the catalog visibility rule (shared SKUs always
      * visible; private SKUs only visible to their owning business). Pass the
@@ -80,102 +68,122 @@ class BarcodeMatcher
      * @return array{
      *     scanned: string,
      *     normalized: string,
+     *     gtin14: ?string,
+     *     is_valid_gtin: bool,
      *     candidates: array<int, array{sku: Sku, match: string, score: int}>
      * }
      */
     public function match(string $scanned, ?string $businessId = null): array
     {
         $scanned = trim($scanned);
-        $normalized = $this->digitsOnly($scanned);
+        $normalized = Gtin::digitsOnly($scanned);
+
+        $gtin14 = $this->resolveGtin14($normalized);
+        $isValidGtin = $gtin14 !== null && Gtin::isValidCheckDigit($gtin14);
 
         $hits = [];
 
-        $leadingZeroVariants = $normalized === '' ? [] : $this->leadingZeroVariants($normalized);
+        if ($gtin14 !== null) {
+            $exactForms = $this->storedFormsFromGtin14($gtin14);
 
-        if ($normalized !== '') {
-            $this->collectExactColumnMatches($hits, $businessId, 'upc', [$normalized], self::MATCH_UPC_EXACT);
-            $this->collectExactColumnMatches($hits, $businessId, 'ean', [$normalized], self::MATCH_EAN_EXACT);
+            $this->collectExactColumnMatches($hits, $businessId, 'upc', $exactForms, self::MATCH_GTIN_EXACT);
+            $this->collectExactColumnMatches($hits, $businessId, 'ean', $exactForms, self::MATCH_GTIN_EXACT);
 
-            if ($leadingZeroVariants !== []) {
-                $this->collectExactColumnMatches($hits, $businessId, 'upc', $leadingZeroVariants, self::MATCH_UPC_LEADING_ZERO);
-                $this->collectExactColumnMatches($hits, $businessId, 'ean', $leadingZeroVariants, self::MATCH_EAN_LEADING_ZERO);
-            }
-
-            // Some import paths dropped the trailing check digit. Try every
-            // digit form with its last digit stripped. Guarded by a minimum
-            // length so a short scan can't collapse to a 1-2 char needle that
-            // matches half the catalog.
-            $missingCheckDigitVariants = $this->missingCheckDigitVariants($normalized, $leadingZeroVariants);
-            if ($missingCheckDigitVariants !== []) {
-                $this->collectExactColumnMatches($hits, $businessId, 'upc', $missingCheckDigitVariants, self::MATCH_UPC_MISSING_CHECK_DIGIT);
-                $this->collectExactColumnMatches($hits, $businessId, 'ean', $missingCheckDigitVariants, self::MATCH_EAN_MISSING_CHECK_DIGIT);
-            }
+            $missingCheckForms = $this->missingCheckDigitVariants($exactForms);
+            $this->collectExactColumnMatches($hits, $businessId, 'upc', $missingCheckForms, self::MATCH_GTIN_MISSING_CHECK_DIGIT);
+            $this->collectExactColumnMatches($hits, $businessId, 'ean', $missingCheckForms, self::MATCH_GTIN_MISSING_CHECK_DIGIT);
         }
 
         if ($scanned !== '') {
             $this->collectExactColumnMatches($hits, $businessId, 'asin', [$scanned], self::MATCH_ASIN_EXACT);
         }
 
-        // Run the GS1-prefix fallback against the raw normalized scan AND each
-        // leading-zero variant. A 13-digit EAN-13 emitted by a scanner from a
-        // 12-digit UPC-A has a country-code zero in front, so the brand's GS1
-        // prefix only lines up after that zero is stripped.
-        foreach (array_unique(array_filter([$normalized, ...$leadingZeroVariants])) as $digits) {
+        // GS1-prefix fallback. Try the raw normalized scan plus every length
+        // variant of the canonical GTIN-14 form, so a 13-digit EAN-13 scan
+        // with a scanner-prepended country zero still lines up against a
+        // 6-digit Sempertex/Qualatex prefix once the leading zero is stripped.
+        $gs1Forms = $normalized === '' ? [] : [$normalized];
+        if ($gtin14 !== null) {
+            $gs1Forms = array_merge($gs1Forms, $this->storedFormsFromGtin14($gtin14));
+        }
+        foreach (array_unique($gs1Forms) as $digits) {
+            if ($digits === '') {
+                continue;
+            }
             $this->collectGs1PrefixMatches($hits, $businessId, $digits);
         }
-
-        $candidates = $this->rankAndDedupe($hits);
 
         return [
             'scanned' => $scanned,
             'normalized' => $normalized,
-            'candidates' => $candidates,
+            'gtin14' => $gtin14,
+            'is_valid_gtin' => $isValidGtin,
+            'candidates' => $this->rankAndDedupe($hits),
         ];
     }
 
     /**
-     * Strip every non-digit character. Returns an empty string when the input
-     * has no digits at all (e.g. a pure-letter ASIN).
+     * Resolve a GTIN-14 canonical form from the scanned digits. Expands
+     * UPC-E codes to UPC-A before canonicalization so a zero-suppressed
+     * label still lines up against a 12-digit UPC stored in the database.
      */
-    public function digitsOnly(string $value): string
+    private function resolveGtin14(string $digits): ?string
     {
-        return (string) preg_replace('/\D+/', '', $value);
+        if ($digits === '') {
+            return null;
+        }
+
+        // UPC-E codes are 6/7/8 digits and need expansion before they can be
+        // compared to a stored UPC-A. The expanded form is then canonicalized
+        // like any other GTIN.
+        $expansionInput = match (strlen($digits)) {
+            6, 7, 8 => Gtin::expandUpcE($digits),
+            default => null,
+        };
+
+        if ($expansionInput !== null) {
+            $expanded = Gtin::canonicalize($expansionInput);
+            if ($expanded !== null) {
+                return $expanded;
+            }
+        }
+
+        return Gtin::canonicalize($digits);
     }
 
     /**
-     * @return array<int, string>
-     */
-    private function leadingZeroVariants(string $digits): array
-    {
-        $variants = [];
-
-        // Scanner emitted 0 + UPC-A (13 digits) — try the 12-digit version.
-        if (strlen($digits) === 13 && str_starts_with($digits, '0')) {
-            $variants[] = substr($digits, 1);
-        }
-
-        // Scanner emitted bare UPC-A (12 digits) — try the EAN-13 form (0 + UPC).
-        if (strlen($digits) === 12) {
-            $variants[] = '0'.$digits;
-        }
-
-        return array_values(array_unique($variants));
-    }
-
-    /**
-     * Drop the trailing digit from every supplied digit form. Used to match
-     * SKUs whose stored UPC/EAN lost its check digit during import (e.g.
-     * spreadsheet truncation). Results below the minimum-length threshold are
-     * discarded so a short scan can't collapse into a near-empty needle.
+     * Every plausible stored-value form derived from a GTIN-14: the standard
+     * length variants (14/13/12/8) plus a leading-zero-stripped form for
+     * legacy data that dropped padding. Empty strings and duplicates are
+     * removed.
      *
-     * @param  array<int, string>  $extras
      * @return array<int, string>
      */
-    private function missingCheckDigitVariants(string $normalized, array $extras): array
+    private function storedFormsFromGtin14(string $gtin14): array
+    {
+        $forms = [
+            $gtin14,                  // GTIN-14
+            substr($gtin14, 1),       // GTIN-13 / EAN-13
+            substr($gtin14, 2),       // GTIN-12 / UPC-A
+            substr($gtin14, 6),       // GTIN-8
+            ltrim($gtin14, '0'),      // any leading-zero-stripped form (legacy imports)
+        ];
+
+        return array_values(array_unique(array_filter($forms, static fn ($v) => $v !== '')));
+    }
+
+    /**
+     * Drop the trailing digit from every supplied form, keeping only those
+     * that are still long enough to avoid colliding with unrelated SKUs.
+     *
+     * @param  array<int, string>  $forms
+     * @return array<int, string>
+     */
+    private function missingCheckDigitVariants(array $forms): array
     {
         $variants = [];
 
-        foreach ([$normalized, ...$extras] as $form) {
+        foreach ($forms as $form) {
             if (strlen($form) <= self::MIN_CHECK_DIGIT_STRIP_LENGTH) {
                 continue;
             }
@@ -278,7 +286,7 @@ class BarcodeMatcher
             return false;
         }
 
-        $needle = $this->digitsOnly($identifier);
+        $needle = Gtin::digitsOnly($identifier);
         if ($needle === '') {
             return false;
         }

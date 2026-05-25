@@ -76,14 +76,15 @@ class BarcodeMatcher
 
         $hits = [];
 
+        $leadingZeroVariants = $normalized === '' ? [] : $this->leadingZeroVariants($normalized);
+
         if ($normalized !== '') {
             $this->collectExactColumnMatches($hits, $businessId, 'upc', [$normalized], self::MATCH_UPC_EXACT);
             $this->collectExactColumnMatches($hits, $businessId, 'ean', [$normalized], self::MATCH_EAN_EXACT);
 
-            $upcVariants = $this->leadingZeroVariants($normalized);
-            if ($upcVariants !== []) {
-                $this->collectExactColumnMatches($hits, $businessId, 'upc', $upcVariants, self::MATCH_UPC_LEADING_ZERO);
-                $this->collectExactColumnMatches($hits, $businessId, 'ean', $upcVariants, self::MATCH_EAN_LEADING_ZERO);
+            if ($leadingZeroVariants !== []) {
+                $this->collectExactColumnMatches($hits, $businessId, 'upc', $leadingZeroVariants, self::MATCH_UPC_LEADING_ZERO);
+                $this->collectExactColumnMatches($hits, $businessId, 'ean', $leadingZeroVariants, self::MATCH_EAN_LEADING_ZERO);
             }
         }
 
@@ -91,8 +92,12 @@ class BarcodeMatcher
             $this->collectExactColumnMatches($hits, $businessId, 'asin', [$scanned], self::MATCH_ASIN_EXACT);
         }
 
-        if ($normalized !== '') {
-            $this->collectGs1PrefixMatches($hits, $businessId, $normalized);
+        // Run the GS1-prefix fallback against the raw normalized scan AND each
+        // leading-zero variant. A 13-digit EAN-13 emitted by a scanner from a
+        // 12-digit UPC-A has a country-code zero in front, so the brand's GS1
+        // prefix only lines up after that zero is stripped.
+        foreach (array_unique(array_filter([$normalized, ...$leadingZeroVariants])) as $digits) {
+            $this->collectGs1PrefixMatches($hits, $businessId, $digits);
         }
 
         $candidates = $this->rankAndDedupe($hits);

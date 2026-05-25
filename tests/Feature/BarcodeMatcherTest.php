@@ -244,6 +244,29 @@ class BarcodeMatcherTest extends TestCase
         $this->assertSame([], $result['candidates']);
     }
 
+    public function test_gs1_prefix_match_handles_scanner_prepended_leading_zero(): void
+    {
+        // Regression: a scanner read Sempertex's 12-digit UPC-A as a 13-digit
+        // EAN-13 with a country-code zero prepended. The brand's GS1 prefix
+        // (030625) only lines up after that zero is stripped, so the GS1
+        // fallback must run against the leading-zero variant too.
+        $brand = Brand::factory()->create(['name' => 'Sempertex']);
+        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '030625']);
+
+        $sku = Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'upc' => null,
+            'ean' => null,
+            'warehouse_sku' => '57539',
+        ]);
+
+        $result = $this->matcher->match('0030625575393', $this->business->id);
+
+        $this->assertCount(1, $result['candidates']);
+        $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
+        $this->assertSame(BarcodeMatcher::MATCH_GS1_WAREHOUSE_SKU, $result['candidates'][0]['match']);
+    }
+
     public function test_short_warehouse_sku_does_not_create_false_positives(): void
     {
         $brand = Brand::factory()->create();

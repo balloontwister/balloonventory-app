@@ -10,6 +10,7 @@ use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Scopes\BusinessScope;
+use App\Services\BarcodeMatcher;
 use App\Support\BusinessContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,8 @@ use Inertia\Response;
 
 class ScanController extends Controller
 {
+    public function __construct(private readonly BarcodeMatcher $barcodeMatcher) {}
+
     public function index(): Response
     {
         return Inertia::render('Scan/Index');
@@ -30,26 +33,25 @@ class ScanController extends Controller
     {
         $request->validate(['upc' => ['required', 'string', 'max:50']]);
 
-        $upc = trim($request->input('upc'));
-
         $businessId = BusinessContext::currentId();
 
+        $result = $this->barcodeMatcher->match($request->input('upc'), $businessId);
+
+        if ($result['candidates'] === []) {
+            return response()->json(['found' => false]);
+        }
+
+        $top = $result['candidates'][0];
+
+        // Reload with eager relations for the response payload. The matcher
+        // returns a lightweight Sku model; the frontend needs brand, color,
+        // and balloon_size details to render the recent-scans row.
         $sku = Sku::with([
             'brand:id,name,abbreviation',
             'balloonSize' => fn ($q) => $q->with(['shape:id,name', 'size:id,name']),
             'color' => fn ($q) => $q->with(['colorFamily:id,name', 'texture:id,name']),
             'material:id,name',
-        ])
-            ->where('upc', $upc)
-            ->where(fn ($q) => $q
-                ->whereNull('owned_by_business_id')
-                ->orWhere('owned_by_business_id', $businessId)
-            )
-            ->first();
-
-        if (! $sku) {
-            return response()->json(['found' => false]);
-        }
+        ])->findOrFail($top['sku']->id);
 
         $stockLevels = StockLevel::where('sku_id', $sku->id)
             ->select('full_bags', 'open_bags')
@@ -57,6 +59,7 @@ class ScanController extends Controller
 
         return response()->json([
             'found' => true,
+            'match_type' => $top['match'],
             'sku' => [
                 'id' => $sku->id,
                 'name' => $sku->name,

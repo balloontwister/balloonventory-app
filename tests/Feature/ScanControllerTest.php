@@ -116,6 +116,20 @@ class ScanControllerTest extends TestCase
             ->assertJson(['found' => false]);
     }
 
+    public function test_lookup_resolves_scan_with_scanner_prepended_leading_zero(): void
+    {
+        // Scanner re-emitted the 12-digit UPC-A as a 13-digit EAN-13 with a
+        // leading zero. The matcher should still resolve it to the SKU.
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '0012345678901'])
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'match_type' => 'upc_leading_zero',
+                'sku' => ['id' => $this->sku->id],
+            ]);
+    }
+
     public function test_lookup_requires_upc(): void
     {
         $this->actingAs($this->owner)

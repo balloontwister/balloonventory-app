@@ -28,7 +28,8 @@ class AdminUserController extends Controller
         abort_unless($request->user()->isSuperAdmin(), 403);
         abort_if($user->isSuperAdmin(), 422, 'A Super Admin cannot be promoted to Site Admin.');
 
-        $user->update(['admin_level' => AdminLevel::SiteAdmin]);
+        $user->admin_level = AdminLevel::SiteAdmin;
+        $user->save();
 
         return back()->with('success', "{$user->name} has been promoted to Site Admin.");
     }
@@ -39,7 +40,8 @@ class AdminUserController extends Controller
         abort_if($user->isSuperAdmin(), 422, 'Super Admin access cannot be removed from this screen.');
         abort_unless($user->isSiteAdmin(), 422, 'This user is not a Site Admin.');
 
-        $user->update(['admin_level' => null]);
+        $user->admin_level = null;
+        $user->save();
 
         return back()->with('success', "Site Admin access removed from {$user->name}.");
     }

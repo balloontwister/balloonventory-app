@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import { Head } from '@inertiajs/vue3';
@@ -20,6 +20,8 @@ const code = computed(() => digits.value.join(''));
 const hasError = computed(() => !!form.errors.code);
 
 onMounted(() => inputs.value[0]?.focus());
+
+onUnmounted(() => clearInterval(cooldownTimer));
 
 function onInput(index, event) {
     const val = event.target.value.replace(/\D/g, '').slice(-1);

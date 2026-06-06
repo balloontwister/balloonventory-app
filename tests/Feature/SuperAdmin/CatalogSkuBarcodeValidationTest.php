@@ -122,6 +122,47 @@ class CatalogSkuBarcodeValidationTest extends TestCase
         $this->assertSame('719784100041', $sku->fresh()->upc);
     }
 
+    public function test_store_rejects_duplicate_upc_with_different_separators(): void
+    {
+        Sku::factory()->create(['brand_id' => $this->brand->id, 'upc' => '012345678905']);
+
+        // Same digits, different formatting. The stored value is normalized to
+        // digit-only on save, so the uniqueness check must compare normalized
+        // forms — otherwise this slips past validation and 500s on the index.
+        $this->actingAs($this->superAdmin)
+            ->post(route('super-admin.catalog.skus.store'), [
+                'name' => 'Formatted Dupe',
+                'brand_id' => $this->brand->id,
+                'upc' => '0-12-345-678905',
+            ])
+            ->assertSessionHasErrors('upc');
+
+        $this->assertSame(1, Sku::where('upc', '012345678905')->count());
+        $this->assertDatabaseMissing('skus', ['name' => 'Formatted Dupe']);
+    }
+
+    public function test_store_allows_reusing_upc_of_soft_deleted_sku(): void
+    {
+        $deleted = Sku::factory()->create(['brand_id' => $this->brand->id, 'upc' => '012345678905']);
+        $deleted->delete();
+
+        // Reusing a trashed row's UPC is allowed by the validation rule and must
+        // not collide on the (now soft-delete-aware) unique index.
+        $this->actingAs($this->superAdmin)
+            ->post(route('super-admin.catalog.skus.store'), [
+                'name' => 'Reused Upc',
+                'brand_id' => $this->brand->id,
+                'upc' => '012345678905',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('skus', [
+            'name' => 'Reused Upc',
+            'upc' => '012345678905',
+            'deleted_at' => null,
+        ]);
+    }
+
     public function test_ean_field_also_validates(): void
     {
         $this->actingAs($this->superAdmin)

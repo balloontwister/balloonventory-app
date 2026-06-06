@@ -306,13 +306,7 @@ class BarcodeMatcher
      */
     private function visibleSkuQuery(?string $businessId): Builder
     {
-        return Sku::query()->where(function (Builder $q) use ($businessId): void {
-            $q->whereNull('owned_by_business_id');
-
-            if ($businessId !== null) {
-                $q->orWhere('owned_by_business_id', $businessId);
-            }
-        });
+        return Sku::query()->visibleTo($businessId);
     }
 
     /**

@@ -162,6 +162,36 @@ class ScanController extends Controller
             : StockDirection::In;
 
         DB::transaction(function () use ($stockMovement, $reverseDirection, $request, $businessId) {
+            // Scope the stock-level lookup to the SAME bin the original
+            // movement targeted. The legacy unique key on (business_id, sku_id)
+            // makes this a no-op today, but the bin_id column is already in
+            // the schema so we get this right before stock spans multiple bins.
+            $stockLevel = StockLevel::where('business_id', $businessId)
+                ->where('sku_id', $stockMovement->sku_id)
+                ->where('bin_id', $stockMovement->bin_id)
+                ->lockForUpdate()
+                ->first();
+
+            // Undoing a check-IN removes those bags from stock again. Reject if
+            // the current on-hand level can't cover the reversal — exactly as a
+            // check-OUT would — otherwise the decrement drives the level
+            // negative and silently corrupts totals.
+            if ($stockMovement->direction === StockDirection::In) {
+                $availableFull = $stockLevel->full_bags ?? 0;
+                $availableOpen = $stockLevel->open_bags ?? 0;
+
+                if ($availableFull < $stockMovement->full_bags_change
+                    || $availableOpen < $stockMovement->open_bags_change) {
+                    throw ValidationException::withMessages([
+                        'stock' => sprintf(
+                            'Cannot undo: only %d full / %d open bag(s) on hand to reverse.',
+                            $availableFull,
+                            $availableOpen,
+                        ),
+                    ]);
+                }
+            }
+
             StockMovement::create([
                 'business_id' => $businessId,
                 'sku_id' => $stockMovement->sku_id,
@@ -173,16 +203,6 @@ class ScanController extends Controller
                 'upc_scanned' => $stockMovement->upc_scanned,
                 'notes' => 'Undo of movement '.$stockMovement->id,
             ]);
-
-            // Scope the stock-level lookup to the SAME bin the original
-            // movement targeted. The legacy unique key on (business_id, sku_id)
-            // makes this a no-op today, but the bin_id column is already in
-            // the schema so we get this right before stock spans multiple bins.
-            $stockLevel = StockLevel::where('business_id', $businessId)
-                ->where('sku_id', $stockMovement->sku_id)
-                ->where('bin_id', $stockMovement->bin_id)
-                ->lockForUpdate()
-                ->first();
 
             if ($stockLevel) {
                 if ($stockMovement->direction === StockDirection::In) {
@@ -355,12 +375,7 @@ class ScanController extends Controller
      */
     private function resolveVisibleSku(string $skuId, ?string $businessId): Sku
     {
-        $sku = Sku::where('id', $skuId)
-            ->where(fn ($q) => $q
-                ->whereNull('owned_by_business_id')
-                ->orWhere('owned_by_business_id', $businessId)
-            )
-            ->first();
+        $sku = Sku::visibleTo($businessId)->find($skuId);
 
         if (! $sku) {
             throw ValidationException::withMessages([

@@ -35,6 +35,22 @@ class AdminUsersTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // mass-assignment guard
+    // -------------------------------------------------------------------------
+
+    public function test_admin_level_cannot_be_mass_assigned(): void
+    {
+        $user = User::factory()->create(); // admin_level null
+
+        // Simulate a crafted request body trying to escalate via mass assignment.
+        $user->fill(['admin_level' => AdminLevel::SuperAdmin->value]);
+        $user->save();
+
+        $this->assertNull($user->fresh()->admin_level);
+        $this->assertFalse($user->fresh()->isSuperAdmin());
+    }
+
+    // -------------------------------------------------------------------------
     // index
     // -------------------------------------------------------------------------
 

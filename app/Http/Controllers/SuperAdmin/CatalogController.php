@@ -19,6 +19,7 @@ use App\Models\TextureFamily;
 use App\Models\Theme;
 use App\Rules\ValidGtin;
 use App\Services\ImageAttachmentService;
+use App\Support\Gtin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -182,6 +183,8 @@ class CatalogController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->normalizeBarcodeInput($request);
+
         $data = $request->validate($this->rules($request));
 
         $sku = Sku::create($data);
@@ -309,6 +312,8 @@ class CatalogController extends Controller
     {
         abort_if($sku->owned_by_business_id !== null, 403);
 
+        $this->normalizeBarcodeInput($request);
+
         $data = $request->validate($this->rules($request, $sku->id));
 
         $sku->update($data);
@@ -357,6 +362,32 @@ class CatalogController extends Controller
 
             return $item;
         });
+    }
+
+    /**
+     * Normalize barcode inputs to digit-only form BEFORE validation, so the
+     * uniqueness rule compares against the same canonical value the model will
+     * store (Sku::setUpcAttribute strips separators on save). Without this a
+     * differently-formatted duplicate ("012-345-678905" vs "012345678905")
+     * passes the unique rule and then collides on the DB index, surfacing as a
+     * 500 instead of a clean validation error. Inputs with no digits (e.g.
+     * "na") are left untouched so ValidGtin handles them as before.
+     */
+    private function normalizeBarcodeInput(Request $request): void
+    {
+        foreach (['upc', 'ean'] as $field) {
+            $value = $request->input($field);
+
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $digits = Gtin::digitsOnly($value);
+
+            if ($digits !== '' && $digits !== $value) {
+                $request->merge([$field => $digits]);
+            }
+        }
     }
 
     private function rules(Request $request, ?string $ignoreId = null): array

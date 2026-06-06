@@ -25,7 +25,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
-        'admin_level',
+        // NOTE: admin_level is deliberately NOT fillable — it grants
+        // SuperAdmin/SiteAdmin. Set it explicitly (AdminUserController) or via
+        // forceFill (seeders) so it can never be mass-assigned from request input.
         'avatar_path',
         'locale',
         'timezone',

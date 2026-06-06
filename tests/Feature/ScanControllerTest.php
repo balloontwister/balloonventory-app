@@ -434,6 +434,47 @@ class ScanControllerTest extends TestCase
         ]);
     }
 
+    public function test_undo_of_check_in_is_rejected_when_stock_already_removed(): void
+    {
+        // Check in 2 (level 0 -> 2), then those bags are checked out elsewhere
+        // (level 2 -> 0). Undoing the original check-in would decrement below
+        // zero, so it must be rejected rather than corrupt the level.
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $this->sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 0,
+            'open_bags' => 0,
+        ]);
+
+        $movement = StockMovement::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $this->sku->id,
+            'bin_id' => $this->bin->id,
+            'user_id' => $this->owner->id,
+            'direction' => 'in',
+            'full_bags_change' => 2,
+            'open_bags_change' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.undo', ['stockMovement' => $movement->id]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrorFor('stock');
+
+        // Level stays at zero and no reverse movement was written.
+        $this->assertDatabaseHas('stock_levels', [
+            'business_id' => $this->business->id,
+            'sku_id' => $this->sku->id,
+            'full_bags' => 0,
+            'open_bags' => 0,
+        ]);
+        $this->assertDatabaseMissing('stock_movements', [
+            'sku_id' => $this->sku->id,
+            'direction' => 'out',
+        ]);
+    }
+
     public function test_undo_rejects_movement_from_other_business(): void
     {
         $otherBusiness = Business::factory()->create();

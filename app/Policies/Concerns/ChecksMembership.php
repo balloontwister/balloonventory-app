@@ -27,9 +27,12 @@ trait ChecksMembership
      */
     protected function roleHas(string $roleName, string $permission): bool
     {
-        $role = Role::findByName($roleName, 'web');
+        // Resolve with first() rather than Role::findByName(), which throws
+        // RoleDoesNotExist on a miss. An unknown role string (bad data) must
+        // fail closed to a denial, not a 500.
+        $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
 
-        return $role?->hasPermissionTo($permission) ?? false;
+        return $role !== null && $role->hasPermissionTo($permission);
     }
 
     /**

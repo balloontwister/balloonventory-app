@@ -226,6 +226,56 @@ class InventoryControllerTest extends TestCase
         $this->assertDatabaseCount('stock_levels', 1);
     }
 
+    public function test_store_rejects_sku_owned_by_another_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $foreignSku = Sku::factory()->create(['owned_by_business_id' => $otherBusiness->id]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.store'), ['sku_id' => $foreignSku->id])
+            ->assertSessionHasErrors('sku_id');
+
+        $this->assertDatabaseMissing('stock_levels', ['sku_id' => $foreignSku->id]);
+    }
+
+    public function test_store_rejects_soft_deleted_sku(): void
+    {
+        $sku = Sku::factory()->create();
+        $sku->delete();
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.store'), ['sku_id' => $sku->id])
+            ->assertSessionHasErrors('sku_id');
+
+        $this->assertDatabaseMissing('stock_levels', ['sku_id' => $sku->id]);
+    }
+
+    public function test_store_accepts_sku_owned_by_current_business(): void
+    {
+        $ownSku = Sku::factory()->create(['owned_by_business_id' => $this->business->id]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.store'), ['sku_id' => $ownSku->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('stock_levels', [
+            'business_id' => $this->business->id,
+            'sku_id' => $ownSku->id,
+        ]);
+    }
+
+    public function test_add_favorite_rejects_sku_owned_by_another_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $foreignSku = Sku::factory()->create(['owned_by_business_id' => $otherBusiness->id]);
+
+        $this->actingAs($this->owner)
+            ->post(route('favorites.add', $foreignSku))
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('list_items', ['sku_id' => $foreignSku->id]);
+    }
+
     // ── destroy ───────────────────────────────────────────────────────────────
 
     public function test_destroy_removes_sku_from_inventory(): void

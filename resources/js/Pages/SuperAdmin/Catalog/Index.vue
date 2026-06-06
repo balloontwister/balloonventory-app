@@ -4,7 +4,7 @@ import AppButton from '@/Components/AppButton.vue';
 import { useScrollToHash } from '@/Composables/useScrollToHash';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 
 useScrollToHash();
 
@@ -66,6 +66,8 @@ watch(
     ],
     applyFilters,
 );
+
+onUnmounted(() => clearTimeout(debounce));
 
 const hasActiveFilters = computed(
     () =>

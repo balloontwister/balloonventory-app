@@ -190,6 +190,17 @@ class ImportSempertexSkusTest extends TestCase
         $this->assertSame('R-12 Fashion Red - 12CT', $sku->name);
     }
 
+    public function test_fails_cleanly_on_invalid_json(): void
+    {
+        file_put_contents($this->jsonPath, 'not valid json {');
+
+        $this->artisan('catalog:import-sempertex', ['--path' => $this->jsonPath, '--execute' => true])
+            ->expectsOutputToContain('empty or invalid JSON')
+            ->assertFailed();
+
+        $this->assertSame(0, Sku::where('brand_id', $this->sempertex()->id)->count());
+    }
+
     private function sempertex(): Brand
     {
         return Brand::where('name', 'Sempertex')->firstOrFail();

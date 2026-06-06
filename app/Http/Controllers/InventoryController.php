@@ -22,6 +22,7 @@ use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -211,10 +212,22 @@ class InventoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'sku_id' => ['required', 'uuid', 'exists:skus,id'],
+            'sku_id' => ['required', 'uuid'],
         ]);
 
         $businessId = BusinessContext::currentId();
+
+        // Resolve under the catalog visibility rule (shared OR owned by this
+        // business). MUST NOT use `exists:skus,id`, which would let a foreign
+        // business's private SKU — or a soft-deleted one — into inventory.
+        $sku = Sku::visibleTo($businessId)->find($data['sku_id']);
+
+        if ($sku === null) {
+            throw ValidationException::withMessages([
+                'sku_id' => 'That SKU is not available for this business.',
+            ]);
+        }
+
         $business = Business::findOrFail($businessId);
         $bin = $business->defaultBin();
 
@@ -240,7 +253,7 @@ class InventoryController extends Controller
         StockLevel::firstOrCreate(
             [
                 'business_id' => $businessId,
-                'sku_id' => $data['sku_id'],
+                'sku_id' => $sku->id,
                 'bin_id' => $bin->id,
             ],
             ['full_bags' => 0, 'open_bags' => 0]
@@ -313,6 +326,9 @@ class InventoryController extends Controller
 
     public function addFavorite(Sku $sku): RedirectResponse
     {
+        // A business may only favorite SKUs it can see (shared OR its own).
+        abort_unless($sku->isVisibleTo(BusinessContext::currentId()), 404);
+
         $list = BalloonList::where('is_business_favorites', true)->firstOrFail();
 
         ListItem::firstOrCreate(

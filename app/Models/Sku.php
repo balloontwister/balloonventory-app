@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Gtin;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -221,6 +222,33 @@ class Sku extends Model
     public function isShared(): bool
     {
         return $this->owned_by_business_id === null;
+    }
+
+    /**
+     * Catalog visibility rule: a SKU is visible to a business when it is shared
+     * (no owner) or owned by that business. This is the single source of truth
+     * for "may this business act on this SKU" — used by scan and inventory so
+     * the two can't drift apart. Soft-deleted rows are excluded by the model's
+     * default scope, so callers must not bypass it (e.g. with `exists:skus,id`).
+     */
+    public function scopeVisibleTo(Builder $query, ?string $businessId): Builder
+    {
+        return $query->where(function (Builder $q) use ($businessId): void {
+            $q->whereNull('owned_by_business_id');
+
+            if ($businessId !== null) {
+                $q->orWhere('owned_by_business_id', $businessId);
+            }
+        });
+    }
+
+    /**
+     * Instance-level counterpart to scopeVisibleTo() for an already-loaded SKU.
+     */
+    public function isVisibleTo(?string $businessId): bool
+    {
+        return $this->owned_by_business_id === null
+            || ($businessId !== null && $this->owned_by_business_id === $businessId);
     }
 
     private function generateComputedName(): string

@@ -15,16 +15,17 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::withTrashed()->updateOrCreate(
-            ['email' => 'todd@twistedballoon.com'],
-            [
-                'name' => 'Todd',
-                'password' => Hash::make(env('SUPER_ADMIN_PASSWORD', 'Zaphod1974')),
-                'admin_level' => AdminLevel::SuperAdmin,
-                'email_verified_at' => now(),
-                'deleted_at' => null,
-            ]
-        );
+        // forceFill so this seeder can set the non-mass-assignable privileged
+        // fields (admin_level, email_verified_at, deleted_at) that are
+        // intentionally absent from User::$fillable.
+        $user = User::withTrashed()->firstOrNew(['email' => 'todd@twistedballoon.com']);
+        $user->forceFill([
+            'name' => 'Todd',
+            'password' => Hash::make(env('SUPER_ADMIN_PASSWORD', 'Zaphod1974')),
+            'admin_level' => AdminLevel::SuperAdmin,
+            'email_verified_at' => now(),
+            'deleted_at' => null,
+        ])->save();
 
         $business = Business::updateOrCreate(
             ['slug' => 'balloonventory'],

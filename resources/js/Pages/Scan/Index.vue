@@ -34,6 +34,10 @@ watch(isOpenBag, (next) => {
 // ── Scan state ──────────────────────────────────────────────────────────────────
 const scanStatus = ref(null); // null (armed) | looking_up | error
 const unknownUpc = ref(null); // { upc }
+// Set when a lookup found one or more candidates but the backend did NOT flag
+// the scan for auto-apply (ambiguous or low-confidence match). Holds
+// { upc, candidates } until the user confirms which SKU to record against.
+const pendingMatch = ref(null);
 const recentScans = ref([]);
 // Tracks UPCs of scans currently in-flight so we don't race ourselves when a
 // scanner double-fires the same code before the first lookup resolves.
@@ -98,6 +102,7 @@ async function processScan(upc) {
 
     scanStatus.value = 'looking_up';
     unknownUpc.value = null;
+    pendingMatch.value = null;
 
     try {
         // 1. Look up UPC
@@ -109,34 +114,23 @@ async function processScan(upc) {
             return;
         }
 
-        // 2. Record the movement (auto-commit; the toast carries an Undo).
-        const payload = {
-            sku_id: lookup.data.sku.id,
-            upc,
-            full_bags_change: isOpenBag.value ? 0 : quantity.value,
-            open_bags_change: isOpenBag.value ? quantity.value : 0,
-        };
-
-        const endpoint = isAdding.value
-            ? route('scan.check-in')
-            : route('scan.check-out');
-        const response = await window.axios.post(endpoint, payload);
-
-        // 3. Success — add to recent scans
-        recentScans.value.unshift({
-            movement_id: response.data.movement_id,
-            upc,
-            direction: response.data.direction,
-            full_bags_change: response.data.full_bags_change,
-            open_bags_change: response.data.open_bags_change,
-            sku: response.data.sku,
-        });
-
-        // Keep only last 30.
-        if (recentScans.value.length > 30) {
-            recentScans.value = recentScans.value.slice(0, 30);
+        // 2. Honor the backend's confidence signal. Only a unique, exact GTIN
+        //    match (auto_apply) commits straight away. Ambiguous or
+        //    low-confidence matches — a missing-check-digit hit, a GS1-prefix
+        //    fallback, or several candidates — wait for the user to confirm
+        //    which SKU the scan refers to. Auto-committing the top guess here
+        //    can silently record stock against the wrong product.
+        if (!lookup.data.auto_apply) {
+            scanStatus.value = null;
+            pendingMatch.value = {
+                upc,
+                candidates: lookup.data.candidates ?? [],
+            };
+            return;
         }
 
+        // 3. Confident match — record the movement (the toast carries an Undo).
+        await recordMovement(upc, lookup.data.sku.id);
         scanStatus.value = null;
     } catch {
         scanStatus.value = 'error';
@@ -144,6 +138,59 @@ async function processScan(upc) {
     } finally {
         inFlightUpcs.value.delete(upc);
     }
+}
+
+/**
+ * Post a check-in/out movement for a resolved SKU and prepend it to the recent
+ * list. Shared by the auto-commit path and the manual confirm-a-candidate path.
+ */
+async function recordMovement(upc, skuId) {
+    const payload = {
+        sku_id: skuId,
+        upc,
+        full_bags_change: isOpenBag.value ? 0 : quantity.value,
+        open_bags_change: isOpenBag.value ? quantity.value : 0,
+    };
+
+    const endpoint = isAdding.value
+        ? route('scan.check-in')
+        : route('scan.check-out');
+    const response = await window.axios.post(endpoint, payload);
+
+    recentScans.value.unshift({
+        movement_id: response.data.movement_id,
+        upc,
+        direction: response.data.direction,
+        full_bags_change: response.data.full_bags_change,
+        open_bags_change: response.data.open_bags_change,
+        sku: response.data.sku,
+    });
+
+    // Keep only last 30.
+    if (recentScans.value.length > 30) {
+        recentScans.value = recentScans.value.slice(0, 30);
+    }
+}
+
+// ── Confirm an ambiguous / low-confidence match ──────────────────────────────────
+async function confirmPendingMatch(sku) {
+    const upc = pendingMatch.value?.upc;
+    if (!upc) return;
+
+    pendingMatch.value = null;
+    scanStatus.value = 'looking_up';
+
+    try {
+        await recordMovement(upc, sku.id);
+        scanStatus.value = null;
+    } catch {
+        scanStatus.value = 'error';
+        scheduleErrorClear();
+    }
+}
+
+function dismissPendingMatch() {
+    pendingMatch.value = null;
 }
 
 // ── Undo ────────────────────────────────────────────────────────────────────────
@@ -298,6 +345,72 @@ const contextHintKey = computed(() => {
                 >
                     {{ $t('scan.unknown_assign') }}
                 </button>
+            </div>
+
+            <!-- ── Confirm match (ambiguous / low-confidence) ─────────────────────
+                 Shown when the lookup found candidates but the backend did not
+                 flag the scan for auto-apply. The user picks the right SKU
+                 instead of us guessing and recording against the wrong one. -->
+            <div
+                v-if="pendingMatch"
+                class="rounded-lg border-2 border-accent bg-accent-soft px-4 py-3"
+            >
+                <div class="mb-2 flex items-start gap-3">
+                    <div class="flex-1">
+                        <p
+                            class="font-sans text-[14px] font-semibold text-ink-primary"
+                        >
+                            {{ $t('scan.confirm_heading') }}
+                        </p>
+                        <p
+                            class="mt-0.5 font-sans text-[13px] text-ink-secondary"
+                        >
+                            {{ $t('scan.confirm_body') }}
+                            <span class="font-mono">{{
+                                pendingMatch.upc
+                            }}</span>
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-ink-secondary hover:bg-background"
+                        @click="dismissPendingMatch"
+                    >
+                        {{ $t('scan.confirm_cancel') }}
+                    </button>
+                </div>
+
+                <ul
+                    class="divide-y divide-border rounded-md border border-border bg-surface"
+                >
+                    <li
+                        v-for="c in pendingMatch.candidates"
+                        :key="c.sku.id"
+                        class="flex items-center gap-3 px-3 py-2"
+                    >
+                        <span
+                            v-if="c.sku.color?.color_hex"
+                            class="inline-block h-5 w-5 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
+                            :style="{ backgroundColor: c.sku.color.color_hex }"
+                        />
+                        <span
+                            class="min-w-0 flex-1 truncate font-sans text-[14px] text-ink-primary"
+                        >
+                            {{
+                                c.sku.computed_name ??
+                                c.sku.name ??
+                                $t('scan.unknown_sku')
+                            }}
+                        </span>
+                        <button
+                            type="button"
+                            class="shrink-0 rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on hover:bg-accent-hover"
+                            @click="confirmPendingMatch(c.sku)"
+                        >
+                            {{ $t('scan.confirm_select') }}
+                        </button>
+                    </li>
+                </ul>
             </div>
 
             <!-- ── Toasts ─────────────────────────────────────────────────────── -->

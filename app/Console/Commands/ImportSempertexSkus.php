@@ -33,6 +33,12 @@ class ImportSempertexSkus extends Command
         /** @var array<int, array<string, mixed>> $rows */
         $rows = json_decode(file_get_contents($jsonPath), true);
 
+        if (! is_array($rows) || $rows === []) {
+            $this->error("File is empty or invalid JSON: {$jsonPath}");
+
+            return Command::FAILURE;
+        }
+
         [$rows, $dedupeWarnings] = $this->dedupeByWarehouseSku($rows);
 
         $brand = Brand::where('name', 'Sempertex')->firstOrFail();

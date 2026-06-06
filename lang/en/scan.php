@@ -49,6 +49,12 @@ return [
     // General actions
     'close' => 'Close',
 
+    // Confirm match (ambiguous / low-confidence)
+    'confirm_heading' => 'Which item did you scan?',
+    'confirm_body' => 'This wasn\'t an exact match, so pick the right SKU for',
+    'confirm_select' => 'This one',
+    'confirm_cancel' => 'Cancel',
+
     // Unknown UPC
     'unknown_upc' => 'Unknown barcode',
     'unknown_upc_body' => 'This barcode isn\'t linked to any SKU in your catalog.',

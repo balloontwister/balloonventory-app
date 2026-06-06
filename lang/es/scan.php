@@ -49,6 +49,12 @@ return [
     // General actions
     'close' => 'Cerrar',
 
+    // Confirm match (ambiguous / low-confidence)
+    'confirm_heading' => '¿Qué artículo escaneaste?',
+    'confirm_body' => 'No fue una coincidencia exacta, así que elige el SKU correcto para',
+    'confirm_select' => 'Este',
+    'confirm_cancel' => 'Cancelar',
+
     // Unknown UPC
     'unknown_upc' => 'Código desconocido',
     'unknown_upc_body' => 'Este código de barras no está vinculado a ningún SKU en tu catálogo.',

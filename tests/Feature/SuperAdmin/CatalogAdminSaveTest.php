@@ -3,6 +3,7 @@
 namespace Tests\Feature\SuperAdmin;
 
 use App\Models\Brand;
+use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Texture;
 use App\Models\TextureFamily;
@@ -67,6 +68,63 @@ class CatalogAdminSaveTest extends TestCase
 
         $response->assertRedirect(route('super-admin.catalog.brands'));
         $this->assertSame('#abcdef', $brand->fresh()->primary_color_hex);
+    }
+
+    public function test_color_update_persists_texture_id(): void
+    {
+        $brand = Brand::factory()->create();
+        $family = ColorFamily::factory()->create();
+        $oldTexture = Texture::factory()->create(['brand_id' => $brand->id]);
+        $newTexture = Texture::factory()->create(['brand_id' => $brand->id]);
+
+        $color = Color::factory()->create([
+            'name' => 'Ruby',
+            'brand_id' => $brand->id,
+            'color_family_id' => $family->id,
+            'texture_id' => $oldTexture->id,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->patch(route('super-admin.catalog.colors.update', $color->id), [
+                'name' => 'Ruby',
+                'color_family_id' => $family->id,
+                'brand_id' => $brand->id,
+                'texture_id' => $newTexture->id,
+            ]);
+
+        $response->assertRedirect(route('super-admin.catalog.colors.show', $color->id));
+        $this->assertSame($newTexture->id, $color->fresh()->texture_id);
+    }
+
+    /**
+     * Texture is required on color save. The Colors.vue inline editor must send
+     * the color's existing texture when opening an edit; if a watcher blanks it
+     * (regression of the startEdit reset bug) this rule is what surfaces the
+     * failure to the user.
+     */
+    public function test_color_update_rejects_blank_texture_id(): void
+    {
+        $brand = Brand::factory()->create();
+        $family = ColorFamily::factory()->create();
+        $texture = Texture::factory()->create(['brand_id' => $brand->id]);
+
+        $color = Color::factory()->create([
+            'name' => 'Ruby',
+            'brand_id' => $brand->id,
+            'color_family_id' => $family->id,
+            'texture_id' => $texture->id,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->patch(route('super-admin.catalog.colors.update', $color->id), [
+                'name' => 'Ruby',
+                'color_family_id' => $family->id,
+                'brand_id' => $brand->id,
+                'texture_id' => '',
+            ]);
+
+        $response->assertSessionHasErrors('texture_id');
+        $this->assertSame($texture->id, $color->fresh()->texture_id);
     }
 
     public function test_textures_reference_store_persists_texture_family_id(): void

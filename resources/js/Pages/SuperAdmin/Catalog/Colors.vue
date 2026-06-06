@@ -7,7 +7,7 @@ import ImageUpload from '@/Components/ImageUpload.vue';
 import { useScrollToHash } from '@/Composables/useScrollToHash';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 
 useScrollToHash();
 
@@ -44,6 +44,8 @@ function applyFilters() {
 }
 
 watch([brand, material, colorFamily, textureFamily], applyFilters);
+
+onUnmounted(() => clearTimeout(debounce));
 
 const hasActiveFilters = computed(
     () =>
@@ -154,18 +156,16 @@ const editFormTextures = computed(() =>
         : [],
 );
 
-watch(
-    () => addForm.brand_id,
-    () => {
-        addForm.texture_id = '';
-    },
-);
-watch(
-    () => editForm.brand_id,
-    () => {
-        editForm.texture_id = '';
-    },
-);
+// Textures are brand-scoped, so changing the brand invalidates the current
+// texture. Tie this reset to the user-driven `change` event rather than a
+// watcher: a watcher also fires when `startEdit()` programmatically repopulates
+// the form, which would wipe the texture we just loaded for editing.
+function onAddBrandChange() {
+    addForm.texture_id = '';
+}
+function onEditBrandChange() {
+    editForm.texture_id = '';
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const allColors = computed(() => props.colors.data);
@@ -364,6 +364,7 @@ const selectClass =
                             v-model="addForm.brand_id"
                             required
                             :class="selectClass"
+                            @change="onAddBrandChange"
                         >
                             <option value="">
                                 {{ $t('catalog.colors.select_placeholder') }}
@@ -657,6 +658,7 @@ const selectClass =
                                                 v-model="editForm.brand_id"
                                                 required
                                                 :class="selectClass"
+                                                @change="onEditBrandChange"
                                             >
                                                 <option value="">
                                                     {{

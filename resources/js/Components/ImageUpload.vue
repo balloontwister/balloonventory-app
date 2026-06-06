@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
     label: { type: String, default: null },
@@ -12,17 +12,38 @@ const props = defineProps({
         default: 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml',
     },
     helpText: { type: String, default: null },
+    disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:file', 'update:clear']);
 
 const inputRef = ref(null);
 
-// Local preview of the file the user just picked (Object URL). Falls back to
-// the existing stored image URL when no new file is selected.
-const localPreviewUrl = computed(() =>
-    props.file ? URL.createObjectURL(props.file) : null,
+// Local preview of the file the user just picked. Object URLs must be revoked
+// or they leak for the lifetime of the document — in an Inertia SPA that's the
+// whole session. Track the current URL so we can revoke the previous one when
+// the file changes and on unmount.
+const localPreviewUrl = ref(null);
+
+watch(
+    () => props.file,
+    (file) => {
+        if (localPreviewUrl.value) {
+            URL.revokeObjectURL(localPreviewUrl.value);
+            localPreviewUrl.value = null;
+        }
+        if (file) {
+            localPreviewUrl.value = URL.createObjectURL(file);
+        }
+    },
+    { immediate: true },
 );
+
+onBeforeUnmount(() => {
+    if (localPreviewUrl.value) {
+        URL.revokeObjectURL(localPreviewUrl.value);
+    }
+});
 
 const previewUrl = computed(() => {
     if (localPreviewUrl.value) return localPreviewUrl.value;
@@ -81,19 +102,24 @@ function onClearToggle(event) {
                 ref="inputRef"
                 type="file"
                 :accept="accept"
-                class="block w-full max-w-xs rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-secondary file:mr-3 file:rounded-md file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:font-sans file:text-[12px] file:font-medium file:text-accent"
+                :disabled="disabled"
+                class="block w-full max-w-xs rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-secondary file:mr-3 file:rounded-md file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:font-sans file:text-[12px] file:font-medium file:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                 @change="onFileChange"
             />
         </div>
 
         <label
             v-if="currentUrl"
-            class="mt-1 flex cursor-pointer items-center gap-2 font-sans text-[12px] text-ink-secondary"
+            class="mt-1 flex items-center gap-2 font-sans text-[12px] text-ink-secondary"
+            :class="
+                disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+            "
         >
             <input
                 type="checkbox"
                 :checked="clear"
-                class="h-3.5 w-3.5 accent-danger"
+                :disabled="disabled"
+                class="h-3.5 w-3.5 accent-danger disabled:cursor-not-allowed"
                 @change="onClearToggle"
             />
             Remove this image

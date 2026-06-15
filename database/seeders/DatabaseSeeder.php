@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             BalloonSizeSeeder::class,
             CatalogTranslationSeeder::class,
             FoilCatalogSeeder::class,
+            TufTexFoilBalloonSizeSeeder::class,
             QualatexColorSeeder::class,
             TufTexColorSeeder::class,
             KalisanTextureSeeder::class,

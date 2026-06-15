@@ -6,6 +6,7 @@ use App\Models\BrandGs1Prefix;
 use App\Models\Sku;
 use App\Support\Gtin;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class BarcodeMatcher
 {
@@ -106,11 +107,17 @@ class BarcodeMatcher
         if ($gtin14 !== null) {
             $gs1Forms = array_merge($gs1Forms, $this->storedFormsFromGtin14($gtin14));
         }
-        foreach (array_unique($gs1Forms) as $digits) {
-            if ($digits === '') {
-                continue;
+        $gs1Forms = array_values(array_filter(array_unique($gs1Forms), static fn ($d) => $d !== ''));
+
+        if ($gs1Forms !== []) {
+            // Load the brand GS1 prefix table once and reuse it across every
+            // barcode form. The list is identical for each form, so querying it
+            // inside the per-form loop just repeats the same read 4-5x per scan.
+            $prefixes = $this->gs1Prefixes();
+
+            foreach ($gs1Forms as $digits) {
+                $this->collectGs1PrefixMatches($hits, $businessId, $digits, $prefixes);
             }
-            $this->collectGs1PrefixMatches($hits, $businessId, $digits);
         }
 
         return [
@@ -220,14 +227,24 @@ class BarcodeMatcher
     }
 
     /**
-     * @param  array<int, array{sku: Sku, match: string}>  $hits
+     * Load the brand GS1 prefix table, longest prefix first so brands with a
+     * more specific prefix (e.g. a 10-digit assignment) win over shorter
+     * umbrella prefixes. Fetched once per match() and reused across every
+     * barcode form.
+     *
+     * @return Collection<int, BrandGs1Prefix>
      */
-    private function collectGs1PrefixMatches(array &$hits, ?string $businessId, string $normalized): void
+    private function gs1Prefixes(): Collection
     {
-        // Longest prefix first so brands with more specific prefixes (e.g. a
-        // 10-digit assignment) win over shorter umbrella prefixes.
-        $prefixes = BrandGs1Prefix::orderByRaw('LENGTH(prefix) DESC')->get();
+        return BrandGs1Prefix::orderByRaw('LENGTH(prefix) DESC')->get();
+    }
 
+    /**
+     * @param  array<int, array{sku: Sku, match: string}>  $hits
+     * @param  Collection<int, BrandGs1Prefix>  $prefixes
+     */
+    private function collectGs1PrefixMatches(array &$hits, ?string $businessId, string $normalized, Collection $prefixes): void
+    {
         foreach ($prefixes as $prefixRow) {
             $prefix = (string) $prefixRow->prefix;
 

@@ -8,6 +8,7 @@ use App\Models\Business;
 use App\Models\Sku;
 use App\Services\BarcodeMatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class BarcodeMatcherTest extends TestCase
@@ -212,6 +213,36 @@ class BarcodeMatcherTest extends TestCase
         $this->assertCount(1, $result['candidates']);
         $this->assertSame($sku->id, $result['candidates'][0]['sku']->id);
         $this->assertSame(BarcodeMatcher::MATCH_GS1_WAREHOUSE_SKU, $result['candidates'][0]['match']);
+    }
+
+    public function test_gs1_prefix_table_is_loaded_only_once_per_match(): void
+    {
+        // A single scan expands into ~5 barcode forms (raw + GTIN 14/13/12/8 +
+        // leading-zero-stripped). The brand GS1 prefix list is identical for
+        // every form, so it must be read from the DB once per match(), not once
+        // per form. Guards against re-introducing the per-form query.
+        $brand = Brand::factory()->create();
+        BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
+
+        Sku::factory()->create([
+            'brand_id' => $brand->id,
+            'upc' => null,
+            'ean' => null,
+            'warehouse_sku' => '43734',
+        ]);
+
+        DB::enableQueryLog();
+
+        $this->matcher->match('071444437345', $this->business->id);
+
+        $prefixQueries = array_filter(
+            DB::getQueryLog(),
+            static fn (array $entry) => str_contains($entry['query'], 'brand_gs1_prefixes'),
+        );
+
+        DB::disableQueryLog();
+
+        $this->assertCount(1, $prefixQueries);
     }
 
     public function test_gs1_prefix_plus_mfg_no_matches(): void

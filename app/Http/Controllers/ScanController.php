@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StockDirection;
-use App\Models\Bin;
 use App\Models\Business;
-use App\Models\Location;
 use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
-use App\Scopes\BusinessScope;
 use App\Services\BarcodeMatcher;
+use App\Services\BinResolver;
 use App\Support\BusinessContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +21,10 @@ use Inertia\Response;
 
 class ScanController extends Controller
 {
-    public function __construct(private readonly BarcodeMatcher $barcodeMatcher) {}
+    public function __construct(
+        private readonly BarcodeMatcher $barcodeMatcher,
+        private readonly BinResolver $binResolver,
+    ) {}
 
     public function index(): Response
     {
@@ -255,7 +256,7 @@ class ScanController extends Controller
         $userId = $request->user()->id;
 
         // Resolve bin — use default, creating it if the business has none yet.
-        $bin = $this->resolveBin($business);
+        $bin = $this->binResolver->resolveDefault($business);
 
         $upcScanned = isset($data['upc']) ? trim($data['upc']) : null;
         if ($upcScanned === '') {
@@ -384,31 +385,5 @@ class ScanController extends Controller
         }
 
         return $sku;
-    }
-
-    private function resolveBin(Business $business): Bin
-    {
-        $bin = $business->defaultBin();
-
-        if ($bin !== null) {
-            return $bin;
-        }
-
-        $location = $business->defaultLocation();
-
-        if ($location === null) {
-            $location = Location::withoutGlobalScope(BusinessScope::class)->create([
-                'business_id' => $business->id,
-                'name' => 'Default',
-                'is_default' => true,
-            ]);
-        }
-
-        return Bin::withoutGlobalScope(BusinessScope::class)->create([
-            'business_id' => $business->id,
-            'location_id' => $location->id,
-            'name' => 'Default',
-            'is_default' => true,
-        ]);
     }
 }

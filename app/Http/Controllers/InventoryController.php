@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\StockDirection;
 use App\Models\BalloonList;
-use App\Models\Bin;
 use App\Models\Brand;
 use App\Models\Business;
 use App\Models\BusinessSkuOverride;
 use App\Models\ColorFamily;
 use App\Models\ListItem;
-use App\Models\Location;
 use App\Models\Material;
 use App\Models\Shape;
 use App\Models\Size;
@@ -19,6 +17,7 @@ use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Models\TextureFamily;
 use App\Scopes\BusinessScope;
+use App\Services\BinResolver;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +27,8 @@ use Inertia\Response;
 
 class InventoryController extends Controller
 {
+    public function __construct(private readonly BinResolver $binResolver) {}
+
     public function index(Request $request): Response
     {
         $request->validate([
@@ -229,26 +230,7 @@ class InventoryController extends Controller
         }
 
         $business = Business::findOrFail($businessId);
-        $bin = $business->defaultBin();
-
-        if ($bin === null) {
-            $location = $business->defaultLocation();
-
-            if ($location === null) {
-                $location = Location::withoutGlobalScope(BusinessScope::class)->create([
-                    'business_id' => $businessId,
-                    'name' => 'Default',
-                    'is_default' => true,
-                ]);
-            }
-
-            $bin = Bin::withoutGlobalScope(BusinessScope::class)->create([
-                'business_id' => $businessId,
-                'location_id' => $location->id,
-                'name' => 'Default',
-                'is_default' => true,
-            ]);
-        }
+        $bin = $this->binResolver->resolveDefault($business);
 
         StockLevel::firstOrCreate(
             [

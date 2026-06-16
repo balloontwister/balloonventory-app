@@ -24,6 +24,7 @@ class StockMovement extends Model
         'business_id',
         'sku_id',
         'bin_id',
+        'transfer_id',
         'user_id',
         'direction',
         'full_bags_change',

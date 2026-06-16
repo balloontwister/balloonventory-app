@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\BinController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ListsController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
@@ -76,6 +78,16 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::post('/inventory/skus/{sku}/lists', [InventoryController::class, 'addToList'])->name('inventory.sku.add-to-list');
     Route::post('/favorites/{sku}', [InventoryController::class, 'addFavorite'])->name('favorites.add');
     Route::post('/favorites/{sku}/remove', [InventoryController::class, 'removeFavorite'])->name('favorites.remove');
+
+    // ── Bins & locations (the "By Bin" view + management) ─────────────────────
+    Route::get('/inventory/bins', [BinController::class, 'index'])->name('inventory.bins.index');
+    Route::get('/inventory/bins/{bin}/contents', [BinController::class, 'contents'])->name('inventory.bins.contents');
+    Route::post('/inventory/bins', [BinController::class, 'store'])->name('inventory.bins.store');
+    Route::patch('/inventory/bins/{bin}', [BinController::class, 'update'])->name('inventory.bins.update');
+    Route::delete('/inventory/bins/{bin}', [BinController::class, 'destroy'])->name('inventory.bins.destroy');
+    Route::post('/inventory/locations', [LocationController::class, 'store'])->name('inventory.locations.store');
+    Route::patch('/inventory/locations/{location}', [LocationController::class, 'update'])->name('inventory.locations.update');
+    Route::delete('/inventory/locations/{location}', [LocationController::class, 'destroy'])->name('inventory.locations.destroy');
     Route::get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
     Route::post('/scan/lookup', [ScanController::class, 'lookup'])->name('scan.lookup');

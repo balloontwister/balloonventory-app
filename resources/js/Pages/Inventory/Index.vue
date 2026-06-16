@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
+import InventoryTabs from '@/Components/InventoryTabs.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import Modal from '@/Components/Modal.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
@@ -149,9 +150,14 @@ function isFavorite(sku) {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="font-display text-[22px] font-semibold text-ink-primary">
-                {{ $t('inventory.heading') }}
-            </h1>
+            <div class="flex flex-col gap-3">
+                <h1
+                    class="font-display text-[22px] font-semibold text-ink-primary"
+                >
+                    {{ $t('inventory.heading') }}
+                </h1>
+                <InventoryTabs active="items" />
+            </div>
         </template>
 
         <!-- Empty state: no inventory yet -->

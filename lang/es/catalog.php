@@ -276,5 +276,7 @@ return [
         'themes' => 'Temas',
         'print_colors' => 'Colores de impresión',
         'print_sides' => 'Lados de impresión',
+        'identical_products' => 'Productos Idénticos',
+        'identical_empty' => 'No hay productos vinculados',
     ],
 ];

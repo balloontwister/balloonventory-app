@@ -313,6 +313,63 @@ const props = defineProps({
                 </div>
             </dl>
 
+            <!-- Identical Products -->
+            <div
+                v-if="sku.identical_skus?.length"
+                class="rounded-lg border border-border"
+            >
+                <div class="border-b border-border px-4 py-3">
+                    <h3
+                        class="font-sans text-[13px] font-semibold text-ink-primary"
+                    >
+                        {{ $t('catalog.sku_show.identical_products') }}
+                        <span
+                            class="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-soft px-1.5 font-sans text-[11px] font-semibold text-accent"
+                        >
+                            {{ sku.identical_skus.length }}
+                        </span>
+                    </h3>
+                </div>
+                <div class="divide-y divide-border">
+                    <Link
+                        v-for="sibling in sku.identical_skus"
+                        :key="sibling.id"
+                        :href="
+                            route('super-admin.catalog.skus.show', sibling.id)
+                        "
+                        class="flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-surface"
+                    >
+                        <span
+                            v-if="sku.color?.color_hex"
+                            class="h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
+                            :style="{ backgroundColor: sku.color.color_hex }"
+                        />
+                        <span
+                            class="min-w-0 flex-1 truncate font-sans text-[13px] font-medium text-ink-primary"
+                        >
+                            {{ sibling.name }}
+                        </span>
+                        <span
+                            class="shrink-0 font-sans text-[12px] tabular-nums text-ink-secondary"
+                        >
+                            {{ sibling.default_count_per_bag }}ct
+                        </span>
+                        <span
+                            v-if="sibling.packaging_type"
+                            class="shrink-0 rounded bg-background px-1.5 py-0.5 font-sans text-[11px] text-ink-secondary ring-1 ring-border"
+                        >
+                            {{ sibling.packaging_type.name }}
+                        </span>
+                        <span
+                            v-if="sibling.upc"
+                            class="shrink-0 font-mono text-[11px] text-ink-tertiary"
+                        >
+                            {{ sibling.upc }}
+                        </span>
+                    </Link>
+                </div>
+            </div>
+
             <!-- Print details -->
             <template v-if="sku.is_printed">
                 <div v-if="sku.themes?.length" class="mb-4">

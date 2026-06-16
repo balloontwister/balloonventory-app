@@ -213,6 +213,8 @@ class CatalogController extends Controller
 
         $locale = app()->getLocale();
 
+        $withIdentical = fn ($q) => $q->with(['packagingType', 'balloonSize']);
+
         $with = $locale === 'en'
             ? [
                 'brand',
@@ -224,6 +226,7 @@ class CatalogController extends Controller
                 'priceCode',
                 'printColors',
                 'printSides',
+                'identicalSkus' => $withIdentical,
             ]
             : [
                 'brand',
@@ -235,6 +238,7 @@ class CatalogController extends Controller
                 'priceCode',
                 'printColors',
                 'printSides',
+                'identicalSkus' => $withIdentical,
             ];
 
         $sku->load($with);

@@ -211,6 +211,50 @@ class CatalogSkuShowTest extends TestCase
         $response->assertRedirect(route('super-admin.catalog.skus.show', $sku));
     }
 
+    public function test_show_page_includes_identical_skus_when_linked(): void
+    {
+        $size = Size::factory()->create();
+        $balloonSize = BalloonSize::factory()->create(['size_id' => $size->id]);
+        $color = Color::factory()->create(['brand_id' => $this->brand->id]);
+
+        $skuA = Sku::factory()->create([
+            'brand_id' => $this->brand->id,
+            'balloon_size_id' => $balloonSize->id,
+            'color_id' => $color->id,
+            'default_count_per_bag' => 12,
+        ]);
+
+        $skuB = Sku::factory()->create([
+            'brand_id' => $this->brand->id,
+            'balloon_size_id' => $balloonSize->id,
+            'color_id' => $color->id,
+            'default_count_per_bag' => 50,
+        ]);
+
+        $skuA->linkIdentical($skuB);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus.show', $skuA))
+            ->assertOk()
+            ->assertInertia(
+                fn ($page) => $page
+                    ->has('sku.identical_skus', 1)
+                    ->where('sku.identical_skus.0.id', $skuB->id)
+                    ->where('sku.identical_skus.0.default_count_per_bag', 50),
+            );
+    }
+
+    public function test_show_page_identical_skus_empty_when_none_linked(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.catalog.skus.show', $this->sku))
+            ->assertOk()
+            ->assertInertia(
+                fn ($page) => $page
+                    ->has('sku.identical_skus', 0),
+            );
+    }
+
     public function test_skus_index_exposes_sku_ids_used_to_build_show_links(): void
     {
         $this->actingAs($this->superAdmin)

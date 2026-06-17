@@ -5,9 +5,29 @@ import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 const { businessColor } = useBusiness();
 const page = usePage();
+
+// Render only the matching breakpoint's layout (Tailwind lg = 1024px). The page
+// slot lives inside each wrapper, so rendering both would duplicate the page —
+// and any modal in it — which breaks native <dialog> modals on wide screens.
+const isDesktop = ref(
+    typeof window !== 'undefined'
+        ? window.matchMedia('(min-width: 1024px)').matches
+        : true,
+);
+let mediaQuery;
+function syncIsDesktop(event) {
+    isDesktop.value = event.matches;
+}
+onMounted(() => {
+    mediaQuery = window.matchMedia('(min-width: 1024px)');
+    isDesktop.value = mediaQuery.matches;
+    mediaQuery.addEventListener('change', syncIsDesktop);
+});
+onUnmounted(() => mediaQuery?.removeEventListener('change', syncIsDesktop));
 
 const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
 
@@ -38,7 +58,7 @@ function isActive(routeName) {
         <BusinessBadge :color="businessColor" />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
-        <div class="hidden min-h-screen pt-0.5 lg:flex">
+        <div v-if="isDesktop" class="hidden min-h-screen pt-0.5 lg:flex">
             <!-- Sidebar 240px -->
             <aside
                 class="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-border bg-surface pt-0.5"
@@ -361,7 +381,7 @@ function isActive(routeName) {
         </div>
 
         <!-- ─── MOBILE / TABLET LAYOUT (< lg) ─── -->
-        <div class="flex min-h-screen flex-col pt-0.5 lg:hidden">
+        <div v-else class="flex min-h-screen flex-col pt-0.5 lg:hidden">
             <!-- Sticky BusinessSwitcher header -->
             <header
                 class="sticky top-0.5 z-10 border-b border-border bg-surface"

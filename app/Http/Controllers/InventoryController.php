@@ -10,7 +10,6 @@ use App\Models\Business;
 use App\Models\BusinessSkuOverride;
 use App\Models\ColorFamily;
 use App\Models\ListItem;
-use App\Models\Location;
 use App\Models\Material;
 use App\Models\Shape;
 use App\Models\Size;
@@ -19,15 +18,21 @@ use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Models\TextureFamily;
 use App\Scopes\BusinessScope;
+use App\Services\BinResolver;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class InventoryController extends Controller
 {
+    public function __construct(private readonly BinResolver $binResolver) {}
+
     public function index(Request $request): Response
     {
         $request->validate([
@@ -202,6 +207,7 @@ class InventoryController extends Controller
             'sku' => $sku,
             'override' => $override,
             'stockLevels' => $stockLevels,
+            'bins' => $this->binsForSelector(),
             'recentMovements' => $recentMovements,
             'favoritesListId' => $favoritesListId,
             'isFavorite' => $isFavorite,
@@ -229,26 +235,7 @@ class InventoryController extends Controller
         }
 
         $business = Business::findOrFail($businessId);
-        $bin = $business->defaultBin();
-
-        if ($bin === null) {
-            $location = $business->defaultLocation();
-
-            if ($location === null) {
-                $location = Location::withoutGlobalScope(BusinessScope::class)->create([
-                    'business_id' => $businessId,
-                    'name' => 'Default',
-                    'is_default' => true,
-                ]);
-            }
-
-            $bin = Bin::withoutGlobalScope(BusinessScope::class)->create([
-                'business_id' => $businessId,
-                'location_id' => $location->id,
-                'name' => 'Default',
-                'is_default' => true,
-            ]);
-        }
+        $bin = $this->binResolver->resolveDefault($business);
 
         StockLevel::firstOrCreate(
             [
@@ -283,6 +270,135 @@ class InventoryController extends Controller
 
         return redirect()->route('inventory.index')
             ->with('success', __('flash.inventory.sku_removed'));
+    }
+
+    /**
+     * Move stock from one bin to another. Recorded as two paired `adjusted`
+     * movements sharing a transfer_id — the source leg carries negative bag
+     * changes, the destination leg positive — so the two halves can be shown
+     * and reversed together.
+     */
+    public function transfer(Request $request, Sku $sku): RedirectResponse
+    {
+        abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+
+        $businessId = BusinessContext::currentId();
+
+        $binExistsForBusiness = Rule::exists('bins', 'id')
+            ->where('business_id', $businessId)
+            ->whereNull('deleted_at');
+
+        $data = $request->validate([
+            'from_bin_id' => ['required', 'uuid', $binExistsForBusiness],
+            'to_bin_id' => ['required', 'uuid', 'different:from_bin_id', $binExistsForBusiness],
+            'full_bags_change' => ['integer', 'min:0'],
+            'open_bags_change' => ['integer', 'min:0'],
+        ]);
+
+        $fullBagsChange = (int) ($data['full_bags_change'] ?? 0);
+        $openBagsChange = (int) ($data['open_bags_change'] ?? 0);
+
+        if ($fullBagsChange === 0 && $openBagsChange === 0) {
+            throw ValidationException::withMessages([
+                'full_bags_change' => __('flash.inventory.transfer_nothing'),
+            ]);
+        }
+
+        $business = Business::findOrFail($businessId);
+        $fromBin = $this->binResolver->resolveSelectedBin($business, $data['from_bin_id']);
+        $toBin = $this->binResolver->resolveSelectedBin($business, $data['to_bin_id']);
+
+        DB::transaction(function () use (
+            $businessId, $sku, $fromBin, $toBin, $fullBagsChange, $openBagsChange, $request
+        ) {
+            $source = StockLevel::where('business_id', $businessId)
+                ->where('sku_id', $sku->id)
+                ->where('bin_id', $fromBin->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($source === null
+                || $source->full_bags < $fullBagsChange
+                || $source->open_bags < $openBagsChange) {
+                throw ValidationException::withMessages([
+                    'full_bags_change' => __('flash.inventory.transfer_insufficient', [
+                        'full' => $source->full_bags ?? 0,
+                        'open' => $source->open_bags ?? 0,
+                    ]),
+                ]);
+            }
+
+            $destination = StockLevel::where('business_id', $businessId)
+                ->where('sku_id', $sku->id)
+                ->where('bin_id', $toBin->id)
+                ->lockForUpdate()
+                ->first()
+                ?? StockLevel::create([
+                    'business_id' => $businessId,
+                    'sku_id' => $sku->id,
+                    'bin_id' => $toBin->id,
+                    'full_bags' => 0,
+                    'open_bags' => 0,
+                ]);
+
+            $source->decrement('full_bags', $fullBagsChange);
+            $source->decrement('open_bags', $openBagsChange);
+            $source->update(['last_movement_at' => now()]);
+
+            $destination->increment('full_bags', $fullBagsChange);
+            $destination->increment('open_bags', $openBagsChange);
+            $destination->update(['last_movement_at' => now()]);
+
+            $transferId = (string) Str::uuid7();
+            $userId = $request->user()->id;
+
+            StockMovement::create([
+                'business_id' => $businessId,
+                'sku_id' => $sku->id,
+                'bin_id' => $fromBin->id,
+                'transfer_id' => $transferId,
+                'user_id' => $userId,
+                'direction' => StockDirection::Adjusted,
+                'full_bags_change' => -$fullBagsChange,
+                'open_bags_change' => -$openBagsChange,
+                'notes' => 'Transfer to '.$toBin->name,
+            ]);
+
+            StockMovement::create([
+                'business_id' => $businessId,
+                'sku_id' => $sku->id,
+                'bin_id' => $toBin->id,
+                'transfer_id' => $transferId,
+                'user_id' => $userId,
+                'direction' => StockDirection::Adjusted,
+                'full_bags_change' => $fullBagsChange,
+                'open_bags_change' => $openBagsChange,
+                'notes' => 'Transfer from '.$fromBin->name,
+            ]);
+        });
+
+        return back()->with('success', __('flash.inventory.transfer_done'));
+    }
+
+    /**
+     * The business's bins for transfer destination pickers, Default first.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function binsForSelector(): array
+    {
+        return Bin::with('location:id,name')
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Bin $bin) => [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'number' => $bin->number,
+                'location_name' => $bin->location?->name,
+            ])
+            ->all();
     }
 
     public function updateOverride(Request $request, Sku $sku): RedirectResponse

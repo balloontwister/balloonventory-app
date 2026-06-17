@@ -11,6 +11,7 @@ use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Scopes\BusinessScope;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -153,6 +154,70 @@ class InventorySchemaTest extends TestCase
 
         $this->assertSame(4, $level->full_bags);
         $this->assertSame(1, $level->open_bags);
+    }
+
+    public function test_same_sku_can_hold_independent_stock_in_two_bins(): void
+    {
+        $business = Business::factory()->create();
+        $location = Location::factory()->default()->create(['business_id' => $business->id]);
+        $binA = Bin::factory()->default()->create([
+            'business_id' => $business->id,
+            'location_id' => $location->id,
+        ]);
+        $binB = Bin::factory()->create([
+            'business_id' => $business->id,
+            'location_id' => $location->id,
+        ]);
+        $sku = Sku::factory()->create();
+
+        $levelA = StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $binA->id,
+            'full_bags' => 4,
+            'open_bags' => 1,
+        ]);
+
+        $levelB = StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $binB->id,
+            'full_bags' => 9,
+            'open_bags' => 0,
+        ]);
+
+        $this->assertNotSame($levelA->id, $levelB->id);
+        $this->assertSame(4, $levelA->fresh()->full_bags);
+        $this->assertSame(9, $levelB->fresh()->full_bags);
+    }
+
+    public function test_same_sku_cannot_be_duplicated_within_one_bin(): void
+    {
+        $business = Business::factory()->create();
+        $location = Location::factory()->default()->create(['business_id' => $business->id]);
+        $bin = Bin::factory()->default()->create([
+            'business_id' => $business->id,
+            'location_id' => $location->id,
+        ]);
+        $sku = Sku::factory()->create();
+
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $bin->id,
+            'full_bags' => 1,
+            'open_bags' => 0,
+        ]);
+
+        $this->expectException(QueryException::class);
+
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $bin->id,
+            'full_bags' => 2,
+            'open_bags' => 0,
+        ]);
     }
 
     public function test_stock_level_soft_deletes(): void

@@ -807,4 +807,181 @@ class ScanControllerTest extends TestCase
             'full_bags_change' => 2,
         ]);
     }
+
+    // ── bin inference & selection (Phase 2) ───────────────────────────────────────
+
+    private function makeBin(string $name, ?int $number = null): Bin
+    {
+        return Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $this->bin->location_id,
+            'name' => $name,
+            'number' => $number,
+        ]);
+    }
+
+    private function stock(Bin $bin, int $full, int $open, ?string $movedAt = null): void
+    {
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $this->sku->id,
+            'bin_id' => $bin->id,
+            'full_bags' => $full,
+            'open_bags' => $open,
+            'last_movement_at' => $movedAt,
+        ]);
+    }
+
+    public function test_index_provides_bins_for_the_working_bin_selector(): void
+    {
+        $shelf = $this->makeBin('Top Shelf', 3);
+
+        $this->actingAs($this->owner)
+            ->get(route('scan.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('defaultBinId', $this->bin->id)
+                ->has('bins', 2)
+                // Default bin is listed first (is_default desc).
+                ->where('bins.0.id', $this->bin->id)
+                ->where('bins.1.id', $shelf->id)
+                ->where('bins.1.name', 'Top Shelf')
+            );
+    }
+
+    public function test_lookup_reports_the_bin_a_sku_lives_in(): void
+    {
+        $shelf = $this->makeBin('Top Shelf');
+        $this->stock($shelf, full: 4, open: 0, movedAt: now()->toDateTimeString());
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '012345678901'])
+            ->assertOk()
+            ->assertJsonPath('sku.suggested_bin_id', $shelf->id)
+            ->assertJsonPath('sku.bins.0.bin_id', $shelf->id)
+            ->assertJsonPath('sku.bins.0.full_bags', 4);
+    }
+
+    public function test_lookup_suggests_the_most_recently_moved_bin_when_stock_spans_bins(): void
+    {
+        $older = $this->makeBin('Older');
+        $newer = $this->makeBin('Newer');
+        $this->stock($older, full: 1, open: 0, movedAt: now()->subDays(5)->toDateTimeString());
+        $this->stock($newer, full: 1, open: 0, movedAt: now()->toDateTimeString());
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '012345678901'])
+            ->assertOk()
+            ->assertJsonPath('sku.suggested_bin_id', $newer->id)
+            ->assertJsonCount(2, 'sku.bins');
+    }
+
+    public function test_lookup_suggests_no_bin_when_sku_has_no_stock(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '012345678901'])
+            ->assertOk()
+            ->assertJsonPath('sku.suggested_bin_id', null)
+            ->assertJsonCount(0, 'sku.bins');
+    }
+
+    public function test_check_in_records_to_the_selected_bin(): void
+    {
+        $shelf = $this->makeBin('Top Shelf');
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.check-in'), [
+                'sku_id' => $this->sku->id,
+                'bin_id' => $shelf->id,
+                'full_bags_change' => 3,
+                'open_bags_change' => 0,
+            ])
+            ->assertOk()
+            ->assertJsonPath('bin.id', $shelf->id);
+
+        $this->assertDatabaseHas('stock_levels', [
+            'sku_id' => $this->sku->id,
+            'bin_id' => $shelf->id,
+            'full_bags' => 3,
+        ]);
+        // Nothing should have landed in the Default bin.
+        $this->assertDatabaseMissing('stock_levels', [
+            'sku_id' => $this->sku->id,
+            'bin_id' => $this->bin->id,
+        ]);
+    }
+
+    public function test_check_in_rejects_a_bin_from_another_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'name' => 'Default', 'is_default' => true,
+        ]);
+        $otherBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'location_id' => $otherLocation->id, 'name' => 'Foreign',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.check-in'), [
+                'sku_id' => $this->sku->id,
+                'bin_id' => $otherBin->id,
+                'full_bags_change' => 1,
+                'open_bags_change' => 0,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('bin_id');
+    }
+
+    // ── BIN scan-code recognition (Phase 3) ───────────────────────────────────────
+
+    public function test_lookup_recognizes_a_bin_scan_code(): void
+    {
+        $shelf = $this->makeBin('Top Shelf', 3);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => $shelf->scan_code])
+            ->assertOk()
+            ->assertJson([
+                'type' => 'bin',
+                'found' => true,
+                'bin' => [
+                    'id' => $shelf->id,
+                    'name' => 'Top Shelf',
+                    'number' => 3,
+                ],
+            ]);
+    }
+
+    public function test_lookup_bin_is_case_insensitive_on_the_prefix(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => strtolower($this->bin->scan_code)])
+            ->assertOk()
+            ->assertJsonPath('type', 'bin')
+            ->assertJsonPath('bin.id', $this->bin->id);
+    }
+
+    public function test_lookup_returns_bin_not_found_for_unknown_code(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'BIN-ZZZZZZZZ'])
+            ->assertOk()
+            ->assertJson(['type' => 'bin', 'found' => false]);
+    }
+
+    public function test_lookup_does_not_resolve_a_bin_from_another_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'name' => 'Default', 'is_default' => true,
+        ]);
+        $otherBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'location_id' => $otherLocation->id, 'name' => 'Foreign',
+            'scan_code' => 'BIN-FOREIGN1',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => $otherBin->scan_code])
+            ->assertOk()
+            ->assertJson(['type' => 'bin', 'found' => false]);
+    }
 }

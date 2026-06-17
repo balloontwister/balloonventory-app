@@ -57,5 +57,8 @@ return [
         'sku_removed' => 'Removed from inventory.',
         'override_saved' => 'Changes saved.',
         'added_to_list' => 'Added to ":list".',
+        'transfer_done' => 'Stock transferred.',
+        'transfer_nothing' => 'Enter at least one bag to transfer.',
+        'transfer_insufficient' => 'Not enough stock in the source bin. Available: :full full / :open open bags.',
     ],
 ];

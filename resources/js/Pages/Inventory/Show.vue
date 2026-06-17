@@ -1,17 +1,20 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
+import AppInput from '@/Components/AppInput.vue';
 import BackLink from '@/Components/BackLink.vue';
+import Modal from '@/Components/Modal.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     sku: { type: Object, required: true },
     override: { type: Object, default: null },
     stockLevels: { type: Array, required: true },
+    bins: { type: Array, default: () => [] },
     recentMovements: { type: Array, required: true },
     favoritesListId: { type: String, default: null },
     isFavorite: { type: Boolean, default: false },
@@ -38,6 +41,54 @@ const overrideForm = useForm({
 function saveOverride() {
     overrideForm.patch(route('inventory.override.update', props.sku.id), {
         preserveScroll: true,
+    });
+}
+
+// ── Transfer between bins ─────────────────────────────────────────────────────
+// Only bins that actually hold this SKU can be a transfer source.
+const binsWithStock = computed(() =>
+    props.stockLevels
+        .filter((l) => (l.full_bags ?? 0) > 0 || (l.open_bags ?? 0) > 0)
+        .map((l) => ({
+            bin_id: l.bin?.id,
+            name: l.bin?.name,
+            location_name: l.bin?.location?.name,
+            full_bags: l.full_bags ?? 0,
+            open_bags: l.open_bags ?? 0,
+        })),
+);
+
+const canTransfer = computed(
+    () => binsWithStock.value.length > 0 && props.bins.length > 1,
+);
+
+const transferOpen = ref(false);
+const transferForm = useForm({
+    from_bin_id: '',
+    to_bin_id: '',
+    full_bags_change: 0,
+    open_bags_change: 0,
+});
+
+function binOptionLabel(bin) {
+    const number = bin.number != null ? `#${bin.number} ` : '';
+    const location = bin.location_name ? `${bin.location_name} · ` : '';
+    return `${location}${number}${bin.name}`;
+}
+
+function openTransfer() {
+    transferForm.reset();
+    transferForm.clearErrors();
+    transferForm.from_bin_id = binsWithStock.value[0]?.bin_id ?? '';
+    transferOpen.value = true;
+}
+
+function submitTransfer() {
+    transferForm.post(route('inventory.sku.transfer', props.sku.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            transferOpen.value = false;
+        },
     });
 }
 
@@ -124,11 +175,21 @@ function formatDate(value) {
 
             <!-- Stock section -->
             <section>
-                <h2
-                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                >
-                    {{ $t('inventory.show.section_stock') }}
-                </h2>
+                <div class="mb-3 flex items-center justify-between">
+                    <h2
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('inventory.show.section_stock') }}
+                    </h2>
+                    <AppButton
+                        v-if="canTransfer"
+                        variant="secondary"
+                        size="sm"
+                        @click="openTransfer"
+                    >
+                        {{ $t('inventory.show.transfer_button') }}
+                    </AppButton>
+                </div>
                 <div class="flex items-center gap-4">
                     <StockBadge
                         :full-bags="totalFullBags"
@@ -368,5 +429,117 @@ function formatDate(value) {
                 </div>
             </section>
         </div>
+
+        <!-- Transfer modal -->
+        <Modal :show="transferOpen" max-width="md" @close="transferOpen = false">
+            <form class="flex flex-col gap-4 p-6" @submit.prevent="submitTransfer">
+                <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                    {{ $t('inventory.show.transfer_title') }}
+                </h2>
+
+                <div class="flex flex-col gap-1">
+                    <label
+                        for="transfer-from"
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('inventory.show.transfer_from') }}
+                    </label>
+                    <select
+                        id="transfer-from"
+                        v-model="transferForm.from_bin_id"
+                        class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    >
+                        <option
+                            v-for="b in binsWithStock"
+                            :key="b.bin_id"
+                            :value="b.bin_id"
+                        >
+                            {{ binOptionLabel(b) }} —
+                            {{
+                                $t('inventory.show.transfer_bin_holds', {
+                                    full: b.full_bags,
+                                    open: b.open_bags,
+                                })
+                            }}
+                        </option>
+                    </select>
+                    <p
+                        v-if="transferForm.errors.from_bin_id"
+                        class="font-sans text-[13px] text-danger"
+                    >
+                        {{ transferForm.errors.from_bin_id }}
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label
+                        for="transfer-to"
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('inventory.show.transfer_to') }}
+                    </label>
+                    <select
+                        id="transfer-to"
+                        v-model="transferForm.to_bin_id"
+                        class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    >
+                        <option value="" disabled>—</option>
+                        <option
+                            v-for="b in bins.filter(
+                                (x) => x.id !== transferForm.from_bin_id,
+                            )"
+                            :key="b.id"
+                            :value="b.id"
+                        >
+                            {{ binOptionLabel(b) }}
+                        </option>
+                    </select>
+                    <p
+                        v-if="transferForm.errors.to_bin_id"
+                        class="font-sans text-[13px] text-danger"
+                    >
+                        {{ transferForm.errors.to_bin_id }}
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <AppInput
+                            id="transfer-full"
+                            v-model="transferForm.full_bags_change"
+                            type="number"
+                            :label="$t('inventory.show.transfer_full_bags')"
+                            :error="transferForm.errors.full_bags_change"
+                        />
+                    </div>
+                    <div class="flex-1">
+                        <AppInput
+                            id="transfer-open"
+                            v-model="transferForm.open_bags_change"
+                            type="number"
+                            :label="$t('inventory.show.transfer_open_bags')"
+                            :error="transferForm.errors.open_bags_change"
+                        />
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <AppButton
+                        variant="secondary"
+                        type="button"
+                        @click="transferOpen = false"
+                    >
+                        {{ $t('inventory.show.transfer_cancel') }}
+                    </AppButton>
+                    <AppButton
+                        variant="primary"
+                        type="submit"
+                        :disabled="transferForm.processing"
+                    >
+                        {{ $t('inventory.show.transfer_submit') }}
+                    </AppButton>
+                </div>
+            </form>
+        </Modal>
     </AuthenticatedLayout>
 </template>

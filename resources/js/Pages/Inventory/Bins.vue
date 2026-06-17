@@ -46,10 +46,7 @@ function escapeHtml(value) {
 // Render the Code 128 barcode into a detached SVG (parent document, where
 // JsBarcode works), then serialize it to a string for injection into the iframe.
 function barcodeSvg(value) {
-    const svg = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'svg',
-    );
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     JsBarcode(svg, value, {
         format: 'CODE128',
         displayValue: false,
@@ -177,8 +174,9 @@ const locationForm = useForm({ name: '', description: '' });
 
 function openCreateLocation() {
     editingLocationId.value = null;
-    locationForm.reset();
     locationForm.clearErrors();
+    locationForm.name = '';
+    locationForm.description = '';
     modalType.value = 'location';
 }
 
@@ -230,9 +228,11 @@ const binForm = useForm({
 
 function openCreateBin(location) {
     editingBinId.value = null;
-    binForm.reset();
     binForm.clearErrors();
     binForm.location_id = location.id;
+    binForm.name = '';
+    binForm.number = '';
+    binForm.description = '';
     modalType.value = 'bin';
 }
 
@@ -462,9 +462,7 @@ function binSummaryLabel(bin) {
                                 {{ $t('bins.bin.loading') }}
                             </p>
                             <p
-                                v-else-if="
-                                    !binContents[bin.id]?.items?.length
-                                "
+                                v-else-if="!binContents[bin.id]?.items?.length"
                                 class="font-sans text-[13px] text-ink-tertiary"
                             >
                                 {{ $t('bins.bin.empty') }}
@@ -554,7 +552,9 @@ function binSummaryLabel(bin) {
                 class="flex flex-col gap-4 p-6"
                 @submit.prevent="submitLocation"
             >
-                <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
                     {{
                         editingLocationId
                             ? $t('bins.form.edit_location_title')
@@ -620,7 +620,9 @@ function binSummaryLabel(bin) {
                 class="flex flex-col gap-4 p-6"
                 @submit.prevent="submitBin"
             >
-                <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
                     {{
                         editingBinId
                             ? $t('bins.form.edit_bin_title')
@@ -673,7 +675,9 @@ function binSummaryLabel(bin) {
                             v-model="binForm.number"
                             type="number"
                             :label="$t('bins.form.bin_number')"
-                            :placeholder="$t('bins.form.bin_number_placeholder')"
+                            :placeholder="
+                                $t('bins.form.bin_number_placeholder')
+                            "
                             :error="binForm.errors.number"
                         />
                     </div>

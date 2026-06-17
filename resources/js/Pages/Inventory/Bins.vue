@@ -6,17 +6,19 @@ import InventoryTabs from '@/Components/InventoryTabs.vue';
 import Modal from '@/Components/Modal.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import JsBarcode from 'jsbarcode';
 import { computed, reactive, ref } from 'vue';
+import {
+    AVERY_FORMATS,
+    LABEL_PRESETS,
+    buildAverySheetHtml,
+    buildLabelSvg,
+    labelToPngBlob,
+} from '@/Composables/useBinLabels';
 
 const props = defineProps({
     locations: { type: Array, required: true },
 });
 
-// ── Printable bin labels ──────────────────────────────────────────────────────
-// Labels print from an isolated, off-screen iframe rather than by toggling the
-// page's own DOM. This keeps print logic from touching the app's styles, modals,
-// or layout — no global print CSS, no teleported overlay.
 const allBins = computed(() =>
     props.locations.flatMap((location) =>
         location.bins.map((bin) => ({ ...bin, location_name: location.name })),
@@ -29,60 +31,104 @@ function labelText(bin, locationName) {
     return `${location}${number}${bin.name}`;
 }
 
-function escapeHtml(value) {
-    return String(value).replace(
-        /[&<>"']/g,
-        (c) =>
-            ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;',
-            })[c],
+// ── View / export a single label ───────────────────────────────────────────────
+const labelPresets = LABEL_PRESETS;
+const viewLabelBin = ref(null); // { name, code }
+const sizeKey = ref(LABEL_PRESETS[0].key);
+const customWidthIn = ref(2.625);
+const customHeightIn = ref(1);
+const copyState = ref(''); // '' | 'copied' | 'error'
+
+const labelDims = computed(() => {
+    if (sizeKey.value === 'custom') {
+        return {
+            widthIn: Math.min(Math.max(Number(customWidthIn.value) || 0, 0.5), 8),
+            heightIn: Math.min(Math.max(Number(customHeightIn.value) || 0, 0.25), 11),
+        };
+    }
+    const preset = LABEL_PRESETS.find((p) => p.key === sizeKey.value);
+    return { widthIn: preset.widthIn, heightIn: preset.heightIn };
+});
+
+const previewSvg = computed(() =>
+    viewLabelBin.value
+        ? buildLabelSvg({
+              name: viewLabelBin.value.name,
+              code: viewLabelBin.value.code,
+              widthIn: labelDims.value.widthIn,
+              heightIn: labelDims.value.heightIn,
+          })
+        : '',
+);
+
+function openViewLabel(bin, locationName) {
+    viewLabelBin.value = {
+        name: labelText(bin, locationName),
+        code: bin.scan_code,
+    };
+    copyState.value = '';
+    modalType.value = 'view';
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+async function copyLabelImage() {
+    copyState.value = '';
+    try {
+        const blob = await labelToPngBlob(
+            previewSvg.value,
+            labelDims.value.widthIn,
+            labelDims.value.heightIn,
+        );
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob }),
+        ]);
+        copyState.value = 'copied';
+    } catch {
+        copyState.value = 'error';
+    }
+}
+
+async function downloadLabelPng() {
+    const blob = await labelToPngBlob(
+        previewSvg.value,
+        labelDims.value.widthIn,
+        labelDims.value.heightIn,
+    );
+    downloadBlob(blob, `${viewLabelBin.value.code}.png`);
+}
+
+function downloadLabelSvg() {
+    downloadBlob(
+        new Blob([previewSvg.value], { type: 'image/svg+xml' }),
+        `${viewLabelBin.value.code}.svg`,
     );
 }
 
-// Render the Code 128 barcode into a detached SVG (parent document, where
-// JsBarcode works), then serialize it to a string for injection into the iframe.
-function barcodeSvg(value) {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    JsBarcode(svg, value, {
-        format: 'CODE128',
-        displayValue: false,
-        height: 56,
-        width: 2,
-        margin: 0,
-    });
-    return new XMLSerializer().serializeToString(svg);
-}
+// ── Bulk print on a standard Avery sheet ───────────────────────────────────────
+const averyFormats = AVERY_FORMATS;
+const printFormatKey = ref(AVERY_FORMATS[0].key);
 
-function printLabels(bins) {
-    const labels = bins.filter((bin) => bin.scan_code);
+function printAll() {
+    const format = AVERY_FORMATS.find((f) => f.key === printFormatKey.value);
+    const labels = allBins.value
+        .filter((bin) => bin.scan_code)
+        .map((bin) => ({
+            name: labelText(bin, bin.location_name),
+            code: bin.scan_code,
+        }));
     if (labels.length === 0) {
         return;
     }
 
-    const body = labels
-        .map(
-            (bin) => `
-            <div class="label">
-                <div class="name">${escapeHtml(labelText(bin, bin.location_name))}</div>
-                ${barcodeSvg(bin.scan_code)}
-                <div class="code">${escapeHtml(bin.scan_code)}</div>
-            </div>`,
-        )
-        .join('');
-
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(trans('bins.print_title'))}</title>
-        <style>
-            @page { margin: 12mm; }
-            body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
-            .label { page-break-inside: avoid; text-align: center; padding: 12px; margin: 0 auto 16px; }
-            .name { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-            .code { font-family: ui-monospace, monospace; font-size: 11px; margin-top: 4px; }
-            svg { max-width: 100%; }
-        </style></head><body>${body}</body></html>`;
+    const html = buildAverySheetHtml(labels, format, trans('bins.print_title'));
 
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');
@@ -98,27 +144,15 @@ function printLabels(bins) {
 
     const win = iframe.contentWindow;
     const cleanup = () => iframe.remove();
-
     win.document.open();
     win.document.write(html);
     win.document.close();
-
     win.addEventListener('afterprint', cleanup);
-    // Give the iframe a tick to lay out before printing.
     setTimeout(() => {
         win.focus();
         win.print();
-    }, 100);
-    // Safety net in case afterprint never fires.
+    }, 150);
     setTimeout(cleanup, 60000);
-}
-
-function printBin(bin, locationName) {
-    printLabels([{ ...bin, location_name: locationName }]);
-}
-
-function printAll() {
-    printLabels(allBins.value);
 }
 
 // ── Expandable bin contents (lazy-loaded per card) ───────────────────────────
@@ -306,6 +340,15 @@ function binSummaryLabel(bin) {
         </template>
 
         <div class="flex items-center justify-end gap-2">
+            <select
+                v-if="allBins.length > 0"
+                v-model="printFormatKey"
+                class="rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none"
+            >
+                <option v-for="f in averyFormats" :key="f.key" :value="f.key">
+                    {{ f.label }}
+                </option>
+            </select>
             <AppButton
                 v-if="allBins.length > 0"
                 variant="secondary"
@@ -519,9 +562,9 @@ function binSummaryLabel(bin) {
                                 <button
                                     type="button"
                                     class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
-                                    @click="printBin(bin, location.name)"
+                                    @click="openViewLabel(bin, location.name)"
                                 >
-                                    {{ $t('bins.print_label') }}
+                                    {{ $t('bins.view_label') }}
                                 </button>
                                 <button
                                     type="button"
@@ -726,6 +769,113 @@ function binSummaryLabel(bin) {
                     </AppButton>
                 </div>
             </form>
+
+            <div
+                v-else-if="modalType === 'view'"
+                class="flex flex-col gap-4 p-6"
+            >
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
+                    {{ $t('bins.label.view_title') }}
+                </h2>
+
+                <!-- Size controls -->
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex flex-col gap-1">
+                        <label
+                            for="label-size"
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('bins.label.size') }}
+                        </label>
+                        <select
+                            id="label-size"
+                            v-model="sizeKey"
+                            class="rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        >
+                            <option
+                                v-for="p in labelPresets"
+                                :key="p.key"
+                                :value="p.key"
+                            >
+                                {{ p.label }}
+                            </option>
+                            <option value="custom">
+                                {{ $t('bins.label.custom') }}
+                            </option>
+                        </select>
+                    </div>
+                    <template v-if="sizeKey === 'custom'">
+                        <div class="w-24">
+                            <AppInput
+                                v-model="customWidthIn"
+                                type="number"
+                                :label="$t('bins.label.width_in')"
+                            />
+                        </div>
+                        <div class="w-24">
+                            <AppInput
+                                v-model="customHeightIn"
+                                type="number"
+                                :label="$t('bins.label.height_in')"
+                            />
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Live preview -->
+                <div
+                    class="flex justify-center rounded-md border border-border bg-background p-4"
+                >
+                    <div class="label-preview" v-html="previewSvg" />
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <span
+                        v-if="copyState === 'copied'"
+                        class="mr-auto font-sans text-[13px] text-success"
+                    >
+                        {{ $t('bins.label.copied') }}
+                    </span>
+                    <span
+                        v-else-if="copyState === 'error'"
+                        class="mr-auto font-sans text-[13px] text-danger"
+                    >
+                        {{ $t('bins.label.copy_error') }}
+                    </span>
+                    <AppButton
+                        variant="secondary"
+                        size="sm"
+                        @click="downloadLabelSvg"
+                    >
+                        {{ $t('bins.label.download_svg') }}
+                    </AppButton>
+                    <AppButton
+                        variant="secondary"
+                        size="sm"
+                        @click="downloadLabelPng"
+                    >
+                        {{ $t('bins.label.download_png') }}
+                    </AppButton>
+                    <AppButton variant="primary" size="sm" @click="copyLabelImage">
+                        {{ $t('bins.label.copy') }}
+                    </AppButton>
+                </div>
+                <div class="flex justify-end">
+                    <AppButton variant="ghost" size="sm" @click="closeModal">
+                        {{ $t('bins.form.cancel') }}
+                    </AppButton>
+                </div>
+            </div>
         </Modal>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.label-preview :deep(svg) {
+    max-width: 100%;
+    height: auto;
+}
+</style>

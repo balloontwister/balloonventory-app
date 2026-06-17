@@ -12,9 +12,22 @@ return [
     'add_location' => 'Add location',
     'add_bin' => 'Add bin',
     'default_badge' => 'Default',
-    'print_label' => 'Print label',
+    'view_label' => 'View label',
     'print_all' => 'Print all labels',
     'print_title' => 'Bin labels',
+
+    'label' => [
+        'view_title' => 'Bin label',
+        'size' => 'Label size',
+        'custom' => 'Custom size',
+        'width_in' => 'Width (in)',
+        'height_in' => 'Height (in)',
+        'copy' => 'Copy image',
+        'copied' => 'Copied to clipboard',
+        'copy_error' => 'Copy failed — use Download instead',
+        'download_png' => 'Download PNG',
+        'download_svg' => 'Download SVG',
+    ],
 
     'empty' => [
         'heading' => 'No bins yet',

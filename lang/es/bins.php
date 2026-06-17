@@ -12,9 +12,22 @@ return [
     'add_location' => 'Agregar ubicación',
     'add_bin' => 'Agregar contenedor',
     'default_badge' => 'Predeterminado',
-    'print_label' => 'Imprimir etiqueta',
+    'view_label' => 'Ver etiqueta',
     'print_all' => 'Imprimir todas las etiquetas',
     'print_title' => 'Etiquetas de contenedores',
+
+    'label' => [
+        'view_title' => 'Etiqueta del contenedor',
+        'size' => 'Tamaño de etiqueta',
+        'custom' => 'Tamaño personalizado',
+        'width_in' => 'Ancho (pulg)',
+        'height_in' => 'Alto (pulg)',
+        'copy' => 'Copiar imagen',
+        'copied' => 'Copiado al portapapeles',
+        'copy_error' => 'No se pudo copiar — usa Descargar',
+        'download_png' => 'Descargar PNG',
+        'download_svg' => 'Descargar SVG',
+    ],
 
     'empty' => [
         'heading' => 'Aún no hay contenedores',

@@ -13,12 +13,12 @@ class PendingUpcScanPolicy
 
     public function viewAny(User $user, Business $business): bool
     {
-        return $user->is_super_admin || $this->userCan($user, $business, 'upc.resolve_pending');
+        return $user->isSuperAdmin() || $this->userCan($user, $business, 'upc.resolve_pending');
     }
 
     public function resolve(User $user, PendingUpcScan $scan): bool
     {
-        if ($user->is_super_admin) {
+        if ($user->isSuperAdmin()) {
             return true;
         }
 

@@ -29,7 +29,7 @@ class SkuErrorReportPolicy
         $sku = $report->sku;
 
         if ($sku->owned_by_business_id === null) {
-            return $user->is_super_admin;
+            return $user->isSuperAdmin();
         }
 
         $owning = $sku->owningBusiness;

@@ -43,7 +43,7 @@ class SkuPolicy
 
     public function editShared(User $user): bool
     {
-        return $user->is_super_admin;
+        return $user->isSuperAdmin();
     }
 
     public function reportError(User $user, Sku $sku, ?Business $business = null): bool

@@ -19,14 +19,19 @@ class PruneUnverifiedUsers extends Command
         $hours = (int) $this->option('hours');
         $cutoff = Carbon::now()->subHours($hours);
 
+        // Never prune admin accounts. admin_level is NULL for regular users and
+        // set (site_admin/super_admin) for staff; the old is_super_admin column
+        // was dropped in favor of it. (The User model also hard-blocks deleting
+        // a super admin, so a stray admin here would crash the prune.)
         $query = User::whereNull('email_verified_at')
-            ->where('is_super_admin', false)
+            ->whereNull('admin_level')
             ->where('created_at', '<', $cutoff);
 
         $count = $query->count();
 
         if ($this->option('dry-run')) {
             $this->info("Dry run: {$count} unverified account(s) would be deleted (older than {$hours}h).");
+
             return self::SUCCESS;
         }
 
@@ -34,7 +39,7 @@ class PruneUnverifiedUsers extends Command
         // available for re-registration. original_email preserves it for the admin dashboard.
         $query->each(function ($user) {
             $user->original_email = $user->email;
-            $user->email = $user->id . '@pruned.invalid';
+            $user->email = $user->id.'@pruned.invalid';
             $user->save();
             $user->delete();
         });

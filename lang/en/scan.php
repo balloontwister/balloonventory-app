@@ -94,4 +94,8 @@ return [
     'pick_bin_body' => 'This item is stored in more than one bin. Which one are you pulling from?',
     'pick_bin_cancel' => 'Cancel',
     'bin_holds' => ':full full / :open open',
+
+    // Bin-label scan
+    'bin_set' => 'Working bin set to :bin',
+    'bin_not_recognized' => 'That bin barcode wasn’t recognized.',
 ];

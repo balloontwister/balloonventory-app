@@ -2,15 +2,51 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
+import Barcode from '@/Components/Barcode.vue';
 import InventoryTabs from '@/Components/InventoryTabs.vue';
 import Modal from '@/Components/Modal.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 
 const props = defineProps({
     locations: { type: Array, required: true },
 });
+
+// ── Printable bin labels ──────────────────────────────────────────────────────
+// Each label pairs the human-readable bin name/location with a Code 128 barcode
+// of its scan_code, which the scan page recognizes to set the working bin.
+const labelsToPrint = ref([]);
+
+const allBins = computed(() =>
+    props.locations.flatMap((location) =>
+        location.bins.map((bin) => ({ ...bin, location_name: location.name })),
+    ),
+);
+
+function labelFor(bin, locationName) {
+    const number = bin.number != null ? `#${bin.number} ` : '';
+    const location = locationName ? `${locationName} · ` : '';
+    return `${location}${number}${bin.name}`;
+}
+
+async function printLabels(bins) {
+    labelsToPrint.value = bins.filter((b) => b.scan_code);
+    if (labelsToPrint.value.length === 0) {
+        return;
+    }
+    // Wait for the barcodes to render into the print area before printing.
+    await nextTick();
+    setTimeout(() => window.print(), 50);
+}
+
+function printBin(bin, locationName) {
+    printLabels([{ ...bin, location_name: locationName }]);
+}
+
+function printAll() {
+    printLabels(allBins.value);
+}
 
 // ── Expandable bin contents (lazy-loaded per card) ───────────────────────────
 // binContents[binId] = { loading: bool, items: array | null }
@@ -189,7 +225,15 @@ function binSummaryLabel(bin) {
             </div>
         </template>
 
-        <div class="flex items-center justify-end">
+        <div class="flex items-center justify-end gap-2">
+            <AppButton
+                v-if="allBins.length > 0"
+                variant="secondary"
+                size="sm"
+                @click="printAll"
+            >
+                {{ $t('bins.print_all') }}
+            </AppButton>
             <AppButton variant="primary" size="sm" @click="openCreateLocation">
                 {{ $t('bins.add_location') }}
             </AppButton>
@@ -397,6 +441,13 @@ function binSummaryLabel(bin) {
                                 <button
                                     type="button"
                                     class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
+                                    @click="printBin(bin, location.name)"
+                                >
+                                    {{ $t('bins.print_label') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
                                     @click="openEditBin(bin)"
                                 >
                                     {{ $t('bins.form.edit') }}
@@ -587,5 +638,58 @@ function binSummaryLabel(bin) {
                 </div>
             </form>
         </Modal>
+
+        <!-- Print area — teleported to <body> so the print stylesheet can hide
+             the app chrome and show only the labels. -->
+        <Teleport to="body">
+            <div id="bin-print-area" aria-hidden="true">
+                <div
+                    v-for="(label, i) in labelsToPrint"
+                    :key="`${label.id}-${i}`"
+                    class="bin-label"
+                >
+                    <div class="bin-label-name">
+                        {{ labelFor(label, label.location_name) }}
+                    </div>
+                    <Barcode :value="label.scan_code" :height="56" :width="2" />
+                    <div class="bin-label-code">{{ label.scan_code }}</div>
+                </div>
+            </div>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
+
+<style>
+/* The print area is invisible on screen; only the print medium reveals it,
+   and only it — the app shell (#app) is hidden while printing labels. */
+#bin-print-area {
+    display: none;
+}
+
+@media print {
+    body > #app {
+        display: none !important;
+    }
+    #bin-print-area {
+        display: block !important;
+    }
+    .bin-label {
+        page-break-inside: avoid;
+        text-align: center;
+        padding: 12px;
+        margin: 0 auto 16px;
+    }
+    .bin-label-name {
+        font-family:
+            ui-sans-serif, system-ui, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .bin-label-code {
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        margin-top: 4px;
+    }
+}
+</style>

@@ -31,6 +31,28 @@ function needsBinChoice(sku) {
     return isRemoving.value && (sku.bins?.length ?? 0) > 1;
 }
 
+// ── Bin-label scan ────────────────────────────────────────────────────────────
+// Transient banner confirming the working bin a scanned BIN- label just set.
+const binNotice = ref(null); // { ok: bool, label: string }
+let binNoticeTimer = null;
+
+function handleBinScan(data) {
+    scanStatus.value = null;
+
+    if (!data.found) {
+        binNotice.value = { ok: false, label: null };
+    } else {
+        workingBinId.value = data.bin.id;
+        binNotice.value = { ok: true, label: binLabel(data.bin) };
+    }
+
+    clearTimeout(binNoticeTimer);
+    binNoticeTimer = setTimeout(() => {
+        binNotice.value = null;
+        binNoticeTimer = null;
+    }, 4000);
+}
+
 function binLabel(bin) {
     const number = bin.number != null ? `#${bin.number} ` : '';
     const location = bin.location_name ? `${bin.location_name} · ` : '';
@@ -90,6 +112,10 @@ onBeforeUnmount(() => {
         clearTimeout(errorClearTimer);
         errorClearTimer = null;
     }
+    if (binNoticeTimer) {
+        clearTimeout(binNoticeTimer);
+        binNoticeTimer = null;
+    }
 });
 
 // ── Camera ──────────────────────────────────────────────────────────────────────
@@ -140,6 +166,12 @@ async function processScan(upc) {
     try {
         // 1. Look up UPC
         const lookup = await window.axios.post(route('scan.lookup'), { upc });
+
+        // A scanned bin label sets the working bin instead of recording stock.
+        if (lookup.data.type === 'bin') {
+            handleBinScan(lookup.data);
+            return;
+        }
 
         if (!lookup.data.found) {
             scanStatus.value = null;
@@ -420,6 +452,26 @@ const contextHintKey = computed(() => {
                 @scan="processScan"
                 @camera="openCamera"
             />
+
+            <!-- ── Bin-label scan notice ──────────────────────────────────────── -->
+            <div
+                v-if="binNotice"
+                class="flex items-center gap-2 rounded-lg border-2 px-4 py-3"
+                :class="
+                    binNotice.ok
+                        ? 'border-success bg-success-soft'
+                        : 'border-warning bg-warning-soft'
+                "
+            >
+                <p class="font-sans text-[14px] font-semibold text-ink-primary">
+                    <template v-if="binNotice.ok">
+                        {{ $t('scan.bin_set', { bin: binNotice.label }) }}
+                    </template>
+                    <template v-else>
+                        {{ $t('scan.bin_not_recognized') }}
+                    </template>
+                </p>
+            </div>
 
             <!-- ── Unknown UPC banner ─────────────────────────────────────────── -->
             <div

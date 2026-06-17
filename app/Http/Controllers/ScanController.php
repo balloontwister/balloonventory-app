@@ -72,6 +72,14 @@ class ScanController extends Controller
 
         $businessId = BusinessContext::currentId();
 
+        // A scanned bin label resolves a working bin rather than a product. The
+        // global BusinessScope on Bin keeps this to the current business, so
+        // another business's BIN code reads as "not found".
+        $raw = trim($request->input('upc'));
+        if (str_starts_with(strtoupper($raw), 'BIN-')) {
+            return $this->lookupBin(strtoupper($raw));
+        }
+
         $result = $this->barcodeMatcher->match($request->input('upc'), $businessId);
 
         // Common metadata returned in every response so the frontend can
@@ -129,6 +137,33 @@ class ScanController extends Controller
             'match_type' => $top['match'],
             'sku' => $top['sku'],
             'candidates' => $candidates,
+        ]);
+    }
+
+    /**
+     * Resolve a scanned bin label to the working bin it represents. Returns a
+     * `type: bin` payload the scan page uses to set the active working bin
+     * instead of recording a movement.
+     */
+    private function lookupBin(string $scanCode): JsonResponse
+    {
+        $bin = Bin::where('scan_code', $scanCode)
+            ->with('location:id,name')
+            ->first();
+
+        if ($bin === null) {
+            return response()->json(['type' => 'bin', 'found' => false]);
+        }
+
+        return response()->json([
+            'type' => 'bin',
+            'found' => true,
+            'bin' => [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'number' => $bin->number,
+                'location_name' => $bin->location?->name,
+            ],
         ]);
     }
 

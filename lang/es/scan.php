@@ -94,4 +94,8 @@ return [
     'pick_bin_body' => 'Este artículo está almacenado en más de un contenedor. ¿De cuál estás retirando?',
     'pick_bin_cancel' => 'Cancelar',
     'bin_holds' => ':full llenas / :open abiertas',
+
+    // Bin-label scan
+    'bin_set' => 'Contenedor de trabajo establecido en :bin',
+    'bin_not_recognized' => 'No se reconoció ese código de contenedor.',
 ];

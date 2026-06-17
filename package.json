@@ -31,6 +31,7 @@
     },
     "dependencies": {
         "@ericblade/quagga2": "^1.12.1",
+        "jsbarcode": "^3.12.3",
         "reka-ui": "^2.9.7"
     }
 }

@@ -12,6 +12,8 @@ return [
     'add_location' => 'Add location',
     'add_bin' => 'Add bin',
     'default_badge' => 'Default',
+    'print_label' => 'Print label',
+    'print_all' => 'Print all labels',
 
     'empty' => [
         'heading' => 'No bins yet',

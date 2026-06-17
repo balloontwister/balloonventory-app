@@ -12,6 +12,8 @@ return [
     'add_location' => 'Agregar ubicación',
     'add_bin' => 'Agregar contenedor',
     'default_badge' => 'Predeterminado',
+    'print_label' => 'Imprimir etiqueta',
+    'print_all' => 'Imprimir todas las etiquetas',
 
     'empty' => [
         'heading' => 'Aún no hay contenedores',

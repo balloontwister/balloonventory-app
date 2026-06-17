@@ -930,4 +930,58 @@ class ScanControllerTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('bin_id');
     }
+
+    // ── BIN scan-code recognition (Phase 3) ───────────────────────────────────────
+
+    public function test_lookup_recognizes_a_bin_scan_code(): void
+    {
+        $shelf = $this->makeBin('Top Shelf', 3);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => $shelf->scan_code])
+            ->assertOk()
+            ->assertJson([
+                'type' => 'bin',
+                'found' => true,
+                'bin' => [
+                    'id' => $shelf->id,
+                    'name' => 'Top Shelf',
+                    'number' => 3,
+                ],
+            ]);
+    }
+
+    public function test_lookup_bin_is_case_insensitive_on_the_prefix(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => strtolower($this->bin->scan_code)])
+            ->assertOk()
+            ->assertJsonPath('type', 'bin')
+            ->assertJsonPath('bin.id', $this->bin->id);
+    }
+
+    public function test_lookup_returns_bin_not_found_for_unknown_code(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'BIN-ZZZZZZZZ'])
+            ->assertOk()
+            ->assertJson(['type' => 'bin', 'found' => false]);
+    }
+
+    public function test_lookup_does_not_resolve_a_bin_from_another_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'name' => 'Default', 'is_default' => true,
+        ]);
+        $otherBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'location_id' => $otherLocation->id, 'name' => 'Foreign',
+            'scan_code' => 'BIN-FOREIGN1',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => $otherBin->scan_code])
+            ->assertOk()
+            ->assertJson(['type' => 'bin', 'found' => false]);
+    }
 }

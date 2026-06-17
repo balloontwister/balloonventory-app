@@ -14,6 +14,7 @@ return [
     'default_badge' => 'Predeterminado',
     'print_label' => 'Imprimir etiqueta',
     'print_all' => 'Imprimir todas las etiquetas',
+    'print_title' => 'Etiquetas de contenedores',
 
     'empty' => [
         'heading' => 'Aún no hay contenedores',

@@ -14,6 +14,7 @@ return [
     'default_badge' => 'Default',
     'print_label' => 'Print label',
     'print_all' => 'Print all labels',
+    'print_title' => 'Bin labels',
 
     'empty' => [
         'heading' => 'No bins yet',

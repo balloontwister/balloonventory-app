@@ -2,42 +2,118 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
-import Barcode from '@/Components/Barcode.vue';
 import InventoryTabs from '@/Components/InventoryTabs.vue';
 import Modal from '@/Components/Modal.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, nextTick, reactive, ref } from 'vue';
+import JsBarcode from 'jsbarcode';
+import { computed, reactive, ref } from 'vue';
 
 const props = defineProps({
     locations: { type: Array, required: true },
 });
 
 // ── Printable bin labels ──────────────────────────────────────────────────────
-// Each label pairs the human-readable bin name/location with a Code 128 barcode
-// of its scan_code, which the scan page recognizes to set the working bin.
-const labelsToPrint = ref([]);
-
+// Labels print from an isolated, off-screen iframe rather than by toggling the
+// page's own DOM. This keeps print logic from touching the app's styles, modals,
+// or layout — no global print CSS, no teleported overlay.
 const allBins = computed(() =>
     props.locations.flatMap((location) =>
         location.bins.map((bin) => ({ ...bin, location_name: location.name })),
     ),
 );
 
-function labelFor(bin, locationName) {
+function labelText(bin, locationName) {
     const number = bin.number != null ? `#${bin.number} ` : '';
     const location = locationName ? `${locationName} · ` : '';
     return `${location}${number}${bin.name}`;
 }
 
-async function printLabels(bins) {
-    labelsToPrint.value = bins.filter((b) => b.scan_code);
-    if (labelsToPrint.value.length === 0) {
+function escapeHtml(value) {
+    return String(value).replace(
+        /[&<>"']/g,
+        (c) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[c],
+    );
+}
+
+// Render the Code 128 barcode into a detached SVG (parent document, where
+// JsBarcode works), then serialize it to a string for injection into the iframe.
+function barcodeSvg(value) {
+    const svg = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'svg',
+    );
+    JsBarcode(svg, value, {
+        format: 'CODE128',
+        displayValue: false,
+        height: 56,
+        width: 2,
+        margin: 0,
+    });
+    return new XMLSerializer().serializeToString(svg);
+}
+
+function printLabels(bins) {
+    const labels = bins.filter((bin) => bin.scan_code);
+    if (labels.length === 0) {
         return;
     }
-    // Wait for the barcodes to render into the print area before printing.
-    await nextTick();
-    setTimeout(() => window.print(), 50);
+
+    const body = labels
+        .map(
+            (bin) => `
+            <div class="label">
+                <div class="name">${escapeHtml(labelText(bin, bin.location_name))}</div>
+                ${barcodeSvg(bin.scan_code)}
+                <div class="code">${escapeHtml(bin.scan_code)}</div>
+            </div>`,
+        )
+        .join('');
+
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(trans('bins.print_title'))}</title>
+        <style>
+            @page { margin: 12mm; }
+            body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+            .label { page-break-inside: avoid; text-align: center; padding: 12px; margin: 0 auto 16px; }
+            .name { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+            .code { font-family: ui-monospace, monospace; font-size: 11px; margin-top: 4px; }
+            svg { max-width: 100%; }
+        </style></head><body>${body}</body></html>`;
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    Object.assign(iframe.style, {
+        position: 'fixed',
+        right: '0',
+        bottom: '0',
+        width: '0',
+        height: '0',
+        border: '0',
+    });
+    document.body.appendChild(iframe);
+
+    const win = iframe.contentWindow;
+    const cleanup = () => iframe.remove();
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+
+    win.addEventListener('afterprint', cleanup);
+    // Give the iframe a tick to lay out before printing.
+    setTimeout(() => {
+        win.focus();
+        win.print();
+    }, 100);
+    // Safety net in case afterprint never fires.
+    setTimeout(cleanup, 60000);
 }
 
 function printBin(bin, locationName) {
@@ -85,8 +161,17 @@ function isOpen(binId) {
     return !!binContents[binId]?.open;
 }
 
-// ── Location modal ───────────────────────────────────────────────────────────
-const locationModalOpen = ref(false);
+// ── Add/edit modal ────────────────────────────────────────────────────────────
+// A single Modal instance switches between the location and bin forms. Two
+// native <dialog> modals on one page stack their backdrops and trap clicks, so
+// the page keeps exactly one dialog at a time.
+const modalType = ref(null); // null | 'location' | 'bin'
+
+function closeModal() {
+    modalType.value = null;
+}
+
+// ── Location form ─────────────────────────────────────────────────────────────
 const editingLocationId = ref(null);
 const locationForm = useForm({ name: '', description: '' });
 
@@ -94,7 +179,7 @@ function openCreateLocation() {
     editingLocationId.value = null;
     locationForm.reset();
     locationForm.clearErrors();
-    locationModalOpen.value = true;
+    modalType.value = 'location';
 }
 
 function openEditLocation(location) {
@@ -103,15 +188,13 @@ function openEditLocation(location) {
     locationForm.clearErrors();
     locationForm.name = location.name;
     locationForm.description = location.description ?? '';
-    locationModalOpen.value = true;
+    modalType.value = 'location';
 }
 
 function submitLocation() {
     const options = {
         preserveScroll: true,
-        onSuccess: () => {
-            locationModalOpen.value = false;
-        },
+        onSuccess: closeModal,
     };
 
     if (editingLocationId.value) {
@@ -136,8 +219,7 @@ function deleteLocation(location) {
     );
 }
 
-// ── Bin modal ────────────────────────────────────────────────────────────────
-const binModalOpen = ref(false);
+// ── Bin form ──────────────────────────────────────────────────────────────────
 const editingBinId = ref(null);
 const binForm = useForm({
     location_id: '',
@@ -151,7 +233,7 @@ function openCreateBin(location) {
     binForm.reset();
     binForm.clearErrors();
     binForm.location_id = location.id;
-    binModalOpen.value = true;
+    modalType.value = 'bin';
 }
 
 function openEditBin(bin) {
@@ -162,15 +244,13 @@ function openEditBin(bin) {
     binForm.name = bin.name;
     binForm.number = bin.number ?? '';
     binForm.description = bin.description ?? '';
-    binModalOpen.value = true;
+    modalType.value = 'bin';
 }
 
 function submitBin() {
     const options = {
         preserveScroll: true,
-        onSuccess: () => {
-            binModalOpen.value = false;
-        },
+        onSuccess: closeModal,
     };
 
     if (editingBinId.value) {
@@ -467,9 +547,13 @@ function binSummaryLabel(bin) {
             </section>
         </div>
 
-        <!-- Location modal -->
-        <Modal :show="locationModalOpen" max-width="md" @close="locationModalOpen = false">
-            <form class="flex flex-col gap-4 p-6" @submit.prevent="submitLocation">
+        <!-- Add/edit modal — a single dialog switches between the two forms -->
+        <Modal :show="modalType !== null" max-width="md" @close="closeModal">
+            <form
+                v-if="modalType === 'location'"
+                class="flex flex-col gap-4 p-6"
+                @submit.prevent="submitLocation"
+            >
                 <h2 class="font-display text-[18px] font-semibold text-ink-primary">
                     {{
                         editingLocationId
@@ -513,7 +597,7 @@ function binSummaryLabel(bin) {
                     <AppButton
                         variant="secondary"
                         type="button"
-                        @click="locationModalOpen = false"
+                        @click="closeModal"
                     >
                         {{ $t('bins.form.cancel') }}
                     </AppButton>
@@ -530,11 +614,12 @@ function binSummaryLabel(bin) {
                     </AppButton>
                 </div>
             </form>
-        </Modal>
 
-        <!-- Bin modal -->
-        <Modal :show="binModalOpen" max-width="md" @close="binModalOpen = false">
-            <form class="flex flex-col gap-4 p-6" @submit.prevent="submitBin">
+            <form
+                v-else-if="modalType === 'bin'"
+                class="flex flex-col gap-4 p-6"
+                @submit.prevent="submitBin"
+            >
                 <h2 class="font-display text-[18px] font-semibold text-ink-primary">
                     {{
                         editingBinId
@@ -620,7 +705,7 @@ function binSummaryLabel(bin) {
                     <AppButton
                         variant="secondary"
                         type="button"
-                        @click="binModalOpen = false"
+                        @click="closeModal"
                     >
                         {{ $t('bins.form.cancel') }}
                     </AppButton>
@@ -638,58 +723,5 @@ function binSummaryLabel(bin) {
                 </div>
             </form>
         </Modal>
-
-        <!-- Print area — teleported to <body> so the print stylesheet can hide
-             the app chrome and show only the labels. -->
-        <Teleport to="body">
-            <div id="bin-print-area" aria-hidden="true">
-                <div
-                    v-for="(label, i) in labelsToPrint"
-                    :key="`${label.id}-${i}`"
-                    class="bin-label"
-                >
-                    <div class="bin-label-name">
-                        {{ labelFor(label, label.location_name) }}
-                    </div>
-                    <Barcode :value="label.scan_code" :height="56" :width="2" />
-                    <div class="bin-label-code">{{ label.scan_code }}</div>
-                </div>
-            </div>
-        </Teleport>
     </AuthenticatedLayout>
 </template>
-
-<style>
-/* The print area is invisible on screen; only the print medium reveals it,
-   and only it — the app shell (#app) is hidden while printing labels. */
-#bin-print-area {
-    display: none;
-}
-
-@media print {
-    body > #app {
-        display: none !important;
-    }
-    #bin-print-area {
-        display: block !important;
-    }
-    .bin-label {
-        page-break-inside: avoid;
-        text-align: center;
-        padding: 12px;
-        margin: 0 auto 16px;
-    }
-    .bin-label-name {
-        font-family:
-            ui-sans-serif, system-ui, sans-serif;
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
-    .bin-label-code {
-        font-family: ui-monospace, monospace;
-        font-size: 11px;
-        margin-top: 4px;
-    }
-}
-</style>

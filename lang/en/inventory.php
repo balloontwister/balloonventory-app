@@ -67,6 +67,16 @@ return [
         'history_direction_restored' => 'Restored',
         'history_direction_adjusted' => 'Adjusted',
         'history_no_activity' => 'No activity recorded yet.',
+
+        'transfer_button' => 'Transfer',
+        'transfer_title' => 'Transfer stock',
+        'transfer_from' => 'From bin',
+        'transfer_to' => 'To bin',
+        'transfer_full_bags' => 'Full bags',
+        'transfer_open_bags' => 'Open bags',
+        'transfer_submit' => 'Transfer',
+        'transfer_cancel' => 'Cancel',
+        'transfer_bin_holds' => ':full full / :open open',
     ],
 
     'pagination_prev' => 'Previous',

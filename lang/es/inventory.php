@@ -67,6 +67,16 @@ return [
         'history_direction_restored' => 'Restaurado',
         'history_direction_adjusted' => 'Ajustado',
         'history_no_activity' => 'Aún no se ha registrado actividad.',
+
+        'transfer_button' => 'Transferir',
+        'transfer_title' => 'Transferir existencias',
+        'transfer_from' => 'Desde el contenedor',
+        'transfer_to' => 'Al contenedor',
+        'transfer_full_bags' => 'Bolsas llenas',
+        'transfer_open_bags' => 'Bolsas abiertas',
+        'transfer_submit' => 'Transferir',
+        'transfer_cancel' => 'Cancelar',
+        'transfer_bin_holds' => ':full llenas / :open abiertas',
     ],
 
     'pagination_prev' => 'Anterior',

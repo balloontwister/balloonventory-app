@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StockDirection;
+use App\Models\Bin;
 use App\Models\Business;
 use App\Models\Sku;
 use App\Models\StockLevel;
@@ -28,7 +29,41 @@ class ScanController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('Scan/Index');
+        $businessId = BusinessContext::currentId();
+
+        // Guarantee a Default bin so the working-bin selector is never empty
+        // (mirrors the bins page; businesses predating bins were seeded lazily).
+        $business = Business::findOrFail($businessId);
+        $defaultBin = $this->binResolver->resolveDefault($business);
+
+        return Inertia::render('Scan/Index', [
+            'bins' => $this->binsForSelector($businessId),
+            'defaultBinId' => $defaultBin->id,
+        ]);
+    }
+
+    /**
+     * Flat, location-grouped list of the business's bins for the scan page's
+     * working-bin selector.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function binsForSelector(string $businessId): array
+    {
+        return Bin::where('business_id', $businessId)
+            ->with(['location:id,name,sort_order'])
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Bin $bin) => [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'number' => $bin->number,
+                'is_default' => $bin->is_default,
+                'location_name' => $bin->location?->name,
+            ])
+            ->all();
     }
 
     public function lookup(Request $request): JsonResponse
@@ -69,7 +104,9 @@ class ScanController extends Controller
             ->keyBy('id');
 
         $stockBySkuId = StockLevel::whereIn('sku_id', $candidateIds)
-            ->select('sku_id', 'full_bags', 'open_bags')
+            ->select('id', 'sku_id', 'bin_id', 'full_bags', 'open_bags', 'last_movement_at')
+            ->with(['bin:id,name,number,location_id', 'bin.location:id,name'])
+            ->orderByDesc('last_movement_at')
             ->get()
             ->groupBy('sku_id');
 
@@ -104,6 +141,22 @@ class ScanController extends Controller
      */
     private function serializeSku(Sku $sku, $stockLevels): array
     {
+        // Bins that actually hold this SKU, most-recently-moved first. The top
+        // entry is the suggested bin: "known location wins", so a scan defaults
+        // to where the item already lives. Empty when the SKU is new to stock —
+        // the frontend then falls back to the working bin (or Default).
+        $holdingBins = $stockLevels
+            ->filter(fn (StockLevel $level) => $level->full_bags > 0 || $level->open_bags > 0)
+            ->map(fn (StockLevel $level) => [
+                'bin_id' => $level->bin_id,
+                'bin_name' => $level->bin?->name,
+                'bin_number' => $level->bin?->number,
+                'location_name' => $level->bin?->location?->name,
+                'full_bags' => $level->full_bags,
+                'open_bags' => $level->open_bags,
+            ])
+            ->values();
+
         return [
             'id' => $sku->id,
             'name' => $sku->name,
@@ -135,6 +188,8 @@ class ScanController extends Controller
             ] : null,
             'full_bags_total' => (int) $stockLevels->sum('full_bags'),
             'open_bags_total' => (int) $stockLevels->sum('open_bags'),
+            'bins' => $holdingBins->all(),
+            'suggested_bin_id' => $holdingBins->first()['bin_id'] ?? null,
         ];
     }
 
@@ -227,6 +282,7 @@ class ScanController extends Controller
         $data = $request->validate([
             'sku_id' => ['required', 'uuid'],
             'upc' => ['nullable', 'string', 'max:50'],
+            'bin_id' => ['nullable', 'uuid'],
             'full_bags_change' => ['integer', 'min:0'],
             'open_bags_change' => ['integer', 'min:0'],
             'job_id' => [
@@ -255,8 +311,9 @@ class ScanController extends Controller
         $business = Business::findOrFail($businessId);
         $userId = $request->user()->id;
 
-        // Resolve bin — use default, creating it if the business has none yet.
-        $bin = $this->binResolver->resolveDefault($business);
+        // Resolve the target bin: the one the client chose (validated to this
+        // business), falling back to Default when no bin was supplied.
+        $bin = $this->binResolver->resolveSelectedBin($business, $data['bin_id'] ?? null);
 
         $upcScanned = isset($data['upc']) ? trim($data['upc']) : null;
         if ($upcScanned === '') {
@@ -348,6 +405,11 @@ class ScanController extends Controller
             'full_bags_change' => $fullBagsChange,
             'open_bags_change' => $openBagsChange,
             'movement_id' => $movementId,
+            'bin' => [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'number' => $bin->number,
+            ],
             'sku' => [
                 'id' => $sku->id,
                 'name' => $sku->name,

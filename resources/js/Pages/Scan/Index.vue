@@ -8,6 +8,35 @@ import Modal from '@/Components/Modal.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed, onBeforeUnmount, watch } from 'vue';
 
+const props = defineProps({
+    bins: { type: Array, default: () => [] },
+    defaultBinId: { type: String, default: null },
+});
+
+// ── Working bin ───────────────────────────────────────────────────────────────
+// '' = Auto: new items fall back to Default, known items go to their own bin.
+// A chosen bin only applies to items that aren't in stock yet ("known location
+// wins"). Held in a plain ref so it resets when the page is left and re-entered.
+const workingBinId = ref('');
+
+// Resolve which bin a scan should target. Known location wins: if the item
+// already lives somewhere, use that; otherwise the working bin (or Default).
+function resolveTargetBin(sku) {
+    return sku.suggested_bin_id || workingBinId.value || props.defaultBinId;
+}
+
+// Removing from an item that's spread across several bins must not silently
+// guess which bin to pull from — surface a chooser instead.
+function needsBinChoice(sku) {
+    return isRemoving.value && (sku.bins?.length ?? 0) > 1;
+}
+
+function binLabel(bin) {
+    const number = bin.number != null ? `#${bin.number} ` : '';
+    const location = bin.location_name ? `${bin.location_name} · ` : '';
+    return `${location}${number}${bin.name}`;
+}
+
 // ── Mode ────────────────────────────────────────────────────────────────────────
 const mode = ref('add'); // add | remove
 const isAdding = computed(() => mode.value === 'add');
@@ -38,6 +67,9 @@ const unknownUpc = ref(null); // { upc }
 // the scan for auto-apply (ambiguous or low-confidence match). Holds
 // { upc, candidates } until the user confirms which SKU to record against.
 const pendingMatch = ref(null);
+// Set when a removal targets a SKU that lives in multiple bins. Holds
+// { upc, sku } until the user picks which bin to pull from.
+const pendingBinChoice = ref(null);
 const recentScans = ref([]);
 // Tracks UPCs of scans currently in-flight so we don't race ourselves when a
 // scanner double-fires the same code before the first lookup resolves.
@@ -103,6 +135,7 @@ async function processScan(upc) {
     scanStatus.value = 'looking_up';
     unknownUpc.value = null;
     pendingMatch.value = null;
+    pendingBinChoice.value = null;
 
     try {
         // 1. Look up UPC
@@ -129,8 +162,15 @@ async function processScan(upc) {
             return;
         }
 
-        // 3. Confident match — record the movement (the toast carries an Undo).
-        await recordMovement(upc, lookup.data.sku.id);
+        // 3. Confident match. Removing an item that lives in several bins still
+        //    needs the user to say which bin — don't auto-guess on check-out.
+        if (needsBinChoice(lookup.data.sku)) {
+            scanStatus.value = null;
+            pendingBinChoice.value = { upc, sku: lookup.data.sku };
+            return;
+        }
+
+        await recordMovement(upc, lookup.data.sku.id, resolveTargetBin(lookup.data.sku));
         scanStatus.value = null;
     } catch {
         scanStatus.value = 'error';
@@ -144,10 +184,11 @@ async function processScan(upc) {
  * Post a check-in/out movement for a resolved SKU and prepend it to the recent
  * list. Shared by the auto-commit path and the manual confirm-a-candidate path.
  */
-async function recordMovement(upc, skuId) {
+async function recordMovement(upc, skuId, binId = null) {
     const payload = {
         sku_id: skuId,
         upc,
+        bin_id: binId || undefined,
         full_bags_change: isOpenBag.value ? 0 : quantity.value,
         open_bags_change: isOpenBag.value ? quantity.value : 0,
     };
@@ -164,6 +205,7 @@ async function recordMovement(upc, skuId) {
         full_bags_change: response.data.full_bags_change,
         open_bags_change: response.data.open_bags_change,
         sku: response.data.sku,
+        bin: response.data.bin,
     });
 
     // Keep only last 30.
@@ -178,10 +220,17 @@ async function confirmPendingMatch(sku) {
     if (!upc) return;
 
     pendingMatch.value = null;
+
+    // A removal against a multi-bin SKU still needs a bin chosen.
+    if (needsBinChoice(sku)) {
+        pendingBinChoice.value = { upc, sku };
+        return;
+    }
+
     scanStatus.value = 'looking_up';
 
     try {
-        await recordMovement(upc, sku.id);
+        await recordMovement(upc, sku.id, resolveTargetBin(sku));
         scanStatus.value = null;
     } catch {
         scanStatus.value = 'error';
@@ -191,6 +240,27 @@ async function confirmPendingMatch(sku) {
 
 function dismissPendingMatch() {
     pendingMatch.value = null;
+}
+
+// ── Bin choice (which bin to pull from on a multi-bin removal) ─────────────────────
+async function chooseBin(binId) {
+    const choice = pendingBinChoice.value;
+    if (!choice) return;
+
+    pendingBinChoice.value = null;
+    scanStatus.value = 'looking_up';
+
+    try {
+        await recordMovement(choice.upc, choice.sku.id, binId);
+        scanStatus.value = null;
+    } catch {
+        scanStatus.value = 'error';
+        scheduleErrorClear();
+    }
+}
+
+function dismissBinChoice() {
+    pendingBinChoice.value = null;
 }
 
 // ── Undo ────────────────────────────────────────────────────────────────────────
@@ -307,6 +377,35 @@ const contextHintKey = computed(() => {
                 </div>
             </div>
 
+            <!-- ── Working bin ─────────────────────────────────────────────────── -->
+            <div
+                v-if="bins.length > 1"
+                class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-surface px-4 py-3"
+            >
+                <label
+                    for="working-bin"
+                    class="font-sans text-[12px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('scan.working_bin_label') }}
+                </label>
+                <select
+                    id="working-bin"
+                    v-model="workingBinId"
+                    class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                >
+                    <option value="">{{ $t('scan.working_bin_auto') }}</option>
+                    <option v-for="b in bins" :key="b.id" :value="b.id">
+                        {{ binLabel(b) }}
+                        {{ b.is_default ? $t('scan.bin_default_suffix') : '' }}
+                    </option>
+                </select>
+                <p
+                    class="w-full font-sans text-[12px] text-ink-tertiary md:w-auto md:flex-1"
+                >
+                    {{ $t('scan.working_bin_hint') }}
+                </p>
+            </div>
+
             <!-- ── Scan input ───────────────────────────────────────────────────
                  The field now accepts typed input directly. USB scanners and
                  humans share one path: type or scan, then press Enter.
@@ -413,6 +512,69 @@ const contextHintKey = computed(() => {
                 </ul>
             </div>
 
+            <!-- ── Pick a bin (multi-bin removal) ─────────────────────────────────
+                 Removing an item stored in several bins: the user says which
+                 bin to pull from rather than us guessing the most-recent one. -->
+            <div
+                v-if="pendingBinChoice"
+                class="rounded-lg border-2 border-warning bg-warning-soft px-4 py-3"
+            >
+                <div class="mb-2 flex items-start gap-3">
+                    <div class="flex-1">
+                        <p
+                            class="font-sans text-[14px] font-semibold text-ink-primary"
+                        >
+                            {{ $t('scan.pick_bin_heading') }}
+                        </p>
+                        <p
+                            class="mt-0.5 font-sans text-[13px] text-ink-secondary"
+                        >
+                            {{ $t('scan.pick_bin_body') }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-ink-secondary hover:bg-background"
+                        @click="dismissBinChoice"
+                    >
+                        {{ $t('scan.pick_bin_cancel') }}
+                    </button>
+                </div>
+
+                <ul
+                    class="divide-y divide-border rounded-md border border-border bg-surface"
+                >
+                    <li
+                        v-for="b in pendingBinChoice.sku.bins"
+                        :key="b.bin_id"
+                        class="flex items-center gap-3 px-3 py-2"
+                    >
+                        <span
+                            class="min-w-0 flex-1 truncate font-sans text-[14px] text-ink-primary"
+                        >
+                            <span v-if="b.location_name" class="text-ink-tertiary"
+                                >{{ b.location_name }} · </span
+                            >{{ b.bin_name }}
+                        </span>
+                        <span class="shrink-0 font-mono text-[12px] text-ink-secondary">
+                            {{
+                                $t('scan.bin_holds', {
+                                    full: b.full_bags,
+                                    open: b.open_bags,
+                                })
+                            }}
+                        </span>
+                        <button
+                            type="button"
+                            class="shrink-0 rounded-md bg-warning px-3 py-1.5 font-sans text-[13px] font-semibold text-white hover:brightness-110"
+                            @click="chooseBin(b.bin_id)"
+                        >
+                            {{ $t('scan.confirm_select') }}
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
             <!-- ── Toasts ─────────────────────────────────────────────────────── -->
             <TransitionGroup
                 tag="div"
@@ -484,15 +646,23 @@ const contextHintKey = computed(() => {
                             :style="{ backgroundColor: s.sku.color.color_hex }"
                         />
 
-                        <!-- Name -->
-                        <span
-                            class="min-w-0 flex-1 truncate font-sans text-[14px] text-ink-primary"
-                        >
-                            {{
-                                s.sku?.computed_name ??
-                                s.sku?.name ??
-                                $t('scan.unknown_sku')
-                            }}
+                        <!-- Name + bin -->
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span
+                                class="truncate font-sans text-[14px] text-ink-primary"
+                            >
+                                {{
+                                    s.sku?.computed_name ??
+                                    s.sku?.name ??
+                                    $t('scan.unknown_sku')
+                                }}
+                            </span>
+                            <span
+                                v-if="s.bin"
+                                class="truncate font-sans text-[12px] text-ink-tertiary"
+                            >
+                                {{ $t('scan.recorded_to_bin', { bin: s.bin.name }) }}
+                            </span>
                         </span>
 
                         <!-- Open bag badge -->

@@ -81,4 +81,17 @@ return [
 
     // Misc
     'stock_label' => 'On hand',
+
+    // Working bin selector
+    'working_bin_label' => 'Working bin',
+    'working_bin_auto' => 'Auto — item’s location',
+    'working_bin_hint' => 'New items go here. Items already in stock stay in their bin.',
+    'bin_default_suffix' => '(default)',
+    'recorded_to_bin' => 'in :bin',
+
+    // Bin choice (which bin to pull from on removal across multiple bins)
+    'pick_bin_heading' => 'Pick a bin to remove from',
+    'pick_bin_body' => 'This item is stored in more than one bin. Which one are you pulling from?',
+    'pick_bin_cancel' => 'Cancel',
+    'bin_holds' => ':full full / :open open',
 ];

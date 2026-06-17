@@ -81,4 +81,17 @@ return [
 
     // Misc
     'stock_label' => 'En existencia',
+
+    // Working bin selector
+    'working_bin_label' => 'Contenedor de trabajo',
+    'working_bin_auto' => 'Automático — ubicación del artículo',
+    'working_bin_hint' => 'Los artículos nuevos van aquí. Los que ya están en existencia permanecen en su contenedor.',
+    'bin_default_suffix' => '(predeterminado)',
+    'recorded_to_bin' => 'en :bin',
+
+    // Bin choice (which bin to pull from on removal across multiple bins)
+    'pick_bin_heading' => 'Elige un contenedor del cual retirar',
+    'pick_bin_body' => 'Este artículo está almacenado en más de un contenedor. ¿De cuál estás retirando?',
+    'pick_bin_cancel' => 'Cancelar',
+    'bin_holds' => ':full llenas / :open abiertas',
 ];

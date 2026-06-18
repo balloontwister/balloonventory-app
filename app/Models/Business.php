@@ -24,12 +24,17 @@ class Business extends Model
         'slug',
         'plan',
         'logo_path',
+        'business_type',
+        'onboarding_answers',
+        'onboarding_completed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'plan' => BusinessPlan::class,
+            'onboarding_answers' => 'array',
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 

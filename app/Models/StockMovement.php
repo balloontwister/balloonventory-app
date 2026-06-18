@@ -29,6 +29,7 @@ class StockMovement extends Model
         'direction',
         'full_bags_change',
         'open_bags_change',
+        'is_sample',
         'upc_scanned',
         'job_id',
         'notes',
@@ -41,6 +42,7 @@ class StockMovement extends Model
             'direction' => StockDirection::class,
             'full_bags_change' => 'integer',
             'open_bags_change' => 'integer',
+            'is_sample' => 'boolean',
             'created_at' => 'datetime',
         ];
     }

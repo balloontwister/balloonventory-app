@@ -162,6 +162,7 @@ class InventoryController extends Controller
             'materials' => Material::orderBy('sort_order')->get(['id', 'name']),
             'lists' => BalloonList::get(['id', 'name', 'is_business_favorites']),
             'favoritesListId' => BalloonList::where('is_business_favorites', true)->value('id'),
+            'hasSampleStock' => StockLevel::where('is_sample', true)->exists(),
         ]);
     }
 

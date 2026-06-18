@@ -8,6 +8,15 @@ return [
     'empty_body' => 'Search the catalog to add your first balloon.',
     'empty_search_placeholder' => 'Search balloons…',
 
+    'samples' => [
+        'banner' => 'Some of this is sample inventory Tallie added during setup.',
+        'delete' => 'Delete sample products',
+        'confirm_title' => 'Delete sample products?',
+        'confirm_body' => "This removes the sample balloons Tallie added — but keeps any you've already scanned or edited.",
+        'confirm_cancel' => 'Keep them',
+        'confirm_delete' => 'Delete samples',
+    ],
+
     'toolbar' => [
         'search_placeholder' => 'Search inventory…',
         'sort_label' => 'Sort',

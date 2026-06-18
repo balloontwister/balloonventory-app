@@ -8,6 +8,7 @@ use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ListsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
@@ -69,6 +70,12 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    // ─── Onboarding wizard (business exists; auto-shown after creation, re-runnable) ──
+    Route::get('/onboarding/wizard', [OnboardingController::class, 'show'])->name('onboarding.wizard');
+    Route::post('/onboarding/wizard', [OnboardingController::class, 'complete'])->name('onboarding.wizard.complete');
+    Route::post('/onboarding/wizard/skip', [OnboardingController::class, 'skip'])->name('onboarding.wizard.skip');
+    Route::post('/onboarding/samples/clear', [OnboardingController::class, 'clearSamples'])->name('onboarding.samples.clear');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/skus/{sku}', [InventoryController::class, 'show'])->name('inventory.sku.show');

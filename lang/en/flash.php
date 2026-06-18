@@ -61,4 +61,9 @@ return [
         'transfer_nothing' => 'Enter at least one bag to transfer.',
         'transfer_insufficient' => 'Not enough stock in the source bin. Available: :full full / :open open bags.',
     ],
+
+    'onboarding' => [
+        'completed' => 'Your shop is set up! Welcome aboard.',
+        'samples_cleared' => 'Removed :count sample products.',
+    ],
 ];

@@ -8,6 +8,15 @@ return [
     'empty_body' => 'Busca en el catálogo para agregar tu primer globo.',
     'empty_search_placeholder' => 'Buscar globos…',
 
+    'samples' => [
+        'banner' => 'Parte de esto es inventario de muestra que Tallie agregó durante la configuración.',
+        'delete' => 'Eliminar productos de muestra',
+        'confirm_title' => '¿Eliminar productos de muestra?',
+        'confirm_body' => 'Esto quita los globos de muestra que agregó Tallie, pero conserva los que ya hayas escaneado o editado.',
+        'confirm_cancel' => 'Conservarlos',
+        'confirm_delete' => 'Eliminar muestras',
+    ],
+
     'toolbar' => [
         'search_placeholder' => 'Buscar inventario…',
         'sort_label' => 'Ordenar',

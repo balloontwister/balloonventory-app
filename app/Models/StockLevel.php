@@ -23,6 +23,7 @@ class StockLevel extends Model
         'bin_id',
         'full_bags',
         'open_bags',
+        'is_sample',
         'last_movement_at',
     ];
 
@@ -31,6 +32,7 @@ class StockLevel extends Model
         return [
             'full_bags' => 'integer',
             'open_bags' => 'integer',
+            'is_sample' => 'boolean',
             'last_movement_at' => 'datetime',
         ];
     }

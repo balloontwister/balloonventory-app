@@ -1,0 +1,167 @@
+{
+    "role": "twister",
+    "label": "Twister Starter Kit",
+    "defaults": {
+        "count_per_bag": [100, 50]
+    },
+    "items": [
+        {
+            "key": "white-160",
+            "size": "160",
+            "shape": "Non-round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Fashion White",
+                "Kalisan": "White",
+                "Gemar": "White"
+            }
+        },
+        {
+            "key": "white-260",
+            "size": "260",
+            "shape": "Non-round",
+            "bags": 4,
+            "colors": {
+                "Sempertex": "Fashion White",
+                "Kalisan": "White",
+                "TufTex": "White"
+            }
+        },
+        {
+            "key": "white-360",
+            "size": "360",
+            "shape": "Non-round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Fashion White",
+                "Kalisan": "White"
+            }
+        },
+        {
+            "key": "white-5inch",
+            "size": "5-inch",
+            "shape": "Round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Fashion White",
+                "Kalisan": "White",
+                "TufTex": "White"
+            }
+        },
+        {
+            "key": "red-160",
+            "size": "160",
+            "shape": "Non-round",
+            "bags": 1,
+            "colors": {
+                "Sempertex": "Fashion Red",
+                "Kalisan": "Red"
+            }
+        },
+        {
+            "key": "red-260",
+            "size": "260",
+            "shape": "Non-round",
+            "bags": 3,
+            "colors": {
+                "Sempertex": "Fashion Red",
+                "Kalisan": "Red",
+                "TufTex": "Red"
+            }
+        },
+        {
+            "key": "red-360",
+            "size": "360",
+            "shape": "Non-round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Fashion Red",
+                "Kalisan": "Red"
+            }
+        },
+        {
+            "key": "red-heart",
+            "size": "5-inch",
+            "shape": "Heart",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Fashion Red",
+                "Kalisan": { "color": "Red", "size": "11-inch", "count_per_bag": 25 }
+            }
+        },
+        {
+            "key": "yellow-160",
+            "size": "160",
+            "shape": "Non-round",
+            "bags": 1,
+            "colors": {
+                "Sempertex": "Fashion Yellow",
+                "Kalisan": "Yellow"
+            }
+        },
+        {
+            "key": "yellow-260",
+            "size": "260",
+            "shape": "Non-round",
+            "bags": 3,
+            "colors": {
+                "Sempertex": "Fashion Yellow",
+                "Kalisan": "Yellow",
+                "TufTex": "Yellow"
+            }
+        },
+        {
+            "key": "yellow-360",
+            "size": "360",
+            "shape": "Non-round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Fashion Yellow",
+                "Kalisan": "Yellow"
+            }
+        },
+        {
+            "key": "lilac-260",
+            "size": "260",
+            "shape": "Non-round",
+            "bags": 4,
+            "colors": {
+                "Sempertex": "Deluxe Lilac",
+                "Kalisan": "Lilac",
+                "TufTex": "Plum Purple"
+            }
+        },
+        {
+            "key": "gold-260",
+            "size": "260",
+            "shape": "Non-round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Metallic Gold",
+                "Kalisan": "Metallic Gold",
+                "TufTex": "Golden"
+            }
+        },
+        {
+            "key": "fuchsia-160",
+            "size": "160",
+            "shape": "Non-round",
+            "bags": 1,
+            "colors": {
+                "Sempertex": "Deluxe Fuchsia",
+                "Kalisan": "Fuchsia"
+            }
+        },
+        {
+            "key": "fuchsia-260",
+            "size": "260",
+            "shape": "Non-round",
+            "bags": 2,
+            "colors": {
+                "Sempertex": "Deluxe Fuchsia",
+                "Kalisan": "Fuchsia",
+                "TufTex": "Hot Pink"
+            }
+        }
+    ]
+}

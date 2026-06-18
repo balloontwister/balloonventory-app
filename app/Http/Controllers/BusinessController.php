@@ -71,7 +71,7 @@ class BusinessController extends Controller
         $request->session()->put('current_business_id', $business->id);
         BusinessContext::set($business->id);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('onboarding.wizard');
     }
 
     public function switch(Request $request, string $business): RedirectResponse

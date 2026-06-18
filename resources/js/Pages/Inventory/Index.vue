@@ -20,7 +20,17 @@ const props = defineProps({
     materials: { type: Array, required: true },
     lists: { type: Array, required: true },
     favoritesListId: { type: String, default: null },
+    hasSampleStock: { type: Boolean, default: false },
 });
+
+const showClearSamples = ref(false);
+const clearSamplesForm = useForm({});
+function clearSamples() {
+    clearSamplesForm.post(route('onboarding.samples.clear'), {
+        preserveScroll: true,
+        onSuccess: () => (showClearSamples.value = false),
+    });
+}
 
 const search = ref(props.filters.search ?? '');
 const brand = ref(props.filters.brand ?? '');
@@ -159,6 +169,23 @@ function isFavorite(sku) {
                 <InventoryTabs active="items" />
             </div>
         </template>
+
+        <!-- Sample inventory banner -->
+        <div
+            v-if="hasSampleStock"
+            class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-accent-soft px-4 py-2.5"
+        >
+            <p class="font-sans text-[13px] text-ink-secondary">
+                {{ $t('inventory.samples.banner') }}
+            </p>
+            <AppButton
+                variant="secondary"
+                size="sm"
+                @click="showClearSamples = true"
+            >
+                {{ $t('inventory.samples.delete') }}
+            </AppButton>
+        </div>
 
         <!-- Empty state: no inventory yet -->
         <template v-if="skus.total === 0 && !hasActiveFilters && !search">
@@ -575,6 +602,36 @@ function isFavorite(sku) {
                 </div>
             </div>
         </template>
+
+        <!-- Delete sample products modal -->
+        <Modal
+            :show="showClearSamples"
+            max-width="sm"
+            @close="showClearSamples = false"
+        >
+            <div class="p-6">
+                <h2
+                    class="mb-2 font-sans text-[17px] font-semibold text-ink-primary"
+                >
+                    {{ $t('inventory.samples.confirm_title') }}
+                </h2>
+                <p class="mb-6 font-sans text-[14px] text-ink-secondary">
+                    {{ $t('inventory.samples.confirm_body') }}
+                </p>
+                <div class="flex justify-end gap-2">
+                    <AppButton variant="ghost" @click="showClearSamples = false">
+                        {{ $t('inventory.samples.confirm_cancel') }}
+                    </AppButton>
+                    <AppButton
+                        variant="danger"
+                        :disabled="clearSamplesForm.processing"
+                        @click="clearSamples"
+                    >
+                        {{ $t('inventory.samples.confirm_delete') }}
+                    </AppButton>
+                </div>
+            </div>
+        </Modal>
 
         <!-- Add to list modal -->
         <Modal

@@ -371,6 +371,15 @@ function logout() {
                     {{ $t('account.rows.log_out.label') }}
                 </span>
             </button>
+
+            <!-- ── Re-run onboarding (tucked away; owners/managers only) ──── -->
+            <Link
+                v-if="canManageBusiness"
+                :href="route('onboarding.wizard')"
+                class="mt-1 self-center font-sans text-[12px] text-ink-tertiary underline-offset-2 transition hover:text-ink-secondary hover:underline"
+            >
+                {{ $t('account.setup_again') }}
+            </Link>
         </div>
     </AuthenticatedLayout>
 </template>

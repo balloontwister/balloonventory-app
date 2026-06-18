@@ -51,4 +51,9 @@ return [
     'auth' => [
         'verification_code_resent' => 'Se ha enviado un nuevo código.',
     ],
+
+    'onboarding' => [
+        'completed' => '¡Tu tienda está lista! Bienvenido a bordo.',
+        'samples_cleared' => 'Se eliminaron :count productos de muestra.',
+    ],
 ];

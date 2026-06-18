@@ -11,6 +11,7 @@ use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Scopes\BusinessScope;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -37,8 +38,8 @@ class OnboardingSeeder
             $this->applyPreferences($owner, $input);
             $this->applyBadgeColor($business, $owner, $input);
 
-            [$primaryBin, $locationCount, $binCount] = $this->applyLocations($business, $input['locations'] ?? []);
-            [$skuCount, $bagCount] = $this->seedSampleStock($business, $owner, $primaryBin, $input);
+            [$bins, $locationCount, $binCount] = $this->applyLocations($business, $input['locations'] ?? []);
+            [$skuCount, $bagCount] = $this->seedSampleStock($business, $owner, $bins, $input);
 
             return [
                 'locations' => $locationCount,
@@ -86,11 +87,12 @@ class OnboardingSeeder
 
     /**
      * Rename the seeded Default location/bin to the owner's first-named spot and
-     * create any additional locations and bins. Returns the primary bin sample
-     * stock should land in, plus the location/bin counts.
+     * create any additional locations and bins. Returns the business's bins
+     * (Default first) for sample stock to be distributed across, plus the
+     * location/bin counts.
      *
      * @param  array<int, array{name: string, bins?: array<int, string>}>  $locations
-     * @return array{0: Bin, 1: int, 2: int}
+     * @return array{0: Collection<int, Bin>, 1: int, 2: int}
      */
     private function applyLocations(Business $business, array $locations): array
     {
@@ -100,38 +102,43 @@ class OnboardingSeeder
         $locationCount = 1;
         $binCount = 1;
 
-        if ($locations === []) {
-            return [$defaultBin, $locationCount, $binCount];
-        }
+        if ($locations !== []) {
+            $first = array_shift($locations);
+            $defaultLocation->update(['name' => $first['name']]);
 
-        $first = array_shift($locations);
-        $defaultLocation->update(['name' => $first['name']]);
+            $firstBins = $first['bins'] ?? [];
+            if ($firstBins !== []) {
+                $defaultBin->update(['name' => array_shift($firstBins)]);
 
-        $firstBins = $first['bins'] ?? [];
-        if ($firstBins !== []) {
-            $defaultBin->update(['name' => array_shift($firstBins)]);
+                foreach ($firstBins as $binName) {
+                    $this->createBin($business, $defaultLocation, $binName);
+                    $binCount++;
+                }
+            }
 
-            foreach ($firstBins as $binName) {
-                $this->createBin($business, $defaultLocation, $binName);
-                $binCount++;
+            foreach ($locations as $location) {
+                $created = Location::withoutGlobalScope(BusinessScope::class)->create([
+                    'business_id' => $business->id,
+                    'name' => $location['name'],
+                    'is_default' => false,
+                ]);
+                $locationCount++;
+
+                foreach ($location['bins'] ?? [] as $binName) {
+                    $this->createBin($business, $created, $binName);
+                    $binCount++;
+                }
             }
         }
 
-        foreach ($locations as $location) {
-            $created = Location::withoutGlobalScope(BusinessScope::class)->create([
-                'business_id' => $business->id,
-                'name' => $location['name'],
-                'is_default' => false,
-            ]);
-            $locationCount++;
+        $bins = Bin::withoutGlobalScope(BusinessScope::class)
+            ->where('business_id', $business->id)
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
-            foreach ($location['bins'] ?? [] as $binName) {
-                $this->createBin($business, $created, $binName);
-                $binCount++;
-            }
-        }
-
-        return [$defaultBin, $locationCount, $binCount];
+        return [$bins, $locationCount, $binCount];
     }
 
     private function createBin(Business $business, Location $location, string $name): void
@@ -163,10 +170,11 @@ class OnboardingSeeder
     }
 
     /**
+     * @param  Collection<int, Bin>  $bins
      * @param  array<string, mixed>  $input
      * @return array{0: int, 1: int}
      */
-    private function seedSampleStock(Business $business, User $owner, Bin $bin, array $input): array
+    private function seedSampleStock(Business $business, User $owner, Collection $bins, array $input): array
     {
         $role = $input['role'] ?? null;
 
@@ -176,26 +184,32 @@ class OnboardingSeeder
 
         $spec = $this->resolver->findSpecForRole($role);
 
-        if ($spec === null) {
+        if ($spec === null || $bins->isEmpty()) {
             return [0, 0];
         }
 
         $brands = ! empty($input['brands']) ? $input['brands'] : null;
-        $rows = $this->resolver->resolve($spec, $brands);
+
+        $rows = array_values(array_filter(
+            $this->resolver->resolve($spec, $brands),
+            fn ($row) => $row['status'] === 'matched' && (int) ($row['bags'] ?? 0) > 0,
+        ));
+
+        if ($rows === []) {
+            return [0, 0];
+        }
+
+        $familyBySku = $this->colorFamilyBySku(array_column($rows, 'sku_id'));
+        $binByFamily = $this->distributeColorFamilies($familyBySku, $bins);
+        $defaultBin = $bins->first();
 
         $skuCount = 0;
         $bagCount = 0;
 
         foreach ($rows as $row) {
-            if ($row['status'] !== 'matched') {
-                continue;
-            }
-
-            $bags = (int) ($row['bags'] ?? 0);
-
-            if ($bags <= 0) {
-                continue;
-            }
+            $bags = (int) $row['bags'];
+            $familyKey = $familyBySku[$row['sku_id']]['key'] ?? self::NO_FAMILY;
+            $bin = $binByFamily[$familyKey] ?? $defaultBin;
 
             $level = StockLevel::withoutGlobalScope(BusinessScope::class)->firstOrNew([
                 'business_id' => $business->id,
@@ -226,5 +240,88 @@ class OnboardingSeeder
         }
 
         return [$skuCount, $bagCount];
+    }
+
+    private const NO_FAMILY = 'none';
+
+    /**
+     * Map each seeded SKU to its colour family with an ordering key (family
+     * sort_order, then name) so families can be laid out around the colour wheel.
+     *
+     * @param  array<int, string>  $skuIds
+     * @return array<string, array{key: string, sort: int, name: string}>
+     */
+    private function colorFamilyBySku(array $skuIds): array
+    {
+        if ($skuIds === []) {
+            return [];
+        }
+
+        $rows = DB::table('skus')
+            ->join('colors', 'colors.id', '=', 'skus.color_id')
+            ->leftJoin('color_families', 'color_families.id', '=', 'colors.color_family_id')
+            ->whereIn('skus.id', $skuIds)
+            ->get([
+                'skus.id as sku_id',
+                'colors.color_family_id',
+                'color_families.sort_order as family_sort',
+                'color_families.name as family_name',
+            ]);
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $map[$row->sku_id] = [
+                'key' => $row->color_family_id ?? self::NO_FAMILY,
+                'sort' => $row->family_sort ?? PHP_INT_MAX,
+                'name' => (string) $row->family_name,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Distribute colour families across the available bins. Families are ordered
+     * around the colour wheel and split into contiguous chunks — so each family's
+     * balloons stay together, every family gets its own bin when there are enough,
+     * and similar (adjacent) families share a bin when there are not.
+     *
+     * @param  array<string, array{key: string, sort: int, name: string}>  $familyBySku
+     * @param  Collection<int, Bin>  $bins
+     * @return array<string, Bin>
+     */
+    private function distributeColorFamilies(array $familyBySku, Collection $bins): array
+    {
+        $families = collect($familyBySku)
+            ->unique('key')
+            ->sortBy([['sort', 'asc'], ['name', 'asc'], ['key', 'asc']])
+            ->pluck('key')
+            ->all();
+
+        $binList = $bins->values()->all();
+        $binCount = count($binList);
+        $familyCount = count($families);
+
+        if ($binCount === 0 || $familyCount === 0) {
+            return [];
+        }
+
+        $base = intdiv($familyCount, $binCount);
+        $remainder = $familyCount % $binCount;
+
+        $map = [];
+        $index = 0;
+
+        for ($bin = 0; $bin < $binCount; $bin++) {
+            $size = $base + ($bin < $remainder ? 1 : 0);
+
+            for ($n = 0; $n < $size; $n++) {
+                $map[$families[$index]] = $binList[$bin];
+                $index++;
+            }
+        }
+
+        return $map;
     }
 }

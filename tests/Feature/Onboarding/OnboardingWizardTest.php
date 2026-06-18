@@ -8,6 +8,7 @@ use App\Models\Bin;
 use App\Models\Brand;
 use App\Models\Business;
 use App\Models\Color;
+use App\Models\ColorFamily;
 use App\Models\Location;
 use App\Models\Membership;
 use App\Models\Shape;
@@ -101,6 +102,39 @@ class OnboardingWizardTest extends TestCase
             ->where('is_sample', true)
             ->where('direction', StockDirection::In)
             ->count());
+    }
+
+    public function test_samples_are_distributed_across_bins_by_color_family(): void
+    {
+        $stx = Brand::factory()->create(['name' => 'Sempertex']);
+        $whites = ColorFamily::factory()->create(['name' => 'Whites', 'sort_order' => 1]);
+        $reds = ColorFamily::factory()->create(['name' => 'Reds', 'sort_order' => 5]);
+
+        // Two twister.json rows with a real match, in two different families.
+        $white = $this->sku($stx, '260', 'Non-round', 'Fashion White', 50, $whites);
+        $red = $this->sku($stx, '260', 'Non-round', 'Fashion Red', 50, $reds);
+
+        [$user, $business] = $this->owner();
+
+        $this->actingAs($user)
+            ->withSession(['current_business_id' => $business->id])
+            ->post(route('onboarding.wizard.complete'), [
+                'role' => 'twister',
+                'brands' => ['Sempertex'],
+                'locale' => 'en',
+                'locations' => [['name' => 'Studio', 'bins' => ['Bin A', 'Bin B']]],
+            ])
+            ->assertRedirect(route('dashboard'));
+
+        $whiteBin = StockLevel::withoutGlobalScope(BusinessScope::class)
+            ->where('sku_id', $white->id)->value('bin_id');
+        $redBin = StockLevel::withoutGlobalScope(BusinessScope::class)
+            ->where('sku_id', $red->id)->value('bin_id');
+
+        $this->assertNotNull($whiteBin);
+        $this->assertNotNull($redBin);
+        // Two colour families across two bins → each lands in its own bin.
+        $this->assertNotSame($whiteBin, $redBin);
     }
 
     public function test_completing_the_wizard_renames_default_and_creates_locations_and_bins(): void
@@ -228,7 +262,7 @@ class OnboardingWizardTest extends TestCase
         ]);
     }
 
-    private function sku(Brand $brand, string $size, string $shape, string $color, int $count): Sku
+    private function sku(Brand $brand, string $size, string $shape, string $color, int $count, ?ColorFamily $family = null): Sku
     {
         $balloonSize = BalloonSize::factory()->create([
             'brand_id' => $brand->id,
@@ -236,7 +270,11 @@ class OnboardingWizardTest extends TestCase
             'shape_id' => $this->shapeRow($shape)->id,
         ]);
 
-        $colorModel = Color::factory()->create(['brand_id' => $brand->id, 'name' => $color]);
+        $colorAttrs = ['brand_id' => $brand->id, 'name' => $color];
+        if ($family !== null) {
+            $colorAttrs['color_family_id'] = $family->id;
+        }
+        $colorModel = Color::factory()->create($colorAttrs);
 
         return Sku::factory()->create([
             'brand_id' => $brand->id,

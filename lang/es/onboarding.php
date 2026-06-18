@@ -19,13 +19,15 @@ return [
         'finishing' => 'Preparando todo…',
         'step' => 'Paso :current de :total',
 
-        'welcome_heading' => '¡Hola, soy Tallie!',
-        'welcome_body' => 'Aspiro a ser una experta en inventario, simpática e inteligente, que te ayude a organizar tus globos de maravilla. Pero, para ser sincera, solo soy una docena de líneas de diálogo con un correo (tallie@balloonventory.com) que reenvía a una persona. Aun así, juguemos, y quizá podamos personalizar Balloonventory para tu negocio. Te haré unas preguntas y luego dejaré tu cuenta lista. Puedes omitir cualquier paso, volver más tarde y deshacer mis decisiones cuando quieras.',
+        'welcome_heading' => '¡Bienvenido a Balloonventory!',
+        'welcome_lead' => 'Haz clic para iniciar el asistente de configuración, o omítelo y empieza en blanco.',
+        'welcome_body' => 'Aspiro a ser una experta en inventario con ingenio que te ayude a organizar tus globos de maravilla. Pero por ahora solo soy una docena de líneas de diálogo y una dirección de correo.',
+        'welcome_body2' => 'Aun así, juguemos y personalicemos Balloonventory para tu negocio. Te haré unas preguntas y luego dejaré tu cuenta lista. Puedes omitir cualquier paso, volver más tarde y deshacer mis decisiones cuando quieras.',
         'welcome_cta' => '¡Vamos!',
 
         'lang_title' => '¿Qué idioma hablas?',
         'lang_heading' => 'Primero, elige tu idioma.',
-        'lang_body' => 'Esto define el idioma de toda tu cuenta y cambia aquí mismo a medida que eliges, para que el resto de la configuración se lea como prefieras. Puedes cambiarlo cuando quieras desde el ícono del globo terráqueo en el menú o en los ajustes de tu perfil.',
+        'lang_body' => 'Esto define el idioma de toda tu cuenta. Puedes cambiarlo cuando quieras desde el ícono del globo terráqueo en el menú o en los ajustes de tu perfil.',
 
         'role_title' => '¿Animador o decorador?',
         'role_heading' => '¿Qué tipo de trabajo con globos haces?',

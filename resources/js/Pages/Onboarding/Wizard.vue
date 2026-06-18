@@ -177,14 +177,24 @@ function submit() {
                 <!-- Welcome -->
                 <div v-if="currentStep === 'welcome'">
                     <h1
-                        class="mb-3 font-display text-[24px] font-semibold text-ink-primary"
+                        class="mb-2 font-display text-[24px] font-semibold text-ink-primary"
                     >
                         {{ $t('onboarding.wizard.welcome_heading') }}
                     </h1>
                     <p
-                        class="font-sans text-[15px] leading-relaxed text-ink-secondary"
+                        class="mb-5 font-sans text-[14px] font-medium text-accent"
+                    >
+                        {{ $t('onboarding.wizard.welcome_lead') }}
+                    </p>
+                    <p
+                        class="mb-3 font-sans text-[15px] leading-relaxed text-ink-secondary"
                     >
                         {{ $t('onboarding.wizard.welcome_body') }}
+                    </p>
+                    <p
+                        class="font-sans text-[15px] leading-relaxed text-ink-secondary"
+                    >
+                        {{ $t('onboarding.wizard.welcome_body2') }}
                     </p>
                 </div>
 

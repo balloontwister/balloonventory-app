@@ -19,13 +19,15 @@ return [
         'finishing' => 'Setting things up…',
         'step' => 'Step :current of :total',
 
-        'welcome_heading' => "Hi, I'm Tallie!",
-        'welcome_body' => "I aspire to be a cute, smart inventory-expert that helps you organize your balloons brilliantly. But to be honest, I'm just a dozen lines of dialogue with an email (tallie@balloonventory.com) that forwards to a human. Let's pretend anyway, and maybe we can customize Balloonventory for your business. I'll ask a few questions and then pre-fill your account. You can skip any step, come back later, and always undo my choices.",
+        'welcome_heading' => 'Welcome to Balloonventory!',
+        'welcome_lead' => 'Click to start the setup wizard — or skip it and start blank.',
+        'welcome_body' => "I aspire to be a witty inventory-expert that helps you organize your balloons brilliantly. But for now, I'm just a dozen lines of dialogue and an email address.",
+        'welcome_body2' => "Let's pretend anyway, and customize Balloonventory for your business. I'll ask a few questions and then pre-fill your account. You can skip any step, come back later, and always undo my choices.",
         'welcome_cta' => "Let's go!",
 
         'lang_title' => 'What Language Do You Habla?',
         'lang_heading' => 'First, pick your language.',
-        'lang_body' => 'This sets the language for your whole account, and it changes right here as you choose so the rest of this setup reads the way you want. You can switch it any time from the globe icon in the menu or your profile settings.',
+        'lang_body' => 'This sets the language for your whole account. You can switch it any time from the globe icon in the menu or your profile settings.',
 
         'role_title' => 'Entertainer or Decorator?',
         'role_heading' => 'What kind of balloon work do you do?',

@@ -39,6 +39,10 @@ return [
         'reply_failed' => 'No se pudo enviar la respuesta. Inténtalo de nuevo.',
     ],
 
+    'feedback' => [
+        'reply_failed' => 'No se pudo enviar el correo de respuesta. Inténtalo de nuevo.',
+    ],
+
     'email_template' => [
         'saved_activated' => 'Plantilla guardada y activada. Ahora se enviará con su disparador.',
         'saved_deactivated' => 'Plantilla guardada y desactivada. No se enviará hasta que se active.',

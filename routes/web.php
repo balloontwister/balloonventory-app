@@ -183,6 +183,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     // ── Item feedback (user-reported catalog discrepancies) ────────────────────
     Route::get('/super-admin/feedback', [SkuFeedbackController::class, 'index'])->name('super-admin.feedback.index');
     Route::patch('/super-admin/feedback/{feedback}/status', [SkuFeedbackController::class, 'updateStatus'])->name('super-admin.feedback.update-status');
+    Route::post('/super-admin/feedback/{feedback}/reply', [SkuFeedbackController::class, 'reply'])->name('super-admin.feedback.reply');
 
     // ── Database backups ──────────────────────────────────────────────────────
     Route::get('/super-admin/backups', [BackupController::class, 'index'])->name('super-admin.backups.index');

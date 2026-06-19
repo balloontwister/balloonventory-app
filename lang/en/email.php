@@ -21,6 +21,7 @@ return [
         'verification_code' => 'Your Balloonventory verification code',
         'support_request' => '[Support] :subject',
         'support_reply' => 'Re: [Support] :subject',
+        'feedback_reply' => 'Re: your Balloonventory report on :product',
     ],
 
     'reply_to_name' => 'Balloonventory Support',

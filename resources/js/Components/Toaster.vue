@@ -29,13 +29,13 @@ const ACCENT = {
 <template>
     <Teleport to="body">
         <div
-            class="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
+            class="pointer-events-none fixed right-4 top-4 z-[60] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
         >
             <TransitionGroup
                 enter-active-class="transition duration-150 ease-out"
-                enter-from-class="opacity-0 translate-y-2"
+                enter-from-class="opacity-0 -translate-y-2"
                 leave-active-class="transition duration-300 ease-in"
-                leave-to-class="opacity-0 translate-y-1"
+                leave-to-class="opacity-0 -translate-y-1"
             >
                 <div
                     v-for="t in toasts"

@@ -6,7 +6,7 @@ import BackLink from '@/Components/BackLink.vue';
 import Modal from '@/Components/Modal.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -14,12 +14,25 @@ const props = defineProps({
     sku: { type: Object, required: true },
     override: { type: Object, default: null },
     stockLevels: { type: Array, required: true },
+    identicalSkus: { type: Array, default: () => [] },
     bins: { type: Array, default: () => [] },
     recentMovements: { type: Array, required: true },
     favoritesListId: { type: String, default: null },
     isFavorite: { type: Boolean, default: false },
     reorderQuantity: { type: [Number, String], default: null },
+    returnQuery: { type: String, default: '' },
 });
+
+// Back link restores the list's filters (returnQuery) and scrolls to the row
+// that was opened (#sku-<id>), mirroring the master catalog.
+const backHref = computed(
+    () => route('inventory.index') + props.returnQuery + '#sku-' + props.sku.id,
+);
+
+// Prefer the SKU's own photo; the controller already falls back to the color's.
+const productImage = computed(
+    () => props.sku.images?.single || props.sku.images?.cluster || null,
+);
 
 const displayName = computed(
     () => props.override?.custom_name || props.sku.name,
@@ -84,6 +97,26 @@ function resetRow(row) {
     row.full = row.currentFull;
     row.open = row.currentOpen;
     row.error = '';
+}
+
+function rowIsEmpty(row) {
+    return row.currentFull === 0 && row.currentOpen === 0;
+}
+
+// Dismiss an empty bin for this item. Unsaved (added-but-not-saved) rows are just
+// dropped locally; persisted empty rows are removed on the server.
+function removeBinRow(row) {
+    if (row.isNew) {
+        rows.value = rows.value.filter((r) => r !== row);
+        return;
+    }
+    if (!window.confirm(trans('inventory.show.stock_remove_bin_confirm'))) {
+        return;
+    }
+    router.delete(route('inventory.sku.bin.remove', [props.sku.id, row.bin_id]), {
+        preserveScroll: true,
+        preserveState: true,
+    });
 }
 
 function saveRow(row) {
@@ -231,6 +264,20 @@ function saveOverride() {
 }
 
 // ── Activity history ──────────────────────────────────────────────────────────
+// Show the 3 most recent by default; the rest expand behind a toggle.
+
+const HISTORY_PREVIEW = 3;
+const showAllHistory = ref(false);
+
+const visibleMovements = computed(() =>
+    showAllHistory.value
+        ? props.recentMovements
+        : props.recentMovements.slice(0, HISTORY_PREVIEW),
+);
+
+const hiddenHistoryCount = computed(() =>
+    Math.max(0, props.recentMovements.length - HISTORY_PREVIEW),
+);
 
 function directionLabel(direction) {
     const map = {
@@ -268,10 +315,7 @@ function formatDate(value) {
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink
-                :href="route('inventory.index')"
-                :label="$t('inventory.show.back')"
-            />
+            <BackLink :href="backHref" :label="$t('inventory.show.back')" />
         </template>
 
         <div class="mx-auto max-w-4xl">
@@ -315,6 +359,12 @@ function formatDate(value) {
                     <div
                         class="rounded-lg border border-border bg-surface p-4 lg:sticky lg:top-4"
                     >
+                        <img
+                            v-if="productImage"
+                            :src="productImage"
+                            :alt="$t('inventory.show.image_alt', { name: sku.name })"
+                            class="mb-4 h-40 w-full rounded-md object-contain ring-1 ring-inset ring-border"
+                        />
                         <h2
                             class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
@@ -500,18 +550,37 @@ function formatDate(value) {
                                     >
                                         {{ binRowLabel(row) }}
                                     </span>
-                                    <AppButton
-                                        v-if="
-                                            canTransfer &&
-                                            rowHasStock(row) &&
-                                            !isDirty(row)
-                                        "
-                                        variant="ghost"
-                                        size="sm"
-                                        @click="openTransfer(row.bin_id)"
-                                    >
-                                        {{ $t('inventory.show.stock_move') }}
-                                    </AppButton>
+                                    <div class="flex items-center gap-1">
+                                        <AppButton
+                                            v-if="
+                                                canTransfer &&
+                                                rowHasStock(row) &&
+                                                !isDirty(row)
+                                            "
+                                            variant="ghost"
+                                            size="sm"
+                                            @click="openTransfer(row.bin_id)"
+                                        >
+                                            {{ $t('inventory.show.stock_move') }}
+                                        </AppButton>
+                                        <AppButton
+                                            v-if="rowIsEmpty(row) && !isDirty(row)"
+                                            variant="ghost"
+                                            size="sm"
+                                            class="text-ink-tertiary hover:text-danger"
+                                            @click="removeBinRow(row)"
+                                        >
+                                            {{
+                                                row.isNew
+                                                    ? $t(
+                                                          'inventory.show.stock_discard_bin',
+                                                      )
+                                                    : $t(
+                                                          'inventory.show.stock_remove_bin',
+                                                      )
+                                            }}
+                                        </AppButton>
+                                    </div>
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-4">
@@ -675,6 +744,64 @@ function formatDate(value) {
                             <span class="font-sans text-[12px] text-ink-tertiary"
                                 >— {{ $t('inventory.show.reorder_hint') }}</span
                             >
+                        </div>
+                    </section>
+
+                    <!-- Identical items in inventory -->
+                    <section v-if="identicalSkus.length > 0">
+                        <h2
+                            class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('inventory.show.section_identical') }}
+                        </h2>
+                        <div class="space-y-2">
+                            <Link
+                                v-for="item in identicalSkus"
+                                :key="item.id"
+                                :href="route('inventory.sku.show', item.id)"
+                                class="group flex items-center gap-3 rounded-md border border-border px-3 py-2.5 transition hover:bg-accent-soft/40"
+                            >
+                                <span
+                                    v-if="item.color?.color_hex"
+                                    class="inline-block h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
+                                    :style="{
+                                        backgroundColor: item.color.color_hex,
+                                    }"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <p
+                                        class="truncate font-sans text-[14px] font-medium text-ink-primary group-hover:underline"
+                                    >
+                                        {{ item.name }}
+                                    </p>
+                                    <p
+                                        class="font-sans text-[12px] text-ink-tertiary"
+                                    >
+                                        {{ item.brand?.abbreviation }}
+                                        <template v-if="item.balloon_size?.size">
+                                            · {{ item.balloon_size.size.name }}
+                                        </template>
+                                    </p>
+                                </div>
+                                <StockBadge
+                                    :full-bags="item.full_bags_total ?? 0"
+                                    :open-bags="item.open_bags_total ?? 0"
+                                />
+                            </Link>
+                        </div>
+                    </section>
+
+                    <!-- Similar items (stub) -->
+                    <section>
+                        <h2
+                            class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('inventory.show.section_similar') }}
+                        </h2>
+                        <div
+                            class="rounded-md border border-dashed border-border px-3 py-4 text-center font-sans text-[13px] text-ink-tertiary"
+                        >
+                            {{ $t('inventory.show.similar_coming_soon') }}
                         </div>
                     </section>
 
@@ -910,7 +1037,7 @@ function formatDate(value) {
                             <table class="w-full">
                                 <tbody class="divide-y divide-border">
                                     <tr
-                                        v-for="movement in recentMovements"
+                                        v-for="movement in visibleMovements"
                                         :key="movement.id"
                                     >
                                         <td
@@ -948,6 +1075,21 @@ function formatDate(value) {
                                 </tbody>
                             </table>
                         </div>
+
+                        <button
+                            v-if="hiddenHistoryCount > 0"
+                            type="button"
+                            class="mt-2 font-sans text-[13px] font-medium text-accent hover:underline"
+                            @click="showAllHistory = !showAllHistory"
+                        >
+                            {{
+                                showAllHistory
+                                    ? $t('inventory.show.history_show_less')
+                                    : $t('inventory.show.history_show_more', {
+                                          count: hiddenHistoryCount,
+                                      })
+                            }}
+                        </button>
                     </section>
                 </div>
             </div>

@@ -19,6 +19,7 @@ use App\Models\StockMovement;
 use App\Models\TextureFamily;
 use App\Scopes\BusinessScope;
 use App\Services\BinResolver;
+use App\Services\ImageAttachmentService;
 use App\Support\BusinessContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -32,7 +33,10 @@ use Inertia\Response;
 
 class InventoryController extends Controller
 {
-    public function __construct(private readonly BinResolver $binResolver) {}
+    public function __construct(
+        private readonly BinResolver $binResolver,
+        private readonly ImageAttachmentService $images,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -200,7 +204,7 @@ class InventoryController extends Controller
         }
     }
 
-    public function show(Sku $sku): Response
+    public function show(Request $request, Sku $sku): Response
     {
         abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
 
@@ -212,10 +216,31 @@ class InventoryController extends Controller
             'packagingType',
         ]);
 
+        // Resolve display images the same way the master catalog does. Most latex
+        // SKUs carry no image of their own, so fall back to the color's image.
+        $images = $this->images->urls($sku);
+        if (empty($images['single']) && empty($images['cluster']) && $sku->color) {
+            $images = $this->images->urls($sku->color);
+        }
+        $sku->images = $images;
+
         $override = BusinessSkuOverride::where('sku_id', $sku->id)->first();
 
         $stockLevels = StockLevel::where('sku_id', $sku->id)
             ->with('bin.location')
+            ->get();
+
+        // Identical SKUs (packaging/size variants) that are ALSO in this
+        // business's inventory — surfaced as quick links with their on-hand bags.
+        $identicalSkus = $sku->identicalSkus()
+            ->whereIn('skus.id', StockLevel::select('sku_id'))
+            ->with([
+                'brand:id,name,abbreviation',
+                'balloonSize' => fn ($q) => $q->with('size:id,name'),
+                'color:id,name,color_hex',
+            ])
+            ->withSum('stockLevels as full_bags_total', 'full_bags')
+            ->withSum('stockLevels as open_bags_total', 'open_bags')
             ->get();
 
         $recentMovements = StockMovement::where('sku_id', $sku->id)
@@ -242,11 +267,13 @@ class InventoryController extends Controller
             'sku' => $sku,
             'override' => $override,
             'stockLevels' => $stockLevels,
+            'identicalSkus' => $identicalSkus,
             'bins' => $this->binsForSelector(),
             'recentMovements' => $recentMovements,
             'favoritesListId' => $favoritesListId,
             'isFavorite' => $isFavorite,
             'reorderQuantity' => $reorderQuantity,
+            'returnQuery' => $request->query('return', ''),
         ]);
     }
 
@@ -485,6 +512,40 @@ class InventoryController extends Controller
         });
 
         return back()->with('success', __('flash.inventory.stock_adjusted'));
+    }
+
+    /**
+     * Dismiss an EMPTY stock-level row for this SKU in a specific bin, so bins
+     * the user no longer uses for this item stop cluttering the detail page. Only
+     * a row with zero full and zero open bags can be removed. Removing the last
+     * remaining bin drops the SKU from inventory entirely (same effect as
+     * "Remove from inventory").
+     */
+    public function removeStockBin(Sku $sku, Bin $bin): RedirectResponse
+    {
+        $businessId = BusinessContext::currentId();
+
+        $level = StockLevel::where('business_id', $businessId)
+            ->where('sku_id', $sku->id)
+            ->where('bin_id', $bin->id)
+            ->first();
+
+        abort_if($level === null, 404);
+
+        if ($level->full_bags > 0 || $level->open_bags > 0) {
+            throw ValidationException::withMessages([
+                'bin_id' => __('flash.inventory.bin_not_empty'),
+            ]);
+        }
+
+        $level->delete();
+
+        if (! StockLevel::where('sku_id', $sku->id)->exists()) {
+            return redirect()->route('inventory.index')
+                ->with('success', __('flash.inventory.sku_removed'));
+        }
+
+        return back()->with('success', __('flash.inventory.bin_removed'));
     }
 
     /**

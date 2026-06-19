@@ -82,6 +82,18 @@ return [
         'stock_add_cancel' => 'Cancelar',
         'stock_across_bins' => 'en :count contenedores',
         'stock_across_one_bin' => 'en 1 contenedor',
+        'stock_remove_bin' => 'Eliminar contenedor',
+        'stock_remove_bin_confirm' => '¿Eliminar este contenedor vacío para este artículo? Puedes volver a agregarlo más tarde.',
+        'stock_discard_bin' => 'Descartar',
+
+        'section_identical' => 'Artículos idénticos en tu inventario',
+        'section_similar' => 'Artículos similares',
+        'similar_coming_soon' => 'Próximamente — te sugeriremos coincidencias cercanas que ya tienes en existencia.',
+
+        'history_show_more' => 'Mostrar :count más',
+        'history_show_less' => 'Mostrar menos',
+
+        'image_alt' => 'Foto del producto :name',
 
         'customize_add' => 'Agregar un nombre, color o notas personalizados',
         'customize_edit' => 'Editar personalizaciones',

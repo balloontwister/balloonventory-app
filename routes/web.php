@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::delete('/inventory/skus/{sku}', [InventoryController::class, 'destroy'])->name('inventory.sku.destroy');
     Route::post('/inventory/skus/{sku}/transfer', [InventoryController::class, 'transfer'])->name('inventory.sku.transfer');
     Route::post('/inventory/skus/{sku}/adjust', [InventoryController::class, 'adjust'])->name('inventory.sku.adjust');
+    Route::delete('/inventory/skus/{sku}/bins/{bin}', [InventoryController::class, 'removeStockBin'])->name('inventory.sku.bin.remove');
     Route::patch('/inventory/skus/{sku}/override', [InventoryController::class, 'updateOverride'])->name('inventory.override.update');
     Route::post('/inventory/skus/{sku}/lists', [InventoryController::class, 'addToList'])->name('inventory.sku.add-to-list');
     Route::post('/favorites/{sku}', [InventoryController::class, 'addFavorite'])->name('favorites.add');

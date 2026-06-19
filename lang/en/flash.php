@@ -61,6 +61,8 @@ return [
         'transfer_nothing' => 'Enter at least one bag to transfer.',
         'transfer_insufficient' => 'Not enough stock in the source bin. Available: :full full / :open open bags.',
         'stock_adjusted' => 'Stock updated.',
+        'bin_removed' => 'Bin removed for this item.',
+        'bin_not_empty' => 'That bin still holds stock — empty it before removing.',
     ],
 
     'onboarding' => [

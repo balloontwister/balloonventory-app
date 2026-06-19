@@ -50,6 +50,17 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // A frozen account has valid credentials but is suspended — log it back
+        // out and refuse, rather than starting a session it can't use.
+        if (Auth::user()->isFrozen()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.frozen'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

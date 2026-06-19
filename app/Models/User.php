@@ -47,6 +47,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'frozen_at' => 'datetime',
             'email_verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'admin_level' => AdminLevel::class,
@@ -85,6 +86,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->admin_level !== null;
     }
 
+    public function isFrozen(): bool
+    {
+        return $this->frozen_at !== null;
+    }
+
     // Suppress Laravel's default link-based verification email.
     // Our code-based flow handles notification in VerificationCodeController.
     public function sendEmailVerificationNotification(): void {}
@@ -92,5 +98,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
+    }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
+    public function skuFeedback(): HasMany
+    {
+        return $this->hasMany(SkuFeedback::class);
     }
 }

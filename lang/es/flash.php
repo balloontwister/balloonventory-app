@@ -43,6 +43,14 @@ return [
         'reply_failed' => 'No se pudo enviar el correo de respuesta. Inténtalo de nuevo.',
     ],
 
+    'users' => [
+        'frozen' => 'La cuenta de :name ha sido congelada.',
+        'thawed' => 'La cuenta de :name ha sido descongelada.',
+        'reset_sent' => 'Enlace de restablecimiento enviado a :email.',
+        'reset_failed' => 'No se pudo enviar el enlace de restablecimiento a esa dirección.',
+        'deleted' => 'La cuenta de :name ha sido eliminada.',
+    ],
+
     'email_template' => [
         'saved_activated' => 'Plantilla guardada y activada. Ahora se enviará con su disparador.',
         'saved_deactivated' => 'Plantilla guardada y desactivada. No se enviará hasta que se active.',

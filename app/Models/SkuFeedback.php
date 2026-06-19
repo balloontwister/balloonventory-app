@@ -6,6 +6,7 @@ use App\Enums\FeedbackStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
@@ -79,5 +80,10 @@ class SkuFeedback extends Model
     public function sku(): BelongsTo
     {
         return $this->belongsTo(Sku::class);
+    }
+
+    public function replies(): HasMany
+    {
+        return $this->hasMany(SkuFeedbackReply::class)->orderBy('created_at');
     }
 }

@@ -39,6 +39,10 @@ return [
         'reply_failed' => 'Failed to send reply. Please try again.',
     ],
 
+    'feedback' => [
+        'reply_failed' => 'Failed to send the reply email. Please try again.',
+    ],
+
     'email_template' => [
         'saved_activated' => 'Template saved and activated. It will now fire on its trigger.',
         'saved_deactivated' => 'Template saved and deactivated. It will not fire until activated.',

@@ -59,6 +59,40 @@ function updateStatus(item, newStatus) {
         { preserveScroll: true },
     );
 }
+
+// ── Reply to the reporting user ───────────────────────────────────────────────
+const replyingTo = ref(null);
+const replyBody = ref('');
+const replyProcessing = ref(false);
+
+function openReply(item) {
+    replyingTo.value = item.id;
+    replyBody.value = '';
+}
+
+function cancelReply() {
+    replyingTo.value = null;
+    replyBody.value = '';
+}
+
+function submitReply(item) {
+    replyProcessing.value = true;
+    router.post(
+        route('super-admin.feedback.reply', item.id),
+        { body: replyBody.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                replyingTo.value = null;
+                replyBody.value = '';
+                replyProcessing.value = false;
+            },
+            onError: () => {
+                replyProcessing.value = false;
+            },
+        },
+    );
+}
 </script>
 
 <template>
@@ -187,9 +221,11 @@ function updateStatus(item, newStatus) {
                                     }}
                                 </td>
                             </tr>
-                            <tr
+                            <template
                                 v-for="item in feedback.data"
                                 :key="item.id"
+                            >
+                            <tr
                                 class="align-top text-ink-primary"
                                 :class="{ 'opacity-60': item.status !== 'open' }"
                             >
@@ -274,11 +310,43 @@ function updateStatus(item, newStatus) {
                                             )
                                         }}
                                     </span>
+                                    <span
+                                        v-if="item.replies && item.replies.length"
+                                        class="mt-1 inline-block rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent"
+                                    >
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.feedback.replied_badge',
+                                            )
+                                        }}
+                                    </span>
                                 </td>
                                 <td
                                     class="whitespace-nowrap px-6 py-3 text-right"
                                 >
                                     <div class="flex justify-end gap-2">
+                                        <button
+                                            v-if="item.user?.email"
+                                            type="button"
+                                            class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                                            @click="openReply(item)"
+                                        >
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.feedback.reply_button',
+                                                )
+                                            }}
+                                        </button>
+                                        <span
+                                            v-else
+                                            class="self-center font-sans text-[12px] text-ink-tertiary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.feedback.reply_no_email_hint',
+                                                )
+                                            }}
+                                        </span>
                                         <template v-if="item.status === 'open'">
                                             <button
                                                 type="button"
@@ -325,6 +393,129 @@ function updateStatus(item, newStatus) {
                                     </div>
                                 </td>
                             </tr>
+
+                            <!-- Existing replies + compose box -->
+                            <tr
+                                v-if="
+                                    replyingTo === item.id ||
+                                    (item.replies && item.replies.length)
+                                "
+                                class="bg-background/60"
+                            >
+                                <td colspan="7" class="px-6 py-4">
+                                    <!-- Past replies -->
+                                    <div
+                                        v-if="item.replies && item.replies.length"
+                                        class="mb-3 space-y-2"
+                                    >
+                                        <p
+                                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.feedback.replies_heading',
+                                                )
+                                            }}
+                                        </p>
+                                        <div
+                                            v-for="reply in item.replies"
+                                            :key="reply.id"
+                                            class="rounded-md border border-border bg-surface px-3 py-2"
+                                        >
+                                            <p
+                                                class="font-sans text-[12px] text-ink-tertiary"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'super_admin.dashboard.feedback.reply_meta',
+                                                        {
+                                                            date: formatDateTime(
+                                                                reply.created_at,
+                                                            ),
+                                                        },
+                                                    )
+                                                }}
+                                                <template v-if="reply.user">
+                                                    ·
+                                                    {{ reply.user.name }}
+                                                </template>
+                                            </p>
+                                            <p
+                                                class="mt-1 whitespace-pre-wrap font-sans text-[14px] text-ink-primary"
+                                            >
+                                                {{ reply.body }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Compose -->
+                                    <div v-if="replyingTo === item.id">
+                                        <textarea
+                                            v-model="replyBody"
+                                            rows="4"
+                                            :placeholder="
+                                                $t(
+                                                    'super_admin.dashboard.feedback.reply_placeholder',
+                                                )
+                                            "
+                                            :disabled="replyProcessing"
+                                            class="w-full resize-y rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft disabled:opacity-50"
+                                        />
+                                        <div
+                                            class="mt-2 flex items-center justify-between gap-3"
+                                        >
+                                            <p
+                                                class="font-sans text-[12px] text-ink-tertiary"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'super_admin.dashboard.feedback.reply_footnote',
+                                                        {
+                                                            email:
+                                                                item.user
+                                                                    ?.email ?? '',
+                                                        },
+                                                    )
+                                                }}
+                                            </p>
+                                            <div class="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-ink-secondary transition hover:bg-background"
+                                                    :disabled="replyProcessing"
+                                                    @click="cancelReply"
+                                                >
+                                                    {{
+                                                        $t(
+                                                            'super_admin.dashboard.feedback.reply_cancel',
+                                                        )
+                                                    }}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                                                    :disabled="
+                                                        replyProcessing ||
+                                                        !replyBody.trim()
+                                                    "
+                                                    @click="submitReply(item)"
+                                                >
+                                                    {{
+                                                        replyProcessing
+                                                            ? $t(
+                                                                  'super_admin.dashboard.feedback.reply_submitting',
+                                                              )
+                                                            : $t(
+                                                                  'super_admin.dashboard.feedback.reply_submit',
+                                                              )
+                                                    }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>

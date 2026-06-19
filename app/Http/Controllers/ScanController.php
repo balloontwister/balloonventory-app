@@ -11,6 +11,7 @@ use App\Models\StockMovement;
 use App\Services\BarcodeMatcher;
 use App\Services\BinResolver;
 use App\Support\BusinessContext;
+use App\Support\Gtin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -137,6 +138,107 @@ class ScanController extends Controller
             'match_type' => $top['match'],
             'sku' => $top['sku'],
             'candidates' => $candidates,
+        ]);
+    }
+
+    /**
+     * Search the visible catalog (shared rows OR owned by this business) for the
+     * "link this barcode to a product" picker. Lightweight JSON — name, brand,
+     * size, colour, and whether the SKU already carries a barcode.
+     */
+    public function searchSkus(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:100'],
+        ]);
+
+        $businessId = BusinessContext::currentId();
+        $term = $data['q'];
+
+        $skus = Sku::visibleTo($businessId)
+            ->with([
+                'brand:id,name,abbreviation',
+                'balloonSize' => fn ($q) => $q->with('size:id,name'),
+                'color:id,name,color_hex',
+            ])
+            ->where(fn ($q) => $q
+                ->where('skus.name', 'like', "%{$term}%")
+                ->orWhere('skus.computed_name', 'like', "%{$term}%")
+                ->orWhere('skus.warehouse_sku', 'like', "%{$term}%")
+                ->orWhereHas('color', fn ($c) => $c->where('name', 'like', "%{$term}%"))
+                ->orWhereHas('brand', fn ($b) => $b
+                    ->where('name', 'like', "%{$term}%")
+                    ->orWhere('abbreviation', 'like', "%{$term}%")))
+            ->orderBy('skus.name')
+            ->limit(15)
+            ->get();
+
+        return response()->json([
+            'skus' => $skus->map(fn (Sku $sku) => [
+                'id' => $sku->id,
+                'name' => $sku->name,
+                'warehouse_sku' => $sku->warehouse_sku,
+                'has_barcode' => $sku->upc !== null || $sku->ean !== null,
+                'brand' => $sku->brand ? ['abbreviation' => $sku->brand->abbreviation] : null,
+                'balloon_size' => $sku->balloonSize?->size ? ['name' => $sku->balloonSize->size->name] : null,
+                'color' => $sku->color ? ['name' => $sku->color->name, 'color_hex' => $sku->color->color_hex] : null,
+            ])->all(),
+        ]);
+    }
+
+    /**
+     * Attach a scanned barcode to a catalog SKU so future scans resolve it. The
+     * code is routed by length — 12 digits to `upc` (UPC-A), anything else to
+     * `ean` — and written to the shared catalog row so every business benefits.
+     * Rejects an invalid check digit, a code already on another SKU, or
+     * overwriting a different code already on the target SKU.
+     */
+    public function linkBarcode(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'barcode' => ['required', 'string', 'max:50'],
+            'sku_id' => ['required', 'uuid'],
+        ]);
+
+        $businessId = BusinessContext::currentId();
+        $sku = $this->resolveVisibleSku($data['sku_id'], $businessId);
+
+        $digits = Gtin::digitsOnly($data['barcode']);
+
+        if (strlen($digits) < 8 || ! Gtin::isValidCheckDigit($digits)) {
+            throw ValidationException::withMessages([
+                'barcode' => __('scan.link.invalid_barcode'),
+            ]);
+        }
+
+        $column = strlen($digits) === 12 ? 'upc' : 'ean';
+
+        // Already on another SKU (either barcode column)? Refuse — a barcode must
+        // map to exactly one product.
+        $clash = Sku::where('id', '!=', $sku->id)
+            ->where(fn ($q) => $q->where('upc', $digits)->orWhere('ean', $digits))
+            ->first();
+
+        if ($clash !== null) {
+            throw ValidationException::withMessages([
+                'barcode' => __('scan.link.already_used', ['name' => $clash->name]),
+            ]);
+        }
+
+        // Don't clobber a different existing code on this SKU/column.
+        if ($sku->{$column} !== null && $sku->{$column} !== $digits) {
+            throw ValidationException::withMessages([
+                'barcode' => __('scan.link.has_other_code'),
+            ]);
+        }
+
+        $sku->{$column} = $digits;
+        $sku->save();
+
+        return response()->json([
+            'linked' => true,
+            'sku_id' => $sku->id,
+            'sku_name' => $sku->name,
         ]);
     }
 

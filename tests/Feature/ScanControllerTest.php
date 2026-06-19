@@ -1052,6 +1052,47 @@ class ScanControllerTest extends TestCase
         ]);
     }
 
+    public function test_link_barcode_stores_camera_upc_a_in_upc_not_ean(): void
+    {
+        // A phone camera returns UPC-A 036000291452 as 13-digit EAN-13 0036000291452.
+        $sku = Sku::factory()->create(['upc' => null, 'ean' => null]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '0036000291452',
+                'sku_id' => $sku->id,
+            ])
+            ->assertOk()
+            ->assertJson(['linked' => true]);
+
+        $this->assertDatabaseHas('skus', [
+            'id' => $sku->id,
+            'upc' => '036000291452',
+            'ean' => null,
+        ]);
+    }
+
+    public function test_link_barcode_records_an_audit_row(): void
+    {
+        $sku = Sku::factory()->create(['upc' => null, 'ean' => null, 'name' => 'Audited Balloon']);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '8693296864283',
+                'sku_id' => $sku->id,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('barcode_link_audits', [
+            'business_id' => $this->business->id,
+            'user_id' => $this->owner->id,
+            'sku_id' => $sku->id,
+            'sku_name' => 'Audited Balloon',
+            'barcode' => '8693296864283',
+            'field' => 'ean',
+        ]);
+    }
+
     public function test_link_barcode_rejects_an_invalid_check_digit(): void
     {
         $sku = Sku::factory()->create(['upc' => null, 'ean' => null]);

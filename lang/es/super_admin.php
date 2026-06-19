@@ -11,7 +11,22 @@ return [
             'support_tickets' => 'Tickets de soporte',
             'catalog' => 'Catálogo',
             'users' => 'Usuarios',
+            'barcode_log' => 'Registro de códigos',
             'backups' => 'Copias de seguridad',
+        ],
+
+        'barcode_audits' => [
+            'meta_title' => 'Registro de códigos de barras',
+            'heading' => 'Registro de códigos de barras',
+            'subheading' => 'Cada código de barras que un usuario ha vinculado a un producto del catálogo desde la página de escaneo.',
+            'search_placeholder' => 'Buscar código o producto…',
+            'col_when' => 'Cuándo',
+            'col_user' => 'Usuario',
+            'col_business' => 'Negocio',
+            'col_product' => 'Producto',
+            'col_barcode' => 'Código',
+            'col_field' => 'Campo',
+            'empty' => 'Aún no se han vinculado códigos de barras.',
         ],
 
         'overview_heading' => 'Vista general',

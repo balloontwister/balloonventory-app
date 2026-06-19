@@ -308,6 +308,28 @@ function isActive(routeName) {
                         </Link>
 
                         <Link
+                            :href="route('super-admin.barcode-audits.index')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.barcode-audits.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    d="M3 4.75A.75.75 0 0 1 3.75 4h.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75V4.75ZM6 4.75A.75.75 0 0 1 6.75 4h.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-.5A.75.75 0 0 1 6 15.25V4.75ZM9.5 4a.75.75 0 0 0-.75.75v10.5c0 .414.336.75.75.75h.5a.75.75 0 0 0 .75-.75V4.75A.75.75 0 0 0 10 4h-.5ZM12.5 4.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V4.75ZM16.5 4a.75.75 0 0 0-.75.75v10.5c0 .414.336.75.75.75h.5a.75.75 0 0 0 .75-.75V4.75A.75.75 0 0 0 17 4h-.5Z"
+                                />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.barcode_log') }}
+                        </Link>
+
+                        <Link
                             :href="route('super-admin.backups.index')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="

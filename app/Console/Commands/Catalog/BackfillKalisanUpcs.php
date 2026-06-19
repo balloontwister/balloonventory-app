@@ -96,7 +96,7 @@ class BackfillKalisanUpcs extends Command
             $warehouseSku = isset($entry['warehouse_sku']) ? (string) $entry['warehouse_sku'] : null;
             $parseOk = (bool) ($entry['parse_ok'] ?? false);
 
-            $displaySize = $sizeName ?: '(unparsed)';
+            $displaySize = $sizeName ?: ($warehouseSku ? 'via warehouse_sku' : '(unparsed)');
             $bySize[$displaySize] ??= [
                 'matched' => [],
                 'parse_fail' => [],
@@ -107,14 +107,19 @@ class BackfillKalisanUpcs extends Command
                 'duplicate_code' => [],
             ];
 
-            // 0. Title parse failed
-            if (! $parseOk || $sizeName === '' || $colorName === '' || $count === 0) {
-                $bySize[$displaySize]['parse_fail'][] = [
-                    'title' => $entry['title'] ?? '',
-                    'barcode' => $barcode,
-                ];
+            // 0. Determine matching mode: warehouse_sku or attribute-based
+            $isWarehouseSkuMode = $warehouseSku !== null && $warehouseSku !== '';
 
-                continue;
+            if (! $isWarehouseSkuMode) {
+                // Attribute mode: must have valid parsed title
+                if (! $parseOk || $sizeName === '' || $colorName === '' || $count === 0) {
+                    $bySize[$displaySize]['parse_fail'][] = [
+                        'title' => $entry['title'] ?? '',
+                        'barcode' => $barcode,
+                    ];
+
+                    continue;
+                }
             }
 
             // 1. Determine field by length: 13 → ean, 12 → upc
@@ -122,7 +127,7 @@ class BackfillKalisanUpcs extends Command
 
             if (! in_array(strlen($barcode), [12, 13], true)) {
                 $bySize[$displaySize]['invalid_barcode'][] = [
-                    'title' => $entry['title'] ?? '',
+                    'title' => $entry['title'] ?? $warehouseSku ?? '',
                     'barcode' => $barcode,
                     'reason' => 'barcode length is '.strlen($barcode).' (expected 12 or 13)',
                 ];
@@ -133,7 +138,7 @@ class BackfillKalisanUpcs extends Command
             // 2. Validate GTIN check digit
             if (! Gtin::isValidCheckDigit($barcode)) {
                 $bySize[$displaySize]['invalid_barcode'][] = [
-                    'title' => $entry['title'] ?? '',
+                    'title' => $entry['title'] ?? $warehouseSku ?? '',
                     'barcode' => $barcode,
                     'reason' => 'invalid GTIN check digit',
                 ];
@@ -141,64 +146,80 @@ class BackfillKalisanUpcs extends Command
                 continue;
             }
 
-            // 3. Resolve balloon size
-            $balloonSize = $balloonSizes->get($sizeName);
-            if (! $balloonSize) {
+            // 3. Match by warehouse_sku (direct mode or first attempt in attribute mode)
+            $sku = null;
+            $matchType = null;
+
+            if ($isWarehouseSkuMode) {
+                $sku = $skusByWarehouseSku->get($warehouseSku);
+                $matchType = 'warehouse_sku';
+            }
+
+            // 4. Attribute-based matching (fallback when no warehouse_sku or no match)
+            if (! $sku && $parseOk && $sizeName !== '' && $colorName !== '' && $count > 0) {
+                // Resolve balloon size
+                $balloonSize = $balloonSizes->get($sizeName);
+                if (! $balloonSize) {
+                    $bySize[$displaySize]['no_sku'][] = [
+                        'title' => $entry['title'] ?? '',
+                        'barcode' => $barcode,
+                        'reason' => "unknown size '{$sizeName}'",
+                    ];
+
+                    continue;
+                }
+
+                // Match by warehouse_sku first (if available from attribute-mode entry)
+                if (! $sku && $isWarehouseSkuMode) {
+                    $sku = $skusByWarehouseSku->get($warehouseSku);
+                    if ($sku) {
+                        $matchType = 'warehouse_sku';
+                    }
+                }
+
+                // Match by attributes (size + color + count + packaging)
+                if (! $sku) {
+                    $color = $this->resolveColor($colorName, $textureName, $colorsByTextureAndName);
+                    if (! $color) {
+                        $bySize[$displaySize]['no_color'][] = [
+                            'title' => $entry['title'] ?? '',
+                            'color' => $colorName,
+                            'texture' => $textureName,
+                            'barcode' => $barcode,
+                        ];
+
+                        continue;
+                    }
+
+                    $packaging = $packagingTypes->get($packagingName);
+                    if (! $packaging) {
+                        $bySize[$displaySize]['no_sku'][] = [
+                            'title' => $entry['title'] ?? '',
+                            'barcode' => $barcode,
+                            'reason' => "unknown packaging '{$packagingName}'",
+                        ];
+
+                        continue;
+                    }
+
+                    $skuKey = "{$balloonSize->id}|{$color->id}|{$count}|{$packaging->id}";
+                    $sku = $skus->get($skuKey);
+                    $matchType = 'attributes';
+                }
+            }
+
+            // No match found after all attempts
+            if (! $sku) {
+                $label = $warehouseSku ?: ($entry['title'] ?? '');
                 $bySize[$displaySize]['no_sku'][] = [
-                    'title' => $entry['title'] ?? '',
+                    'title' => $label,
                     'barcode' => $barcode,
-                    'reason' => "unknown size '{$sizeName}'",
+                    'reason' => $isWarehouseSkuMode
+                        ? "warehouse_sku '{$warehouseSku}' not found in DB"
+                        : 'no SKU for this size/color/count/packaging',
                 ];
 
                 continue;
-            }
-
-            // 4. Match by warehouse_sku first (if available)
-            $sku = null;
-            if ($warehouseSku !== null && $warehouseSku !== '') {
-                $sku = $skusByWarehouseSku->get($warehouseSku);
-            }
-
-            // 5. Match by attributes (size + color + count + packaging)
-            if (! $sku) {
-                $color = $this->resolveColor($colorName, $textureName, $colorsByTextureAndName);
-                if (! $color) {
-                    $bySize[$displaySize]['no_color'][] = [
-                        'title' => $entry['title'] ?? '',
-                        'color' => $colorName,
-                        'texture' => $textureName,
-                        'barcode' => $barcode,
-                    ];
-
-                    continue;
-                }
-
-                $packaging = $packagingTypes->get($packagingName);
-                if (! $packaging) {
-                    $bySize[$displaySize]['no_sku'][] = [
-                        'title' => $entry['title'] ?? '',
-                        'barcode' => $barcode,
-                        'reason' => "unknown packaging '{$packagingName}'",
-                    ];
-
-                    continue;
-                }
-
-                $skuKey = "{$balloonSize->id}|{$color->id}|{$count}|{$packaging->id}";
-                $sku = $skus->get($skuKey);
-
-                if (! $sku) {
-                    $bySize[$displaySize]['no_sku'][] = [
-                        'title' => $entry['title'] ?? '',
-                        'color' => $color->name,
-                        'count' => $count,
-                        'packaging' => $packagingName,
-                        'barcode' => $barcode,
-                        'reason' => 'no SKU for this size/color/count/packaging',
-                    ];
-
-                    continue;
-                }
             }
 
             // 6. Guard: check for duplicate barcode on ANY other SKU
@@ -235,11 +256,11 @@ class BackfillKalisanUpcs extends Command
             }
 
             $bySize[$displaySize]['matched'][] = [
-                'title' => $entry['title'] ?? '',
+                'title' => $entry['title'] ?? ($warehouseSku ?? ''),
                 'sku_id' => $sku->id,
                 'barcode' => $barcode,
                 'field' => $field,
-                'match_type' => $warehouseSku ? 'warehouse_sku' : 'attributes',
+                'match_type' => $matchType ?? 'attributes',
             ];
         }
 

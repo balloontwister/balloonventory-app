@@ -63,6 +63,7 @@ return [
         'stock_adjusted' => 'Existencias actualizadas.',
         'bin_removed' => 'Contenedor eliminado para este artículo.',
         'bin_not_empty' => 'Ese contenedor aún tiene existencias — vacíalo antes de eliminarlo.',
+        'feedback_submitted' => '¡Gracias! Tus comentarios se enviaron a nuestro equipo.',
     ],
 
     'onboarding' => [

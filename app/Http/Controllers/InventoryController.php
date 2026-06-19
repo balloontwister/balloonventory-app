@@ -14,6 +14,7 @@ use App\Models\Material;
 use App\Models\Shape;
 use App\Models\Size;
 use App\Models\Sku;
+use App\Models\SkuFeedback;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Models\TextureFamily;
@@ -33,6 +34,28 @@ use Inertia\Response;
 
 class InventoryController extends Controller
 {
+    /**
+     * Attributes a user may flag in an item-feedback report. Mirrors the fields
+     * shown on the SKU detail card, plus image/other catch-alls. Used to
+     * constrain the `field` value submitted to {@see self::submitFeedback()}.
+     *
+     * @var list<string>
+     */
+    public const FEEDBACK_FIELDS = [
+        'name',
+        'brand',
+        'size',
+        'shape',
+        'color',
+        'texture',
+        'material',
+        'count_per_bag',
+        'packaging',
+        'barcode',
+        'image',
+        'other',
+    ];
+
     public function __construct(
         private readonly BinResolver $binResolver,
         private readonly ImageAttachmentService $images,
@@ -580,6 +603,40 @@ class InventoryController extends Controller
         );
 
         return back()->with('success', __('flash.inventory.override_saved'));
+    }
+
+    /**
+     * Record a user's "feedback on this item" report — a field-targeted edit or
+     * error report flagging a discrepancy between the physical product and our
+     * catalog data. Written to the shared (non-tenant) feedback log for admin
+     * review; the report only describes the problem and never mutates the catalog
+     * itself. A snapshot of the product name and the reporter's business/user are
+     * stored for context.
+     */
+    public function submitFeedback(Request $request, Sku $sku): RedirectResponse
+    {
+        abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+
+        $data = $request->validate([
+            'field' => ['required', Rule::in(self::FEEDBACK_FIELDS)],
+            'current_value' => ['nullable', 'string', 'max:255'],
+            // A report must carry content: the corrected value, a note, or both.
+            'suggested_value' => ['nullable', 'required_without:note', 'string', 'max:255'],
+            'note' => ['nullable', 'required_without:suggested_value', 'string', 'max:2000'],
+        ]);
+
+        SkuFeedback::create([
+            'business_id' => BusinessContext::currentId(),
+            'user_id' => $request->user()->id,
+            'sku_id' => $sku->id,
+            'sku_name' => $sku->name,
+            'field' => $data['field'],
+            'current_value' => $data['current_value'] ?? null,
+            'suggested_value' => $data['suggested_value'] ?? null,
+            'note' => $data['note'] ?? null,
+        ]);
+
+        return back()->with('success', __('flash.inventory.feedback_submitted'));
     }
 
     public function addToList(Request $request, Sku $sku): RedirectResponse

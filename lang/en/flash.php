@@ -63,6 +63,7 @@ return [
         'stock_adjusted' => 'Stock updated.',
         'bin_removed' => 'Bin removed for this item.',
         'bin_not_empty' => 'That bin still holds stock — empty it before removing.',
+        'feedback_submitted' => 'Thanks! Your feedback has been sent to our team.',
     ],
 
     'onboarding' => [

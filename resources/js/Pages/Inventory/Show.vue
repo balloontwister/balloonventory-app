@@ -6,6 +6,7 @@ import BackLink from '@/Components/BackLink.vue';
 import Modal from '@/Components/Modal.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
+import ItemFeedbackModal from '@/Components/ItemFeedbackModal.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -65,6 +66,31 @@ const subtitle = computed(() => {
         props.sku.balloon_size?.shape?.name,
     ].filter(Boolean);
     return parts.join(' · ');
+});
+
+// ── Item feedback (report a data discrepancy) ─────────────────────────────────
+const showFeedback = ref(false);
+
+// What our record shows for each reportable field, so the feedback report can
+// capture the current value alongside the user's correction. Keys MUST match
+// InventoryController::FEEDBACK_FIELDS.
+const feedbackFieldValues = computed(() => {
+    const s = props.sku;
+    const barcode = [s.upc, s.ean].filter(Boolean).join(' / ');
+    return {
+        name: s.name,
+        brand: s.brand?.name,
+        size: s.balloon_size?.size?.name,
+        shape: s.balloon_size?.shape?.name,
+        color: s.color?.name,
+        texture: s.color?.texture?.name,
+        material: s.material?.name,
+        count_per_bag: s.default_count_per_bag
+            ? String(s.default_count_per_bag)
+            : '',
+        packaging: s.packaging_type?.name,
+        barcode,
+    };
 });
 
 const totalFullBags = computed(() =>
@@ -509,6 +535,41 @@ function formatDate(value) {
                                 </dt>
                                 <dd class="text-right text-ink-primary">
                                     {{ sku.packaging_type.name }}
+                                </dd>
+                            </div>
+                            <!-- Barcode the system matches scans against, so the
+                                 user can confirm our record matches the bag. -->
+                            <div
+                                v-if="sku.upc"
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <dt class="text-ink-secondary">
+                                    {{ $t('inventory.show.detail_upc') }}
+                                </dt>
+                                <dd class="text-right font-mono text-ink-primary">
+                                    {{ sku.upc }}
+                                </dd>
+                            </div>
+                            <div
+                                v-if="sku.ean"
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <dt class="text-ink-secondary">
+                                    {{ $t('inventory.show.detail_ean') }}
+                                </dt>
+                                <dd class="text-right font-mono text-ink-primary">
+                                    {{ sku.ean }}
+                                </dd>
+                            </div>
+                            <div
+                                v-if="!sku.upc && !sku.ean"
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <dt class="text-ink-secondary">
+                                    {{ $t('inventory.show.detail_upc') }}
+                                </dt>
+                                <dd class="text-right text-ink-tertiary">
+                                    {{ $t('inventory.show.detail_barcode_none') }}
                                 </dd>
                             </div>
                         </dl>
@@ -1141,9 +1202,40 @@ function formatDate(value) {
                             }}
                         </button>
                     </section>
+
+                    <!-- Report a discrepancy between our data and the bag -->
+                    <section class="border-t border-border pt-4">
+                        <button
+                            type="button"
+                            class="flex items-center gap-2 font-sans text-[13px] text-ink-tertiary transition hover:text-ink-primary"
+                            @click="showFeedback = true"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            {{ $t('inventory.show.feedback_trigger') }}
+                        </button>
+                    </section>
                 </div>
             </div>
         </div>
+
+        <!-- Item feedback modal -->
+        <ItemFeedbackModal
+            :show="showFeedback"
+            :sku="{ id: sku.id, name: sku.name }"
+            :field-values="feedbackFieldValues"
+            @close="showFeedback = false"
+        />
 
         <!-- Transfer modal -->
         <Modal :show="transferOpen" max-width="md" @close="transferOpen = false">

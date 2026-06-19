@@ -21,6 +21,7 @@ use App\Http\Controllers\SuperAdmin\CatalogColorController;
 use App\Http\Controllers\SuperAdmin\CatalogController;
 use App\Http\Controllers\SuperAdmin\CatalogReferenceController;
 use App\Http\Controllers\SuperAdmin\EmailTemplateController;
+use App\Http\Controllers\SuperAdmin\SkuFeedbackController;
 use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SupportController;
@@ -87,6 +88,9 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::delete('/inventory/skus/{sku}/bins/{bin}', [InventoryController::class, 'removeStockBin'])->name('inventory.sku.bin.remove');
     Route::patch('/inventory/skus/{sku}/override', [InventoryController::class, 'updateOverride'])->name('inventory.override.update');
     Route::post('/inventory/skus/{sku}/lists', [InventoryController::class, 'addToList'])->name('inventory.sku.add-to-list');
+    Route::post('/inventory/skus/{sku}/feedback', [InventoryController::class, 'submitFeedback'])
+        ->middleware('throttle:5,60')
+        ->name('inventory.sku.feedback');
     Route::post('/favorites/{sku}', [InventoryController::class, 'addFavorite'])->name('favorites.add');
     Route::post('/favorites/{sku}/remove', [InventoryController::class, 'removeFavorite'])->name('favorites.remove');
 
@@ -175,6 +179,10 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     // ── Barcode link audit log ────────────────────────────────────────────────
     Route::get('/super-admin/barcode-audits', [BarcodeAuditController::class, 'index'])->name('super-admin.barcode-audits.index');
     Route::post('/super-admin/barcode-audits/{audit}/revert', [BarcodeAuditController::class, 'revert'])->name('super-admin.barcode-audits.revert');
+
+    // ── Item feedback (user-reported catalog discrepancies) ────────────────────
+    Route::get('/super-admin/feedback', [SkuFeedbackController::class, 'index'])->name('super-admin.feedback.index');
+    Route::patch('/super-admin/feedback/{feedback}/status', [SkuFeedbackController::class, 'updateStatus'])->name('super-admin.feedback.update-status');
 
     // ── Database backups ──────────────────────────────────────────────────────
     Route::get('/super-admin/backups', [BackupController::class, 'index'])->name('super-admin.backups.index');

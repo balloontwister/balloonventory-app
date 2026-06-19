@@ -330,6 +330,30 @@ function isActive(routeName) {
                         </Link>
 
                         <Link
+                            :href="route('super-admin.feedback.index')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('super-admin.feedback.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M18 5v8a2 2 0 0 1-2 2h-5l-5 4v-4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2ZM7 8H5v2h2V8Zm2 0h2v2H9V8Zm6 0h-2v2h2V8Z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.feedback') }}
+                        </Link>
+
+                        <Link
                             :href="route('super-admin.backups.index')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="

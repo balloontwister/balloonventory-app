@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminBackLink from '@/Components/AdminBackLink.vue';
 import AppButton from '@/Components/AppButton.vue';
 import BackLink from '@/Components/BackLink.vue';
 import BrandTag from '@/Components/BrandTag.vue';
@@ -16,11 +17,14 @@ const props = defineProps({
 
     <AuthenticatedLayout>
         <template #header>
-            <h1
-                class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
-            >
-                {{ $t('catalog.heading') }}
-            </h1>
+            <div class="flex items-center justify-between gap-4">
+                <h1
+                    class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+                >
+                    {{ $t('catalog.heading') }}
+                </h1>
+                <AdminBackLink />
+            </div>
         </template>
 
         <div class="mb-6">

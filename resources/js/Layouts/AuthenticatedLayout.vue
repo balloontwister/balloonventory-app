@@ -1,5 +1,6 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
+import AdminMenu from '@/Components/AdminMenu.vue';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import Toaster from '@/Components/Toaster.vue';
@@ -495,6 +496,7 @@ function isActive(routeName) {
                         <div class="min-w-0 flex-1">
                             <slot name="header" />
                         </div>
+                        <AdminMenu v-if="isSuperAdmin" />
                         <Link
                             :href="route('account.index')"
                             :title="$t('nav.account')"
@@ -542,30 +544,7 @@ function isActive(routeName) {
                     <div class="min-w-0 flex-1">
                         <BusinessSwitcher />
                     </div>
-                    <Link
-                        v-if="isSuperAdmin"
-                        :href="route('admin.dashboard')"
-                        :title="$t('nav.super_admin_section')"
-                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition"
-                        :class="
-                            route().current('admin.*')
-                                ? 'text-accent'
-                                : 'text-ink-tertiary hover:bg-background hover:text-ink-primary'
-                        "
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            class="h-4 w-4"
-                        >
-                            <path
-                                fill-rule="evenodd"
-                                d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.533.533 0 01.479.533c0 5.448-3.299 10.116-8 11.932a.535.535 0 01-.372 0c-4.701-1.816-8-6.484-8-11.932a.533.533 0 01.479-.533 11.947 11.947 0 007.078-2.749z"
-                                clip-rule="evenodd"
-                            />
-                        </svg>
-                    </Link>
+                    <AdminMenu v-if="isSuperAdmin" compact />
                     <Link
                         :href="route('account.index')"
                         :title="$t('nav.account')"

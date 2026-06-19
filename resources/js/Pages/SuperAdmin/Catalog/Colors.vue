@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminBackLink from '@/Components/AdminBackLink.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 import ImageGallery from '@/Components/ImageGallery.vue';
@@ -185,11 +186,14 @@ const selectClass =
 
     <AuthenticatedLayout>
         <template #header>
-            <h1
-                class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
-            >
-                {{ $t('catalog.heading') }}
-            </h1>
+            <div class="flex items-center justify-between gap-4">
+                <h1
+                    class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+                >
+                    {{ $t('catalog.heading') }}
+                </h1>
+                <AdminBackLink />
+            </div>
         </template>
 
         <!-- Catalog nav tabs (shared) -->

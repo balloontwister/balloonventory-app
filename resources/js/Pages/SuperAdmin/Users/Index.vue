@@ -319,7 +319,7 @@ function destroyUser(user) {
                     :href="route('admin.dashboard')"
                     class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
                 >
-                    {{ $t('super_admin.users.back') }}
+                    {{ $t('super_admin.dashboard.back') }}
                 </Link>
             </div>
         </template>

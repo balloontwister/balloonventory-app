@@ -5,7 +5,8 @@ import ScanToast from '@/Components/ScanToast.vue';
 import CameraScanner from '@/Components/CameraScanner.vue';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import Modal from '@/Components/Modal.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { ref, computed, onBeforeUnmount, watch } from 'vue';
 
 const props = defineProps({
@@ -316,11 +317,87 @@ function hideRecent() {
     recentScans.value = [];
 }
 
-// ── Assign unknown UPC ──────────────────────────────────────────────────────────
-function assignUnknown() {
+// ── Link an unknown barcode to a SKU ────────────────────────────────────────────
+// Instead of dead-ending, let the user find the product this bag is and save the
+// scanned barcode onto it, so it resolves on every future scan.
+const linkModalOpen = ref(false);
+const linkSearch = ref('');
+const linkResults = ref([]);
+const linkSearching = ref(false);
+const linkError = ref('');
+const linkProcessing = ref(false);
+let linkSearchTimer = null;
+
+function openLinkModal() {
+    if (!unknownUpc.value?.upc) return;
+    linkSearch.value = '';
+    linkResults.value = [];
+    linkError.value = '';
+    linkModalOpen.value = true;
+}
+
+function closeLinkModal() {
+    linkModalOpen.value = false;
+    clearTimeout(linkSearchTimer);
+}
+
+watch(linkSearch, (q) => {
+    clearTimeout(linkSearchTimer);
+    linkError.value = '';
+    const term = (q ?? '').trim();
+    if (term.length < 2) {
+        linkResults.value = [];
+        linkSearching.value = false;
+        return;
+    }
+    linkSearching.value = true;
+    linkSearchTimer = setTimeout(async () => {
+        try {
+            const res = await window.axios.get(route('scan.search-skus'), {
+                params: { q: term },
+            });
+            linkResults.value = res.data.skus ?? [];
+        } catch {
+            linkResults.value = [];
+        } finally {
+            linkSearching.value = false;
+        }
+    }, 300);
+});
+
+async function linkToSku(sku) {
     const upc = unknownUpc.value?.upc;
-    if (!upc) return;
-    router.get(route('inventory.index'), { search: upc });
+    if (!upc || linkProcessing.value) return;
+    linkProcessing.value = true;
+    linkError.value = '';
+    try {
+        await window.axios.post(route('scan.link-barcode'), {
+            barcode: upc,
+            sku_id: sku.id,
+        });
+        closeLinkModal();
+        unknownUpc.value = null;
+        // The barcode now resolves — re-run the scan to complete the original
+        // add/remove the user was attempting.
+        await processScan(upc);
+    } catch (e) {
+        linkError.value =
+            e.response?.data?.errors?.barcode?.[0] ??
+            e.response?.data?.message ??
+            trans('scan.link.invalid_barcode');
+    } finally {
+        linkProcessing.value = false;
+    }
+}
+
+function linkSkuLine(sku) {
+    return [
+        sku.brand?.abbreviation,
+        sku.balloon_size?.name,
+        sku.color?.name,
+    ]
+        .filter(Boolean)
+        .join(' · ');
 }
 
 // ── Context hint translation key ────────────────────────────────────────────────
@@ -492,7 +569,7 @@ const contextHintKey = computed(() => {
                 <button
                     type="button"
                     class="shrink-0 rounded-md bg-warning px-4 py-2 font-sans text-[14px] font-semibold text-white hover:brightness-110"
-                    @click="assignUnknown"
+                    @click="openLinkModal"
                 >
                     {{ $t('scan.unknown_assign') }}
                 </button>
@@ -779,6 +856,107 @@ const contextHintKey = computed(() => {
                     @detected="onCameraDetected"
                     @close="closeCamera"
                 />
+            </div>
+        </Modal>
+
+        <!-- ── Link barcode to a product modal ──────────────────────────────── -->
+        <Modal :show="linkModalOpen" max-width="md" @close="closeLinkModal">
+            <div class="flex flex-col gap-4 p-6">
+                <div>
+                    <h2
+                        class="font-display text-[18px] font-semibold text-ink-primary"
+                    >
+                        {{ $t('scan.link.title') }}
+                    </h2>
+                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                        {{ $t('scan.link.subtitle') }}
+                    </p>
+                    <p
+                        v-if="unknownUpc"
+                        class="mt-1 font-mono text-[13px] text-ink-tertiary"
+                    >
+                        {{ unknownUpc.upc }}
+                    </p>
+                </div>
+
+                <input
+                    v-model="linkSearch"
+                    type="search"
+                    autofocus
+                    :placeholder="$t('scan.link.search_placeholder')"
+                    class="w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                />
+
+                <p
+                    v-if="linkError"
+                    class="font-sans text-[13px] text-danger"
+                >
+                    {{ linkError }}
+                </p>
+
+                <div class="max-h-72 overflow-y-auto">
+                    <p
+                        v-if="linkSearching"
+                        class="py-4 text-center font-sans text-[13px] text-ink-tertiary"
+                    >
+                        {{ $t('scan.link.searching') }}
+                    </p>
+                    <p
+                        v-else-if="
+                            linkSearch.trim().length >= 2 &&
+                            linkResults.length === 0
+                        "
+                        class="py-4 text-center font-sans text-[13px] text-ink-tertiary"
+                    >
+                        {{ $t('scan.link.no_results') }}
+                    </p>
+                    <ul v-else class="flex flex-col gap-1">
+                        <li v-for="sku in linkResults" :key="sku.id">
+                            <button
+                                type="button"
+                                :disabled="linkProcessing"
+                                class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-2.5 text-left transition hover:bg-accent-soft/40 disabled:opacity-50"
+                                @click="linkToSku(sku)"
+                            >
+                                <span
+                                    v-if="sku.color?.color_hex"
+                                    class="inline-block h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
+                                    :style="{
+                                        backgroundColor: sku.color.color_hex,
+                                    }"
+                                />
+                                <span class="min-w-0 flex-1">
+                                    <span
+                                        class="block truncate font-sans text-[14px] font-medium text-ink-primary"
+                                    >
+                                        {{ sku.name }}
+                                    </span>
+                                    <span
+                                        class="block truncate font-sans text-[12px] text-ink-tertiary"
+                                    >
+                                        {{ linkSkuLine(sku) }}
+                                    </span>
+                                </span>
+                                <span
+                                    v-if="sku.has_barcode"
+                                    class="shrink-0 rounded bg-background px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border"
+                                >
+                                    {{ $t('scan.link.has_barcode_badge') }}
+                                </span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="flex justify-end">
+                    <button
+                        type="button"
+                        class="rounded-md border border-border-strong px-4 py-2 font-sans text-[14px] text-ink-secondary hover:bg-background"
+                        @click="closeLinkModal"
+                    >
+                        {{ $t('scan.link.cancel') }}
+                    </button>
+                </div>
             </div>
         </Modal>
     </AuthenticatedLayout>

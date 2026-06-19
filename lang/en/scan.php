@@ -58,8 +58,24 @@ return [
     // Unknown UPC
     'unknown_upc' => 'Unknown barcode',
     'unknown_upc_body' => 'This barcode isn\'t linked to any SKU in your catalog.',
-    'unknown_assign' => 'Assign to SKU',
+    'unknown_assign' => 'Link to a product',
     'unknown_sku' => 'Unknown SKU',
+
+    // Link barcode to SKU
+    'link' => [
+        'title' => 'Link barcode to a product',
+        'subtitle' => 'Find the product this bag is, and we\'ll remember this barcode next time.',
+        'search_placeholder' => 'Search by name, size, colour…',
+        'searching' => 'Searching…',
+        'no_results' => 'No matching products. Try a different search.',
+        'has_barcode_badge' => 'Already has a barcode',
+        'confirm' => 'Link this barcode',
+        'cancel' => 'Cancel',
+        'linked_toast' => 'Barcode linked to :name.',
+        'invalid_barcode' => 'That barcode doesn\'t look valid — re-scan and try again.',
+        'already_used' => 'That barcode is already linked to ":name".',
+        'has_other_code' => 'This product already has a different barcode on file. Edit it in the catalog.',
+    ],
 
     // Recent scans
     'recent_heading' => 'Recent scans',

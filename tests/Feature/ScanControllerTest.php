@@ -984,4 +984,116 @@ class ScanControllerTest extends TestCase
             ->assertOk()
             ->assertJson(['type' => 'bin', 'found' => false]);
     }
+
+    // ── searchSkus ──────────────────────────────────────────────────────────────
+
+    public function test_search_skus_returns_visible_matches(): void
+    {
+        $match = Sku::factory()->create(['name' => 'Macaron Blue Linky']);
+        Sku::factory()->create(['name' => 'Totally Unrelated']);
+
+        $this->actingAs($this->owner)
+            ->getJson(route('scan.search-skus', ['q' => 'Macaron']))
+            ->assertOk()
+            ->assertJsonCount(1, 'skus')
+            ->assertJsonPath('skus.0.id', $match->id);
+    }
+
+    public function test_search_skus_excludes_foreign_owned_skus(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        Sku::factory()->create([
+            'name' => 'Private Macaron',
+            'owned_by_business_id' => $otherBusiness->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->getJson(route('scan.search-skus', ['q' => 'Private Macaron']))
+            ->assertOk()
+            ->assertJsonCount(0, 'skus');
+    }
+
+    // ── linkBarcode ─────────────────────────────────────────────────────────────
+
+    public function test_link_barcode_saves_ean_for_a_13_digit_code(): void
+    {
+        $sku = Sku::factory()->create(['upc' => null, 'ean' => null]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '8693296864283', // valid EAN-13 (Kalisan)
+                'sku_id' => $sku->id,
+            ])
+            ->assertOk()
+            ->assertJson(['linked' => true]);
+
+        $this->assertDatabaseHas('skus', [
+            'id' => $sku->id,
+            'ean' => '8693296864283',
+            'upc' => null,
+        ]);
+    }
+
+    public function test_link_barcode_saves_upc_for_a_12_digit_code(): void
+    {
+        $sku = Sku::factory()->create(['upc' => null, 'ean' => null]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '012345678905', // valid UPC-A check digit
+                'sku_id' => $sku->id,
+            ])
+            ->assertOk()
+            ->assertJson(['linked' => true]);
+
+        $this->assertDatabaseHas('skus', [
+            'id' => $sku->id,
+            'upc' => '012345678905',
+        ]);
+    }
+
+    public function test_link_barcode_rejects_an_invalid_check_digit(): void
+    {
+        $sku = Sku::factory()->create(['upc' => null, 'ean' => null]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '8693296864284', // bad check digit
+                'sku_id' => $sku->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('barcode');
+    }
+
+    public function test_link_barcode_rejects_a_code_already_on_another_sku(): void
+    {
+        Sku::factory()->create(['ean' => '8693296864283']);
+        $target = Sku::factory()->create(['upc' => null, 'ean' => null]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '8693296864283',
+                'sku_id' => $target->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('barcode');
+    }
+
+    public function test_link_barcode_rejects_a_foreign_owned_sku(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $foreignSku = Sku::factory()->create([
+            'owned_by_business_id' => $otherBusiness->id,
+            'upc' => null,
+            'ean' => null,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.link-barcode'), [
+                'barcode' => '8693296864283',
+                'sku_id' => $foreignSku->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('sku_id');
+    }
 }

@@ -101,6 +101,8 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
     Route::post('/scan/lookup', [ScanController::class, 'lookup'])->name('scan.lookup');
+    Route::get('/scan/search-skus', [ScanController::class, 'searchSkus'])->name('scan.search-skus');
+    Route::post('/scan/link-barcode', [ScanController::class, 'linkBarcode'])->name('scan.link-barcode');
     Route::post('/scan/check-in', [ScanController::class, 'checkIn'])->name('scan.check-in');
     Route::post('/scan/check-out', [ScanController::class, 'checkOut'])->name('scan.check-out');
     Route::post('/scan/undo/{stockMovement}', [ScanController::class, 'undo'])->name('scan.undo');

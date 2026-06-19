@@ -58,8 +58,24 @@ return [
     // Unknown UPC
     'unknown_upc' => 'Código desconocido',
     'unknown_upc_body' => 'Este código de barras no está vinculado a ningún SKU en tu catálogo.',
-    'unknown_assign' => 'Asignar a SKU',
+    'unknown_assign' => 'Vincular a un producto',
     'unknown_sku' => 'SKU desconocido',
+
+    // Vincular código de barras a SKU
+    'link' => [
+        'title' => 'Vincular código de barras a un producto',
+        'subtitle' => 'Encuentra el producto de esta bolsa y recordaremos este código la próxima vez.',
+        'search_placeholder' => 'Buscar por nombre, tamaño, color…',
+        'searching' => 'Buscando…',
+        'no_results' => 'No hay productos coincidentes. Prueba otra búsqueda.',
+        'has_barcode_badge' => 'Ya tiene un código de barras',
+        'confirm' => 'Vincular este código',
+        'cancel' => 'Cancelar',
+        'linked_toast' => 'Código vinculado a :name.',
+        'invalid_barcode' => 'Ese código de barras no parece válido — vuelve a escanear e inténtalo de nuevo.',
+        'already_used' => 'Ese código ya está vinculado a ":name".',
+        'has_other_code' => 'Este producto ya tiene otro código de barras registrado. Edítalo en el catálogo.',
+    ],
 
     // Recent scans
     'recent_heading' => 'Escaneos recientes',

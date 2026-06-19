@@ -294,6 +294,165 @@ class InventoryControllerTest extends TestCase
             ->assertNotFound();
     }
 
+    // ── adjust ────────────────────────────────────────────────────────────────
+
+    public function test_adjust_sets_bag_counts_and_records_adjusted_movement(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 2,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.adjust', $sku), [
+                'bin_id' => $this->bin->id,
+                'full_bags' => 5,
+                'open_bags' => 1,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('stock_levels', [
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 5,
+            'open_bags' => 1,
+        ]);
+
+        // Net change recorded as one adjusted movement: +3 full, +1 open.
+        $this->assertDatabaseHas('stock_movements', [
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'direction' => 'adjusted',
+            'full_bags_change' => 3,
+            'open_bags_change' => 1,
+        ]);
+    }
+
+    public function test_adjust_creates_stock_level_for_a_new_bin(): void
+    {
+        $sku = Sku::factory()->create();
+        // SKU is in inventory via the default bin.
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 1,
+            'open_bags' => 0,
+        ]);
+
+        $secondBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $this->location->id,
+            'name' => 'Shelf B',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.adjust', $sku), [
+                'bin_id' => $secondBin->id,
+                'full_bags' => 4,
+                'open_bags' => 0,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('stock_levels', [
+            'sku_id' => $sku->id,
+            'bin_id' => $secondBin->id,
+            'full_bags' => 4,
+        ]);
+    }
+
+    public function test_adjust_with_no_net_change_records_no_movement(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 3,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.adjust', $sku), [
+                'bin_id' => $this->bin->id,
+                'full_bags' => 3,
+                'open_bags' => 0,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('stock_movements', [
+            'sku_id' => $sku->id,
+            'direction' => 'adjusted',
+        ]);
+    }
+
+    public function test_adjust_rejects_bin_from_another_business(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 1,
+            'open_bags' => 0,
+        ]);
+
+        $otherBusiness = Business::factory()->create();
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)
+            ->create(['business_id' => $otherBusiness->id, 'name' => 'Default', 'is_default' => true]);
+        $foreignBin = Bin::withoutGlobalScope(BusinessScope::class)
+            ->create(['business_id' => $otherBusiness->id, 'location_id' => $otherLocation->id, 'name' => 'Default', 'is_default' => true]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.adjust', $sku), [
+                'bin_id' => $foreignBin->id,
+                'full_bags' => 2,
+                'open_bags' => 0,
+            ])
+            ->assertSessionHasErrors('bin_id');
+    }
+
+    public function test_adjust_returns_404_for_sku_not_in_inventory(): void
+    {
+        $sku = Sku::factory()->create();
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.adjust', $sku), [
+                'bin_id' => $this->bin->id,
+                'full_bags' => 2,
+                'open_bags' => 0,
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_adjust_rejects_negative_bag_counts(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 1,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.sku.adjust', $sku), [
+                'bin_id' => $this->bin->id,
+                'full_bags' => -1,
+                'open_bags' => 0,
+            ])
+            ->assertSessionHasErrors('full_bags');
+    }
+
     // ── store ─────────────────────────────────────────────────────────────────
 
     public function test_store_adds_sku_to_inventory(): void

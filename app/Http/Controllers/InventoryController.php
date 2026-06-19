@@ -416,6 +416,78 @@ class InventoryController extends Controller
     }
 
     /**
+     * Set the on-hand bag counts for a single bin to the supplied values,
+     * recording the net change as one `adjusted` StockMovement. Backs the per-bin
+     * steppers on the SKU detail page (manual recount/correction) and seeding
+     * stock into a bin that didn't previously hold this SKU. The non-sample
+     * movement it writes also promotes any onboarding sample stock for this SKU to
+     * real on the next sample cleanup.
+     */
+    public function adjust(Request $request, Sku $sku): RedirectResponse
+    {
+        abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+
+        $businessId = BusinessContext::currentId();
+
+        $binExistsForBusiness = Rule::exists('bins', 'id')
+            ->where('business_id', $businessId)
+            ->whereNull('deleted_at');
+
+        $data = $request->validate([
+            'bin_id' => ['required', 'uuid', $binExistsForBusiness],
+            'full_bags' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'open_bags' => ['required', 'integer', 'min:0', 'max:1000000'],
+        ]);
+
+        $business = Business::findOrFail($businessId);
+        $bin = $this->binResolver->resolveSelectedBin($business, $data['bin_id']);
+
+        $targetFull = (int) $data['full_bags'];
+        $targetOpen = (int) $data['open_bags'];
+
+        DB::transaction(function () use ($businessId, $sku, $bin, $targetFull, $targetOpen, $request) {
+            $level = StockLevel::where('business_id', $businessId)
+                ->where('sku_id', $sku->id)
+                ->where('bin_id', $bin->id)
+                ->lockForUpdate()
+                ->first()
+                ?? StockLevel::create([
+                    'business_id' => $businessId,
+                    'sku_id' => $sku->id,
+                    'bin_id' => $bin->id,
+                    'full_bags' => 0,
+                    'open_bags' => 0,
+                ]);
+
+            $fullChange = $targetFull - $level->full_bags;
+            $openChange = $targetOpen - $level->open_bags;
+
+            // No net change — nothing to record.
+            if ($fullChange === 0 && $openChange === 0) {
+                return;
+            }
+
+            $level->update([
+                'full_bags' => $targetFull,
+                'open_bags' => $targetOpen,
+                'last_movement_at' => now(),
+            ]);
+
+            StockMovement::create([
+                'business_id' => $businessId,
+                'sku_id' => $sku->id,
+                'bin_id' => $bin->id,
+                'user_id' => $request->user()->id,
+                'direction' => StockDirection::Adjusted,
+                'full_bags_change' => $fullChange,
+                'open_bags_change' => $openChange,
+            ]);
+        });
+
+        return back()->with('success', __('flash.inventory.stock_adjusted'));
+    }
+
+    /**
      * The business's bins for transfer destination pickers, Default first.
      *
      * @return array<int,array<string,mixed>>

@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { ref, watch } from 'vue';
 
 const props = defineProps({
@@ -31,6 +32,21 @@ function formatDateTime(val) {
         hour: 'numeric',
         minute: '2-digit',
     });
+}
+
+function revert(audit) {
+    if (
+        !window.confirm(
+            trans('super_admin.dashboard.barcode_audits.revert_confirm'),
+        )
+    ) {
+        return;
+    }
+    router.post(
+        route('super-admin.barcode-audits.revert', audit.id),
+        {},
+        { preserveScroll: true },
+    );
 }
 </script>
 
@@ -120,12 +136,13 @@ function formatDateTime(val) {
                                         )
                                     }}
                                 </th>
+                                <th class="px-6 py-3 font-medium"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border">
                             <tr v-if="audits.data.length === 0">
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="px-6 py-10 text-center text-ink-tertiary"
                                 >
                                     {{
@@ -139,6 +156,7 @@ function formatDateTime(val) {
                                 v-for="audit in audits.data"
                                 :key="audit.id"
                                 class="text-ink-primary"
+                                :class="{ 'opacity-60': audit.reverted_at }"
                             >
                                 <td class="whitespace-nowrap px-6 py-3 text-ink-secondary">
                                     {{ formatDateTime(audit.created_at) }}
@@ -162,11 +180,52 @@ function formatDateTime(val) {
                                         {{ audit.sku_name }}
                                     </Link>
                                 </td>
-                                <td class="px-6 py-3 font-mono">
+                                <td
+                                    class="px-6 py-3 font-mono"
+                                    :class="{
+                                        'text-ink-tertiary line-through':
+                                            audit.reverted_at,
+                                    }"
+                                >
                                     {{ audit.barcode }}
                                 </td>
                                 <td class="px-6 py-3 uppercase text-ink-secondary">
                                     {{ audit.field }}
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-3 text-right">
+                                    <button
+                                        v-if="!audit.reverted_at"
+                                        type="button"
+                                        class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-danger transition hover:bg-danger-soft"
+                                        @click="revert(audit)"
+                                    >
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.barcode_audits.action_revert',
+                                            )
+                                        }}
+                                    </button>
+                                    <span
+                                        v-else
+                                        class="font-sans text-[12px] text-ink-tertiary"
+                                    >
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.barcode_audits.reverted_badge',
+                                            )
+                                        }}
+                                        <template v-if="audit.reverted_by">
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.barcode_audits.reverted_by',
+                                                    {
+                                                        name: audit.reverted_by
+                                                            .name,
+                                                    },
+                                                )
+                                            }}
+                                        </template>
+                                    </span>
                                 </td>
                             </tr>
                         </tbody>

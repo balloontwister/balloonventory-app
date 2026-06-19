@@ -174,6 +174,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
 
     // ── Barcode link audit log ────────────────────────────────────────────────
     Route::get('/super-admin/barcode-audits', [BarcodeAuditController::class, 'index'])->name('super-admin.barcode-audits.index');
+    Route::post('/super-admin/barcode-audits/{audit}/revert', [BarcodeAuditController::class, 'revert'])->name('super-admin.barcode-audits.revert');
 
     // ── Database backups ──────────────────────────────────────────────────────
     Route::get('/super-admin/backups', [BackupController::class, 'index'])->name('super-admin.backups.index');

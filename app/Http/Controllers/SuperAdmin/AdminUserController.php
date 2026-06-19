@@ -23,30 +23,32 @@ class AdminUserController extends Controller
             'status' => ['nullable', 'in:active,frozen,deleted,admins'],
             'sort' => ['nullable', 'in:name,email,admin_level,created_at,last_login_at,inventory,activity,businesses'],
             'dir' => ['nullable', 'in:asc,desc'],
+            'per_page' => ['nullable', 'in:25,50,100,all'],
         ]);
 
-        // Inventory is per-business; a user reaches it through their (non-scoped)
-        // memberships. These correlated subqueries deliberately bypass the
-        // BelongsToBusiness scope so the admin sees totals across ALL of a user's
-        // businesses, not just the one they're currently acting in.
-        $businessIdsForUser = 'select m.business_id from memberships m '
-            .'where m.user_id = users.id and m.deleted_at is null';
+        // Inventory is per-business. A user can belong to several businesses, so
+        // the figures reflect their PRIMARY business — the one they own, else the
+        // earliest they joined. These correlated subqueries bypass the
+        // BelongsToBusiness scope (raw SQL ignores Eloquent scopes) so the count
+        // doesn't depend on which business the acting admin is currently in.
+        $primaryBusinessId = '(select m.business_id from memberships m '
+            .'where m.user_id = users.id and m.deleted_at is null '
+            ."order by (m.role = 'owner') desc, m.joined_at asc, m.id asc limit 1)";
 
         $inventorySkus = '(select count(distinct sl.sku_id) from stock_levels sl '
-            ."where sl.deleted_at is null and sl.business_id in ({$businessIdsForUser}))";
+            ."where sl.deleted_at is null and sl.business_id = {$primaryBusinessId})";
 
         $inventoryBags = '(select coalesce(sum(sl.full_bags + sl.open_bags), 0) from stock_levels sl '
-            ."where sl.deleted_at is null and sl.business_id in ({$businessIdsForUser}))";
+            ."where sl.deleted_at is null and sl.business_id = {$primaryBusinessId})";
+
+        $primaryBusinessName = "(select b.name from businesses b where b.id = {$primaryBusinessId})";
 
         $query = User::withTrashed()
             ->select('users.*')
             ->addSelect(DB::raw("{$inventorySkus} as inventory_skus_count"))
             ->addSelect(DB::raw("{$inventoryBags} as inventory_bags_total"))
-            ->withCount([
-                'supportTickets',
-                'skuFeedback',
-                'memberships' => fn ($q) => $q->withoutGlobalScope(BusinessScope::class),
-            ])
+            ->addSelect(DB::raw("{$primaryBusinessName} as primary_business_name"))
+            ->withCount(['supportTickets', 'skuFeedback'])
             ->with([
                 'memberships' => fn ($q) => $q->withoutGlobalScope(BusinessScope::class)
                     ->with('business:id,name'),
@@ -78,11 +80,14 @@ class AdminUserController extends Controller
             'created_at' => $query->orderBy('created_at', $dir),
             'inventory' => $query->orderBy('inventory_skus_count', $dir),
             'activity' => $query->orderByRaw("(support_tickets_count + sku_feedback_count) {$dir}"),
-            'businesses' => $query->orderBy('memberships_count', $dir),
+            'businesses' => $query->orderBy('primary_business_name', $dir),
             default => $query->orderBy('last_login_at', $dir),
         };
 
-        $users = $query->paginate(50)->withQueryString();
+        $perPageInput = $request->input('per_page', '50');
+        $perPage = $perPageInput === 'all' ? 1000000 : (int) $perPageInput;
+
+        $users = $query->paginate($perPage)->withQueryString();
 
         $users->through(fn (User $user) => [
             'id' => $user->id,
@@ -116,6 +121,7 @@ class AdminUserController extends Controller
                 'status' => $request->input('status', ''),
                 'sort' => $sort,
                 'dir' => $dir,
+                'per_page' => $perPageInput,
             ],
         ]);
     }
@@ -145,7 +151,8 @@ class AdminUserController extends Controller
 
     /**
      * Suspend an account. Any admin may freeze a non-super, non-self user; the
-     * frozen user is then blocked at login and ejected from any active session.
+     * frozen user can still sign in but is limited to the account area
+     * (enforced by EnsureAccountActive).
      */
     public function freeze(Request $request, User $user): RedirectResponse
     {

@@ -14,7 +14,6 @@ return [
     */
 
     'failed' => 'These credentials do not match our records.',
-    'frozen' => 'This account has been frozen. Please contact support.',
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
 

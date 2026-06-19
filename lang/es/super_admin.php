@@ -171,6 +171,10 @@ return [
         'filter_frozen' => 'Congelados',
         'filter_deleted' => 'Eliminados',
         'filter_admins' => 'Admins',
+        'columns_button' => 'Columnas',
+        'total_count' => ':count usuarios',
+        'per_page_label' => 'Por página',
+        'per_page_all' => 'Todos',
 
         'col_name' => 'Nombre',
         'col_email' => 'Correo',

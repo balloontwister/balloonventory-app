@@ -171,6 +171,10 @@ return [
         'filter_frozen' => 'Frozen',
         'filter_deleted' => 'Deleted',
         'filter_admins' => 'Admins',
+        'columns_button' => 'Columns',
+        'total_count' => ':count users',
+        'per_page_label' => 'Per page',
+        'per_page_all' => 'All',
 
         'col_name' => 'Name',
         'col_email' => 'Email',

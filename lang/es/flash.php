@@ -49,6 +49,7 @@ return [
         'reset_sent' => 'Enlace de restablecimiento enviado a :email.',
         'reset_failed' => 'No se pudo enviar el enlace de restablecimiento a esa dirección.',
         'deleted' => 'La cuenta de :name ha sido eliminada.',
+        'frozen_notice' => 'Tu cuenta está limitada por ahora. Comunícate con soporte para restaurar el acceso completo.',
     ],
 
     'email_template' => [

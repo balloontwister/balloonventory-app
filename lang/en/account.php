@@ -4,6 +4,11 @@ return [
     'meta_title' => 'Account',
     'heading' => 'Account',
 
+    'frozen_banner' => [
+        'title' => 'Your account is limited',
+        'body' => 'Access to the app is paused for now. You can still update your profile and preferences here. Contact support to restore full access.',
+    ],
+
     'rows' => [
         'profile' => [
             'label' => 'Profile',

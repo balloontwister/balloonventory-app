@@ -28,6 +28,7 @@ class HandleInertiaRequests extends Middleware
                 'isSuperAdmin' => $request->user()?->isSuperAdmin() ?? false,
                 'isSiteAdmin' => $request->user()?->isSiteAdmin() ?? false,
                 'isAnyAdmin' => $request->user()?->isAnyAdmin() ?? false,
+                'isFrozen' => $request->user()?->isFrozen() ?? false,
                 'avatarUrl' => $this->avatarUrl($request),
             ],
             'locale' => fn () => app()->getLocale(),
@@ -36,6 +37,7 @@ class HandleInertiaRequests extends Middleware
                 ->values(),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'warning' => fn () => $request->session()->get('warning'),
                 'error' => fn () => $request->session()->get('error'),
             ],
             ...$this->businessProps($request),

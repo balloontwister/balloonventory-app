@@ -40,7 +40,7 @@ class CatalogBrandDetailTest extends TestCase
         BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.brands.show', $brand));
+            ->get(route('admin.catalog.brands.show', $brand));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -65,7 +65,7 @@ class CatalogBrandDetailTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.brands.edit', $brand));
+            ->get(route('admin.catalog.brands.edit', $brand));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -83,7 +83,7 @@ class CatalogBrandDetailTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.brands.update', $brand->id), [
+            ->patch(route('admin.catalog.brands.update', $brand->id), [
                 'name' => 'TufTex',
                 'abbreviation' => 'TUF',
                 'description' => 'Latex specialist.',
@@ -95,7 +95,7 @@ class CatalogBrandDetailTest extends TestCase
                 'sort_order' => 5,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $response->assertRedirect(route('admin.catalog.brands'));
 
         $fresh = $brand->fresh();
         $this->assertSame('Latex specialist.', $fresh->description);
@@ -115,14 +115,14 @@ class CatalogBrandDetailTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.brands.update', $brand->id), [
+            ->patch(route('admin.catalog.brands.update', $brand->id), [
                 'name' => 'Betallic',
                 'abbreviation' => 'BTL',
                 'sort_order' => 1,
                 'return_to_show' => true,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands.show', $brand));
+        $response->assertRedirect(route('admin.catalog.brands.show', $brand));
     }
 
     public function test_update_rejects_invalid_url(): void
@@ -133,7 +133,7 @@ class CatalogBrandDetailTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.brands.update', $brand->id), [
+            ->patch(route('admin.catalog.brands.update', $brand->id), [
                 'name' => 'BrandX',
                 'abbreviation' => 'BXX',
                 'url_1' => 'not-a-url',
@@ -148,11 +148,11 @@ class CatalogBrandDetailTest extends TestCase
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.brands.gs1-prefixes.store', $brand), [
+            ->post(route('admin.catalog.brands.gs1-prefixes.store', $brand), [
                 'prefix' => '071444',
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands.show', $brand));
+        $response->assertRedirect(route('admin.catalog.brands.show', $brand));
         $this->assertDatabaseHas('brand_gs1_prefixes', [
             'brand_id' => $brand->id,
             'prefix' => '071444',
@@ -164,7 +164,7 @@ class CatalogBrandDetailTest extends TestCase
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.brands.gs1-prefixes.store', $brand), [
+            ->post(route('admin.catalog.brands.gs1-prefixes.store', $brand), [
                 'prefix' => 'ABC123',
             ]);
 
@@ -177,7 +177,7 @@ class CatalogBrandDetailTest extends TestCase
         BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.brands.gs1-prefixes.store', $brand), [
+            ->post(route('admin.catalog.brands.gs1-prefixes.store', $brand), [
                 'prefix' => '071444',
             ]);
 
@@ -190,9 +190,9 @@ class CatalogBrandDetailTest extends TestCase
         $prefix = BrandGs1Prefix::create(['brand_id' => $brand->id, 'prefix' => '071444']);
 
         $response = $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.catalog.brands.gs1-prefixes.destroy', [$brand, $prefix]));
+            ->delete(route('admin.catalog.brands.gs1-prefixes.destroy', [$brand, $prefix]));
 
-        $response->assertRedirect(route('super-admin.catalog.brands.show', $brand));
+        $response->assertRedirect(route('admin.catalog.brands.show', $brand));
         $this->assertDatabaseMissing('brand_gs1_prefixes', ['id' => $prefix->id]);
     }
 
@@ -203,7 +203,7 @@ class CatalogBrandDetailTest extends TestCase
         $prefix = BrandGs1Prefix::create(['brand_id' => $brandA->id, 'prefix' => '071444']);
 
         $response = $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.catalog.brands.gs1-prefixes.destroy', [$brandB, $prefix]));
+            ->delete(route('admin.catalog.brands.gs1-prefixes.destroy', [$brandB, $prefix]));
 
         $response->assertStatus(404);
         $this->assertDatabaseHas('brand_gs1_prefixes', ['id' => $prefix->id]);

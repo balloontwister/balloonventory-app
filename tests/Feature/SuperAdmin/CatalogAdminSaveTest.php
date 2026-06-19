@@ -36,14 +36,14 @@ class CatalogAdminSaveTest extends TestCase
     public function test_brand_store_persists_primary_color_hex(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.brands.store'), [
+            ->post(route('admin.catalog.brands.store'), [
                 'name' => 'Qualatex',
                 'abbreviation' => 'QTX',
                 'primary_color_hex' => '#ff0000',
                 'sort_order' => 1,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $response->assertRedirect(route('admin.catalog.brands'));
         $this->assertDatabaseHas('brands', [
             'name' => 'Qualatex',
             'primary_color_hex' => '#ff0000',
@@ -59,14 +59,14 @@ class CatalogAdminSaveTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.brands.update', $brand->id), [
+            ->patch(route('admin.catalog.brands.update', $brand->id), [
                 'name' => 'Qualatex',
                 'abbreviation' => 'QTX',
                 'primary_color_hex' => '#abcdef',
                 'sort_order' => 1,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $response->assertRedirect(route('admin.catalog.brands'));
         $this->assertSame('#abcdef', $brand->fresh()->primary_color_hex);
     }
 
@@ -85,14 +85,14 @@ class CatalogAdminSaveTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.colors.update', $color->id), [
+            ->patch(route('admin.catalog.colors.update', $color->id), [
                 'name' => 'Ruby',
                 'color_family_id' => $family->id,
                 'brand_id' => $brand->id,
                 'texture_id' => $newTexture->id,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.colors.show', $color->id));
+        $response->assertRedirect(route('admin.catalog.colors.show', $color->id));
         $this->assertSame($newTexture->id, $color->fresh()->texture_id);
     }
 
@@ -116,7 +116,7 @@ class CatalogAdminSaveTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.colors.update', $color->id), [
+            ->patch(route('admin.catalog.colors.update', $color->id), [
                 'name' => 'Ruby',
                 'color_family_id' => $family->id,
                 'brand_id' => $brand->id,
@@ -132,13 +132,13 @@ class CatalogAdminSaveTest extends TestCase
         $family = TextureFamily::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.reference.store', 'textures'), [
+            ->post(route('admin.catalog.reference.store', 'textures'), [
                 'name' => 'Crystal Standard',
                 'texture_family_id' => $family->id,
                 'sort_order' => 1,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.reference'));
+        $response->assertRedirect(route('admin.catalog.reference'));
         $texture = Texture::where('name', 'Crystal Standard')->firstOrFail();
         $this->assertSame($family->id, $texture->texture_family_id);
     }
@@ -155,20 +155,20 @@ class CatalogAdminSaveTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.reference.update', ['table' => 'textures', 'item' => $texture->id]), [
+            ->patch(route('admin.catalog.reference.update', ['table' => 'textures', 'item' => $texture->id]), [
                 'name' => 'Pearl',
                 'texture_family_id' => $metallic->id,
                 'sort_order' => 1,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.reference'));
+        $response->assertRedirect(route('admin.catalog.reference'));
         $this->assertSame($metallic->id, $texture->fresh()->texture_family_id);
     }
 
     public function test_textures_reference_store_rejects_missing_texture_family_id(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.reference.store', 'textures'), [
+            ->post(route('admin.catalog.reference.store', 'textures'), [
                 'name' => 'Floating Texture',
                 'sort_order' => 1,
             ]);
@@ -180,13 +180,13 @@ class CatalogAdminSaveTest extends TestCase
     public function test_color_families_reference_store_persists_fallback_color_hex(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.reference.store', 'color-families'), [
+            ->post(route('admin.catalog.reference.store', 'color-families'), [
                 'name' => 'Reds',
                 'fallback_color_hex' => '#ff0000',
                 'sort_order' => 1,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.reference'));
+        $response->assertRedirect(route('admin.catalog.reference'));
         $family = ColorFamily::where('name', 'Reds')->firstOrFail();
         $this->assertSame('#ff0000', $family->fallback_color_hex);
     }
@@ -199,13 +199,13 @@ class CatalogAdminSaveTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.reference.update', ['table' => 'color-families', 'item' => $family->id]), [
+            ->patch(route('admin.catalog.reference.update', ['table' => 'color-families', 'item' => $family->id]), [
                 'name' => 'Reds',
                 'fallback_color_hex' => '#dd1144',
                 'sort_order' => 1,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.reference'));
+        $response->assertRedirect(route('admin.catalog.reference'));
         $this->assertSame('#dd1144', $family->fresh()->fallback_color_hex);
     }
 
@@ -217,7 +217,7 @@ class CatalogAdminSaveTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.reference'));
+            ->get(route('admin.catalog.reference'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page

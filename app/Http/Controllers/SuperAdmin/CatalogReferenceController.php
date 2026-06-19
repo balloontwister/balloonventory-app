@@ -103,7 +103,7 @@ class CatalogReferenceController extends Controller
 
         $this->syncImages($request, $record, $slots);
 
-        return redirect()->route('super-admin.catalog.reference')
+        return redirect()->route('admin.catalog.reference')
             ->with('success', __('flash.catalog.reference.added'));
     }
 
@@ -119,7 +119,7 @@ class CatalogReferenceController extends Controller
 
         $this->syncImages($request, $record, $slots);
 
-        return redirect()->route('super-admin.catalog.reference')
+        return redirect()->route('admin.catalog.reference')
             ->with('success', __('flash.catalog.reference.updated'));
     }
 
@@ -129,7 +129,7 @@ class CatalogReferenceController extends Controller
 
         $modelClass::findOrFail($item)->delete();
 
-        return redirect()->route('super-admin.catalog.reference')
+        return redirect()->route('admin.catalog.reference')
             ->with('success', __('flash.catalog.reference.deleted'));
     }
 

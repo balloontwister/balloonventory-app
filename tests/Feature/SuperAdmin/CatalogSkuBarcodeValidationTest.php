@@ -29,7 +29,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
     public function test_store_accepts_a_valid_upc(): void
     {
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Valid SKU',
                 'brand_id' => $this->brand->id,
                 'upc' => '012345678905',
@@ -42,7 +42,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
     public function test_store_rejects_a_wrong_length_upc(): void
     {
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Bad Length',
                 'brand_id' => $this->brand->id,
                 'upc' => '12345',
@@ -56,7 +56,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
     {
         // Length 12 (valid GTIN-12), but the trailing digit is wrong.
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Bad Check Digit',
                 'brand_id' => $this->brand->id,
                 'upc' => '012345678900',
@@ -69,7 +69,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
     public function test_store_normalizes_separators_in_stored_value(): void
     {
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Dashy Upc',
                 'brand_id' => $this->brand->id,
                 'upc' => '012-345-678905',
@@ -82,7 +82,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
     public function test_store_accepts_null_upc(): void
     {
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'No Upc',
                 'brand_id' => $this->brand->id,
             ])
@@ -96,7 +96,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
         $sku = Sku::factory()->create(['brand_id' => $this->brand->id, 'upc' => '012345678905']);
 
         $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.skus.update', $sku), [
+            ->patch(route('admin.catalog.skus.update', $sku), [
                 'name' => $sku->name,
                 'brand_id' => $this->brand->id,
                 'upc' => '719784100040',
@@ -112,7 +112,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
         $sku = Sku::factory()->create(['brand_id' => $this->brand->id, 'upc' => '012345678905']);
 
         $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.skus.update', $sku), [
+            ->patch(route('admin.catalog.skus.update', $sku), [
                 'name' => $sku->name,
                 'brand_id' => $this->brand->id,
                 'upc' => '719784100041',
@@ -130,7 +130,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
         // digit-only on save, so the uniqueness check must compare normalized
         // forms — otherwise this slips past validation and 500s on the index.
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Formatted Dupe',
                 'brand_id' => $this->brand->id,
                 'upc' => '0-12-345-678905',
@@ -149,7 +149,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
         // Reusing a trashed row's UPC is allowed by the validation rule and must
         // not collide on the (now soft-delete-aware) unique index.
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Reused Upc',
                 'brand_id' => $this->brand->id,
                 'upc' => '012345678905',
@@ -166,7 +166,7 @@ class CatalogSkuBarcodeValidationTest extends TestCase
     public function test_ean_field_also_validates(): void
     {
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Bad Ean',
                 'brand_id' => $this->brand->id,
                 'ean' => '4006381333930',

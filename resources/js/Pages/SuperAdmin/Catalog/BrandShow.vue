@@ -13,7 +13,7 @@ const prefixForm = useForm({ prefix: '' });
 
 function submitPrefix() {
     prefixForm.post(
-        route('super-admin.catalog.brands.gs1-prefixes.store', props.brand.id),
+        route('admin.catalog.brands.gs1-prefixes.store', props.brand.id),
         {
             preserveScroll: true,
             onSuccess: () => prefixForm.reset('prefix'),
@@ -32,7 +32,7 @@ function removePrefix(prefix) {
         return;
     }
     router.delete(
-        route('super-admin.catalog.brands.gs1-prefixes.destroy', [
+        route('admin.catalog.brands.gs1-prefixes.destroy', [
             props.brand.id,
             prefix.id,
         ]),
@@ -55,7 +55,7 @@ function removePrefix(prefix) {
 
         <div class="mb-6">
             <BackLink
-                :href="route('super-admin.catalog.brands')"
+                :href="route('admin.catalog.brands')"
                 :label="$t('catalog.tabs.brands')"
             />
         </div>
@@ -100,7 +100,7 @@ function removePrefix(prefix) {
                 </div>
 
                 <Link
-                    :href="route('super-admin.catalog.brands.edit', brand.id)"
+                    :href="route('admin.catalog.brands.edit', brand.id)"
                     class="shrink-0"
                 >
                     <AppButton variant="secondary">

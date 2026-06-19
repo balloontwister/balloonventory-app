@@ -16,7 +16,7 @@ watch(search, (val) => {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
         router.get(
-            route('super-admin.barcode-audits.index'),
+            route('admin.barcode-audits.index'),
             { search: val || undefined },
             { preserveState: true, replace: true },
         );
@@ -43,7 +43,7 @@ function revert(audit) {
         return;
     }
     router.post(
-        route('super-admin.barcode-audits.revert', audit.id),
+        route('admin.barcode-audits.revert', audit.id),
         {},
         { preserveScroll: true },
     );
@@ -62,7 +62,7 @@ function revert(audit) {
                     {{ $t('super_admin.dashboard.barcode_audits.heading') }}
                 </h1>
                 <Link
-                    :href="route('super-admin.dashboard')"
+                    :href="route('admin.dashboard')"
                     class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
                 >
                     {{ $t('super_admin.dashboard.nav.overview') }}
@@ -171,7 +171,7 @@ function revert(audit) {
                                     <Link
                                         :href="
                                             route(
-                                                'super-admin.catalog.skus.show',
+                                                'admin.catalog.skus.show',
                                                 audit.sku_id,
                                             )
                                         "

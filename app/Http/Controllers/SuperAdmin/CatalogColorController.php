@@ -114,7 +114,7 @@ class CatalogColorController extends Controller
 
         $this->syncImages($request, $color);
 
-        return redirect()->route('super-admin.catalog.colors')
+        return redirect()->route('admin.catalog.colors')
             ->with('success', __('flash.catalog.color.added', ['name' => $color->name]));
     }
 
@@ -135,7 +135,7 @@ class CatalogColorController extends Controller
 
         $this->syncImages($request, $color);
 
-        return redirect()->route('super-admin.catalog.colors.show', $color)
+        return redirect()->route('admin.catalog.colors.show', $color)
             ->with('success', __('flash.catalog.color.updated', ['name' => $color->name]));
     }
 
@@ -143,7 +143,7 @@ class CatalogColorController extends Controller
     {
         $color->delete();
 
-        return redirect()->route('super-admin.catalog.colors')
+        return redirect()->route('admin.catalog.colors')
             ->with('success', __('flash.catalog.color.deleted'));
     }
 

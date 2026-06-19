@@ -67,7 +67,7 @@ class CatalogBrandController extends Controller
             $this->images->set($brand, 'logo', $request->file('logo'));
         }
 
-        return redirect()->route('super-admin.catalog.brands')
+        return redirect()->route('admin.catalog.brands')
             ->with('success', __('flash.catalog.brand.added', ['name' => $brand->name]));
     }
 
@@ -85,8 +85,8 @@ class CatalogBrandController extends Controller
         }
 
         $redirect = $request->boolean('return_to_show')
-            ? redirect()->route('super-admin.catalog.brands.show', $brand)
-            : redirect()->route('super-admin.catalog.brands');
+            ? redirect()->route('admin.catalog.brands.show', $brand)
+            : redirect()->route('admin.catalog.brands');
 
         return $redirect->with('success', __('flash.catalog.brand.updated', ['name' => $brand->name]));
     }
@@ -102,7 +102,7 @@ class CatalogBrandController extends Controller
 
         $brand->gs1Prefixes()->create(['prefix' => $data['prefix']]);
 
-        return redirect()->route('super-admin.catalog.brands.show', $brand)
+        return redirect()->route('admin.catalog.brands.show', $brand)
             ->with('success', __('flash.catalog.brand.gs1_added', ['prefix' => $data['prefix']]));
     }
 
@@ -113,7 +113,7 @@ class CatalogBrandController extends Controller
         $value = $prefix->prefix;
         $prefix->delete();
 
-        return redirect()->route('super-admin.catalog.brands.show', $brand)
+        return redirect()->route('admin.catalog.brands.show', $brand)
             ->with('success', __('flash.catalog.brand.gs1_removed', ['prefix' => $value]));
     }
 

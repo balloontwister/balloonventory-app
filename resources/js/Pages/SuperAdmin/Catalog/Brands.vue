@@ -22,7 +22,7 @@ const addForm = useForm({
 });
 
 function submitAdd() {
-    addForm.post(route('super-admin.catalog.brands.store'), {
+    addForm.post(route('admin.catalog.brands.store'), {
         forceFormData: true,
         onSuccess: () => {
             addForm.reset();
@@ -56,7 +56,7 @@ function startEdit(brand) {
 function submitEdit(brand) {
     // Use POST + _method spoofing because file uploads require multipart/form-data,
     // which PHP only parses from POST bodies.
-    editForm.post(route('super-admin.catalog.brands.update', brand.id), {
+    editForm.post(route('admin.catalog.brands.update', brand.id), {
         forceFormData: true,
         onSuccess: () => {
             editingId.value = null;
@@ -84,25 +84,25 @@ function cancelEdit() {
         <!-- Catalog nav tabs -->
         <div class="mb-6 flex gap-1 border-b border-border">
             <Link
-                :href="route('super-admin.catalog.skus')"
+                :href="route('admin.catalog.skus')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.skus') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.colors')"
+                :href="route('admin.catalog.colors')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.colors') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.brands')"
+                :href="route('admin.catalog.brands')"
                 class="border-b-2 border-accent px-4 py-2.5 font-sans text-[14px] font-medium text-accent"
             >
                 {{ $t('catalog.tabs.brands') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.reference')"
+                :href="route('admin.catalog.reference')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.reference') }}
@@ -276,7 +276,7 @@ function cancelEdit() {
                                 <Link
                                     :href="
                                         route(
-                                            'super-admin.catalog.brands.show',
+                                            'admin.catalog.brands.show',
                                             brand.id,
                                         )
                                     "

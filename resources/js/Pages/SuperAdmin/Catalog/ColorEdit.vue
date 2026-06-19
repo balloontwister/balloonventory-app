@@ -30,7 +30,7 @@ const form = useForm({
 });
 
 function submit() {
-    form.post(route('super-admin.catalog.colors.update', props.color.id), {
+    form.post(route('admin.catalog.colors.update', props.color.id), {
         forceFormData: true,
         onSuccess: () => {
             // Redirect handled server-side (back to colors index).
@@ -69,7 +69,7 @@ const selectClass =
 
         <div class="mb-6">
             <BackLink
-                :href="route('super-admin.catalog.colors.show', color.id)"
+                :href="route('admin.catalog.colors.show', color.id)"
                 :label="color.name"
             />
         </div>
@@ -240,7 +240,7 @@ const selectClass =
                     </AppButton>
                     <Link
                         :href="
-                            route('super-admin.catalog.colors.show', color.id)
+                            route('admin.catalog.colors.show', color.id)
                         "
                         class="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-surface px-4 py-[10px] font-sans text-[14px] font-medium leading-none text-ink-primary transition-colors hover:bg-background"
                     >

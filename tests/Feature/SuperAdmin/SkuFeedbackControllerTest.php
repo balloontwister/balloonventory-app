@@ -40,7 +40,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback();
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->get(route('super-admin.feedback.index'))
+            ->get(route('admin.feedback.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('SuperAdmin/SkuFeedback/Index')
@@ -53,7 +53,7 @@ class SkuFeedbackControllerTest extends TestCase
     public function test_regular_user_cannot_view_the_feedback_log(): void
     {
         $this->actingAs(User::factory()->create())
-            ->get(route('super-admin.feedback.index'))
+            ->get(route('admin.feedback.index'))
             ->assertForbidden();
     }
 
@@ -63,7 +63,7 @@ class SkuFeedbackControllerTest extends TestCase
         $this->seedFeedback(['sku_name' => 'Done', 'status' => FeedbackStatus::Resolved]);
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->get(route('super-admin.feedback.index', ['status' => 'resolved']))
+            ->get(route('admin.feedback.index', ['status' => 'resolved']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('feedback.data', 1)
@@ -77,7 +77,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback();
 
         $this->actingAs($admin)
-            ->patch(route('super-admin.feedback.update-status', $feedback->id), [
+            ->patch(route('admin.feedback.update-status', $feedback->id), [
                 'status' => 'resolved',
             ])
             ->assertSessionHas('success');
@@ -99,7 +99,7 @@ class SkuFeedbackControllerTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->patch(route('super-admin.feedback.update-status', $feedback->id), [
+            ->patch(route('admin.feedback.update-status', $feedback->id), [
                 'status' => 'open',
             ]);
 
@@ -115,7 +115,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback();
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->patch(route('super-admin.feedback.update-status', $feedback->id), [
+            ->patch(route('admin.feedback.update-status', $feedback->id), [
                 'status' => 'archived',
             ])
             ->assertSessionHasErrors('status');
@@ -132,7 +132,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback(['user_id' => $reporter->id]);
 
         $this->actingAs($admin)
-            ->post(route('super-admin.feedback.reply', $feedback->id), [
+            ->post(route('admin.feedback.reply', $feedback->id), [
                 'body' => 'Thanks — we fixed the color to Crystal Red.',
             ])
             ->assertSessionHas('success');
@@ -157,7 +157,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback();
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->post(route('super-admin.feedback.reply', $feedback->id), ['body' => ''])
+            ->post(route('admin.feedback.reply', $feedback->id), ['body' => ''])
             ->assertSessionHasErrors('body');
 
         Mail::assertNothingSent();
@@ -171,7 +171,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback(['user_id' => null]);
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->post(route('super-admin.feedback.reply', $feedback->id), [
+            ->post(route('admin.feedback.reply', $feedback->id), [
                 'body' => 'Hello?',
             ])
             ->assertSessionHas('warning');
@@ -194,7 +194,7 @@ class SkuFeedbackControllerTest extends TestCase
         ]);
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->post(route('super-admin.feedback.reply', $feedback->id), [
+            ->post(route('admin.feedback.reply', $feedback->id), [
                 'body' => 'One more note.',
             ])
             ->assertSessionHas('success');
@@ -211,7 +211,7 @@ class SkuFeedbackControllerTest extends TestCase
         $feedback = $this->seedFeedback();
 
         $this->actingAs(User::factory()->create())
-            ->post(route('super-admin.feedback.reply', $feedback->id), [
+            ->post(route('admin.feedback.reply', $feedback->id), [
                 'body' => 'I should not be allowed.',
             ])
             ->assertForbidden();

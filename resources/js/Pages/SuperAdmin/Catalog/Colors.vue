@@ -31,7 +31,7 @@ function applyFilters() {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
         router.get(
-            route('super-admin.catalog.colors'),
+            route('admin.catalog.colors'),
             {
                 brand: brand.value || undefined,
                 material: material.value || undefined,
@@ -78,7 +78,7 @@ const addForm = useForm({
 });
 
 function submitAdd() {
-    addForm.post(route('super-admin.catalog.colors.store'), {
+    addForm.post(route('admin.catalog.colors.store'), {
         forceFormData: true,
         onSuccess: () => {
             addForm.reset();
@@ -124,7 +124,7 @@ function startEdit(color) {
 function submitEdit(color) {
     // POST + _method spoofing because file uploads require multipart/form-data,
     // which PHP only parses from POST bodies.
-    editForm.post(route('super-admin.catalog.colors.update', color.id), {
+    editForm.post(route('admin.catalog.colors.update', color.id), {
         forceFormData: true,
         onSuccess: () => {
             editingId.value = null;
@@ -139,7 +139,7 @@ function cancelEdit() {
 function destroy(color) {
     if (!confirm(trans('catalog.colors.delete_confirm', { name: color.name })))
         return;
-    router.delete(route('super-admin.catalog.colors.destroy', color.id), {
+    router.delete(route('admin.catalog.colors.destroy', color.id), {
         preserveScroll: true,
     });
 }
@@ -195,25 +195,25 @@ const selectClass =
         <!-- Catalog nav tabs (shared) -->
         <div class="mb-6 flex gap-1 border-b border-border">
             <Link
-                :href="route('super-admin.catalog.skus')"
+                :href="route('admin.catalog.skus')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.skus') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.colors')"
+                :href="route('admin.catalog.colors')"
                 class="border-b-2 border-accent px-4 py-2.5 font-sans text-[14px] font-medium text-accent"
             >
                 {{ $t('catalog.tabs.colors') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.brands')"
+                :href="route('admin.catalog.brands')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.brands') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.reference')"
+                :href="route('admin.catalog.reference')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.reference') }}
@@ -534,7 +534,7 @@ const selectClass =
                                 <Link
                                     :href="
                                         route(
-                                            'super-admin.catalog.colors.show',
+                                            'admin.catalog.colors.show',
                                             color.id,
                                         )
                                     "

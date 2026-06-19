@@ -4,10 +4,12 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\TemplatedMailable;
+use App\Models\EmailLog;
 use App\Models\EmailTemplate;
 use App\Support\EmailTemplateRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +18,15 @@ use Inertia\Response;
 
 class EmailTemplateController extends Controller
 {
+    public function index(): Response
+    {
+        return Inertia::render('SuperAdmin/EmailTemplates/Index', [
+            'templates' => $this->templates(),
+            'emailByDay' => $this->emailByDay(),
+            'emailByMonth' => $this->emailByMonth(),
+        ]);
+    }
+
     public function edit(EmailTemplate $template): Response
     {
         return Inertia::render('SuperAdmin/EmailTemplates/Edit', [
@@ -71,7 +82,7 @@ class EmailTemplateController extends Controller
         };
 
         return redirect()
-            ->route('super-admin.email-templates.edit', $template)
+            ->route('admin.email-templates.edit', $template)
             ->with('success', $flash);
     }
 
@@ -113,6 +124,63 @@ class EmailTemplateController extends Controller
         }
 
         return back()->with('success', __('flash.email_template.preview_sent', ['email' => $request->user()->email]));
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function templates(): array
+    {
+        return EmailTemplate::with('lastEditedBy:id,name')
+            ->orderBy('label')
+            ->get()
+            ->map(fn (EmailTemplate $t) => [
+                'id' => $t->id,
+                'key' => $t->key,
+                'label' => $t->label,
+                'trigger_description' => $t->trigger_description,
+                'is_active' => $t->is_active,
+                'has_body' => filled($t->body_html),
+                'updated_at' => $t->updated_at,
+                'last_edited_by' => $t->lastEditedBy?->only(['id', 'name']),
+            ])
+            ->toArray();
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function emailByDay(): array
+    {
+        return EmailLog::select(
+            DB::raw('DATE(sent_at) as date'),
+            DB::raw('COUNT(*) as count'),
+            'mailable',
+        )
+            ->where('sent_at', '>=', now()->subDays(30))
+            ->groupBy('date', 'mailable')
+            ->orderBy('date')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function emailByMonth(): array
+    {
+        // substr keeps this portable across MySQL (prod) and SQLite (tests);
+        // sent_at serializes as 'YYYY-MM-DD …', so chars 1-7 are the month.
+        return EmailLog::select(
+            DB::raw('substr(sent_at, 1, 7) as month'),
+            DB::raw('COUNT(*) as count'),
+            'mailable',
+        )
+            ->where('sent_at', '>=', now()->subMonths(12))
+            ->groupBy('month', 'mailable')
+            ->orderBy('month')
+            ->get()
+            ->toArray();
     }
 
     /**

@@ -65,7 +65,7 @@ class AdminUsersTest extends TestCase
     public function test_super_admin_can_access_users_index(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index'));
+            ->get(route('admin.users.index'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -77,7 +77,7 @@ class AdminUsersTest extends TestCase
     public function test_site_admin_can_access_users_index(): void
     {
         $response = $this->actingAs($this->siteAdmin)
-            ->get(route('super-admin.users.index'));
+            ->get(route('admin.users.index'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -88,14 +88,14 @@ class AdminUsersTest extends TestCase
     public function test_regular_user_cannot_access_users_index(): void
     {
         $response = $this->actingAs($this->regularUser)
-            ->get(route('super-admin.users.index'));
+            ->get(route('admin.users.index'));
 
         $response->assertStatus(403);
     }
 
     public function test_guest_cannot_access_users_index(): void
     {
-        $response = $this->get(route('super-admin.users.index'));
+        $response = $this->get(route('admin.users.index'));
 
         $response->assertRedirect(route('login'));
     }
@@ -107,7 +107,7 @@ class AdminUsersTest extends TestCase
     public function test_super_admin_can_promote_regular_user_to_site_admin(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.users.promote', $this->regularUser));
+            ->post(route('admin.users.promote', $this->regularUser));
 
         $response->assertRedirect();
 
@@ -120,7 +120,7 @@ class AdminUsersTest extends TestCase
         $target = User::factory()->create();
 
         $response = $this->actingAs($this->siteAdmin)
-            ->post(route('super-admin.users.promote', $target));
+            ->post(route('admin.users.promote', $target));
 
         $response->assertStatus(403);
         $this->assertNull($target->fresh()->admin_level);
@@ -131,7 +131,7 @@ class AdminUsersTest extends TestCase
         $target = User::factory()->create();
 
         $response = $this->actingAs($this->regularUser)
-            ->post(route('super-admin.users.promote', $target));
+            ->post(route('admin.users.promote', $target));
 
         $response->assertStatus(403);
     }
@@ -141,7 +141,7 @@ class AdminUsersTest extends TestCase
         $anotherSuperAdmin = User::factory()->superAdmin()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.users.promote', $anotherSuperAdmin));
+            ->post(route('admin.users.promote', $anotherSuperAdmin));
 
         $response->assertStatus(422);
         $this->assertSame(AdminLevel::SuperAdmin, $anotherSuperAdmin->fresh()->admin_level);
@@ -150,7 +150,7 @@ class AdminUsersTest extends TestCase
     public function test_site_admin_cannot_be_promoted_again(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.users.promote', $this->siteAdmin));
+            ->post(route('admin.users.promote', $this->siteAdmin));
 
         // siteAdmin is not a super admin so 422 is not triggered — but they
         // already have SiteAdmin; the controller promotes regardless (idempotent).
@@ -166,7 +166,7 @@ class AdminUsersTest extends TestCase
     public function test_super_admin_can_demote_site_admin(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.demote', $this->siteAdmin));
+            ->delete(route('admin.users.demote', $this->siteAdmin));
 
         $response->assertRedirect();
         $this->assertNull($this->siteAdmin->fresh()->admin_level);
@@ -175,7 +175,7 @@ class AdminUsersTest extends TestCase
     public function test_site_admin_cannot_demote_users(): void
     {
         $response = $this->actingAs($this->siteAdmin)
-            ->delete(route('super-admin.users.demote', $this->siteAdmin));
+            ->delete(route('admin.users.demote', $this->siteAdmin));
 
         $response->assertStatus(403);
         $this->assertSame(AdminLevel::SiteAdmin, $this->siteAdmin->fresh()->admin_level);
@@ -184,7 +184,7 @@ class AdminUsersTest extends TestCase
     public function test_regular_user_cannot_demote_users(): void
     {
         $response = $this->actingAs($this->regularUser)
-            ->delete(route('super-admin.users.demote', $this->siteAdmin));
+            ->delete(route('admin.users.demote', $this->siteAdmin));
 
         $response->assertStatus(403);
     }
@@ -194,7 +194,7 @@ class AdminUsersTest extends TestCase
         $anotherSuperAdmin = User::factory()->superAdmin()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.demote', $anotherSuperAdmin));
+            ->delete(route('admin.users.demote', $anotherSuperAdmin));
 
         $response->assertStatus(422);
         $this->assertSame(AdminLevel::SuperAdmin, $anotherSuperAdmin->fresh()->admin_level);
@@ -203,7 +203,7 @@ class AdminUsersTest extends TestCase
     public function test_demoting_regular_user_returns_422(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.demote', $this->regularUser));
+            ->delete(route('admin.users.demote', $this->regularUser));
 
         $response->assertStatus(422);
         $this->assertNull($this->regularUser->fresh()->admin_level);
@@ -212,7 +212,7 @@ class AdminUsersTest extends TestCase
     public function test_promote_success_flash_message_is_set(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.users.promote', $this->regularUser));
+            ->post(route('admin.users.promote', $this->regularUser));
 
         $response->assertSessionHas('success');
     }
@@ -220,7 +220,7 @@ class AdminUsersTest extends TestCase
     public function test_demote_success_flash_message_is_set(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.demote', $this->siteAdmin));
+            ->delete(route('admin.users.demote', $this->siteAdmin));
 
         $response->assertSessionHas('success');
     }
@@ -260,7 +260,7 @@ class AdminUsersTest extends TestCase
         $fresh = User::factory()->create(['name' => 'Fresh', 'last_login_at' => now()]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['search' => 'res']))
+            ->get(route('admin.users.index', ['search' => 'res']))
             ->assertInertia(fn ($page) => $page
                 ->where('filters.sort', 'last_login_at')
                 ->where('filters.dir', 'desc')
@@ -274,7 +274,7 @@ class AdminUsersTest extends TestCase
     public function test_index_can_sort_by_name_ascending(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['sort' => 'name', 'dir' => 'asc']))
+            ->get(route('admin.users.index', ['sort' => 'name', 'dir' => 'asc']))
             ->assertInertia(fn ($page) => $page
                 ->where('filters.sort', 'name')
                 ->where('filters.dir', 'asc')
@@ -286,7 +286,7 @@ class AdminUsersTest extends TestCase
         $needle = User::factory()->create(['name' => 'Zzqqx Unique']);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['search' => 'Zzqqx']))
+            ->get(route('admin.users.index', ['search' => 'Zzqqx']))
             ->assertInertia(fn ($page) => $page
                 ->has('users.data', 1)
                 ->where('users.data.0.id', $needle->id)
@@ -298,7 +298,7 @@ class AdminUsersTest extends TestCase
         $frozen = User::factory()->create(['frozen_at' => now()]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['status' => 'frozen']))
+            ->get(route('admin.users.index', ['status' => 'frozen']))
             ->assertInertia(fn ($page) => $page
                 ->has('users.data', 1)
                 ->where('users.data.0.id', $frozen->id)
@@ -312,7 +312,7 @@ class AdminUsersTest extends TestCase
 
         // Acting admin has no business context — the counts must still resolve.
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['search' => 'Inventory Holder Qx']))
+            ->get(route('admin.users.index', ['search' => 'Inventory Holder Qx']))
             ->assertInertia(fn ($page) => $page
                 ->has('users.data', 1)
                 ->where('users.data.0.inventory_skus_count', 2)
@@ -345,7 +345,7 @@ class AdminUsersTest extends TestCase
         }
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['search' => 'Multi Biz Qx']))
+            ->get(route('admin.users.index', ['search' => 'Multi Biz Qx']))
             ->assertInertia(fn ($page) => $page
                 ->where('users.data.0.inventory_skus_count', 2)
                 ->where('users.data.0.inventory_bags_total', 6)
@@ -357,7 +357,7 @@ class AdminUsersTest extends TestCase
         User::factory()->count(3)->create();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['per_page' => 'all']))
+            ->get(route('admin.users.index', ['per_page' => 'all']))
             ->assertInertia(fn ($page) => $page
                 ->where('users.current_page', 1)
                 ->where('users.last_page', 1)
@@ -380,7 +380,7 @@ class AdminUsersTest extends TestCase
         SkuFeedback::factory()->count(2)->create(['user_id' => $user->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.users.index', ['search' => 'Active Person Qx']))
+            ->get(route('admin.users.index', ['search' => 'Active Person Qx']))
             ->assertInertia(fn ($page) => $page
                 ->where('users.data.0.support_tickets_count', 1)
                 ->where('users.data.0.sku_feedback_count', 2)
@@ -395,12 +395,12 @@ class AdminUsersTest extends TestCase
     public function test_super_admin_can_freeze_and_thaw_a_user(): void
     {
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.users.freeze', $this->regularUser))
+            ->post(route('admin.users.freeze', $this->regularUser))
             ->assertSessionHas('success');
         $this->assertNotNull($this->regularUser->fresh()->frozen_at);
 
         $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.thaw', $this->regularUser))
+            ->delete(route('admin.users.thaw', $this->regularUser))
             ->assertSessionHas('success');
         $this->assertNull($this->regularUser->fresh()->frozen_at);
     }
@@ -408,7 +408,7 @@ class AdminUsersTest extends TestCase
     public function test_site_admin_can_freeze_a_regular_user(): void
     {
         $this->actingAs($this->siteAdmin)
-            ->post(route('super-admin.users.freeze', $this->regularUser))
+            ->post(route('admin.users.freeze', $this->regularUser))
             ->assertSessionHas('success');
 
         $this->assertNotNull($this->regularUser->fresh()->frozen_at);
@@ -419,7 +419,7 @@ class AdminUsersTest extends TestCase
         $target = User::factory()->superAdmin()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.users.freeze', $target))
+            ->post(route('admin.users.freeze', $target))
             ->assertStatus(422);
 
         $this->assertNull($target->fresh()->frozen_at);
@@ -428,7 +428,7 @@ class AdminUsersTest extends TestCase
     public function test_an_admin_cannot_freeze_themselves(): void
     {
         $this->actingAs($this->siteAdmin)
-            ->post(route('super-admin.users.freeze', $this->siteAdmin))
+            ->post(route('admin.users.freeze', $this->siteAdmin))
             ->assertStatus(422);
 
         $this->assertNull($this->siteAdmin->fresh()->frozen_at);
@@ -487,7 +487,7 @@ class AdminUsersTest extends TestCase
         $user = User::factory()->create(['email_verified_at' => now()]);
 
         $this->actingAs($this->siteAdmin)
-            ->post(route('super-admin.users.password-reset', $user))
+            ->post(route('admin.users.password-reset', $user))
             ->assertSessionHas('success');
 
         Notification::assertSentTo($user, ResetPassword::class);
@@ -496,7 +496,7 @@ class AdminUsersTest extends TestCase
     public function test_super_admin_can_delete_a_regular_user(): void
     {
         $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.destroy', $this->regularUser))
+            ->delete(route('admin.users.destroy', $this->regularUser))
             ->assertSessionHas('success');
 
         $this->assertSoftDeleted('users', ['id' => $this->regularUser->id]);
@@ -505,7 +505,7 @@ class AdminUsersTest extends TestCase
     public function test_site_admin_cannot_delete_a_user(): void
     {
         $this->actingAs($this->siteAdmin)
-            ->delete(route('super-admin.users.destroy', $this->regularUser))
+            ->delete(route('admin.users.destroy', $this->regularUser))
             ->assertStatus(403);
 
         $this->assertNull($this->regularUser->fresh()->deleted_at);
@@ -514,7 +514,7 @@ class AdminUsersTest extends TestCase
     public function test_an_admin_cannot_be_deleted(): void
     {
         $this->actingAs($this->superAdmin)
-            ->delete(route('super-admin.users.destroy', $this->siteAdmin))
+            ->delete(route('admin.users.destroy', $this->siteAdmin))
             ->assertStatus(422);
 
         $this->assertNull($this->siteAdmin->fresh()->deleted_at);

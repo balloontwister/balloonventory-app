@@ -20,12 +20,14 @@ use App\Http\Controllers\SuperAdmin\CatalogBrandController;
 use App\Http\Controllers\SuperAdmin\CatalogColorController;
 use App\Http\Controllers\SuperAdmin\CatalogController;
 use App\Http\Controllers\SuperAdmin\CatalogReferenceController;
+use App\Http\Controllers\SuperAdmin\ComingSoonController;
 use App\Http\Controllers\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\SuperAdmin\SkuFeedbackController;
 use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SupportController;
 use App\Http\Middleware\RequireAdminAccess;
+use App\Http\Middleware\RequireSuperAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -128,73 +130,83 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
 
 // ─── SuperAdmin ───────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(function () {
-    Route::get('/super-admin', [SuperAdminController::class, 'dashboard'])->name('super-admin.dashboard');
+    Route::get('/admin', [SuperAdminController::class, 'dashboard'])->name('admin.dashboard');
 
     // ── Users ────────────────────────────────────────────────────────────────
-    Route::get('/super-admin/users', [AdminUserController::class, 'index'])->name('super-admin.users.index');
-    Route::post('/super-admin/users/{user}/site-admin', [AdminUserController::class, 'promote'])->name('super-admin.users.promote');
-    Route::delete('/super-admin/users/{user}/site-admin', [AdminUserController::class, 'demote'])->name('super-admin.users.demote');
-    Route::post('/super-admin/users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('super-admin.users.freeze');
-    Route::delete('/super-admin/users/{user}/freeze', [AdminUserController::class, 'thaw'])->name('super-admin.users.thaw');
-    Route::post('/super-admin/users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])->name('super-admin.users.password-reset');
-    Route::delete('/super-admin/users/{user}', [AdminUserController::class, 'destroy'])->name('super-admin.users.destroy');
+    Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+    Route::post('/admin/users/{user}/site-admin', [AdminUserController::class, 'promote'])->name('admin.users.promote');
+    Route::delete('/admin/users/{user}/site-admin', [AdminUserController::class, 'demote'])->name('admin.users.demote');
+    Route::post('/admin/users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('admin.users.freeze');
+    Route::delete('/admin/users/{user}/freeze', [AdminUserController::class, 'thaw'])->name('admin.users.thaw');
+    Route::post('/admin/users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])->name('admin.users.password-reset');
+    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
 
     // ── Catalog ──────────────────────────────────────────────────────────────
-    Route::get('/super-admin/catalog', fn () => redirect()->route('super-admin.catalog.skus'))->name('super-admin.catalog');
-    Route::get('/super-admin/catalog/skus', [CatalogController::class, 'index'])->name('super-admin.catalog.skus');
-    Route::get('/super-admin/catalog/skus/create', [CatalogController::class, 'create'])->name('super-admin.catalog.skus.create');
-    Route::post('/super-admin/catalog/skus', [CatalogController::class, 'store'])->name('super-admin.catalog.skus.store');
-    Route::get('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'show'])->name('super-admin.catalog.skus.show');
-    Route::get('/super-admin/catalog/skus/{sku}/edit', [CatalogController::class, 'edit'])->name('super-admin.catalog.skus.edit');
-    Route::patch('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'update'])->name('super-admin.catalog.skus.update');
-    Route::delete('/super-admin/catalog/skus/{sku}', [CatalogController::class, 'destroy'])->name('super-admin.catalog.skus.destroy');
+    Route::get('/admin/catalog', fn () => redirect()->route('admin.catalog.skus'))->name('admin.catalog');
+    Route::get('/admin/catalog/skus', [CatalogController::class, 'index'])->name('admin.catalog.skus');
+    Route::get('/admin/catalog/skus/create', [CatalogController::class, 'create'])->name('admin.catalog.skus.create');
+    Route::post('/admin/catalog/skus', [CatalogController::class, 'store'])->name('admin.catalog.skus.store');
+    Route::get('/admin/catalog/skus/{sku}', [CatalogController::class, 'show'])->name('admin.catalog.skus.show');
+    Route::get('/admin/catalog/skus/{sku}/edit', [CatalogController::class, 'edit'])->name('admin.catalog.skus.edit');
+    Route::patch('/admin/catalog/skus/{sku}', [CatalogController::class, 'update'])->name('admin.catalog.skus.update');
+    Route::delete('/admin/catalog/skus/{sku}', [CatalogController::class, 'destroy'])->name('admin.catalog.skus.destroy');
 
-    Route::get('/super-admin/catalog/colors', [CatalogColorController::class, 'index'])->name('super-admin.catalog.colors');
-    Route::get('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'show'])->name('super-admin.catalog.colors.show');
-    Route::get('/super-admin/catalog/colors/{color}/edit', [CatalogColorController::class, 'edit'])->name('super-admin.catalog.colors.edit');
-    Route::post('/super-admin/catalog/colors', [CatalogColorController::class, 'store'])->name('super-admin.catalog.colors.store');
-    Route::patch('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'update'])->name('super-admin.catalog.colors.update');
-    Route::delete('/super-admin/catalog/colors/{color}', [CatalogColorController::class, 'destroy'])->name('super-admin.catalog.colors.destroy');
+    Route::get('/admin/catalog/colors', [CatalogColorController::class, 'index'])->name('admin.catalog.colors');
+    Route::get('/admin/catalog/colors/{color}', [CatalogColorController::class, 'show'])->name('admin.catalog.colors.show');
+    Route::get('/admin/catalog/colors/{color}/edit', [CatalogColorController::class, 'edit'])->name('admin.catalog.colors.edit');
+    Route::post('/admin/catalog/colors', [CatalogColorController::class, 'store'])->name('admin.catalog.colors.store');
+    Route::patch('/admin/catalog/colors/{color}', [CatalogColorController::class, 'update'])->name('admin.catalog.colors.update');
+    Route::delete('/admin/catalog/colors/{color}', [CatalogColorController::class, 'destroy'])->name('admin.catalog.colors.destroy');
 
-    Route::get('/super-admin/catalog/brands', [CatalogBrandController::class, 'index'])->name('super-admin.catalog.brands');
-    Route::get('/super-admin/catalog/brands/{brand}', [CatalogBrandController::class, 'show'])->name('super-admin.catalog.brands.show');
-    Route::get('/super-admin/catalog/brands/{brand}/edit', [CatalogBrandController::class, 'edit'])->name('super-admin.catalog.brands.edit');
-    Route::post('/super-admin/catalog/brands', [CatalogBrandController::class, 'store'])->name('super-admin.catalog.brands.store');
-    Route::patch('/super-admin/catalog/brands/{brand}', [CatalogBrandController::class, 'update'])->name('super-admin.catalog.brands.update');
-    Route::post('/super-admin/catalog/brands/{brand}/gs1-prefixes', [CatalogBrandController::class, 'storeGs1Prefix'])->name('super-admin.catalog.brands.gs1-prefixes.store');
-    Route::delete('/super-admin/catalog/brands/{brand}/gs1-prefixes/{prefix}', [CatalogBrandController::class, 'destroyGs1Prefix'])->name('super-admin.catalog.brands.gs1-prefixes.destroy');
+    Route::get('/admin/catalog/brands', [CatalogBrandController::class, 'index'])->name('admin.catalog.brands');
+    Route::get('/admin/catalog/brands/{brand}', [CatalogBrandController::class, 'show'])->name('admin.catalog.brands.show');
+    Route::get('/admin/catalog/brands/{brand}/edit', [CatalogBrandController::class, 'edit'])->name('admin.catalog.brands.edit');
+    Route::post('/admin/catalog/brands', [CatalogBrandController::class, 'store'])->name('admin.catalog.brands.store');
+    Route::patch('/admin/catalog/brands/{brand}', [CatalogBrandController::class, 'update'])->name('admin.catalog.brands.update');
+    Route::post('/admin/catalog/brands/{brand}/gs1-prefixes', [CatalogBrandController::class, 'storeGs1Prefix'])->name('admin.catalog.brands.gs1-prefixes.store');
+    Route::delete('/admin/catalog/brands/{brand}/gs1-prefixes/{prefix}', [CatalogBrandController::class, 'destroyGs1Prefix'])->name('admin.catalog.brands.gs1-prefixes.destroy');
 
-    Route::get('/super-admin/catalog/reference', [CatalogReferenceController::class, 'index'])->name('super-admin.catalog.reference');
-    Route::post('/super-admin/catalog/reference/{table}', [CatalogReferenceController::class, 'store'])->name('super-admin.catalog.reference.store');
-    Route::patch('/super-admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'update'])->name('super-admin.catalog.reference.update');
-    Route::delete('/super-admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'destroy'])->name('super-admin.catalog.reference.destroy');
+    Route::get('/admin/catalog/reference', [CatalogReferenceController::class, 'index'])->name('admin.catalog.reference');
+    Route::post('/admin/catalog/reference/{table}', [CatalogReferenceController::class, 'store'])->name('admin.catalog.reference.store');
+    Route::patch('/admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'update'])->name('admin.catalog.reference.update');
+    Route::delete('/admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'destroy'])->name('admin.catalog.reference.destroy');
 
     // ── Email templates ───────────────────────────────────────────────────────
-    Route::get('/super-admin/email-templates/{template}/edit', [EmailTemplateController::class, 'edit'])->name('super-admin.email-templates.edit');
-    Route::patch('/super-admin/email-templates/{template}', [EmailTemplateController::class, 'update'])->name('super-admin.email-templates.update');
-    Route::post('/super-admin/email-templates/{template}/preview', [EmailTemplateController::class, 'preview'])->name('super-admin.email-templates.preview');
+    Route::get('/admin/email-templates', [EmailTemplateController::class, 'index'])->name('admin.email-templates.index');
+    Route::get('/admin/email-templates/{template}/edit', [EmailTemplateController::class, 'edit'])->name('admin.email-templates.edit');
+    Route::patch('/admin/email-templates/{template}', [EmailTemplateController::class, 'update'])->name('admin.email-templates.update');
+    Route::post('/admin/email-templates/{template}/preview', [EmailTemplateController::class, 'preview'])->name('admin.email-templates.preview');
 
     // ── Support tickets ───────────────────────────────────────────────────────
-    Route::post('/super-admin/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('super-admin.tickets.reply');
-    Route::patch('/super-admin/tickets/{ticket}/archive', [SupportTicketController::class, 'archive'])->name('super-admin.tickets.archive');
-    Route::patch('/super-admin/tickets/{ticket}/unarchive', [SupportTicketController::class, 'unarchive'])->name('super-admin.tickets.unarchive');
-    Route::delete('/super-admin/tickets/{ticket}', [SupportTicketController::class, 'destroy'])->name('super-admin.tickets.destroy');
+    Route::get('/admin/tickets', [SupportTicketController::class, 'index'])->name('admin.tickets.index');
+    Route::post('/admin/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('admin.tickets.reply');
+    Route::patch('/admin/tickets/{ticket}/archive', [SupportTicketController::class, 'archive'])->name('admin.tickets.archive');
+    Route::patch('/admin/tickets/{ticket}/unarchive', [SupportTicketController::class, 'unarchive'])->name('admin.tickets.unarchive');
+    Route::delete('/admin/tickets/{ticket}', [SupportTicketController::class, 'destroy'])->name('admin.tickets.destroy');
 
     // ── Barcode link audit log ────────────────────────────────────────────────
-    Route::get('/super-admin/barcode-audits', [BarcodeAuditController::class, 'index'])->name('super-admin.barcode-audits.index');
-    Route::post('/super-admin/barcode-audits/{audit}/revert', [BarcodeAuditController::class, 'revert'])->name('super-admin.barcode-audits.revert');
+    Route::get('/admin/barcode-audits', [BarcodeAuditController::class, 'index'])->name('admin.barcode-audits.index');
+    Route::post('/admin/barcode-audits/{audit}/revert', [BarcodeAuditController::class, 'revert'])->name('admin.barcode-audits.revert');
 
     // ── Item feedback (user-reported catalog discrepancies) ────────────────────
-    Route::get('/super-admin/feedback', [SkuFeedbackController::class, 'index'])->name('super-admin.feedback.index');
-    Route::patch('/super-admin/feedback/{feedback}/status', [SkuFeedbackController::class, 'updateStatus'])->name('super-admin.feedback.update-status');
-    Route::post('/super-admin/feedback/{feedback}/reply', [SkuFeedbackController::class, 'reply'])->name('super-admin.feedback.reply');
+    Route::get('/admin/feedback', [SkuFeedbackController::class, 'index'])->name('admin.feedback.index');
+    Route::patch('/admin/feedback/{feedback}/status', [SkuFeedbackController::class, 'updateStatus'])->name('admin.feedback.update-status');
+    Route::post('/admin/feedback/{feedback}/reply', [SkuFeedbackController::class, 'reply'])->name('admin.feedback.reply');
 
-    // ── Database backups ──────────────────────────────────────────────────────
-    Route::get('/super-admin/backups', [BackupController::class, 'index'])->name('super-admin.backups.index');
-    Route::post('/super-admin/backups', [BackupController::class, 'store'])->name('super-admin.backups.store');
-    Route::get('/super-admin/backups/{filename}/download', [BackupController::class, 'download'])->name('super-admin.backups.download');
-    Route::patch('/super-admin/backups/{filename}', [BackupController::class, 'rename'])->name('super-admin.backups.rename');
-    Route::delete('/super-admin/backups/{filename}', [BackupController::class, 'destroy'])->name('super-admin.backups.destroy');
+    // ── Super-Admin-only areas (backups + future billing) ─────────────────────
+    Route::middleware(RequireSuperAdmin::class)->group(function () {
+        // Database backups
+        Route::get('/admin/backups', [BackupController::class, 'index'])->name('admin.backups.index');
+        Route::post('/admin/backups', [BackupController::class, 'store'])->name('admin.backups.store');
+        Route::get('/admin/backups/{filename}/download', [BackupController::class, 'download'])->name('admin.backups.download');
+        Route::patch('/admin/backups/{filename}', [BackupController::class, 'rename'])->name('admin.backups.rename');
+        Route::delete('/admin/backups/{filename}', [BackupController::class, 'destroy'])->name('admin.backups.destroy');
+
+        // Future-growth stubs (scaffolded "coming soon" pages).
+        Route::get('/admin/subscriptions', ComingSoonController::class)->defaults('area', 'subscriptions')->name('admin.subscriptions.index');
+        Route::get('/admin/payments', ComingSoonController::class)->defaults('area', 'payments')->name('admin.payments.index');
+        Route::get('/admin/affiliates', ComingSoonController::class)->defaults('area', 'affiliates')->name('admin.affiliates.index');
+    });
 });
 
 require __DIR__.'/auth.php';

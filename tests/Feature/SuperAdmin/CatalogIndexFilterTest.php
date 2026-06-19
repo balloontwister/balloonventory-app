@@ -51,7 +51,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'In Family B', 'brand_id' => $this->brand->id, 'color_id' => $colorB->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['texture_family' => $familyA->id]))
+            ->get(route('admin.catalog.skus', ['texture_family' => $familyA->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'In Family A')->etc())
@@ -69,7 +69,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'Blue SKU', 'brand_id' => $this->brand->id, 'color_id' => $colorB->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['color_family' => $familyA->id]))
+            ->get(route('admin.catalog.skus', ['color_family' => $familyA->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Red SKU')->etc())
@@ -85,7 +85,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'Foil SKU', 'brand_id' => $this->brand->id, 'material_id' => $foil->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['material' => $latex->id]))
+            ->get(route('admin.catalog.skus', ['material' => $latex->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Latex SKU')->etc())
@@ -98,7 +98,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'Solid SKU', 'brand_id' => $this->brand->id, 'is_printed' => false]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['printed' => '1']))
+            ->get(route('admin.catalog.skus', ['printed' => '1']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Printed SKU')->etc())
@@ -111,7 +111,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'Solid SKU', 'brand_id' => $this->brand->id, 'is_printed' => false]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['printed' => '0']))
+            ->get(route('admin.catalog.skus', ['printed' => '0']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Solid SKU')->etc())
@@ -128,7 +128,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'Foil Printed', 'brand_id' => $this->brand->id, 'material_id' => $foil->id, 'is_printed' => true]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['material' => $latex->id, 'printed' => '1']))
+            ->get(route('admin.catalog.skus', ['material' => $latex->id, 'printed' => '1']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Latex Printed')->etc())
@@ -138,7 +138,7 @@ class CatalogIndexFilterTest extends TestCase
     public function test_array_valued_filter_param_is_rejected_without_a_server_error(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus').'?brand[]=x');
+            ->get(route('admin.catalog.skus').'?brand[]=x');
 
         $response->assertStatus(302);
         $response->assertSessionHasErrors('brand');
@@ -156,7 +156,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['name' => 'Heart SKU', 'brand_id' => $this->brand->id, 'balloon_size_id' => $heartSize->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['shape' => $round->id]))
+            ->get(route('admin.catalog.skus', ['shape' => $round->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Round SKU')->etc())
@@ -177,7 +177,7 @@ class CatalogIndexFilterTest extends TestCase
         $weddingSku->themes()->attach($wedding->id);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus', ['theme' => $birthday->id]))
+            ->get(route('admin.catalog.skus', ['theme' => $birthday->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Birthday SKU')->etc())
@@ -190,7 +190,7 @@ class CatalogIndexFilterTest extends TestCase
         Sku::factory()->create(['brand_id' => $this->brand->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus'))
+            ->get(route('admin.catalog.skus'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->has('skus.data', 2));
     }

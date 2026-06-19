@@ -154,7 +154,6 @@ class ScanController extends Controller
         ]);
 
         $businessId = BusinessContext::currentId();
-        $term = $data['q'];
 
         $skus = Sku::visibleTo($businessId)
             ->with([
@@ -162,14 +161,7 @@ class ScanController extends Controller
                 'balloonSize' => fn ($q) => $q->with('size:id,name'),
                 'color:id,name,color_hex',
             ])
-            ->where(fn ($q) => $q
-                ->where('skus.name', 'like', "%{$term}%")
-                ->orWhere('skus.computed_name', 'like', "%{$term}%")
-                ->orWhere('skus.warehouse_sku', 'like', "%{$term}%")
-                ->orWhereHas('color', fn ($c) => $c->where('name', 'like', "%{$term}%"))
-                ->orWhereHas('brand', fn ($b) => $b
-                    ->where('name', 'like', "%{$term}%")
-                    ->orWhere('abbreviation', 'like', "%{$term}%")))
+            ->matchesSearch($data['q'])
             ->orderBy('skus.name')
             ->limit(15)
             ->get();

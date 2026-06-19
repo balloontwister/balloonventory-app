@@ -3,13 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\BalloonList;
+use App\Models\BalloonSize;
 use App\Models\Bin;
 use App\Models\Brand;
 use App\Models\BrandGs1Prefix;
 use App\Models\Business;
+use App\Models\Color;
 use App\Models\Job;
 use App\Models\Location;
 use App\Models\Membership;
+use App\Models\Shape;
+use App\Models\Size;
 use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
@@ -994,6 +998,51 @@ class ScanControllerTest extends TestCase
 
         $this->actingAs($this->owner)
             ->getJson(route('scan.search-skus', ['q' => 'Macaron']))
+            ->assertOk()
+            ->assertJsonCount(1, 'skus')
+            ->assertJsonPath('skus.0.id', $match->id);
+    }
+
+    public function test_search_skus_matches_words_spread_across_fields(): void
+    {
+        // Words live in different columns: brand, color, shape — and none of them
+        // is in the SKU name. A naive single-LIKE search would miss this.
+        $brand = Brand::factory()->create(['name' => 'Kalisan', 'abbreviation' => 'KAL']);
+        $shape = Shape::factory()->create(['name' => 'Link']);
+        $size = Size::factory()->create(['name' => '11-inch']);
+        $balloonSize = BalloonSize::factory()->create([
+            'brand_id' => $brand->id,
+            'size_id' => $size->id,
+            'shape_id' => $shape->id,
+        ]);
+        $color = Color::factory()->create(['name' => 'Macaron Blue']);
+
+        $match = Sku::factory()->create([
+            'name' => 'K-Link 50CT',
+            'brand_id' => $brand->id,
+            'balloon_size_id' => $balloonSize->id,
+            'color_id' => $color->id,
+        ]);
+        Sku::factory()->create(['name' => 'Totally Different Thing']);
+
+        $this->actingAs($this->owner)
+            ->getJson(route('scan.search-skus', ['q' => 'Kalisan Blue Link']))
+            ->assertOk()
+            ->assertJsonCount(1, 'skus')
+            ->assertJsonPath('skus.0.id', $match->id);
+    }
+
+    public function test_search_skus_matches_size_name(): void
+    {
+        $size = Size::factory()->create(['name' => '260']);
+        $balloonSize = BalloonSize::factory()->create(['size_id' => $size->id]);
+        $match = Sku::factory()->create([
+            'name' => 'Plain Modelling Balloon',
+            'balloon_size_id' => $balloonSize->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->getJson(route('scan.search-skus', ['q' => '260']))
             ->assertOk()
             ->assertJsonCount(1, 'skus')
             ->assertJsonPath('skus.0.id', $match->id);

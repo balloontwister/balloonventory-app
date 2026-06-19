@@ -243,6 +243,45 @@ class Sku extends Model
     }
 
     /**
+     * Free-text search across the fields a person naturally types: the SKU name,
+     * computed name, warehouse SKU, and the related brand / size / shape / color /
+     * texture names. The term is split into words and EACH word must match at
+     * least one field (AND across words, OR across fields), so a query like
+     * "Kalisan Blue Link" — whose words live in different columns — still resolves.
+     */
+    public function scopeMatchesSearch(Builder $query, ?string $term): Builder
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        foreach (preg_split('/\s+/', $term) as $word) {
+            if ($word === '') {
+                continue;
+            }
+
+            $like = '%'.$word.'%';
+
+            $query->where(function (Builder $q) use ($like): void {
+                $q->where('skus.name', 'like', $like)
+                    ->orWhere('skus.computed_name', 'like', $like)
+                    ->orWhere('skus.warehouse_sku', 'like', $like)
+                    ->orWhereHas('color', fn (Builder $c) => $c->where('name', 'like', $like))
+                    ->orWhereHas('color.texture', fn (Builder $t) => $t->where('name', 'like', $like))
+                    ->orWhereHas('brand', fn (Builder $b) => $b
+                        ->where('name', 'like', $like)
+                        ->orWhere('abbreviation', 'like', $like))
+                    ->orWhereHas('balloonSize.size', fn (Builder $s) => $s->where('name', 'like', $like))
+                    ->orWhereHas('balloonSize.shape', fn (Builder $s) => $s->where('name', 'like', $like));
+            });
+        }
+
+        return $query;
+    }
+
+    /**
      * Instance-level counterpart to scopeVisibleTo() for an already-loaded SKU.
      */
     public function isVisibleTo(?string $businessId): bool

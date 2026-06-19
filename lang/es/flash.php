@@ -52,6 +52,17 @@ return [
         'verification_code_resent' => 'Se ha enviado un nuevo código.',
     ],
 
+    'inventory' => [
+        'sku_added' => 'Agregado a tu inventario.',
+        'sku_removed' => 'Eliminado del inventario.',
+        'override_saved' => 'Cambios guardados.',
+        'added_to_list' => 'Agregado a ":list".',
+        'transfer_done' => 'Existencias transferidas.',
+        'transfer_nothing' => 'Ingresa al menos una bolsa para transferir.',
+        'transfer_insufficient' => 'No hay suficientes existencias en el contenedor de origen. Disponible: :full llenas / :open abiertas.',
+        'stock_adjusted' => 'Existencias actualizadas.',
+    ],
+
     'onboarding' => [
         'completed' => '¡Tu tienda está lista! Bienvenido a bordo.',
         'samples_cleared' => 'Se eliminaron :count productos de muestra.',

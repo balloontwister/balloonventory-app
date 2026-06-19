@@ -453,6 +453,117 @@ class InventoryControllerTest extends TestCase
             ->assertSessionHasErrors('full_bags');
     }
 
+    // ── removeStockBin ──────────────────────────────────────────────────────────
+
+    public function test_remove_stock_bin_soft_deletes_an_empty_level(): void
+    {
+        $sku = Sku::factory()->create();
+
+        // Two bins: one with stock, one empty.
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 3,
+            'open_bags' => 0,
+        ]);
+        $emptyBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $this->location->id,
+            'name' => 'Shelf B',
+        ]);
+        $emptyLevel = StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $emptyBin->id,
+            'full_bags' => 0,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->delete(route('inventory.sku.bin.remove', [$sku->id, $emptyBin->id]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSoftDeleted('stock_levels', ['id' => $emptyLevel->id]);
+        $this->assertDatabaseHas('stock_levels', [
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_remove_stock_bin_rejects_a_non_empty_bin(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 2,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->delete(route('inventory.sku.bin.remove', [$sku->id, $this->bin->id]))
+            ->assertSessionHasErrors('bin_id');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_remove_last_empty_bin_drops_sku_from_inventory(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 0,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->delete(route('inventory.sku.bin.remove', [$sku->id, $this->bin->id]))
+            ->assertRedirect(route('inventory.index'));
+
+        $this->assertFalse(
+            StockLevel::where('sku_id', $sku->id)->exists(),
+        );
+    }
+
+    // ── show: identical SKUs ────────────────────────────────────────────────────
+
+    public function test_show_includes_identical_skus_that_are_in_inventory(): void
+    {
+        $sku = Sku::factory()->create();
+        $identicalInInventory = Sku::factory()->create();
+        $identicalNotInInventory = Sku::factory()->create();
+
+        $sku->linkIdentical($identicalInInventory);
+        $sku->linkIdentical($identicalNotInInventory);
+
+        foreach ([$sku, $identicalInInventory] as $s) {
+            StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+                'business_id' => $this->business->id,
+                'sku_id' => $s->id,
+                'bin_id' => $this->bin->id,
+                'full_bags' => 1,
+                'open_bags' => 0,
+            ]);
+        }
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', $sku))
+            ->assertInertia(fn ($page) => $page
+                ->has('identicalSkus', 1)
+                ->where('identicalSkus.0.id', $identicalInInventory->id)
+            );
+    }
+
     // ── store ─────────────────────────────────────────────────────────────────
 
     public function test_store_adds_sku_to_inventory(): void

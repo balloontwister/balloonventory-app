@@ -82,6 +82,18 @@ return [
         'stock_add_cancel' => 'Cancel',
         'stock_across_bins' => 'across :count bins',
         'stock_across_one_bin' => 'across 1 bin',
+        'stock_remove_bin' => 'Remove bin',
+        'stock_remove_bin_confirm' => 'Remove this empty bin for this item? You can add it back later.',
+        'stock_discard_bin' => 'Discard',
+
+        'section_identical' => 'Identical items in your inventory',
+        'section_similar' => 'Similar items',
+        'similar_coming_soon' => 'Coming soon — we’ll suggest close matches you already stock.',
+
+        'history_show_more' => 'Show :count more',
+        'history_show_less' => 'Show less',
+
+        'image_alt' => ':name product photo',
 
         'customize_add' => 'Add a custom name, color or notes',
         'customize_edit' => 'Edit customizations',

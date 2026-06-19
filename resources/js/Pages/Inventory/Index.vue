@@ -5,8 +5,19 @@ import InventoryTabs from '@/Components/InventoryTabs.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import Modal from '@/Components/Modal.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
+
+const page = usePage();
+
+// Carry the list's current filters/page into the show link so the detail page's
+// back link can restore them — and scroll back to the row that was opened.
+function showUrl(skuId) {
+    const base = route('inventory.sku.show', skuId);
+    const queryStart = page.url.indexOf('?');
+    const query = queryStart === -1 ? '' : page.url.slice(queryStart);
+    return query ? `${base}?return=${encodeURIComponent(query)}` : base;
+}
 
 const props = defineProps({
     skus: { type: Object, required: true },
@@ -426,9 +437,7 @@ function isFavorite(sku) {
                                         }"
                                     />
                                     <Link
-                                        :href="
-                                            route('inventory.sku.show', sku.id)
-                                        "
+                                        :href="showUrl(sku.id)"
                                         class="min-w-0 truncate font-sans text-[14px] font-medium text-ink-primary hover:underline"
                                     >
                                         {{ sku.name }}

@@ -61,6 +61,8 @@ return [
         'transfer_nothing' => 'Ingresa al menos una bolsa para transferir.',
         'transfer_insufficient' => 'No hay suficientes existencias en el contenedor de origen. Disponible: :full llenas / :open abiertas.',
         'stock_adjusted' => 'Existencias actualizadas.',
+        'bin_removed' => 'Contenedor eliminado para este artículo.',
+        'bin_not_empty' => 'Ese contenedor aún tiene existencias — vacíalo antes de eliminarlo.',
     ],
 
     'onboarding' => [

@@ -3,11 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\BalloonList;
+use App\Models\BalloonSize;
 use App\Models\Bin;
+use App\Models\Brand;
 use App\Models\Business;
+use App\Models\Color;
+use App\Models\ColorFamily;
 use App\Models\ListItem;
 use App\Models\Location;
 use App\Models\Membership;
+use App\Models\Shape;
+use App\Models\Size;
 use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Models\User;
@@ -162,6 +168,99 @@ class InventoryControllerTest extends TestCase
                 ->where('skus.data.0.id', $inventorySku->id)
                 ->has('catalogSkus', 1)
                 ->where('catalogSkus.0.id', $catalogSku->id)
+            );
+    }
+
+    public function test_index_catalog_fallback_honors_dropdown_filters(): void
+    {
+        // Reproduces the reported scenario: a user picks Brand + Size + Color
+        // Family from the dropdowns (no free-text) to find a master-catalog item.
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $size = Size::factory()->create(['name' => '260']);
+        $shape = Shape::factory()->create();
+        $reds = ColorFamily::factory()->create();
+        $red = Color::factory()->create(['name' => 'Red', 'color_family_id' => $reds->id]);
+
+        $balloonSize = BalloonSize::factory()->create([
+            'brand_id' => $brand->id,
+            'size_id' => $size->id,
+            'shape_id' => $shape->id,
+        ]);
+
+        $match = Sku::factory()->create([
+            'name' => '260M Standard Red - 100CT',
+            'brand_id' => $brand->id,
+            'balloon_size_id' => $balloonSize->id,
+            'color_id' => $red->id,
+        ]);
+
+        // A shared catalog SKU that does NOT match the chosen brand/size/color.
+        $other = Sku::factory()->create(['name' => 'Round 11" Blue Balloon']);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.index', [
+                'brand' => $brand->id,
+                'size' => $size->id,
+                'color_family' => $reds->id,
+            ]))
+            ->assertInertia(fn ($page) => $page
+                ->has('catalogSkus', 1)
+                ->where('catalogSkus.0.id', $match->id)
+            );
+    }
+
+    public function test_index_catalog_fallback_excludes_skus_already_in_inventory(): void
+    {
+        $brand = Brand::factory()->create();
+
+        $inInventory = Sku::factory()->create(['brand_id' => $brand->id]);
+        $catalogOnly = Sku::factory()->create(['brand_id' => $brand->id]);
+
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $inInventory->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 1,
+            'open_bags' => 0,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.index', ['brand' => $brand->id]))
+            ->assertInertia(fn ($page) => $page
+                ->has('catalogSkus', 1)
+                ->where('catalogSkus.0.id', $catalogOnly->id)
+            );
+    }
+
+    public function test_index_search_matches_color_name(): void
+    {
+        $crimson = Color::factory()->create(['name' => 'Crimson']);
+        $sku = Sku::factory()->create([
+            'name' => 'Some SKU Without The Word In Its Name',
+            'color_id' => $crimson->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.index', ['search' => 'Crimson']))
+            ->assertInertia(fn ($page) => $page
+                ->has('catalogSkus', 1)
+                ->where('catalogSkus.0.id', $sku->id)
+            );
+    }
+
+    public function test_index_search_matches_brand_name(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Tuftex']);
+        $sku = Sku::factory()->create([
+            'name' => 'Plain Balloon',
+            'brand_id' => $brand->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.index', ['search' => 'Tuftex']))
+            ->assertInertia(fn ($page) => $page
+                ->has('catalogSkus', 1)
+                ->where('catalogSkus.0.id', $sku->id)
             );
     }
 

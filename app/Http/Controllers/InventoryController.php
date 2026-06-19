@@ -20,6 +20,7 @@ use App\Models\TextureFamily;
 use App\Scopes\BusinessScope;
 use App\Services\BinResolver;
 use App\Support\BusinessContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -60,37 +61,7 @@ class InventoryController extends Controller
             ->withMax('stockLevels as last_movement_at', 'last_movement_at')
             ->whereIn('skus.id', $inventorySubquery);
 
-        if ($request->filled('brand')) {
-            $query->where('brand_id', $request->brand);
-        }
-
-        if ($request->filled('size')) {
-            $query->whereHas('balloonSize', fn ($q) => $q->where('size_id', $request->size));
-        }
-
-        if ($request->filled('shape')) {
-            $query->whereHas('balloonSize', fn ($q) => $q->where('shape_id', $request->shape));
-        }
-
-        if ($request->filled('texture_family')) {
-            $query->whereHas('color.texture', fn ($q) => $q->where('texture_family_id', $request->texture_family));
-        }
-
-        if ($request->filled('color_family')) {
-            $query->whereHas('color', fn ($q) => $q->where('color_family_id', $request->color_family));
-        }
-
-        if ($request->filled('material')) {
-            $query->where('material_id', $request->material);
-        }
-
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(fn ($q) => $q
-                ->where('skus.name', 'like', "%{$term}%")
-                ->orWhere('computed_name', 'like', "%{$term}%")
-                ->orWhere('warehouse_sku', 'like', "%{$term}%"));
-        }
+        $this->applyCatalogFilters($query, $request);
 
         $sort = $request->input('sort', 'recent');
         if ($sort === 'name') {
@@ -130,24 +101,25 @@ class InventoryController extends Controller
             $skus->getCollection()->each(fn (Sku $sku) => $sku->lists = []);
         }
 
-        // Catalog fallback: shared SKUs not in this business's inventory, shown when searching.
+        // Catalog fallback: shared SKUs not already in this business's inventory,
+        // shown whenever any search or filter is active so the master catalog can
+        // be browsed/added from the same view. Honors the SAME filters as the
+        // inventory listing above (via applyCatalogFilters) — selecting e.g.
+        // Brand + Size + Color Family narrows the catalog results too.
         $catalogSkus = collect();
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $catalogSkus = Sku::with([
+        if ($this->hasActiveFilters($request)) {
+            $catalogQuery = Sku::with([
                 'brand',
                 'balloonSize' => fn ($q) => $q->with(['size', 'shape']),
                 'color',
                 'material',
             ])
                 ->whereNull('owned_by_business_id')
-                ->whereNotIn('id', StockLevel::select('sku_id'))
-                ->where(fn ($q) => $q
-                    ->where('name', 'like', "%{$term}%")
-                    ->orWhere('computed_name', 'like', "%{$term}%")
-                    ->orWhere('warehouse_sku', 'like', "%{$term}%"))
-                ->limit(20)
-                ->get();
+                ->whereNotIn('id', StockLevel::select('sku_id'));
+
+            $this->applyCatalogFilters($catalogQuery, $request);
+
+            $catalogSkus = $catalogQuery->limit(20)->get();
         }
 
         return Inertia::render('Inventory/Index', [
@@ -164,6 +136,68 @@ class InventoryController extends Controller
             'favoritesListId' => BalloonList::where('is_business_favorites', true)->value('id'),
             'hasSampleStock' => StockLevel::where('is_sample', true)->exists(),
         ]);
+    }
+
+    /**
+     * Whether the request carries any search term or filter — used to decide
+     * whether the master-catalog fallback should be queried.
+     */
+    private function hasActiveFilters(Request $request): bool
+    {
+        return $request->filled('search')
+            || $request->filled('brand')
+            || $request->filled('size')
+            || $request->filled('shape')
+            || $request->filled('texture_family')
+            || $request->filled('color_family')
+            || $request->filled('material');
+    }
+
+    /**
+     * Apply the shared catalog filters (brand, size, shape, texture family,
+     * color family, material, and free-text search) to a SKU query. Used by BOTH
+     * the in-inventory listing and the master-catalog fallback so the two never
+     * drift. Free-text search matches the SKU name/computed name/warehouse SKU as
+     * well as the related color and brand names, so typing "Red" or "Kalisan"
+     * works without needing the matching dropdown.
+     */
+    private function applyCatalogFilters(Builder $query, Request $request): void
+    {
+        if ($request->filled('brand')) {
+            $query->where('brand_id', $request->brand);
+        }
+
+        if ($request->filled('size')) {
+            $query->whereHas('balloonSize', fn ($q) => $q->where('size_id', $request->size));
+        }
+
+        if ($request->filled('shape')) {
+            $query->whereHas('balloonSize', fn ($q) => $q->where('shape_id', $request->shape));
+        }
+
+        if ($request->filled('texture_family')) {
+            $query->whereHas('color.texture', fn ($q) => $q->where('texture_family_id', $request->texture_family));
+        }
+
+        if ($request->filled('color_family')) {
+            $query->whereHas('color', fn ($q) => $q->where('color_family_id', $request->color_family));
+        }
+
+        if ($request->filled('material')) {
+            $query->where('material_id', $request->material);
+        }
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(fn ($q) => $q
+                ->where('skus.name', 'like', "%{$term}%")
+                ->orWhere('skus.computed_name', 'like', "%{$term}%")
+                ->orWhere('skus.warehouse_sku', 'like', "%{$term}%")
+                ->orWhereHas('color', fn ($c) => $c->where('name', 'like', "%{$term}%"))
+                ->orWhereHas('brand', fn ($b) => $b
+                    ->where('name', 'like', "%{$term}%")
+                    ->orWhere('abbreviation', 'like', "%{$term}%")));
+        }
     }
 
     public function show(Sku $sku): Response

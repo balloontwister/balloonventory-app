@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
+import Toaster from '@/Components/Toaster.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
@@ -56,6 +57,9 @@ function isActive(routeName) {
     <div class="min-h-screen bg-background">
         <!-- 2px BusinessBadge color bar pinned above everything -->
         <BusinessBadge :color="businessColor" />
+
+        <!-- App-wide toast stack (teleports to body) -->
+        <Toaster />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
         <div v-if="isDesktop" class="hidden min-h-screen pt-0.5 lg:flex">

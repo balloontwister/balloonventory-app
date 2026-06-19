@@ -12,6 +12,7 @@ const user = computed(() => page.props.auth?.user ?? {});
 const avatarUrl = computed(() => page.props.auth?.avatarUrl ?? null);
 const business = computed(() => page.props.business ?? null);
 const isAnyAdmin = computed(() => page.props.auth?.isAnyAdmin ?? false);
+const isFrozen = computed(() => page.props.auth?.isFrozen ?? false);
 
 const canManageBusiness = computed(() => {
     const perms = page.props.permissions ?? [];
@@ -44,6 +45,26 @@ function logout() {
         />
 
         <div class="flex flex-col gap-4 py-2">
+            <!-- ── Frozen-account banner ─────────────────────────────────── -->
+            <div
+                v-if="isFrozen"
+                class="rounded-lg border border-warning bg-warning-soft p-4"
+            >
+                <p class="font-sans text-[14px] font-semibold text-ink-primary">
+                    {{ $t('account.frozen_banner.title') }}
+                </p>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('account.frozen_banner.body') }}
+                </p>
+                <button
+                    type="button"
+                    class="mt-2 font-sans text-[13px] font-semibold text-accent hover:underline"
+                    @click="showSupportModal = true"
+                >
+                    {{ $t('account.rows.support.label') }}
+                </button>
+            </div>
+
             <!-- ── Identity card ─────────────────────────────────────────── -->
             <Link
                 :href="route('profile.edit')"

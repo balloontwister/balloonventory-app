@@ -8,12 +8,31 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Ejects a frozen user from any active session. Login is already blocked in
- * LoginRequest, but a user frozen mid-session must be stopped on their next
- * request too — this logs them out and bounces them to the login screen.
+ * Restricts a frozen user to the account area. They can still sign in, but may
+ * only reach their account, profile, preferences, and support — every other
+ * route bounces back to the account page with a notice. (A soft suspension for
+ * unpaid membership, ToS issues, etc., without destroying the account.)
  */
 class EnsureAccountActive
 {
+    /**
+     * Route names a frozen user is still allowed to reach.
+     *
+     * @var list<string>
+     */
+    private const ALLOWED = [
+        'account.index',
+        'profile.edit',
+        'profile.update',
+        'profile.avatar.update',
+        'profile.destroy',
+        'support.contact',
+        'settings.index',
+        'settings.preferences.update',
+        'locale.switch',
+        'logout',
+    ];
+
     /**
      * Handle an incoming request.
      *
@@ -21,14 +40,20 @@ class EnsureAccountActive
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Auth::user()->isFrozen()) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+        $user = Auth::user();
 
-            return redirect()->route('login')->with('status', __('auth.frozen'));
+        if ($user && $user->isFrozen() && ! $this->isAllowed($request)) {
+            return redirect()->route('account.index')
+                ->with('warning', __('flash.users.frozen_notice'));
         }
 
         return $next($request);
+    }
+
+    private function isAllowed(Request $request): bool
+    {
+        $name = $request->route()?->getName();
+
+        return $name !== null && in_array($name, self::ALLOWED, true);
     }
 }

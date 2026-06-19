@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { pushToast } from '@/Composables/useToast';
 
 const props = defineProps({
     users: { type: Object, required: true },
@@ -18,6 +19,9 @@ const search = ref(props.filters.search ?? '');
 const status = ref(props.filters.status ?? '');
 const sortCol = ref(props.filters.sort ?? 'last_login_at');
 const sortDir = ref(props.filters.dir ?? 'desc');
+const perPage = ref(props.filters.per_page ?? '50');
+
+const PER_PAGE_OPTIONS = ['25', '50', '100', 'all'];
 
 const STATUS_FILTERS = [
     { value: '', label: 'super_admin.users.filter_all' },
@@ -44,6 +48,7 @@ function navigate() {
             status: status.value || undefined,
             sort: sortCol.value,
             dir: sortDir.value,
+            per_page: perPage.value !== '50' ? perPage.value : undefined,
         },
         { preserveState: true, replace: true, preserveScroll: true },
     );
@@ -55,7 +60,54 @@ watch(search, () => {
     debounce = setTimeout(navigate, 350);
 });
 
-watch(status, navigate);
+watch([status, perPage], navigate);
+
+// ── Column visibility (remembered per browser) ────────────────────────────────
+const TOGGLEABLE = [
+    'email',
+    'businesses',
+    'inventory',
+    'activity',
+    'created_at',
+    'last_login_at',
+];
+const COL_DEFAULTS = {
+    email: true,
+    businesses: true,
+    inventory: true,
+    activity: false,
+    created_at: false,
+    last_login_at: true,
+};
+const COLS_KEY = 'users.table.cols';
+
+function loadCols() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(COLS_KEY));
+        return { ...COL_DEFAULTS, ...(saved || {}) };
+    } catch {
+        return { ...COL_DEFAULTS };
+    }
+}
+
+const visibleCols = ref(loadCols());
+watch(
+    visibleCols,
+    (v) => localStorage.setItem(COLS_KEY, JSON.stringify(v)),
+    { deep: true },
+);
+
+// name + status (admin_level) + actions are always shown.
+function isColVisible(col) {
+    if (col === 'name' || col === 'admin_level') return true;
+    return !!visibleCols.value[col];
+}
+
+const columnCount = computed(
+    () => 3 + TOGGLEABLE.filter((c) => visibleCols.value[c]).length,
+);
+
+const colsMenuOpen = ref(false);
 
 function sortBy(col) {
     if (sortCol.value === col) {
@@ -214,15 +266,11 @@ function sendReset(user) {
     );
 }
 
-const copiedId = ref(null);
 async function copyEmail(user) {
     closeMenu();
     try {
         await navigator.clipboard.writeText(user.email);
-        copiedId.value = user.id;
-        setTimeout(() => {
-            if (copiedId.value === user.id) copiedId.value = null;
-        }, 1500);
+        pushToast(trans('super_admin.users.copy_email_done'), 'info');
     } catch {
         /* clipboard unavailable — no-op */
     }
@@ -288,6 +336,49 @@ function destroyUser(user) {
                                 {{ $t(opt.label) }}
                             </option>
                         </select>
+
+                        <!-- Columns visibility -->
+                        <div class="relative ml-auto">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background"
+                                @click="colsMenuOpen = !colsMenuOpen"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4"
+                                >
+                                    <path
+                                        d="M3 4.5A1.5 1.5 0 014.5 3h11A1.5 1.5 0 0117 4.5v11a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 013 15.5v-11zM8 4.5v11h1.5v-11H8zm-1.5 0H4.5v11h2v-11z"
+                                    />
+                                </svg>
+                                {{ $t('super_admin.users.columns_button') }}
+                            </button>
+                            <template v-if="colsMenuOpen">
+                                <div
+                                    class="fixed inset-0 z-40"
+                                    @click="colsMenuOpen = false"
+                                />
+                                <div
+                                    class="absolute right-0 z-50 mt-2 w-56 rounded-md border border-border bg-surface py-1 shadow-lg"
+                                >
+                                    <label
+                                        v-for="col in TOGGLEABLE"
+                                        :key="col"
+                                        class="flex cursor-pointer items-center gap-2 px-4 py-2 font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                                    >
+                                        <input
+                                            v-model="visibleCols[col]"
+                                            type="checkbox"
+                                            class="rounded border-border-strong text-accent focus:ring-accent-soft"
+                                        />
+                                        {{ $t(SORTABLE[col]) }}
+                                    </label>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
 
@@ -299,6 +390,7 @@ function destroyUser(user) {
                             >
                                 <th
                                     v-for="(label, col) in SORTABLE"
+                                    v-show="isColVisible(col)"
                                     :key="col"
                                     class="px-6 py-3 font-medium"
                                 >
@@ -335,7 +427,7 @@ function destroyUser(user) {
                         <tbody class="divide-y divide-border/50">
                             <tr v-if="users.data.length === 0">
                                 <td
-                                    colspan="9"
+                                    :colspan="columnCount"
                                     class="px-6 py-10 text-center text-ink-tertiary"
                                 >
                                     —
@@ -360,7 +452,10 @@ function destroyUser(user) {
                                 </td>
 
                                 <!-- Email -->
-                                <td class="px-6 py-3 text-ink-secondary">
+                                <td
+                                    v-show="visibleCols.email"
+                                    class="px-6 py-3 text-ink-secondary"
+                                >
                                     <span
                                         class="inline-flex items-center gap-1.5"
                                     >
@@ -384,7 +479,7 @@ function destroyUser(user) {
                                 </td>
 
                                 <!-- Businesses -->
-                                <td class="px-6 py-3">
+                                <td v-show="visibleCols.businesses" class="px-6 py-3">
                                     <div
                                         v-if="user.businesses.length"
                                         class="flex flex-wrap gap-1"
@@ -404,7 +499,10 @@ function destroyUser(user) {
                                 </td>
 
                                 <!-- Inventory -->
-                                <td class="px-6 py-3 text-ink-secondary">
+                                <td
+                                    v-show="visibleCols.inventory"
+                                    class="px-6 py-3 text-ink-secondary"
+                                >
                                     <span v-if="user.inventory_skus_count > 0">
                                         {{
                                             $t('super_admin.users.inventory_value', {
@@ -423,7 +521,10 @@ function destroyUser(user) {
                                 </td>
 
                                 <!-- Activity -->
-                                <td class="px-6 py-3 text-ink-secondary">
+                                <td
+                                    v-show="visibleCols.activity"
+                                    class="px-6 py-3 text-ink-secondary"
+                                >
                                     {{
                                         $t('super_admin.users.activity_value', {
                                             tickets: user.support_tickets_count,
@@ -433,12 +534,18 @@ function destroyUser(user) {
                                 </td>
 
                                 <!-- Registered -->
-                                <td class="px-6 py-3 text-ink-secondary">
+                                <td
+                                    v-show="visibleCols.created_at"
+                                    class="px-6 py-3 text-ink-secondary"
+                                >
                                     {{ formatDate(user.created_at) }}
                                 </td>
 
                                 <!-- Last login -->
-                                <td class="px-6 py-3 text-ink-secondary">
+                                <td
+                                    v-show="visibleCols.last_login_at"
+                                    class="px-6 py-3 text-ink-secondary"
+                                >
                                     {{ formatDateTime(user.last_login_at) }}
                                 </td>
 
@@ -478,12 +585,6 @@ function destroyUser(user) {
 
                                 <!-- Actions -->
                                 <td class="px-6 py-3 text-right">
-                                    <span
-                                        v-if="copiedId === user.id"
-                                        class="mr-2 font-sans text-[12px] text-success"
-                                    >
-                                        {{ $t('super_admin.users.copy_email_done') }}
-                                    </span>
                                     <button
                                         type="button"
                                         class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border-strong text-ink-secondary transition hover:bg-background"
@@ -507,15 +608,46 @@ function destroyUser(user) {
                     </table>
                 </div>
 
-                <!-- Pagination -->
+                <!-- Footer: total + page size + pager -->
                 <div
-                    v-if="users.last_page > 1"
-                    class="flex items-center justify-between border-t border-border px-6 py-3"
+                    class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-3"
                 >
-                    <p class="font-sans text-[13px] text-ink-secondary">
-                        {{ users.current_page }} / {{ users.last_page }}
-                    </p>
-                    <div class="flex gap-2">
+                    <div
+                        class="flex items-center gap-3 font-sans text-[13px] text-ink-secondary"
+                    >
+                        <span>
+                            {{
+                                $t('super_admin.users.total_count', {
+                                    count: users.total,
+                                })
+                            }}
+                        </span>
+                        <label class="flex items-center gap-1.5">
+                            <span class="text-ink-tertiary">
+                                {{ $t('super_admin.users.per_page_label') }}
+                            </span>
+                            <select
+                                v-model="perPage"
+                                class="rounded-md border border-border-strong bg-surface px-2 py-1 text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                            >
+                                <option
+                                    v-for="opt in PER_PAGE_OPTIONS"
+                                    :key="opt"
+                                    :value="opt"
+                                >
+                                    {{
+                                        opt === 'all'
+                                            ? $t('super_admin.users.per_page_all')
+                                            : opt
+                                    }}
+                                </option>
+                            </select>
+                        </label>
+                    </div>
+                    <div v-if="users.last_page > 1" class="flex items-center gap-2">
+                        <span class="font-sans text-[13px] text-ink-secondary">
+                            {{ users.current_page }} / {{ users.last_page }}
+                        </span>
                         <Link
                             v-if="users.prev_page_url"
                             :href="users.prev_page_url"

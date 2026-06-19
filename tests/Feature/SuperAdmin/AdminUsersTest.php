@@ -305,7 +305,7 @@ class AdminUsersTest extends TestCase
             );
     }
 
-    public function test_inventory_counts_aggregate_across_the_users_businesses_ignoring_tenant_scope(): void
+    public function test_inventory_counts_reflect_the_primary_business_ignoring_tenant_scope(): void
     {
         $user = User::factory()->create(['name' => 'Inventory Holder Qx']);
         $this->giveInventory($user, skus: 2, bagsEach: 3); // 2 SKUs, 6 bags total
@@ -317,6 +317,51 @@ class AdminUsersTest extends TestCase
                 ->has('users.data', 1)
                 ->where('users.data.0.inventory_skus_count', 2)
                 ->where('users.data.0.inventory_bags_total', 6)
+            );
+    }
+
+    public function test_inventory_uses_the_owned_business_not_every_business(): void
+    {
+        $user = User::factory()->create(['name' => 'Multi Biz Qx']);
+
+        // Owned (primary) business: 2 SKUs, 6 bags.
+        $this->giveInventory($user, skus: 2, bagsEach: 3);
+
+        // A second business they merely belong to, with more stock — must be ignored.
+        $other = Business::factory()->create();
+        Membership::create([
+            'user_id' => $user->id,
+            'business_id' => $other->id,
+            'role' => 'staff',
+            'joined_at' => now()->subDay(),
+        ]);
+        for ($i = 0; $i < 5; $i++) {
+            StockLevel::factory()->create([
+                'business_id' => $other->id,
+                'sku_id' => Sku::factory()->create()->id,
+                'full_bags' => 10,
+                'open_bags' => 0,
+            ]);
+        }
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.users.index', ['search' => 'Multi Biz Qx']))
+            ->assertInertia(fn ($page) => $page
+                ->where('users.data.0.inventory_skus_count', 2)
+                ->where('users.data.0.inventory_bags_total', 6)
+            );
+    }
+
+    public function test_per_page_all_returns_every_user_on_one_page(): void
+    {
+        User::factory()->count(3)->create();
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('super-admin.users.index', ['per_page' => 'all']))
+            ->assertInertia(fn ($page) => $page
+                ->where('users.current_page', 1)
+                ->where('users.last_page', 1)
+                ->where('filters.per_page', 'all')
             );
     }
 
@@ -389,9 +434,9 @@ class AdminUsersTest extends TestCase
         $this->assertNull($this->siteAdmin->fresh()->frozen_at);
     }
 
-    public function test_a_frozen_user_cannot_log_in(): void
+    public function test_a_frozen_user_can_still_log_in(): void
     {
-        $user = User::factory()->create([
+        User::factory()->create([
             'email' => 'frozen@example.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -401,21 +446,35 @@ class AdminUsersTest extends TestCase
         $this->post(route('login'), [
             'email' => 'frozen@example.com',
             'password' => 'password',
-        ])->assertSessionHasErrors('email');
+        ])->assertSessionHasNoErrors();
 
-        $this->assertGuest();
+        $this->assertAuthenticated();
     }
 
-    public function test_a_frozen_user_with_an_active_session_is_ejected(): void
+    public function test_a_frozen_user_is_redirected_to_their_account_from_app_routes(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+            'frozen_at' => now(),
+        ]);
+        // Account is business-gated, so give the frozen user a business.
+        Membership::create([
+            'user_id' => $user->id,
+            'business_id' => Business::factory()->create()->id,
+            'role' => 'owner',
+            'joined_at' => now(),
+        ]);
 
-        // Already logged in, then frozen mid-session.
-        $this->actingAs($user);
-        $user->forceFill(['frozen_at' => now()])->save();
+        // Any non-allowlisted route bounces to the account page (no logout).
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('account.index'));
+        $this->assertAuthenticated();
 
-        $this->get(route('dashboard'))->assertRedirect(route('login'));
-        $this->assertGuest();
+        // The account page itself is reachable.
+        $this->actingAs($user)
+            ->get(route('account.index'))
+            ->assertOk();
     }
 
     // -------------------------------------------------------------------------

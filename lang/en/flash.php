@@ -49,6 +49,7 @@ return [
         'reset_sent' => 'Password reset link sent to :email.',
         'reset_failed' => 'Could not send a reset link to that address.',
         'deleted' => ':name’s account has been deleted.',
+        'frozen_notice' => 'Your account is limited right now. Contact support to restore full access.',
     ],
 
     'email_template' => [

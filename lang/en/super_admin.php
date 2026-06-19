@@ -4,6 +4,7 @@ return [
     'dashboard' => [
         'meta_title' => 'Admin',
         'heading' => 'Dashboard',
+        'back' => 'Admin Dashboard',
 
         'nav' => [
             'overview' => 'Overview',

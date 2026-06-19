@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminBackLink from '@/Components/AdminBackLink.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
@@ -210,33 +211,36 @@ const selectClass =
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center gap-3">
-                <Link
-                    :href="
-                        isEdit
-                            ? route('admin.catalog.skus.show', sku.id)
-                            : route('admin.catalog.skus')
-                    "
-                    class="font-sans text-[14px] text-ink-secondary hover:text-ink-primary"
-                >
-                    {{
-                        isEdit
-                            ? sku.name
-                            : $t('catalog.sku_form.back_to_catalog')
-                    }}
-                </Link>
-                <span class="text-ink-tertiary">/</span>
-                <h1
-                    class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
-                >
-                    {{
-                        isEdit
-                            ? $t('catalog.sku_form.heading_edit', {
-                                  name: sku.name,
-                              })
-                            : $t('catalog.sku_form.heading_new')
-                    }}
-                </h1>
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <Link
+                        :href="
+                            isEdit
+                                ? route('admin.catalog.skus.show', sku.id)
+                                : route('admin.catalog.skus')
+                        "
+                        class="font-sans text-[14px] text-ink-secondary hover:text-ink-primary"
+                    >
+                        {{
+                            isEdit
+                                ? sku.name
+                                : $t('catalog.sku_form.back_to_catalog')
+                        }}
+                    </Link>
+                    <span class="text-ink-tertiary">/</span>
+                    <h1
+                        class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+                    >
+                        {{
+                            isEdit
+                                ? $t('catalog.sku_form.heading_edit', {
+                                      name: sku.name,
+                                  })
+                                : $t('catalog.sku_form.heading_new')
+                        }}
+                    </h1>
+                </div>
+                <AdminBackLink />
             </div>
         </template>
 

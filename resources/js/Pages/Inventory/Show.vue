@@ -29,9 +29,29 @@ const backHref = computed(
     () => route('inventory.index') + props.returnQuery + '#sku-' + props.sku.id,
 );
 
-// Prefer the SKU's own photo; the controller already falls back to the color's.
-const productImage = computed(
-    () => props.sku.images?.single || props.sku.images?.cluster || null,
+// Photos available for this SKU (the controller falls back to the color's image
+// when the SKU has none). Single is the primary; any others are swap thumbnails.
+const galleryImages = computed(() => {
+    const imgs = props.sku.images ?? {};
+    return [
+        { url: imgs.single, label: trans('inventory.show.image_single') },
+        { url: imgs.cluster, label: trans('inventory.show.image_cluster') },
+    ].filter((img) => img.url);
+});
+
+const activeImage = ref(null);
+
+// Default to the primary image, and keep the selection valid when navigating
+// between SKUs (the component instance is reused, so props change in place).
+watch(
+    galleryImages,
+    (imgs) => {
+        const urls = imgs.map((img) => img.url);
+        if (!urls.includes(activeImage.value)) {
+            activeImage.value = urls[0] ?? null;
+        }
+    },
+    { immediate: true },
 );
 
 const displayName = computed(
@@ -359,12 +379,42 @@ function formatDate(value) {
                     <div
                         class="rounded-lg border border-border bg-surface p-4 lg:sticky lg:top-4"
                     >
-                        <img
-                            v-if="productImage"
-                            :src="productImage"
-                            :alt="$t('inventory.show.image_alt', { name: sku.name })"
-                            class="mb-4 h-40 w-full rounded-md object-contain ring-1 ring-inset ring-border"
-                        />
+                        <div v-if="galleryImages.length" class="mb-4">
+                            <img
+                                :src="activeImage"
+                                :alt="
+                                    $t('inventory.show.image_alt', {
+                                        name: sku.name,
+                                    })
+                                "
+                                class="h-40 w-full rounded-md object-contain ring-1 ring-inset ring-border"
+                            />
+                            <div
+                                v-if="galleryImages.length > 1"
+                                class="mt-2 flex gap-2"
+                            >
+                                <button
+                                    v-for="img in galleryImages"
+                                    :key="img.url"
+                                    type="button"
+                                    :aria-label="img.label"
+                                    :aria-pressed="img.url === activeImage"
+                                    class="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-surface transition"
+                                    :class="
+                                        img.url === activeImage
+                                            ? 'ring-2 ring-accent'
+                                            : 'ring-1 ring-inset ring-border hover:ring-border-strong'
+                                    "
+                                    @click="activeImage = img.url"
+                                >
+                                    <img
+                                        :src="img.url"
+                                        :alt="img.label"
+                                        class="h-full w-full object-contain"
+                                    />
+                                </button>
+                            </div>
+                        </div>
                         <h2
                             class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >

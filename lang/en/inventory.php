@@ -94,6 +94,8 @@ return [
         'history_show_less' => 'Show less',
 
         'image_alt' => ':name product photo',
+        'image_single' => 'Single',
+        'image_cluster' => 'Cluster',
 
         'customize_add' => 'Add a custom name, color or notes',
         'customize_edit' => 'Edit customizations',

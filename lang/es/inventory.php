@@ -94,6 +94,8 @@ return [
         'history_show_less' => 'Mostrar menos',
 
         'image_alt' => 'Foto del producto :name',
+        'image_single' => 'Individual',
+        'image_cluster' => 'Racimo',
 
         'customize_add' => 'Agregar un nombre, color o notas personalizados',
         'customize_edit' => 'Editar personalizaciones',

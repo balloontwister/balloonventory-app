@@ -42,5 +42,10 @@ return [
             'status_free_beta' => 'Beta gratis',
             'footnote' => 'Gestión de planes y facturación próximamente.',
         ],
+        'setup_again' => [
+            'heading' => 'Configurar la tienda otra vez',
+            'subheading' => 'Vuelve a ejecutar la configuración guiada para actualizar el inventario inicial, los contenedores y las preferencias.',
+            'button' => 'Configurar mi tienda otra vez',
+        ],
     ],
 ];

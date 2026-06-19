@@ -5,7 +5,7 @@ import ImageUpload from '@/Components/ImageUpload.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -233,6 +233,27 @@ const submitLogo = () =>
                 <p class="mt-3 font-sans text-[12px] text-ink-tertiary">
                     {{ $t('settings.businesses.subscription.footnote') }}
                 </p>
+            </div>
+
+            <!-- ── Set up shop again (owners/managers only) ──────────────── -->
+            <div
+                v-if="canEditSettings"
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('settings.businesses.setup_again.heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('settings.businesses.setup_again.subheading') }}
+                </p>
+                <Link
+                    :href="route('onboarding.wizard')"
+                    class="mt-4 inline-flex items-center rounded-md border border-border-strong bg-surface px-4 py-2 font-sans text-[14px] font-semibold text-ink-primary transition hover:bg-background"
+                >
+                    {{ $t('settings.businesses.setup_again.button') }}
+                </Link>
             </div>
         </div>
     </AuthenticatedLayout>

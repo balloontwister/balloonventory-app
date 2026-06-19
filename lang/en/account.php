@@ -29,6 +29,4 @@ return [
             'label' => 'Log out',
         ],
     ],
-
-    'setup_again' => 'Set up my shop again',
 ];

@@ -62,6 +62,22 @@ watch(search, () => {
 
 watch([status, perPage], navigate);
 
+// Page size persists across visits (like column choices). Save on change, and
+// on a fresh visit (no ?per_page= in the URL) restore the saved preference.
+const PERPAGE_KEY = 'users.table.perPage';
+watch(perPage, (v) => localStorage.setItem(PERPAGE_KEY, v));
+
+onMounted(() => {
+    const urlHasPerPage = new URLSearchParams(window.location.search).has(
+        'per_page',
+    );
+    if (urlHasPerPage) return;
+    const saved = localStorage.getItem(PERPAGE_KEY);
+    if (saved && PER_PAGE_OPTIONS.includes(saved) && saved !== perPage.value) {
+        perPage.value = saved; // triggers navigate()
+    }
+});
+
 // ── Column visibility (remembered per browser) ────────────────────────────────
 const TOGGLEABLE = [
     'email',

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StockDirection;
+use App\Models\BarcodeLinkAudit;
 use App\Models\Bin;
 use App\Models\Business;
 use App\Models\Sku;
@@ -205,6 +206,14 @@ class ScanController extends Controller
 
         $digits = Gtin::digitsOnly($data['barcode']);
 
+        // A US UPC-A scanned by a phone camera comes back as a 13-digit EAN-13
+        // with a leading zero (GS1 prefixes 0-09 are the UPC-A namespace).
+        // Collapse it back to its 12-digit UPC-A form so it's stored in `upc`,
+        // not `ean`. The mod-10 check digit is unchanged by the leading zero.
+        if (strlen($digits) === 13 && str_starts_with($digits, '0')) {
+            $digits = substr($digits, 1);
+        }
+
         if (strlen($digits) < 8 || ! Gtin::isValidCheckDigit($digits)) {
             throw ValidationException::withMessages([
                 'barcode' => __('scan.link.invalid_barcode'),
@@ -234,6 +243,17 @@ class ScanController extends Controller
 
         $sku->{$column} = $digits;
         $sku->save();
+
+        // Append-only audit trail. Any business user can write a barcode onto a
+        // shared catalog row, so record who linked what for admin review.
+        BarcodeLinkAudit::create([
+            'business_id' => $businessId,
+            'user_id' => $request->user()->id,
+            'sku_id' => $sku->id,
+            'sku_name' => $sku->name,
+            'barcode' => $digits,
+            'field' => $column,
+        ]);
 
         return response()->json([
             'linked' => true,

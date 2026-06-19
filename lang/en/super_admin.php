@@ -11,7 +11,22 @@ return [
             'support_tickets' => 'Support Tickets',
             'catalog' => 'Catalog',
             'users' => 'Users',
+            'barcode_log' => 'Barcode log',
             'backups' => 'Backups',
+        ],
+
+        'barcode_audits' => [
+            'meta_title' => 'Barcode link log',
+            'heading' => 'Barcode link log',
+            'subheading' => 'Every barcode a user has linked to a catalog product from the scan page.',
+            'search_placeholder' => 'Search barcode or product…',
+            'col_when' => 'When',
+            'col_user' => 'User',
+            'col_business' => 'Business',
+            'col_product' => 'Product',
+            'col_barcode' => 'Barcode',
+            'col_field' => 'Field',
+            'empty' => 'No barcodes have been linked yet.',
         ],
 
         'overview_heading' => 'Overview',

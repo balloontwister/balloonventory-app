@@ -15,6 +15,7 @@ use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SuperAdmin\AdminUserController;
 use App\Http\Controllers\SuperAdmin\BackupController;
+use App\Http\Controllers\SuperAdmin\BarcodeAuditController;
 use App\Http\Controllers\SuperAdmin\CatalogBrandController;
 use App\Http\Controllers\SuperAdmin\CatalogColorController;
 use App\Http\Controllers\SuperAdmin\CatalogController;
@@ -170,6 +171,9 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::patch('/super-admin/tickets/{ticket}/archive', [SupportTicketController::class, 'archive'])->name('super-admin.tickets.archive');
     Route::patch('/super-admin/tickets/{ticket}/unarchive', [SupportTicketController::class, 'unarchive'])->name('super-admin.tickets.unarchive');
     Route::delete('/super-admin/tickets/{ticket}', [SupportTicketController::class, 'destroy'])->name('super-admin.tickets.destroy');
+
+    // ── Barcode link audit log ────────────────────────────────────────────────
+    Route::get('/super-admin/barcode-audits', [BarcodeAuditController::class, 'index'])->name('super-admin.barcode-audits.index');
 
     // ── Database backups ──────────────────────────────────────────────────────
     Route::get('/super-admin/backups', [BackupController::class, 'index'])->name('super-admin.backups.index');

@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
@@ -92,27 +92,31 @@ function formatDate(val) {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="mb-1 text-sm text-ink-tertiary">
-                        <a
-                            :href="route('admin.dashboard')"
-                            class="hover:underline"
-                        >
-                            {{ $t('super_admin.backups.back') }}
-                        </a>
-                    </p>
-                    <h1 class="text-2xl font-bold text-ink-primary">
-                        {{ $t('super_admin.backups.heading') }}
-                    </h1>
-                    <p class="mt-1 text-sm text-ink-secondary">
-                        {{ $t('super_admin.backups.description') }}
-                    </p>
-                </div>
+            <div class="flex items-center justify-between gap-4">
+                <h1
+                    class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+                >
+                    {{ $t('super_admin.backups.heading') }}
+                </h1>
+                <Link
+                    :href="route('admin.dashboard')"
+                    class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
+                >
+                    {{ $t('super_admin.dashboard.nav.overview') }}
+                </Link>
+            </div>
+        </template>
+
+        <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+            <!-- Description + Backup Now -->
+            <div class="mb-6 flex items-start justify-between gap-4">
+                <p class="text-sm text-ink-secondary">
+                    {{ $t('super_admin.backups.description') }}
+                </p>
 
                 <button
                     :disabled="runningBackup"
-                    class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:opacity-60"
+                    class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:opacity-60"
                     @click="runBackup"
                 >
                     <svg
@@ -134,9 +138,7 @@ function formatDate(val) {
                     }}
                 </button>
             </div>
-        </template>
 
-        <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
             <!-- Empty state -->
             <div
                 v-if="backups.length === 0"

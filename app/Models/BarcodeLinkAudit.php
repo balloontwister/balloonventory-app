@@ -29,12 +29,15 @@ class BarcodeLinkAudit extends Model
         'barcode',
         'field',
         'created_at',
+        'reverted_at',
+        'reverted_by_user_id',
     ];
 
     protected function casts(): array
     {
         return [
             'created_at' => 'datetime',
+            'reverted_at' => 'datetime',
         ];
     }
 
@@ -55,6 +58,11 @@ class BarcodeLinkAudit extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function revertedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reverted_by_user_id');
     }
 
     public function business(): BelongsTo

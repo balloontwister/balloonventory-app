@@ -177,11 +177,11 @@ function submit() {
     // forceFormData so file uploads are sent as multipart. Inertia v2 handles
     // the _method spoofing for PATCH internally when using useForm.
     if (isEdit.value) {
-        form.patch(route('super-admin.catalog.skus.update', props.sku.id), {
+        form.patch(route('admin.catalog.skus.update', props.sku.id), {
             forceFormData: true,
         });
     } else {
-        form.post(route('super-admin.catalog.skus.store'), {
+        form.post(route('admin.catalog.skus.store'), {
             forceFormData: true,
         });
     }
@@ -214,8 +214,8 @@ const selectClass =
                 <Link
                     :href="
                         isEdit
-                            ? route('super-admin.catalog.skus.show', sku.id)
-                            : route('super-admin.catalog.skus')
+                            ? route('admin.catalog.skus.show', sku.id)
+                            : route('admin.catalog.skus')
                     "
                     class="font-sans text-[14px] text-ink-secondary hover:text-ink-primary"
                 >
@@ -913,10 +913,10 @@ const selectClass =
                             :href="
                                 isEdit
                                     ? route(
-                                          'super-admin.catalog.skus.show',
+                                          'admin.catalog.skus.show',
                                           sku.id,
                                       )
-                                    : route('super-admin.catalog.skus')
+                                    : route('admin.catalog.skus')
                             "
                         >
                             <AppButton

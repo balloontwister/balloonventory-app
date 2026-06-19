@@ -2,18 +2,42 @@
 
 return [
     'dashboard' => [
-        'meta_title' => 'Super Admin',
-        'heading' => 'Super Admin',
+        'meta_title' => 'Admin',
+        'heading' => 'Panel',
 
         'nav' => [
             'overview' => 'Vista general',
             'email_templates' => 'Plantillas de correo',
+            'email' => 'Correo',
             'support_tickets' => 'Tickets de soporte',
             'catalog' => 'Catálogo',
             'users' => 'Usuarios',
             'barcode_log' => 'Registro de códigos',
             'feedback' => 'Comentarios de artículos',
             'backups' => 'Copias de seguridad',
+            'subscriptions' => 'Suscripciones',
+            'payments' => 'Pagos y libro mayor',
+            'affiliates' => 'Afiliados',
+        ],
+
+        'cards' => [
+            'users_title' => 'Usuarios',
+            'users_label' => 'en total',
+            'users_new' => ':count nuevos esta semana',
+            'users_frozen' => ':count congelados',
+            'catalog_title' => 'Catálogo',
+            'catalog_label' => 'SKUs compartidos',
+            'feedback_title' => 'Comentarios de artículos',
+            'open_label' => 'abiertos',
+            'tickets_title' => 'Tickets de soporte',
+            'barcode_title' => 'Registro de códigos',
+            'barcode_label' => 'enlaces activos',
+            'barcode_recent' => ':count enlazados esta semana',
+            'email_title' => 'Correo',
+            'email_label' => 'enviados · 30 días',
+            'email_today' => ':count enviados hoy',
+            'backups_title' => 'Copias de seguridad',
+            'backups_desc' => 'Crea y restaura copias de la base de datos',
         ],
 
         'barcode_audits' => [
@@ -246,7 +270,7 @@ return [
 
     'email_templates' => [
         'meta_title' => 'Editar · :label',
-        'back_to_super_admin' => '← Super Admin',
+        'back_to_super_admin' => '← Correo',
         'status_live' => 'Activa',
         'status_draft' => 'Borrador',
         'errors_banner' => 'Corrige los errores a continuación antes de guardar.',
@@ -283,5 +307,13 @@ return [
             'preview' => 'La vista previa se envía al correo de tu cuenta con los valores de ejemplo a la derecha.',
             'activate' => 'Activa solo cuando ambos cuerpos estén completos y todos los tokens sean reconocidos.',
         ],
+    ],
+
+    'coming_soon' => [
+        'badge' => 'Pronto',
+        'heading' => 'Próximamente',
+        'subscriptions' => 'Aquí vivirán los planes, pruebas y la gestión de suscripciones.',
+        'payments' => 'Aquí vivirán el historial de pagos y el libro mayor de ingresos.',
+        'affiliates' => 'Aquí vivirán los socios de referidos y los pagos.',
     ],
 ];

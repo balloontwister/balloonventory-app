@@ -40,7 +40,7 @@ class CatalogColorShowTest extends TestCase
         $color = Color::where('name', 'Turquoise')->firstOrFail();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.colors.show', $color))
+            ->get(route('admin.catalog.colors.show', $color))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -57,7 +57,7 @@ class CatalogColorShowTest extends TestCase
         $color = Color::where('name', 'Coral')->firstOrFail();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.colors.show', $color))
+            ->get(route('admin.catalog.colors.show', $color))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -72,7 +72,7 @@ class CatalogColorShowTest extends TestCase
     {
         $color = Color::where('name', 'Turquoise')->firstOrFail();
 
-        $this->get(route('super-admin.catalog.colors.show', $color))
+        $this->get(route('admin.catalog.colors.show', $color))
             ->assertRedirect(route('login'));
     }
 
@@ -81,7 +81,7 @@ class CatalogColorShowTest extends TestCase
         $color = Color::where('name', 'Turquoise')->firstOrFail();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.colors.edit', $color))
+            ->get(route('admin.catalog.colors.edit', $color))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -98,7 +98,7 @@ class CatalogColorShowTest extends TestCase
         $color = Color::where('name', 'Turquoise')->firstOrFail();
 
         $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.colors.update', $color), [
+            ->patch(route('admin.catalog.colors.update', $color), [
                 'name' => 'Turquoise',
                 'color_family_id' => $color->color_family_id,
                 'brand_id' => $color->brand_id,
@@ -106,7 +106,7 @@ class CatalogColorShowTest extends TestCase
                 'color_hex' => '#009EC4',
                 'sort_order' => $color->sort_order,
             ])
-            ->assertRedirect(route('super-admin.catalog.colors.show', $color));
+            ->assertRedirect(route('admin.catalog.colors.show', $color));
     }
 
     public function test_colors_index_includes_show_route_data(): void
@@ -114,7 +114,7 @@ class CatalogColorShowTest extends TestCase
         $color = Color::where('name', 'Turquoise')->firstOrFail();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.colors'))
+            ->get(route('admin.catalog.colors'))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -124,7 +124,7 @@ class CatalogColorShowTest extends TestCase
 
         // Verify the show route resolves for this color.
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.colors.show', $color))
+            ->get(route('admin.catalog.colors.show', $color))
             ->assertOk();
     }
 }

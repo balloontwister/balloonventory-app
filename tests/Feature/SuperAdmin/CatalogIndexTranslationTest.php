@@ -43,7 +43,7 @@ class CatalogIndexTranslationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus'));
+            ->get(route('admin.catalog.skus'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -77,7 +77,7 @@ class CatalogIndexTranslationTest extends TestCase
         $this->app->setLocale('es');
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus'));
+            ->get(route('admin.catalog.skus'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -100,7 +100,7 @@ class CatalogIndexTranslationTest extends TestCase
         $this->app->setLocale('es');
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus'));
+            ->get(route('admin.catalog.skus'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page

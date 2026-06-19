@@ -2,18 +2,42 @@
 
 return [
     'dashboard' => [
-        'meta_title' => 'Super Admin',
-        'heading' => 'Super Admin',
+        'meta_title' => 'Admin',
+        'heading' => 'Dashboard',
 
         'nav' => [
             'overview' => 'Overview',
             'email_templates' => 'Email Templates',
+            'email' => 'Email',
             'support_tickets' => 'Support Tickets',
             'catalog' => 'Catalog',
             'users' => 'Users',
             'barcode_log' => 'Barcode log',
             'feedback' => 'Item feedback',
             'backups' => 'Backups',
+            'subscriptions' => 'Subscriptions',
+            'payments' => 'Payments & Ledger',
+            'affiliates' => 'Affiliates',
+        ],
+
+        'cards' => [
+            'users_title' => 'Users',
+            'users_label' => 'total',
+            'users_new' => ':count new this week',
+            'users_frozen' => ':count frozen',
+            'catalog_title' => 'Catalog',
+            'catalog_label' => 'shared SKUs',
+            'feedback_title' => 'Item feedback',
+            'open_label' => 'open',
+            'tickets_title' => 'Support tickets',
+            'barcode_title' => 'Barcode log',
+            'barcode_label' => 'active links',
+            'barcode_recent' => ':count linked this week',
+            'email_title' => 'Email',
+            'email_label' => 'sent · 30 days',
+            'email_today' => ':count sent today',
+            'backups_title' => 'Backups',
+            'backups_desc' => 'Create and restore database backups',
         ],
 
         'barcode_audits' => [
@@ -246,7 +270,7 @@ return [
 
     'email_templates' => [
         'meta_title' => 'Edit · :label',
-        'back_to_super_admin' => '← Super Admin',
+        'back_to_super_admin' => '← Email',
         'status_live' => 'Live',
         'status_draft' => 'Draft',
         'errors_banner' => 'Fix the errors below before saving.',
@@ -283,5 +307,13 @@ return [
             'preview' => 'Preview send uses your account email with sample values listed at right.',
             'activate' => 'Activate only when both bodies are filled in and all tokens are recognised.',
         ],
+    ],
+
+    'coming_soon' => [
+        'badge' => 'Soon',
+        'heading' => 'Coming soon',
+        'subscriptions' => 'Plans, trials, and subscription management will live here.',
+        'payments' => 'Payment history and the revenue ledger will live here.',
+        'affiliates' => 'Referral partners and payouts will live here.',
     ],
 ];

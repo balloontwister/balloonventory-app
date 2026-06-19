@@ -315,7 +315,7 @@ function logout() {
                 <!-- Super Admin (gated) -->
                 <Link
                     v-if="isAnyAdmin"
-                    :href="route('super-admin.dashboard')"
+                    :href="route('admin.dashboard')"
                     class="flex items-center gap-3 border-t border-border px-4 py-3 transition hover:bg-background"
                 >
                     <span

@@ -203,7 +203,7 @@ class CatalogController extends Controller
 
         $this->syncImages($request, $sku);
 
-        return redirect()->route('super-admin.catalog.skus.show', $sku)
+        return redirect()->route('admin.catalog.skus.show', $sku)
             ->with('success', __('flash.catalog.sku.created', ['name' => $sku->name]));
     }
 
@@ -327,7 +327,7 @@ class CatalogController extends Controller
 
         $this->syncImages($request, $sku);
 
-        return redirect()->route('super-admin.catalog.skus.show', $sku)
+        return redirect()->route('admin.catalog.skus.show', $sku)
             ->with('success', __('flash.catalog.sku.updated', ['name' => $sku->name]));
     }
 
@@ -348,7 +348,7 @@ class CatalogController extends Controller
 
         $sku->delete();
 
-        return redirect()->route('super-admin.catalog.skus')
+        return redirect()->route('admin.catalog.skus')
             ->with('success', __('flash.catalog.sku.deleted'));
     }
 

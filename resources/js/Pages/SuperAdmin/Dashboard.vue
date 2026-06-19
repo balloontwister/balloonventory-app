@@ -1,186 +1,44 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import AdminCard from '@/Components/AdminCard.vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 
 const props = defineProps({
-    stats: { type: Object, required: true },
-    recentUsers: { type: Array, required: true },
-    recentlyActive: { type: Array, required: true },
-    pendingVerification: { type: Array, required: true },
-    recentlyPruned: { type: Array, required: true },
-    emailByDay: { type: Array, required: true },
-    emailByMonth: { type: Array, required: true },
-    emailTemplates: { type: Array, required: true },
-    supportTickets: { type: Array, required: true },
-    showArchivedTickets: { type: Boolean, default: false },
+    summary: { type: Object, required: true },
 });
 
-// ── Ticket actions ────────────────────────────────────────────────────────────
-const replyingTo = ref(null);
-const replyBody = ref('');
-const replyProcessing = ref(false);
-const confirmingDelete = ref(null);
+const page = usePage();
+const isSuperAdmin = computed(() => page.props.auth?.isSuperAdmin ?? false);
 
-function openReply(ticketId) {
-    replyingTo.value = ticketId;
-    replyBody.value = '';
-    confirmingDelete.value = null;
-}
+const s = props.summary;
 
-function cancelReply() {
-    replyingTo.value = null;
-    replyBody.value = '';
-}
-
-function submitReply(ticket) {
-    replyProcessing.value = true;
-    router.post(
-        route('super-admin.tickets.reply', ticket.id),
-        { body: replyBody.value },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                replyingTo.value = null;
-                replyBody.value = '';
-                replyProcessing.value = false;
-            },
-            onError: () => {
-                replyProcessing.value = false;
-            },
-        },
-    );
-}
-
-function archiveTicket(ticket) {
-    router.patch(
-        route('super-admin.tickets.archive', ticket.id),
-        {},
-        { preserveScroll: true },
-    );
-}
-
-function unarchiveTicket(ticket) {
-    router.patch(
-        route('super-admin.tickets.unarchive', ticket.id),
-        {},
-        { preserveScroll: true },
-    );
-}
-
-function confirmDelete(ticketId) {
-    confirmingDelete.value = ticketId;
-    replyingTo.value = null;
-}
-
-function cancelDelete() {
-    confirmingDelete.value = null;
-}
-
-function destroyTicket(ticket) {
-    router.delete(route('super-admin.tickets.destroy', ticket.id), {
-        preserveScroll: true,
-    });
-    confirmingDelete.value = null;
-}
-
-function toggleArchived() {
-    router.get(
-        route('super-admin.dashboard'),
-        { showArchived: !props.showArchivedTickets },
-        { preserveScroll: true, preserveState: false },
-    );
-}
-
-const emailDailyTotals = computed(() => {
-    const map = {};
-    for (const row of props.emailByDay) {
-        map[row.date] = (map[row.date] ?? 0) + row.count;
+const usersLines = computed(() => {
+    const lines = [
+        trans('super_admin.dashboard.cards.users_new', {
+            count: s.users.new_7d,
+        }),
+    ];
+    if (s.users.frozen > 0) {
+        lines.push(
+            trans('super_admin.dashboard.cards.users_frozen', {
+                count: s.users.frozen,
+            }),
+        );
     }
-    return Object.entries(map)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, count]) => ({ date, count }));
+    return lines;
 });
 
-const emailMonthlyTotals = computed(() => {
-    const map = {};
-    for (const row of props.emailByMonth) {
-        map[row.month] = (map[row.month] ?? 0) + row.count;
-    }
-    return Object.entries(map)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([month, count]) => ({ month, count }));
-});
+const barcodeLines = computed(() => [
+    trans('super_admin.dashboard.cards.barcode_recent', {
+        count: s.barcode.recent,
+    }),
+]);
 
-function formatDate(val) {
-    if (!val) return '—';
-    return new Date(val).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
-}
-
-function formatDateTime(val) {
-    if (!val) return '—';
-    return new Date(val).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-    });
-}
-
-function formatMonth(val) {
-    const [year, month] = val.split('-');
-    return new Date(year, month - 1).toLocaleDateString('en-US', {
-        month: 'short',
-        year: 'numeric',
-    });
-}
-
-// Section nav — labels resolve via $t() in the template using these keys.
-const navItems = [
-    { id: 'overview', labelKey: 'super_admin.dashboard.nav.overview' },
-    {
-        id: 'email-templates',
-        labelKey: 'super_admin.dashboard.nav.email_templates',
-    },
-    {
-        id: 'support-tickets',
-        labelKey: 'super_admin.dashboard.nav.support_tickets',
-    },
-    { id: 'catalog', labelKey: 'super_admin.dashboard.nav.catalog' },
-    { id: 'users', labelKey: 'super_admin.dashboard.nav.users' },
-];
-
-const activeSection = ref('overview');
-let observer = null;
-
-onMounted(() => {
-    observer = new IntersectionObserver(
-        (entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) {
-                    activeSection.value = entry.target.id;
-                }
-            }
-        },
-        { rootMargin: '-30% 0px -60% 0px' },
-    );
-    for (const item of navItems) {
-        const el = document.getElementById(item.id);
-        if (el) observer.observe(el);
-    }
-});
-
-onUnmounted(() => observer?.disconnect());
-
-function scrollToSection(id) {
-    document
-        .getElementById(id)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+const emailLines = computed(() => [
+    trans('super_admin.dashboard.cards.email_today', { count: s.email.today }),
+]);
 </script>
 
 <template>
@@ -188,975 +46,169 @@ function scrollToSection(id) {
 
     <AuthenticatedLayout>
         <template #header>
-            <!-- Title flush-left, section nav centered, spacer mirrors title col for balance -->
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-                <h1
-                    class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
-                >
-                    {{ $t('super_admin.dashboard.heading') }}
-                </h1>
-                <nav class="flex gap-1">
-                    <button
-                        v-for="item in navItems"
-                        :key="item.id"
-                        type="button"
-                        class="rounded-md px-3 py-1.5 font-sans text-[13px] font-medium transition"
-                        :class="
-                            activeSection === item.id
-                                ? 'bg-accent-soft text-accent'
-                                : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
-                        "
-                        @click="scrollToSection(item.id)"
-                    >
-                        {{ $t(item.labelKey) }}
-                    </button>
-                </nav>
-                <div />
-            </div>
+            <h1
+                class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+            >
+                {{ $t('super_admin.dashboard.heading') }}
+            </h1>
         </template>
 
-        <div class="flex flex-col gap-12 py-2">
-            <!-- ══ Overview ════════════════════════════════════════════════ -->
-            <section id="overview" class="flex scroll-mt-6 flex-col gap-6">
-                <h2
-                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+        <div class="py-2">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <!-- Users -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.users_title')"
+                    :href="route('admin.users.index')"
+                    :stat="s.users.total"
+                    :stat-label="$t('super_admin.dashboard.cards.users_label')"
+                    :lines="usersLines"
                 >
-                    {{ $t('super_admin.dashboard.overview_heading') }}
-                </h2>
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 17a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                <!-- Key stats -->
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div
-                        v-for="stat in [
-                            {
-                                key: 'total_users',
-                                value: stats.total_users,
-                            },
-                            { key: 'verified', value: stats.verified_users },
-                            {
-                                key: 'unverified',
-                                value: stats.unverified_users,
-                            },
-                            { key: 'new_7d', value: stats.new_users_7d },
-                            { key: 'new_30d', value: stats.new_users_30d },
-                            { key: 'shared_skus', value: stats.shared_skus },
-                            {
-                                key: 'emails_today',
-                                value: stats.emails_sent_today,
-                            },
-                            { key: 'emails_30d', value: stats.emails_sent_30d },
-                        ]"
-                        :key="stat.key"
-                        class="rounded-lg border border-border bg-surface p-4"
-                    >
-                        <p class="font-sans text-[12px] text-ink-secondary">
-                            {{ $t(`super_admin.dashboard.stats.${stat.key}`) }}
-                        </p>
-                        <p
-                            class="mt-1 font-display text-[28px] font-semibold text-ink-primary"
-                        >
-                            {{ stat.value }}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Email volume: last 30 days -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <h3
-                        class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{ $t('super_admin.dashboard.email_30d_heading') }}
-                    </h3>
-                    <div
-                        v-if="emailDailyTotals.length === 0"
-                        class="mt-4 font-sans text-[13px] text-ink-secondary"
-                    >
-                        {{ $t('super_admin.dashboard.email_empty') }}
-                    </div>
-                    <div v-else class="mt-4 overflow-x-auto">
-                        <table class="w-full font-sans text-[13px]">
-                            <thead>
-                                <tr
-                                    class="border-b border-border text-left text-ink-secondary"
-                                >
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t('super_admin.dashboard.col_date')
-                                        }}
-                                    </th>
-                                    <th class="pb-2 text-right font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_emails_sent',
-                                            )
-                                        }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="row in emailDailyTotals"
-                                    :key="row.date"
-                                    class="border-border/50 border-b last:border-0"
-                                >
-                                    <td class="py-1.5 text-ink-primary">
-                                        {{ formatDate(row.date) }}
-                                    </td>
-                                    <td
-                                        class="py-1.5 text-right tabular-nums text-ink-primary"
-                                    >
-                                        {{ row.count }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Email volume: by month -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <h3
-                        class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{ $t('super_admin.dashboard.email_month_heading') }}
-                    </h3>
-                    <div
-                        v-if="emailMonthlyTotals.length === 0"
-                        class="mt-4 font-sans text-[13px] text-ink-secondary"
-                    >
-                        {{ $t('super_admin.dashboard.email_empty') }}
-                    </div>
-                    <div v-else class="mt-4 overflow-x-auto">
-                        <table class="w-full font-sans text-[13px]">
-                            <thead>
-                                <tr
-                                    class="border-b border-border text-left text-ink-secondary"
-                                >
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_month',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 text-right font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_emails_sent',
-                                            )
-                                        }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="row in emailMonthlyTotals"
-                                    :key="row.month"
-                                    class="border-border/50 border-b last:border-0"
-                                >
-                                    <td class="py-1.5 text-ink-primary">
-                                        {{ formatMonth(row.month) }}
-                                    </td>
-                                    <td
-                                        class="py-1.5 text-right tabular-nums text-ink-primary"
-                                    >
-                                        {{ row.count }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Recently registered -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <h3
-                        class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{ $t('super_admin.dashboard.recent_users_heading') }}
-                    </h3>
-                    <div class="mt-4 overflow-x-auto">
-                        <table class="w-full font-sans text-[13px]">
-                            <thead>
-                                <tr
-                                    class="border-b border-border text-left text-ink-secondary"
-                                >
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t('super_admin.dashboard.col_name')
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_email',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_verified',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_registered',
-                                            )
-                                        }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="user in recentUsers"
-                                    :key="user.id"
-                                    class="border-border/50 border-b last:border-0"
-                                    :class="{ 'opacity-50': user.deleted_at }"
-                                >
-                                    <td
-                                        class="py-1.5 text-ink-primary"
-                                        :class="{
-                                            'line-through': user.deleted_at,
-                                        }"
-                                    >
-                                        {{ user.name }}
-                                    </td>
-                                    <td
-                                        class="py-1.5 text-ink-secondary"
-                                        :class="{
-                                            'line-through': user.deleted_at,
-                                        }"
-                                    >
-                                        {{ user.original_email ?? user.email }}
-                                    </td>
-                                    <td class="py-1.5">
-                                        <span
-                                            v-if="user.deleted_at"
-                                            class="italic text-ink-secondary"
-                                        >
-                                            {{
-                                                $t(
-                                                    'super_admin.dashboard.pruned_badge',
-                                                )
-                                            }}
-                                        </span>
-                                        <span
-                                            v-else
-                                            :class="
-                                                user.email_verified_at
-                                                    ? 'text-success'
-                                                    : 'text-danger'
-                                            "
-                                        >
-                                            {{
-                                                user.email_verified_at
-                                                    ? $t(
-                                                          'super_admin.dashboard.verified_yes',
-                                                      )
-                                                    : $t(
-                                                          'super_admin.dashboard.verified_no',
-                                                      )
-                                            }}
-                                        </span>
-                                    </td>
-                                    <td
-                                        class="py-1.5 text-ink-secondary"
-                                        :class="{
-                                            'line-through': user.deleted_at,
-                                        }"
-                                    >
-                                        {{ formatDate(user.created_at) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Recently active -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <h3
-                        class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{
-                            $t('super_admin.dashboard.recently_active_heading')
-                        }}
-                    </h3>
-                    <div
-                        v-if="recentlyActive.length === 0"
-                        class="mt-4 font-sans text-[13px] text-ink-secondary"
-                    >
-                        {{ $t('super_admin.dashboard.recently_active_empty') }}
-                    </div>
-                    <div v-else class="mt-4 overflow-x-auto">
-                        <table class="w-full font-sans text-[13px]">
-                            <thead>
-                                <tr
-                                    class="border-b border-border text-left text-ink-secondary"
-                                >
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t('super_admin.dashboard.col_name')
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_email',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_last_login',
-                                            )
-                                        }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="user in recentlyActive"
-                                    :key="user.id"
-                                    class="border-border/50 border-b last:border-0"
-                                >
-                                    <td class="py-1.5 text-ink-primary">
-                                        {{ user.name }}
-                                    </td>
-                                    <td class="py-1.5 text-ink-secondary">
-                                        {{ user.email }}
-                                    </td>
-                                    <td class="py-1.5 text-ink-secondary">
-                                        {{ formatDateTime(user.last_login_at) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Pending verification -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <h3
-                        class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{
-                            $t(
-                                'super_admin.dashboard.pending_verification_heading',
-                            )
-                        }}
-                        <span
-                            v-if="pendingVerification.length > 0"
-                            class="ml-2 rounded-full bg-warning-soft px-2 py-0.5 font-sans text-[12px] font-medium text-ink-primary"
-                        >
-                            {{ pendingVerification.length }}
-                        </span>
-                    </h3>
-                    <div
-                        v-if="pendingVerification.length === 0"
-                        class="mt-4 font-sans text-[13px] text-ink-secondary"
-                    >
-                        {{
-                            $t(
-                                'super_admin.dashboard.pending_verification_empty',
-                            )
-                        }}
-                    </div>
-                    <div v-else class="mt-4 overflow-x-auto">
-                        <table class="w-full font-sans text-[13px]">
-                            <thead>
-                                <tr
-                                    class="border-b border-border text-left text-ink-secondary"
-                                >
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t('super_admin.dashboard.col_name')
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_email',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_registered',
-                                            )
-                                        }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="user in pendingVerification"
-                                    :key="user.id"
-                                    class="border-border/50 border-b last:border-0"
-                                >
-                                    <td class="py-1.5 text-ink-primary">
-                                        {{ user.name }}
-                                    </td>
-                                    <td class="py-1.5 text-ink-secondary">
-                                        {{ user.email }}
-                                    </td>
-                                    <td class="py-1.5 text-ink-secondary">
-                                        {{ formatDate(user.created_at) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Recently pruned -->
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <h3
-                        class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{
-                            $t('super_admin.dashboard.recently_pruned_heading')
-                        }}
-                        <span
-                            v-if="recentlyPruned.length > 0"
-                            class="ml-2 rounded-full bg-danger-soft px-2 py-0.5 font-sans text-[12px] font-medium text-danger"
-                        >
-                            {{ recentlyPruned.length }}
-                        </span>
-                    </h3>
-                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                        {{
-                            $t(
-                                'super_admin.dashboard.recently_pruned_subheading',
-                            )
-                        }}
-                    </p>
-                    <div
-                        v-if="recentlyPruned.length === 0"
-                        class="mt-4 font-sans text-[13px] text-ink-secondary"
-                    >
-                        {{ $t('super_admin.dashboard.recently_pruned_empty') }}
-                    </div>
-                    <div v-else class="mt-4 overflow-x-auto">
-                        <table class="w-full font-sans text-[13px]">
-                            <thead>
-                                <tr
-                                    class="border-b border-border text-left text-ink-secondary"
-                                >
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t('super_admin.dashboard.col_name')
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_email',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_registered',
-                                            )
-                                        }}
-                                    </th>
-                                    <th class="pb-2 font-medium">
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.col_pruned',
-                                            )
-                                        }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="user in recentlyPruned"
-                                    :key="user.id"
-                                    class="border-border/50 border-b opacity-60 last:border-0"
-                                >
-                                    <td
-                                        class="py-1.5 text-ink-primary line-through"
-                                    >
-                                        {{ user.name }}
-                                    </td>
-                                    <td
-                                        class="py-1.5 text-ink-secondary line-through"
-                                    >
-                                        {{ user.original_email }}
-                                    </td>
-                                    <td class="py-1.5 text-ink-secondary">
-                                        {{ formatDate(user.created_at) }}
-                                    </td>
-                                    <td class="py-1.5 text-danger">
-                                        {{ formatDateTime(user.deleted_at) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ══ Email Templates ════════════════════════════════════════ -->
-            <section
-                id="email-templates"
-                class="flex scroll-mt-6 flex-col gap-4"
-            >
-                <div>
-                    <h2
-                        class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
-                    >
-                        {{ $t('super_admin.dashboard.templates_heading') }}
-                    </h2>
-                    <p class="mt-1 font-sans text-[13px] text-ink-secondary">
-                        {{ $t('super_admin.dashboard.templates_subheading') }}
-                    </p>
-                </div>
-
-                <div
-                    v-for="template in emailTemplates"
-                    :key="template.id"
-                    class="rounded-lg border border-border bg-surface p-6"
+                <!-- Catalog -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.catalog_title')"
+                    :href="route('admin.catalog.skus')"
+                    :stat="s.catalog.skus"
+                    :stat-label="$t('super_admin.dashboard.cards.catalog_label')"
                 >
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <p
-                                class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
-                            >
-                                {{ template.trigger_description }}
-                            </p>
-                            <h3
-                                class="mt-1 font-sans text-[15px] font-semibold text-ink-primary"
-                            >
-                                {{ template.label }}
-                            </h3>
-                            <p
-                                v-if="template.last_edited_by"
-                                class="mt-1 font-sans text-[12px] text-ink-tertiary"
-                            >
-                                {{
-                                    $t(
-                                        'super_admin.dashboard.template_last_edited',
-                                        {
-                                            timestamp: formatDateTime(
-                                                template.updated_at,
-                                            ),
-                                            name: template.last_edited_by.name,
-                                        },
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <span
-                            v-if="template.is_active"
-                            class="shrink-0 rounded-full bg-success-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-success"
-                        >
-                            {{
-                                $t('super_admin.dashboard.template_status_live')
-                            }}
-                        </span>
-                        <span
-                            v-else-if="!template.has_body"
-                            class="shrink-0 rounded-full bg-background px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border"
-                        >
-                            {{
-                                $t(
-                                    'super_admin.dashboard.template_status_unwritten',
-                                )
-                            }}
-                        </span>
-                        <span
-                            v-else
-                            class="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
-                        >
-                            {{
-                                $t(
-                                    'super_admin.dashboard.template_status_draft',
-                                )
-                            }}
-                        </span>
-                    </div>
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M10.362 1.093a.75.75 0 00-.724 0L2.523 5.018 10 9.143l7.477-4.125-7.115-3.925zM18 6.443l-7.25 4v8.25l6.862-3.786A.75.75 0 0018 14.25V6.443zM9.25 18.693v-8.25l-7.25-4v7.807a.75.75 0 00.388.657l6.862 3.786z" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                    <div class="mt-4 flex gap-2">
-                        <Link
-                            :href="
-                                route(
-                                    'super-admin.email-templates.edit',
-                                    template.id,
-                                )
-                            "
-                            class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                        >
-                            {{
-                                $t('super_admin.dashboard.template_edit_button')
-                            }}
-                        </Link>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ══ Support Tickets ════════════════════════════════════════ -->
-            <section
-                id="support-tickets"
-                class="flex scroll-mt-6 flex-col gap-4"
-            >
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <h2
-                            class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
-                        >
-                            {{ $t('super_admin.dashboard.tickets_heading') }}
-                            <span
-                                v-if="
-                                    !showArchivedTickets &&
-                                    supportTickets.length > 0
-                                "
-                                class="ml-2 rounded-full bg-accent-soft px-2 py-0.5 font-sans text-[12px] font-medium text-accent"
-                            >
-                                {{ supportTickets.length }}
-                            </span>
-                        </h2>
-                        <p
-                            class="mt-1 font-sans text-[13px] text-ink-secondary"
-                        >
-                            {{
-                                showArchivedTickets
-                                    ? $t(
-                                          'super_admin.dashboard.tickets_subheading_archived',
-                                      )
-                                    : $t(
-                                          'super_admin.dashboard.tickets_subheading_open',
-                                      )
-                            }}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        class="shrink-0 rounded-md border border-border-strong px-3 py-1.5 font-sans text-[12px] font-medium text-ink-secondary transition hover:bg-background"
-                        @click="toggleArchived"
-                    >
-                        {{
-                            showArchivedTickets
-                                ? $t('super_admin.dashboard.tickets_show_open')
-                                : $t(
-                                      'super_admin.dashboard.tickets_show_archived',
-                                  )
-                        }}
-                    </button>
-                </div>
-
-                <div
-                    v-if="supportTickets.length === 0"
-                    class="rounded-lg border border-dashed border-border-strong bg-surface p-12 text-center"
+                <!-- Item feedback -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.feedback_title')"
+                    :href="route('admin.feedback.index')"
+                    :stat="s.feedback.open"
+                    :stat-label="$t('super_admin.dashboard.cards.open_label')"
                 >
-                    <p
-                        class="font-sans text-[14px] font-medium text-ink-secondary"
-                    >
-                        {{
-                            showArchivedTickets
-                                ? $t(
-                                      'super_admin.dashboard.tickets_empty_archived',
-                                  )
-                                : $t('super_admin.dashboard.tickets_empty_open')
-                        }}
-                    </p>
-                </div>
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path fill-rule="evenodd" d="M18 5v8a2 2 0 0 1-2 2h-5l-5 4v-4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2ZM7 8H5v2h2V8Zm2 0h2v2H9V8Zm6 0h-2v2h2V8Z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                <div v-else class="flex flex-col gap-3">
-                    <div
-                        v-for="ticket in supportTickets"
-                        :key="ticket.id"
-                        class="rounded-lg border border-border bg-surface p-5"
-                    >
-                        <!-- Header -->
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <p
-                                    class="font-sans text-[15px] font-semibold text-ink-primary"
-                                >
-                                    {{ ticket.subject }}
-                                </p>
-                                <p
-                                    class="mt-0.5 font-sans text-[13px] text-ink-secondary"
-                                >
-                                    {{ ticket.user_name }}
-                                    <span class="text-ink-tertiary">·</span>
-                                    {{ ticket.user_email }}
-                                </p>
-                            </div>
-                            <p
-                                class="shrink-0 font-sans text-[12px] text-ink-tertiary"
-                            >
-                                {{ formatDateTime(ticket.created_at) }}
-                            </p>
-                        </div>
+                <!-- Support tickets -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.tickets_title')"
+                    :href="route('admin.tickets.index')"
+                    :stat="s.tickets.open"
+                    :stat-label="$t('super_admin.dashboard.cards.open_label')"
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path fill-rule="evenodd" d="M10 2c-4.418 0-8 3.134-8 7 0 1.76.743 3.37 1.97 4.6a6.6 6.6 0 01-1.07 2.34.75.75 0 00.72 1.18 8.7 8.7 0 003.3-1.06A9.6 9.6 0 0010 16c4.418 0 8-3.134 8-7s-3.582-7-8-7z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                        <!-- Original message -->
-                        <div
-                            class="mt-3 border-t border-border pt-3 font-sans text-[13px] leading-relaxed text-ink-primary"
-                            style="white-space: pre-wrap"
-                        >
-                            {{ ticket.body }}
-                        </div>
+                <!-- Barcode log -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.barcode_title')"
+                    :href="route('admin.barcode-audits.index')"
+                    :stat="s.barcode.total"
+                    :stat-label="$t('super_admin.dashboard.cards.barcode_label')"
+                    :lines="barcodeLines"
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M3 4.75A.75.75 0 0 1 3.75 4h.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75V4.75ZM6 4.75A.75.75 0 0 1 6.75 4h.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-.5A.75.75 0 0 1 6 15.25V4.75ZM9.5 4a.75.75 0 0 0-.75.75v10.5c0 .414.336.75.75.75h.5a.75.75 0 0 0 .75-.75V4.75A.75.75 0 0 0 10 4h-.5ZM12.5 4.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V4.75ZM16.5 4a.75.75 0 0 0-.75.75v10.5c0 .414.336.75.75.75h.5a.75.75 0 0 0 .75-.75V4.75A.75.75 0 0 0 17 4h-.5Z" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                        <!-- Replies (archived view) -->
-                        <template
-                            v-if="ticket.replies && ticket.replies.length > 0"
-                        >
-                            <div
-                                v-for="reply in ticket.replies"
-                                :key="reply.id"
-                                class="mt-3 rounded-md bg-accent-soft px-4 py-3"
-                            >
-                                <p
-                                    class="mb-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_reply_eyebrow',
-                                            {
-                                                timestamp: formatDateTime(
-                                                    reply.created_at,
-                                                ),
-                                            },
-                                        )
-                                    }}
-                                </p>
-                                <div
-                                    class="font-sans text-[13px] leading-relaxed text-ink-primary"
-                                    style="white-space: pre-wrap"
-                                >
-                                    {{ reply.body }}
-                                </div>
-                            </div>
-                        </template>
+                <!-- Email -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.email_title')"
+                    :href="route('admin.email-templates.index')"
+                    :stat="s.email.sent_30d"
+                    :stat-label="$t('super_admin.dashboard.cards.email_label')"
+                    :lines="emailLines"
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+                            <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                        <!-- Reply form -->
-                        <template v-if="replyingTo === ticket.id">
-                            <div class="mt-4 border-t border-border pt-4">
-                                <textarea
-                                    v-model="replyBody"
-                                    rows="4"
-                                    :placeholder="
-                                        $t(
-                                            'super_admin.dashboard.ticket_reply_placeholder',
-                                            { name: ticket.user_name },
-                                        )
-                                    "
-                                    :disabled="replyProcessing"
-                                    class="w-full resize-y rounded-md border border-border-strong bg-background px-3 py-2.5 font-sans text-[13px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft disabled:opacity-50"
-                                />
-                                <div class="mt-2 flex gap-2">
-                                    <button
-                                        type="button"
-                                        :disabled="
-                                            replyProcessing || !replyBody.trim()
-                                        "
-                                        class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
-                                        @click="submitReply(ticket)"
-                                    >
-                                        {{
-                                            replyProcessing
-                                                ? $t(
-                                                      'super_admin.dashboard.ticket_reply_submitting',
-                                                  )
-                                                : $t(
-                                                      'super_admin.dashboard.ticket_reply_submit',
-                                                  )
-                                        }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
-                                        @click="cancelReply"
-                                    >
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.ticket_reply_cancel',
-                                            )
-                                        }}
-                                    </button>
-                                    <p
-                                        class="self-center font-sans text-[12px] text-ink-tertiary"
-                                    >
-                                        {{
-                                            $t(
-                                                'super_admin.dashboard.ticket_reply_footnote',
-                                            )
-                                        }}
-                                    </p>
-                                </div>
-                            </div>
-                        </template>
+                <!-- Backups (Super Admin only) -->
+                <AdminCard
+                    v-if="isSuperAdmin"
+                    :title="$t('super_admin.dashboard.cards.backups_title')"
+                    :href="route('admin.backups.index')"
+                    :lines="[$t('super_admin.dashboard.cards.backups_desc')]"
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M10 1c-3.866 0-7 1.343-7 3s3.134 3 7 3 7-1.343 7-3-3.134-3-7-3z" />
+                            <path d="M3 6.519C3 8.176 6.134 9.519 10 9.519s7-1.343 7-3V10c0 1.657-3.134 3-7 3s-7-1.343-7-3V6.519z" />
+                            <path d="M3 11.519C3 13.176 6.134 14.519 10 14.519s7-1.343 7-3V15c0 1.657-3.134 3-7 3s-7-1.343-7-3v-3.481z" />
+                        </svg>
+                    </template>
+                </AdminCard>
 
-                        <!-- Delete confirmation -->
-                        <template v-else-if="confirmingDelete === ticket.id">
-                            <div
-                                class="mt-4 flex items-center gap-3 border-t border-border pt-4"
-                            >
-                                <p
-                                    class="font-sans text-[13px] text-ink-secondary"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_delete_confirm',
-                                        )
-                                    }}
-                                </p>
-                                <button
-                                    type="button"
-                                    class="rounded-md bg-danger px-3 py-1.5 font-sans text-[13px] font-semibold text-white transition hover:bg-red-700"
-                                    @click="destroyTicket(ticket)"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_delete_yes',
-                                        )
-                                    }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
-                                    @click="cancelDelete"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_delete_cancel',
-                                        )
-                                    }}
-                                </button>
-                            </div>
-                        </template>
+                <!-- Future-growth stubs (Super Admin only) -->
+                <AdminCard
+                    v-if="isSuperAdmin"
+                    :title="$t('super_admin.dashboard.nav.subscriptions')"
+                    :href="route('admin.subscriptions.index')"
+                    soon
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v.316a3.78 3.78 0 00-1.653.713c-.426.33-.744.74-.925 1.2a2.6 2.6 0 000 1.962c.18.46.499.87.925 1.2.42.326.94.55 1.653.713V12.5a2.2 2.2 0 01-.5-.105.75.75 0 10-.45 1.43c.305.096.625.155.95.175v.316a.75.75 0 001.5 0v-.316c.66-.084 1.22-.323 1.653-.713.426-.33.744-.74.925-1.2a2.6 2.6 0 000-1.962c-.18-.46-.499-.87-.925-1.2-.42-.326-.94-.55-1.653-.713V7.5c.176.027.343.063.5.105a.75.75 0 10.45-1.43 4.3 4.3 0 00-.95-.175V5z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                    <template #soon-text>
+                        {{ $t('super_admin.coming_soon.subscriptions') }}
+                    </template>
+                </AdminCard>
 
-                        <!-- Action bar -->
-                        <template v-else>
-                            <div
-                                class="mt-4 flex gap-2 border-t border-border pt-4"
-                            >
-                                <button
-                                    v-if="!showArchivedTickets"
-                                    type="button"
-                                    class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                                    @click="openReply(ticket.id)"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_reply_button',
-                                        )
-                                    }}
-                                </button>
-                                <button
-                                    v-if="!showArchivedTickets"
-                                    type="button"
-                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
-                                    @click="archiveTicket(ticket)"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_archive_button',
-                                        )
-                                    }}
-                                </button>
-                                <button
-                                    v-if="showArchivedTickets"
-                                    type="button"
-                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background"
-                                    @click="unarchiveTicket(ticket)"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_unarchive_button',
-                                        )
-                                    }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-md px-3 py-1.5 font-sans text-[13px] font-medium text-danger transition hover:bg-danger-soft"
-                                    @click="confirmDelete(ticket.id)"
-                                >
-                                    {{
-                                        $t(
-                                            'super_admin.dashboard.ticket_delete_button',
-                                        )
-                                    }}
-                                </button>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </section>
+                <AdminCard
+                    v-if="isSuperAdmin"
+                    :title="$t('super_admin.dashboard.nav.payments')"
+                    :href="route('admin.payments.index')"
+                    soon
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M1 4.25C1 3.56 1.56 3 2.25 3h15.5c.69 0 1.25.56 1.25 1.25v.5H1v-.5z" />
+                            <path fill-rule="evenodd" d="M1 6.5v9.25C1 16.44 1.56 17 2.25 17h15.5c.69 0 1.25-.56 1.25-1.25V6.5H1zm3 6.5a.75.75 0 01.75-.75h3a.75.75 0 010 1.5h-3A.75.75 0 014 13z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                    <template #soon-text>
+                        {{ $t('super_admin.coming_soon.payments') }}
+                    </template>
+                </AdminCard>
 
-            <!-- ══ Catalog ════════════════════════════════════════════════ -->
-            <section id="catalog" class="scroll-mt-6">
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2
-                                class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
-                            >
-                                {{
-                                    $t('super_admin.dashboard.catalog_heading')
-                                }}
-                            </h2>
-                            <p
-                                class="mt-1 font-sans text-[13px] text-ink-secondary"
-                            >
-                                {{
-                                    $t(
-                                        'super_admin.dashboard.catalog_subheading',
-                                        { count: stats.shared_skus },
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <a
-                            href="/super-admin/catalog"
-                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                        >
-                            {{ $t('super_admin.dashboard.catalog_manage') }}
-                        </a>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ══ Users ══════════════════════════════════════════════════ -->
-            <section id="users" class="scroll-mt-6">
-                <div class="rounded-lg border border-border bg-surface p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2
-                                class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
-                            >
-                                {{ $t('super_admin.dashboard.users_heading') }}
-                            </h2>
-                            <p
-                                class="mt-1 font-sans text-[13px] text-ink-secondary"
-                            >
-                                {{
-                                    $t(
-                                        'super_admin.dashboard.users_subheading',
-                                        { count: stats.total_users },
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <Link
-                            :href="route('super-admin.users.index')"
-                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                        >
-                            {{ $t('super_admin.dashboard.users_manage') }}
-                        </Link>
-                    </div>
-                </div>
-            </section>
+                <AdminCard
+                    v-if="isSuperAdmin"
+                    :title="$t('super_admin.dashboard.nav.affiliates')"
+                    :href="route('admin.affiliates.index')"
+                    soon
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 018 18a9.953 9.953 0 01-5.385-1.572zM16.25 5.75a.75.75 0 00-1.5 0v2h-2a.75.75 0 000 1.5h2v2a.75.75 0 001.5 0v-2h2a.75.75 0 000-1.5h-2v-2z" />
+                        </svg>
+                    </template>
+                    <template #soon-text>
+                        {{ $t('super_admin.coming_soon.affiliates') }}
+                    </template>
+                </AdminCard>
+            </div>
         </div>
     </AuthenticatedLayout>
 </template>

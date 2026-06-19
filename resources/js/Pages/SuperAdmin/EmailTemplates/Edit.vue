@@ -83,7 +83,7 @@ function generatePlainText() {
 // ── Save actions ───────────────────────────────────────────────────────────
 function save(action = 'save') {
     form.action = action;
-    form.patch(route('super-admin.email-templates.update', props.template.id), {
+    form.patch(route('admin.email-templates.update', props.template.id), {
         preserveScroll: true,
     });
 }
@@ -111,7 +111,7 @@ function sendPreview() {
         body_html: data.body_html,
         body_text: data.body_text,
     }));
-    form.post(route('super-admin.email-templates.preview', props.template.id), {
+    form.post(route('admin.email-templates.preview', props.template.id), {
         preserveScroll: true,
         onFinish: () => {
             previewing.value = false;
@@ -141,7 +141,7 @@ function tokenLabel(name) {
         <template #header>
             <div class="flex items-center gap-3">
                 <Link
-                    :href="route('super-admin.dashboard')"
+                    :href="route('admin.email-templates.index')"
                     class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                 >
                     {{ $t('super_admin.email_templates.back_to_super_admin') }}

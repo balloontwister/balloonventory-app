@@ -53,7 +53,7 @@ class CatalogSkuShowTest extends TestCase
     public function test_show_page_renders_for_a_sku(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $this->sku))
+            ->get(route('admin.catalog.skus.show', $this->sku))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -79,7 +79,7 @@ class CatalogSkuShowTest extends TestCase
         ]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $sku))
+            ->get(route('admin.catalog.skus.show', $sku))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -123,7 +123,7 @@ class CatalogSkuShowTest extends TestCase
         $this->app->setLocale('es');
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $sku))
+            ->get(route('admin.catalog.skus.show', $sku))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -137,7 +137,7 @@ class CatalogSkuShowTest extends TestCase
 
     public function test_show_page_is_inaccessible_to_guests(): void
     {
-        $this->get(route('super-admin.catalog.skus.show', $this->sku))
+        $this->get(route('admin.catalog.skus.show', $this->sku))
             ->assertRedirect(route('login'));
     }
 
@@ -151,14 +151,14 @@ class CatalogSkuShowTest extends TestCase
         ]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $sku))
+            ->get(route('admin.catalog.skus.show', $sku))
             ->assertForbidden();
     }
 
     public function test_show_page_forwards_return_query_for_back_link(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $this->sku).'?return='.urlencode('?brand=abc&page=2'))
+            ->get(route('admin.catalog.skus.show', $this->sku).'?return='.urlencode('?brand=abc&page=2'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('returnQuery', '?brand=abc&page=2'));
     }
@@ -166,7 +166,7 @@ class CatalogSkuShowTest extends TestCase
     public function test_show_page_return_query_defaults_to_empty_string(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $this->sku))
+            ->get(route('admin.catalog.skus.show', $this->sku))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('returnQuery', ''));
     }
@@ -174,7 +174,7 @@ class CatalogSkuShowTest extends TestCase
     public function test_edit_page_renders_with_form_data(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.edit', $this->sku))
+            ->get(route('admin.catalog.skus.edit', $this->sku))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -187,7 +187,7 @@ class CatalogSkuShowTest extends TestCase
     public function test_update_redirects_to_show_page(): void
     {
         $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.skus.update', $this->sku), [
+            ->patch(route('admin.catalog.skus.update', $this->sku), [
                 'name' => '11" Turquoise',
                 'brand_id' => $this->brand->id,
                 'theme_ids' => [],
@@ -196,19 +196,19 @@ class CatalogSkuShowTest extends TestCase
                 'is_printed' => false,
                 'is_active' => true,
             ])
-            ->assertRedirect(route('super-admin.catalog.skus.show', $this->sku));
+            ->assertRedirect(route('admin.catalog.skus.show', $this->sku));
     }
 
     public function test_store_redirects_to_show_page(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Brand New SKU',
                 'brand_id' => $this->brand->id,
             ]);
 
         $sku = Sku::where('name', 'Brand New SKU')->firstOrFail();
-        $response->assertRedirect(route('super-admin.catalog.skus.show', $sku));
+        $response->assertRedirect(route('admin.catalog.skus.show', $sku));
     }
 
     public function test_show_page_includes_identical_skus_when_linked(): void
@@ -234,7 +234,7 @@ class CatalogSkuShowTest extends TestCase
         $skuA->linkIdentical($skuB);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $skuA))
+            ->get(route('admin.catalog.skus.show', $skuA))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -247,7 +247,7 @@ class CatalogSkuShowTest extends TestCase
     public function test_show_page_identical_skus_empty_when_none_linked(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus.show', $this->sku))
+            ->get(route('admin.catalog.skus.show', $this->sku))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page
@@ -258,7 +258,7 @@ class CatalogSkuShowTest extends TestCase
     public function test_skus_index_exposes_sku_ids_used_to_build_show_links(): void
     {
         $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus'))
+            ->get(route('admin.catalog.skus'))
             ->assertOk()
             ->assertInertia(
                 fn ($page) => $page

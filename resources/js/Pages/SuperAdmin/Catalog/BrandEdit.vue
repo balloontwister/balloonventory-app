@@ -27,7 +27,7 @@ const form = useForm({
 });
 
 function submit() {
-    form.post(route('super-admin.catalog.brands.update', props.brand.id), {
+    form.post(route('admin.catalog.brands.update', props.brand.id), {
         forceFormData: true,
     });
 }
@@ -47,7 +47,7 @@ function submit() {
 
         <div class="mb-6">
             <BackLink
-                :href="route('super-admin.catalog.brands.show', brand.id)"
+                :href="route('admin.catalog.brands.show', brand.id)"
                 :label="brand.name"
             />
         </div>
@@ -267,7 +267,7 @@ function submit() {
                     </AppButton>
                     <Link
                         :href="
-                            route('super-admin.catalog.brands.show', brand.id)
+                            route('admin.catalog.brands.show', brand.id)
                         "
                         class="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-surface px-4 py-[10px] font-sans text-[14px] font-medium leading-none text-ink-primary transition-colors hover:bg-background"
                     >

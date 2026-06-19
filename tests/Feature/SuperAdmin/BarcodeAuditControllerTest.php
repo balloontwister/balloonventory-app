@@ -34,7 +34,7 @@ class BarcodeAuditControllerTest extends TestCase
         $audit = $this->seedAudit();
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->get(route('super-admin.barcode-audits.index'))
+            ->get(route('admin.barcode-audits.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('SuperAdmin/BarcodeAudits/Index')
@@ -46,7 +46,7 @@ class BarcodeAuditControllerTest extends TestCase
     public function test_regular_user_cannot_view_barcode_audit_log(): void
     {
         $this->actingAs(User::factory()->create())
-            ->get(route('super-admin.barcode-audits.index'))
+            ->get(route('admin.barcode-audits.index'))
             ->assertForbidden();
     }
 
@@ -56,7 +56,7 @@ class BarcodeAuditControllerTest extends TestCase
         $this->seedAudit(['barcode' => '0123456789012', 'sku_name' => 'Something Else']);
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->get(route('super-admin.barcode-audits.index', ['search' => 'Macaron']))
+            ->get(route('admin.barcode-audits.index', ['search' => 'Macaron']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('audits.data', 1)
@@ -79,7 +79,7 @@ class BarcodeAuditControllerTest extends TestCase
         $admin = User::factory()->superAdmin()->create();
 
         $this->actingAs($admin)
-            ->post(route('super-admin.barcode-audits.revert', $audit->id))
+            ->post(route('admin.barcode-audits.revert', $audit->id))
             ->assertRedirect();
 
         $this->assertDatabaseHas('skus', ['id' => $sku->id, 'ean' => null]);
@@ -100,7 +100,7 @@ class BarcodeAuditControllerTest extends TestCase
         ]);
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->post(route('super-admin.barcode-audits.revert', $audit->id))
+            ->post(route('admin.barcode-audits.revert', $audit->id))
             ->assertRedirect();
 
         // Newer code untouched; audit still stamped reverted.
@@ -120,7 +120,7 @@ class BarcodeAuditControllerTest extends TestCase
         ]);
 
         $this->actingAs(User::factory()->superAdmin()->create())
-            ->post(route('super-admin.barcode-audits.revert', $audit->id))
+            ->post(route('admin.barcode-audits.revert', $audit->id))
             ->assertRedirect();
 
         // Already-reverted: the SKU's current code is left alone.
@@ -132,7 +132,7 @@ class BarcodeAuditControllerTest extends TestCase
         $audit = $this->seedAudit();
 
         $this->actingAs(User::factory()->create())
-            ->post(route('super-admin.barcode-audits.revert', $audit->id))
+            ->post(route('admin.barcode-audits.revert', $audit->id))
             ->assertForbidden();
     }
 }

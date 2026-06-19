@@ -76,7 +76,7 @@ const addForm = useForm({
 
 function submitAdd() {
     addForm.post(
-        route('super-admin.catalog.reference.store', activeTab.value),
+        route('admin.catalog.reference.store', activeTab.value),
         {
             forceFormData: true,
             onSuccess: () => {
@@ -132,7 +132,7 @@ function startEdit(item) {
 function submitEdit(item) {
     // POST + _method spoofing so multipart uploads survive the PATCH route.
     editForm.post(
-        route('super-admin.catalog.reference.update', {
+        route('admin.catalog.reference.update', {
             table: activeTab.value,
             item: item.id,
         }),
@@ -161,7 +161,7 @@ function destroy(item) {
     )
         return;
     router.delete(
-        route('super-admin.catalog.reference.destroy', {
+        route('admin.catalog.reference.destroy', {
             table: activeTab.value,
             item: item.id,
         }),
@@ -195,25 +195,25 @@ const selectClass =
         <!-- Catalog nav tabs -->
         <div class="mb-6 flex gap-1 border-b border-border">
             <Link
-                :href="route('super-admin.catalog.skus')"
+                :href="route('admin.catalog.skus')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.skus') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.colors')"
+                :href="route('admin.catalog.colors')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.colors') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.brands')"
+                :href="route('admin.catalog.brands')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium text-ink-secondary transition hover:text-ink-primary"
             >
                 {{ $t('catalog.tabs.brands') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.reference')"
+                :href="route('admin.catalog.reference')"
                 class="border-b-2 border-accent px-4 py-2.5 font-sans text-[14px] font-medium text-accent"
             >
                 {{ $t('catalog.tabs.reference') }}

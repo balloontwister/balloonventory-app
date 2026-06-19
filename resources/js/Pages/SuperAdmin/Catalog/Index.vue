@@ -35,7 +35,7 @@ function applyFilters() {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
         router.get(
-            route('super-admin.catalog.skus'),
+            route('admin.catalog.skus'),
             {
                 search: search.value || undefined,
                 brand: brand.value || undefined,
@@ -101,7 +101,7 @@ const page = usePage();
 // Carry the list's current filters/page into the show link so the show page's
 // back link can restore them (and scroll to the originating row).
 function showUrl(skuId) {
-    const base = route('super-admin.catalog.skus.show', skuId);
+    const base = route('admin.catalog.skus.show', skuId);
     const queryStart = page.url.indexOf('?');
     const query = queryStart === -1 ? '' : page.url.slice(queryStart);
     return query ? `${base}?return=${encodeURIComponent(query)}` : base;
@@ -110,7 +110,7 @@ function showUrl(skuId) {
 function destroy(sku) {
     if (!confirm(trans('catalog.skus.delete_confirm', { name: sku.name })))
         return;
-    router.delete(route('super-admin.catalog.skus.destroy', sku.id), {
+    router.delete(route('admin.catalog.skus.destroy', sku.id), {
         preserveScroll: true,
     });
 }
@@ -131,7 +131,7 @@ function destroy(sku) {
         <!-- Catalog nav tabs -->
         <div class="mb-6 flex gap-1 border-b border-border">
             <Link
-                :href="route('super-admin.catalog.skus')"
+                :href="route('admin.catalog.skus')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium transition"
                 :class="
                     $page.component === 'SuperAdmin/Catalog/Index'
@@ -142,7 +142,7 @@ function destroy(sku) {
                 {{ $t('catalog.tabs.skus') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.colors')"
+                :href="route('admin.catalog.colors')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium transition"
                 :class="
                     $page.component === 'SuperAdmin/Catalog/Colors'
@@ -153,7 +153,7 @@ function destroy(sku) {
                 {{ $t('catalog.tabs.colors') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.brands')"
+                :href="route('admin.catalog.brands')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium transition"
                 :class="
                     $page.component === 'SuperAdmin/Catalog/Brands'
@@ -164,7 +164,7 @@ function destroy(sku) {
                 {{ $t('catalog.tabs.brands') }}
             </Link>
             <Link
-                :href="route('super-admin.catalog.reference')"
+                :href="route('admin.catalog.reference')"
                 class="px-4 py-2.5 font-sans text-[14px] font-medium transition"
                 :class="
                     $page.component === 'SuperAdmin/Catalog/Reference'
@@ -298,7 +298,7 @@ function destroy(sku) {
             </AppButton>
 
             <div class="ml-auto">
-                <Link :href="route('super-admin.catalog.skus.create')">
+                <Link :href="route('admin.catalog.skus.create')">
                     <AppButton variant="primary">{{
                         $t('catalog.skus.new_button')
                     }}</AppButton>
@@ -370,7 +370,7 @@ function destroy(sku) {
                         >
                             {{ $t('catalog.skus.empty_lead') }}
                             <Link
-                                :href="route('super-admin.catalog.skus.create')"
+                                :href="route('admin.catalog.skus.create')"
                                 class="text-accent underline"
                             >
                                 {{ $t('catalog.skus.empty_cta') }}
@@ -444,7 +444,7 @@ function destroy(sku) {
                                 <Link
                                     :href="
                                         route(
-                                            'super-admin.catalog.skus.edit',
+                                            'admin.catalog.skus.edit',
                                             sku.id,
                                         )
                                     "

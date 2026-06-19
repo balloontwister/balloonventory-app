@@ -17,7 +17,7 @@ const renamingSaving = ref(false);
 function runBackup() {
     runningBackup.value = true;
     router.post(
-        route('super-admin.backups.store'),
+        route('admin.backups.store'),
         {},
         {
             onFinish: () => (runningBackup.value = false),
@@ -35,7 +35,7 @@ function cancelDelete() {
 }
 
 function deleteBackup(filename) {
-    router.delete(route('super-admin.backups.destroy', filename), {
+    router.delete(route('admin.backups.destroy', filename), {
         preserveScroll: true,
         onFinish: () => (confirmingDelete.value = null),
     });
@@ -58,7 +58,7 @@ function saveRename(oldFilename) {
     renamingSaving.value = true;
     renameError.value = null;
     router.patch(
-        route('super-admin.backups.rename', oldFilename),
+        route('admin.backups.rename', oldFilename),
         {
             new_filename: renameValue.value,
         },
@@ -96,7 +96,7 @@ function formatDate(val) {
                 <div>
                     <p class="mb-1 text-sm text-ink-tertiary">
                         <a
-                            :href="route('super-admin.dashboard')"
+                            :href="route('admin.dashboard')"
                             class="hover:underline"
                         >
                             {{ $t('super_admin.backups.back') }}
@@ -283,7 +283,7 @@ function formatDate(val) {
                                     <a
                                         :href="
                                             route(
-                                                'super-admin.backups.download',
+                                                'admin.backups.download',
                                                 backup.filename,
                                             )
                                         "

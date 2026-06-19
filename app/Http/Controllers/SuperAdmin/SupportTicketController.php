@@ -9,9 +9,33 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SupportTicketController extends Controller
 {
+    public function index(Request $request): Response
+    {
+        $showArchived = $request->boolean('showArchived');
+
+        $tickets = SupportTicket::with('replies')
+            ->when(
+                $showArchived,
+                fn ($q) => $q->whereNotNull('archived_at'),
+                fn ($q) => $q->whereNull('archived_at'),
+            )
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get(['id', 'user_id', 'user_name', 'user_email', 'subject', 'body', 'archived_at', 'created_at'])
+            ->toArray();
+
+        return Inertia::render('SuperAdmin/SupportTickets/Index', [
+            'supportTickets' => $tickets,
+            'showArchivedTickets' => $showArchived,
+            'openCount' => SupportTicket::whereNull('archived_at')->count(),
+        ]);
+    }
+
     public function reply(Request $request, SupportTicket $ticket): RedirectResponse
     {
         $request->validate(['body' => ['required', 'string', 'max:10000']]);

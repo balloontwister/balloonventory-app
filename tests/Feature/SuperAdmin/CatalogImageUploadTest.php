@@ -119,14 +119,14 @@ class CatalogImageUploadTest extends TestCase
     public function test_brand_store_uploads_logo_through_service(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.brands.store'), [
+            ->post(route('admin.catalog.brands.store'), [
                 'name' => 'Qualatex',
                 'abbreviation' => 'QTX',
                 'sort_order' => 1,
                 'logo' => UploadedFile::fake()->image('logo.jpg', 800, 800),
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $response->assertRedirect(route('admin.catalog.brands'));
         $brand = Brand::where('name', 'Qualatex')->firstOrFail();
         $this->assertNotNull($brand->logo_path);
         Storage::disk('public')->assertExists($brand->logo_path);
@@ -142,7 +142,7 @@ class CatalogImageUploadTest extends TestCase
         $file = UploadedFile::fake()->createWithContent('logo.svg', $svg);
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.brands.store'), [
+            ->post(route('admin.catalog.brands.store'), [
                 'name' => 'Anagram',
                 'abbreviation' => 'ANG',
                 'sort_order' => 1,
@@ -150,7 +150,7 @@ class CatalogImageUploadTest extends TestCase
             ]);
 
         $response->assertSessionDoesntHaveErrors('logo');
-        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $response->assertRedirect(route('admin.catalog.brands'));
         $brand = Brand::where('name', 'Anagram')->firstOrFail();
         $this->assertNotNull($brand->logo_path);
         $this->assertStringEndsWith('.svg', $brand->logo_path);
@@ -170,7 +170,7 @@ class CatalogImageUploadTest extends TestCase
         $texture = Texture::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.colors.store'), [
+            ->post(route('admin.catalog.colors.store'), [
                 'name' => 'Crimson',
                 'color_family_id' => $family->id,
                 'brand_id' => $brand->id,
@@ -180,7 +180,7 @@ class CatalogImageUploadTest extends TestCase
                 'cluster_image' => UploadedFile::fake()->image('cluster.jpg', 500, 500),
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.colors'));
+        $response->assertRedirect(route('admin.catalog.colors'));
         $color = Color::where('name', 'Crimson')->firstOrFail();
         $this->assertNotNull($color->single_image_file_path);
         $this->assertNotNull($color->cluster_image_file_path);
@@ -203,7 +203,7 @@ class CatalogImageUploadTest extends TestCase
         $this->assertNotNull($originalPath);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.colors.update', $color->id), [
+            ->patch(route('admin.catalog.colors.update', $color->id), [
                 'name' => 'Crimson',
                 'color_family_id' => $family->id,
                 'brand_id' => $color->brand_id,
@@ -212,7 +212,7 @@ class CatalogImageUploadTest extends TestCase
                 'single_image_clear' => true,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.colors.show', $color));
+        $response->assertRedirect(route('admin.catalog.colors.show', $color));
         $this->assertNull($color->fresh()->single_image_file_path);
         Storage::disk('public')->assertMissing($originalPath);
     }
@@ -222,7 +222,7 @@ class CatalogImageUploadTest extends TestCase
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->post(route('super-admin.catalog.skus.store'), [
+            ->post(route('admin.catalog.skus.store'), [
                 'name' => 'Test SKU',
                 'brand_id' => $brand->id,
                 'single_image' => UploadedFile::fake()->image('s.jpg', 800, 800),
@@ -230,7 +230,7 @@ class CatalogImageUploadTest extends TestCase
             ]);
 
         $sku = Sku::where('name', 'Test SKU')->firstOrFail();
-        $response->assertRedirect(route('super-admin.catalog.skus.show', $sku));
+        $response->assertRedirect(route('admin.catalog.skus.show', $sku));
         $this->assertStringStartsWith('sku-images/', $sku->single_image_file_path);
         $this->assertStringStartsWith('sku-images/', $sku->cluster_image_file_path);
         Storage::disk('public')->assertExists($sku->single_image_file_path);
@@ -246,14 +246,14 @@ class CatalogImageUploadTest extends TestCase
         $this->assertNotNull($originalPath);
 
         $response = $this->actingAs($this->superAdmin)
-            ->patch(route('super-admin.catalog.brands.update', $brand->id), [
+            ->patch(route('admin.catalog.brands.update', $brand->id), [
                 'name' => 'Q',
                 'abbreviation' => 'Q',
                 'sort_order' => 1,
                 'logo_clear' => true,
             ]);
 
-        $response->assertRedirect(route('super-admin.catalog.brands'));
+        $response->assertRedirect(route('admin.catalog.brands'));
         $this->assertNull($brand->fresh()->logo_path);
         Storage::disk('public')->assertMissing($originalPath);
     }

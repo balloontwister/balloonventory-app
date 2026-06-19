@@ -53,7 +53,7 @@ class CatalogSchemaRegressionTest extends TestCase
         Sku::factory()->create();
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.skus'));
+            ->get(route('admin.catalog.skus'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -71,7 +71,7 @@ class CatalogSchemaRegressionTest extends TestCase
         Texture::factory()->create(['texture_family_id' => $family->id]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->get(route('super-admin.catalog.colors'));
+            ->get(route('admin.catalog.colors'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page

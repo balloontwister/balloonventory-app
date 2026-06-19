@@ -26,7 +26,7 @@ const props = defineProps({
         <div class="mb-6">
             <BackLink
                 :href="
-                    route('super-admin.catalog.skus') +
+                    route('admin.catalog.skus') +
                     returnQuery +
                     '#sku-' +
                     sku.id
@@ -69,7 +69,7 @@ const props = defineProps({
                 </div>
 
                 <Link
-                    :href="route('super-admin.catalog.skus.edit', sku.id)"
+                    :href="route('admin.catalog.skus.edit', sku.id)"
                     class="shrink-0"
                 >
                     <AppButton variant="secondary">
@@ -335,7 +335,7 @@ const props = defineProps({
                         v-for="sibling in sku.identical_skus"
                         :key="sibling.id"
                         :href="
-                            route('super-admin.catalog.skus.show', sibling.id)
+                            route('admin.catalog.skus.show', sibling.id)
                         "
                         class="flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-surface"
                     >

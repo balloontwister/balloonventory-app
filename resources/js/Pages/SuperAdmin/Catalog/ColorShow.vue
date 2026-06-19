@@ -23,7 +23,7 @@ const props = defineProps({
         <div class="mb-6">
             <BackLink
                 :href="
-                    route('super-admin.catalog.colors') + '#color-' + color.id
+                    route('admin.catalog.colors') + '#color-' + color.id
                 "
                 :label="$t('catalog.tabs.colors')"
             />
@@ -59,7 +59,7 @@ const props = defineProps({
                 </div>
 
                 <Link
-                    :href="route('super-admin.catalog.colors.edit', color.id)"
+                    :href="route('admin.catalog.colors.edit', color.id)"
                     class="shrink-0 rounded-md border border-border px-4 py-2 font-sans text-[13px] font-medium text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                 >
                     {{ $t('catalog.actions.edit') }}

@@ -27,7 +27,7 @@ class CatalogReferenceIndexTest extends TestCase
         BalloonSize::factory()->create();
 
         $this->actingAs($admin)
-            ->get(route('super-admin.catalog.reference'))
+            ->get(route('admin.catalog.reference'))
             ->assertOk();
     }
 }

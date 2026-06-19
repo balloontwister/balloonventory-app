@@ -42,7 +42,7 @@ const DESC_FIRST = [
 
 function navigate() {
     router.get(
-        route('super-admin.users.index'),
+        route('admin.users.index'),
         {
             search: search.value || undefined,
             status: status.value || undefined,
@@ -236,7 +236,7 @@ const menu = computed(() => {
 function promote(user) {
     closeMenu();
     router.post(
-        route('super-admin.users.promote', user.id),
+        route('admin.users.promote', user.id),
         {},
         { preserveScroll: true, preserveState: true },
     );
@@ -247,7 +247,7 @@ function demote(user) {
     if (!window.confirm(trans('super_admin.users.demote_confirm', { name: user.name }))) {
         return;
     }
-    router.delete(route('super-admin.users.demote', user.id), {
+    router.delete(route('admin.users.demote', user.id), {
         preserveScroll: true,
         preserveState: true,
     });
@@ -259,7 +259,7 @@ function freeze(user) {
         return;
     }
     router.post(
-        route('super-admin.users.freeze', user.id),
+        route('admin.users.freeze', user.id),
         {},
         { preserveScroll: true, preserveState: true },
     );
@@ -267,7 +267,7 @@ function freeze(user) {
 
 function thaw(user) {
     closeMenu();
-    router.delete(route('super-admin.users.thaw', user.id), {
+    router.delete(route('admin.users.thaw', user.id), {
         preserveScroll: true,
         preserveState: true,
     });
@@ -276,7 +276,7 @@ function thaw(user) {
 function sendReset(user) {
     closeMenu();
     router.post(
-        route('super-admin.users.password-reset', user.id),
+        route('admin.users.password-reset', user.id),
         {},
         { preserveScroll: true, preserveState: true },
     );
@@ -297,7 +297,7 @@ function destroyUser(user) {
     if (!window.confirm(trans('super_admin.users.delete_confirm', { name: user.name }))) {
         return;
     }
-    router.delete(route('super-admin.users.destroy', user.id), {
+    router.delete(route('admin.users.destroy', user.id), {
         preserveScroll: true,
         preserveState: true,
     });
@@ -316,7 +316,7 @@ function destroyUser(user) {
                     {{ $t('super_admin.users.heading') }}
                 </h1>
                 <Link
-                    :href="route('super-admin.dashboard')"
+                    :href="route('admin.dashboard')"
                     class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
                 >
                     {{ $t('super_admin.users.back') }}

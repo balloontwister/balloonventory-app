@@ -24,7 +24,7 @@ const STATUS_FILTERS = [
 
 function applyFilters() {
     router.get(
-        route('super-admin.feedback.index'),
+        route('admin.feedback.index'),
         {
             search: search.value || undefined,
             status: status.value || undefined,
@@ -54,7 +54,7 @@ function formatDateTime(val) {
 
 function updateStatus(item, newStatus) {
     router.patch(
-        route('super-admin.feedback.update-status', item.id),
+        route('admin.feedback.update-status', item.id),
         { status: newStatus },
         { preserveScroll: true },
     );
@@ -78,7 +78,7 @@ function cancelReply() {
 function submitReply(item) {
     replyProcessing.value = true;
     router.post(
-        route('super-admin.feedback.reply', item.id),
+        route('admin.feedback.reply', item.id),
         { body: replyBody.value },
         {
             preserveScroll: true,
@@ -107,7 +107,7 @@ function submitReply(item) {
                     {{ $t('super_admin.dashboard.feedback.heading') }}
                 </h1>
                 <Link
-                    :href="route('super-admin.dashboard')"
+                    :href="route('admin.dashboard')"
                     class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
                 >
                     {{ $t('super_admin.dashboard.nav.overview') }}
@@ -247,7 +247,7 @@ function submitReply(item) {
                                     <Link
                                         :href="
                                             route(
-                                                'super-admin.catalog.skus.show',
+                                                'admin.catalog.skus.show',
                                                 item.sku_id,
                                             )
                                         "

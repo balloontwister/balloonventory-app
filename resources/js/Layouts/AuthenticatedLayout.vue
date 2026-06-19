@@ -31,6 +31,7 @@ onMounted(() => {
 onUnmounted(() => mediaQuery?.removeEventListener('change', syncIsDesktop));
 
 const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
+const isSuperOnly = page.props.auth?.isSuperAdmin ?? false;
 
 const nav = [
     {
@@ -220,10 +221,10 @@ function isActive(routeName) {
                         </p>
 
                         <Link
-                            :href="route('super-admin.dashboard')"
+                            :href="route('admin.dashboard')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="
-                                route().current('super-admin.dashboard')
+                                route().current('admin.dashboard')
                                     ? 'bg-accent-soft font-semibold text-accent'
                                     : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                             "
@@ -244,11 +245,13 @@ function isActive(routeName) {
                         </Link>
 
                         <Link
-                            :href="
-                                route('super-admin.dashboard') +
-                                '#support-tickets'
+                            :href="route('admin.tickets.index')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('admin.tickets.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                             "
-                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] text-ink-secondary transition hover:bg-background hover:text-ink-primary"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -262,16 +265,39 @@ function isActive(routeName) {
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            {{
-                                $t('super_admin.dashboard.nav.support_tickets')
-                            }}
+                            {{ $t('super_admin.dashboard.nav.support_tickets') }}
                         </Link>
 
                         <Link
-                            :href="route('super-admin.catalog.skus')"
+                            :href="route('admin.email-templates.index')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="
-                                route().current('super-admin.catalog.*')
+                                route().current('admin.email-templates.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z"
+                                />
+                                <path
+                                    d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z"
+                                />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.email') }}
+                        </Link>
+
+                        <Link
+                            :href="route('admin.catalog.skus')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('admin.catalog.*')
                                     ? 'bg-accent-soft font-semibold text-accent'
                                     : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                             "
@@ -290,10 +316,10 @@ function isActive(routeName) {
                         </Link>
 
                         <Link
-                            :href="route('super-admin.users.index')"
+                            :href="route('admin.users.index')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="
-                                route().current('super-admin.users.*')
+                                route().current('admin.users.*')
                                     ? 'bg-accent-soft font-semibold text-accent'
                                     : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                             "
@@ -312,10 +338,10 @@ function isActive(routeName) {
                         </Link>
 
                         <Link
-                            :href="route('super-admin.barcode-audits.index')"
+                            :href="route('admin.barcode-audits.index')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="
-                                route().current('super-admin.barcode-audits.*')
+                                route().current('admin.barcode-audits.*')
                                     ? 'bg-accent-soft font-semibold text-accent'
                                     : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                             "
@@ -334,10 +360,10 @@ function isActive(routeName) {
                         </Link>
 
                         <Link
-                            :href="route('super-admin.feedback.index')"
+                            :href="route('admin.feedback.index')"
                             class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                             :class="
-                                route().current('super-admin.feedback.*')
+                                route().current('admin.feedback.*')
                                     ? 'bg-accent-soft font-semibold text-accent'
                                     : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                             "
@@ -357,27 +383,103 @@ function isActive(routeName) {
                             {{ $t('super_admin.dashboard.nav.feedback') }}
                         </Link>
 
-                        <Link
-                            :href="route('super-admin.backups.index')"
-                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
-                            :class="
-                                route().current('super-admin.backups.*')
-                                    ? 'bg-accent-soft font-semibold text-accent'
-                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
-                            "
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                class="h-4 w-4 flex-shrink-0"
+                        <!-- Super-Admin-only areas -->
+                        <template v-if="isSuperOnly">
+                            <Link
+                                :href="route('admin.backups.index')"
+                                class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                                :class="
+                                    route().current('admin.backups.*')
+                                        ? 'bg-accent-soft font-semibold text-accent'
+                                        : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                                "
                             >
-                                <path
-                                    d="M3 12.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75ZM3 8.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 8.25ZM3 3.75A.75.75 0 0 1 3.75 3h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 3.75Z"
-                                />
-                            </svg>
-                            {{ $t('super_admin.dashboard.nav.backups') }}
-                        </Link>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4 flex-shrink-0"
+                                >
+                                    <path
+                                        d="M3 12.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75ZM3 8.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 8.25ZM3 3.75A.75.75 0 0 1 3.75 3h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 3.75Z"
+                                    />
+                                </svg>
+                                {{ $t('super_admin.dashboard.nav.backups') }}
+                            </Link>
+
+                            <Link
+                                :href="route('admin.subscriptions.index')"
+                                class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                                :class="
+                                    route().current('admin.subscriptions.*')
+                                        ? 'bg-accent-soft font-semibold text-accent'
+                                        : 'text-ink-tertiary hover:bg-background hover:text-ink-primary'
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4 flex-shrink-0"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v.316a3.78 3.78 0 00-1.653.713c-.426.33-.744.74-.925 1.2a2.6 2.6 0 000 1.962c.18.46.499.87.925 1.2.42.326.94.55 1.653.713V12.5a2.2 2.2 0 01-.5-.105.75.75 0 10-.45 1.43c.305.096.625.155.95.175v.316a.75.75 0 001.5 0v-.316c.66-.084 1.22-.323 1.653-.713.426-.33.744-.74.925-1.2a2.6 2.6 0 000-1.962c-.18-.46-.499-.87-.925-1.2-.42-.326-.94-.55-1.653-.713V7.5c.176.027.343.063.5.105a.75.75 0 10.45-1.43 4.3 4.3 0 00-.95-.175V5z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                                {{ $t('super_admin.dashboard.nav.subscriptions') }}
+                            </Link>
+
+                            <Link
+                                :href="route('admin.payments.index')"
+                                class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                                :class="
+                                    route().current('admin.payments.*')
+                                        ? 'bg-accent-soft font-semibold text-accent'
+                                        : 'text-ink-tertiary hover:bg-background hover:text-ink-primary'
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4 flex-shrink-0"
+                                >
+                                    <path
+                                        d="M1 4.25C1 3.56 1.56 3 2.25 3h15.5c.69 0 1.25.56 1.25 1.25v.5H1v-.5z"
+                                    />
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M1 6.5v9.25C1 16.44 1.56 17 2.25 17h15.5c.69 0 1.25-.56 1.25-1.25V6.5H1zm3 6.5a.75.75 0 01.75-.75h3a.75.75 0 010 1.5h-3A.75.75 0 014 13z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                                {{ $t('super_admin.dashboard.nav.payments') }}
+                            </Link>
+
+                            <Link
+                                :href="route('admin.affiliates.index')"
+                                class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                                :class="
+                                    route().current('admin.affiliates.*')
+                                        ? 'bg-accent-soft font-semibold text-accent'
+                                        : 'text-ink-tertiary hover:bg-background hover:text-ink-primary'
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-4 w-4 flex-shrink-0"
+                                >
+                                    <path
+                                        d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 018 18a9.953 9.953 0 01-5.385-1.572zM16.25 5.75a.75.75 0 00-1.5 0v2h-2a.75.75 0 000 1.5h2v2a.75.75 0 001.5 0v-2h2a.75.75 0 000-1.5h-2v-2z"
+                                    />
+                                </svg>
+                                {{ $t('super_admin.dashboard.nav.affiliates') }}
+                            </Link>
+                        </template>
                     </template>
                 </nav>
             </aside>
@@ -442,11 +544,11 @@ function isActive(routeName) {
                     </div>
                     <Link
                         v-if="isSuperAdmin"
-                        :href="route('super-admin.dashboard')"
+                        :href="route('admin.dashboard')"
                         :title="$t('nav.super_admin_section')"
                         class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition"
                         :class="
-                            route().current('super-admin.*')
+                            route().current('admin.*')
                                 ? 'text-accent'
                                 : 'text-ink-tertiary hover:bg-background hover:text-ink-primary'
                         "

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\EnsureHasBusiness;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetBusinessContext;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             SetBusinessContext::class,
+            EnsureAccountActive::class,
         ]);
 
         $middleware->alias([

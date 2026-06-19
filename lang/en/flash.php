@@ -43,6 +43,14 @@ return [
         'reply_failed' => 'Failed to send the reply email. Please try again.',
     ],
 
+    'users' => [
+        'frozen' => ':name’s account has been frozen.',
+        'thawed' => ':name’s account has been thawed.',
+        'reset_sent' => 'Password reset link sent to :email.',
+        'reset_failed' => 'Could not send a reset link to that address.',
+        'deleted' => ':name’s account has been deleted.',
+    ],
+
     'email_template' => [
         'saved_activated' => 'Template saved and activated. It will now fire on its trigger.',
         'saved_deactivated' => 'Template saved and deactivated. It will not fire until activated.',

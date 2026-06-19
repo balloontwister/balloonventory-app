@@ -134,6 +134,10 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::get('/super-admin/users', [AdminUserController::class, 'index'])->name('super-admin.users.index');
     Route::post('/super-admin/users/{user}/site-admin', [AdminUserController::class, 'promote'])->name('super-admin.users.promote');
     Route::delete('/super-admin/users/{user}/site-admin', [AdminUserController::class, 'demote'])->name('super-admin.users.demote');
+    Route::post('/super-admin/users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('super-admin.users.freeze');
+    Route::delete('/super-admin/users/{user}/freeze', [AdminUserController::class, 'thaw'])->name('super-admin.users.thaw');
+    Route::post('/super-admin/users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])->name('super-admin.users.password-reset');
+    Route::delete('/super-admin/users/{user}', [AdminUserController::class, 'destroy'])->name('super-admin.users.destroy');
 
     // ── Catalog ──────────────────────────────────────────────────────────────
     Route::get('/super-admin/catalog', fn () => redirect()->route('super-admin.catalog.skus'))->name('super-admin.catalog');

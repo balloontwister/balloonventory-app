@@ -1,20 +1,86 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { trans } from 'laravel-vue-i18n';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps({
-    users: { type: Array, required: true },
+    users: { type: Object, required: true },
+    filters: { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
 const isSuperAdmin = page.props.auth?.isSuperAdmin ?? false;
+const selfId = page.props.auth?.user?.id ?? null;
 
-const confirmingDemote = ref(null);
+// ── Filters + search ──────────────────────────────────────────────────────────
+const search = ref(props.filters.search ?? '');
+const status = ref(props.filters.status ?? '');
+const sortCol = ref(props.filters.sort ?? 'last_login_at');
+const sortDir = ref(props.filters.dir ?? 'desc');
+
+const STATUS_FILTERS = [
+    { value: '', label: 'super_admin.users.filter_all' },
+    { value: 'active', label: 'super_admin.users.filter_active' },
+    { value: 'frozen', label: 'super_admin.users.filter_frozen' },
+    { value: 'deleted', label: 'super_admin.users.filter_deleted' },
+    { value: 'admins', label: 'super_admin.users.filter_admins' },
+];
+
+// Columns whose natural first sort is descending (recent/biggest first).
+const DESC_FIRST = [
+    'created_at',
+    'last_login_at',
+    'inventory',
+    'activity',
+    'businesses',
+];
+
+function navigate() {
+    router.get(
+        route('super-admin.users.index'),
+        {
+            search: search.value || undefined,
+            status: status.value || undefined,
+            sort: sortCol.value,
+            dir: sortDir.value,
+        },
+        { preserveState: true, replace: true, preserveScroll: true },
+    );
+}
+
+let debounce;
+watch(search, () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(navigate, 350);
+});
+
+watch(status, navigate);
+
+function sortBy(col) {
+    if (sortCol.value === col) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortCol.value = col;
+        sortDir.value = DESC_FIRST.includes(col) ? 'desc' : 'asc';
+    }
+    navigate();
+}
+
+const SORTABLE = {
+    name: 'super_admin.users.col_name',
+    email: 'super_admin.users.col_email',
+    businesses: 'super_admin.users.col_businesses',
+    inventory: 'super_admin.users.col_inventory',
+    activity: 'super_admin.users.col_activity',
+    created_at: 'super_admin.users.col_registered',
+    last_login_at: 'super_admin.users.col_last_login',
+    admin_level: 'super_admin.users.col_status',
+};
 
 function formatDate(val) {
     if (!val) return '—';
-    return new Date(val).toLocaleDateString('en-US', {
+    return new Date(val).toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -23,7 +89,7 @@ function formatDate(val) {
 
 function formatDateTime(val) {
     if (!val) return '—';
-    return new Date(val).toLocaleString('en-US', {
+    return new Date(val).toLocaleString(undefined, {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
@@ -31,33 +97,146 @@ function formatDateTime(val) {
     });
 }
 
+function numberFmt(n) {
+    return new Intl.NumberFormat().format(n ?? 0);
+}
+
+// ── Per-row action menu (teleported so the table's overflow can't clip it) ─────
+const openMenuId = ref(null);
+const activeUser = ref(null);
+const menuStyle = ref({});
+
+function toggleMenu(user, event) {
+    if (openMenuId.value === user.id) {
+        closeMenu();
+        return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const width = 224;
+    let left = rect.right - width;
+    if (left < 8) left = 8;
+    menuStyle.value = {
+        top: `${rect.bottom + 4}px`,
+        left: `${left}px`,
+        width: `${width}px`,
+    };
+    activeUser.value = user;
+    openMenuId.value = user.id;
+}
+
+function closeMenu() {
+    openMenuId.value = null;
+    activeUser.value = null;
+}
+
+function onKey(e) {
+    if (e.key === 'Escape') closeMenu();
+}
+
+onMounted(() => {
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+});
+onUnmounted(() => {
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('scroll', closeMenu, true);
+    window.removeEventListener('resize', closeMenu);
+});
+
+// Which actions apply to the menu's active user.
+const menu = computed(() => {
+    const u = activeUser.value;
+    if (!u) return {};
+    const isSuper = u.admin_level === 'super_admin';
+    const isSite = u.admin_level === 'site_admin';
+    const isSelf = u.id === selfId;
+    const deleted = !!u.deleted_at;
+    const frozen = !!u.frozen_at;
+    return {
+        promote: isSuperAdmin && !u.admin_level && !deleted,
+        demote: isSuperAdmin && isSite,
+        freeze: !deleted && !isSuper && !isSelf && !frozen,
+        thaw: !deleted && frozen,
+        reset: !deleted,
+        copy: true,
+        delete: isSuperAdmin && !u.admin_level && !isSelf && !deleted,
+    };
+});
+
+// ── Actions ───────────────────────────────────────────────────────────────────
 function promote(user) {
+    closeMenu();
     router.post(
         route('super-admin.users.promote', user.id),
         {},
-        { preserveScroll: true },
+        { preserveScroll: true, preserveState: true },
     );
 }
 
-function confirmDemote(userId) {
-    confirmingDemote.value = userId;
-}
-
-function cancelDemote() {
-    confirmingDemote.value = null;
-}
-
 function demote(user) {
+    closeMenu();
+    if (!window.confirm(trans('super_admin.users.demote_confirm', { name: user.name }))) {
+        return;
+    }
     router.delete(route('super-admin.users.demote', user.id), {
         preserveScroll: true,
+        preserveState: true,
     });
-    confirmingDemote.value = null;
 }
 
-function adminLevelLabel(level) {
-    if (level === 'super_admin') return 'Super Admin';
-    if (level === 'site_admin') return 'Site Admin';
-    return null;
+function freeze(user) {
+    closeMenu();
+    if (!window.confirm(trans('super_admin.users.freeze_confirm', { name: user.name }))) {
+        return;
+    }
+    router.post(
+        route('super-admin.users.freeze', user.id),
+        {},
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
+function thaw(user) {
+    closeMenu();
+    router.delete(route('super-admin.users.thaw', user.id), {
+        preserveScroll: true,
+        preserveState: true,
+    });
+}
+
+function sendReset(user) {
+    closeMenu();
+    router.post(
+        route('super-admin.users.password-reset', user.id),
+        {},
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
+const copiedId = ref(null);
+async function copyEmail(user) {
+    closeMenu();
+    try {
+        await navigator.clipboard.writeText(user.email);
+        copiedId.value = user.id;
+        setTimeout(() => {
+            if (copiedId.value === user.id) copiedId.value = null;
+        }, 1500);
+    } catch {
+        /* clipboard unavailable — no-op */
+    }
+}
+
+function destroyUser(user) {
+    closeMenu();
+    if (!window.confirm(trans('super_admin.users.delete_confirm', { name: user.name }))) {
+        return;
+    }
+    router.delete(route('super-admin.users.destroy', user.id), {
+        preserveScroll: true,
+        preserveState: true,
+    });
 }
 </script>
 
@@ -83,11 +262,33 @@ function adminLevelLabel(level) {
 
         <div class="py-2">
             <div class="rounded-lg border border-border bg-surface">
-                <!-- Legend / description -->
+                <!-- Toolbar -->
                 <div class="border-b border-border px-6 py-4">
                     <p class="font-sans text-[13px] text-ink-secondary">
                         {{ $t('super_admin.users.description') }}
                     </p>
+                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                        <input
+                            v-model="search"
+                            type="search"
+                            :placeholder="
+                                $t('super_admin.users.search_placeholder')
+                            "
+                            class="w-72 max-w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        />
+                        <select
+                            v-model="status"
+                            class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        >
+                            <option
+                                v-for="opt in STATUS_FILTERS"
+                                :key="opt.value"
+                                :value="opt.value"
+                            >
+                                {{ $t(opt.label) }}
+                            </option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -96,40 +297,60 @@ function adminLevelLabel(level) {
                             <tr
                                 class="border-b border-border text-left text-ink-secondary"
                             >
-                                <th class="px-6 py-3 font-medium">
-                                    {{ $t('super_admin.users.col_name') }}
-                                </th>
-                                <th class="px-6 py-3 font-medium">
-                                    {{ $t('super_admin.users.col_email') }}
-                                </th>
-                                <th class="px-6 py-3 font-medium">
-                                    {{
-                                        $t('super_admin.users.col_admin_level')
-                                    }}
-                                </th>
-                                <th class="px-6 py-3 font-medium">
-                                    {{ $t('super_admin.users.col_registered') }}
-                                </th>
-                                <th class="px-6 py-3 font-medium">
-                                    {{ $t('super_admin.users.col_last_login') }}
-                                </th>
                                 <th
-                                    v-if="isSuperAdmin"
+                                    v-for="(label, col) in SORTABLE"
+                                    :key="col"
                                     class="px-6 py-3 font-medium"
                                 >
+                                    <button
+                                        type="button"
+                                        class="group inline-flex items-center gap-1 transition hover:text-ink-primary"
+                                        :class="{
+                                            'text-ink-primary': sortCol === col,
+                                        }"
+                                        @click="sortBy(col)"
+                                    >
+                                        {{ $t(label) }}
+                                        <span
+                                            class="text-[10px]"
+                                            :class="
+                                                sortCol === col
+                                                    ? 'opacity-100'
+                                                    : 'opacity-0 group-hover:opacity-40'
+                                            "
+                                        >
+                                            {{
+                                                sortCol === col && sortDir === 'asc'
+                                                    ? '▲'
+                                                    : '▼'
+                                            }}
+                                        </span>
+                                    </button>
+                                </th>
+                                <th class="px-6 py-3 text-right font-medium">
                                     {{ $t('super_admin.users.col_actions') }}
                                 </th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-border/50">
+                            <tr v-if="users.data.length === 0">
+                                <td
+                                    colspan="9"
+                                    class="px-6 py-10 text-center text-ink-tertiary"
+                                >
+                                    —
+                                </td>
+                            </tr>
                             <tr
-                                v-for="user in users"
+                                v-for="user in users.data"
                                 :key="user.id"
-                                class="border-border/50 border-b last:border-0"
-                                :class="{ 'opacity-50': user.deleted_at }"
+                                class="text-ink-primary"
+                                :class="{ 'opacity-60': user.deleted_at }"
                             >
-                                <td class="px-6 py-3 text-ink-primary">
+                                <!-- Name -->
+                                <td class="px-6 py-3">
                                     <span
+                                        class="font-medium"
                                         :class="{
                                             'line-through': user.deleted_at,
                                         }"
@@ -137,135 +358,253 @@ function adminLevelLabel(level) {
                                         {{ user.name }}
                                     </span>
                                 </td>
+
+                                <!-- Email -->
                                 <td class="px-6 py-3 text-ink-secondary">
                                     <span
-                                        :class="{
-                                            'line-through': user.deleted_at,
-                                        }"
+                                        class="inline-flex items-center gap-1.5"
                                     >
-                                        {{ user.original_email ?? user.email }}
+                                        <span
+                                            v-if="!user.email_verified_at"
+                                            class="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+                                            :title="
+                                                $t(
+                                                    'super_admin.users.email_unverified',
+                                                )
+                                            "
+                                        />
+                                        <span
+                                            :class="{
+                                                'line-through': user.deleted_at,
+                                            }"
+                                        >
+                                            {{ user.original_email ?? user.email }}
+                                        </span>
                                     </span>
                                 </td>
+
+                                <!-- Businesses -->
                                 <td class="px-6 py-3">
-                                    <span
-                                        v-if="
-                                            user.admin_level === 'super_admin'
-                                        "
-                                        class="inline-flex rounded-full bg-accent-soft px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
+                                    <div
+                                        v-if="user.businesses.length"
+                                        class="flex flex-wrap gap-1"
                                     >
-                                        {{ adminLevelLabel(user.admin_level) }}
+                                        <span
+                                            v-for="b in user.businesses"
+                                            :key="b.id"
+                                            class="inline-flex rounded-full bg-background px-2 py-0.5 text-[11px] text-ink-secondary ring-1 ring-inset ring-border"
+                                            :title="b.role"
+                                        >
+                                            {{ b.name }}
+                                        </span>
+                                    </div>
+                                    <span v-else class="text-ink-tertiary">
+                                        {{ $t('super_admin.users.businesses_none') }}
                                     </span>
-                                    <span
-                                        v-else-if="
-                                            user.admin_level === 'site_admin'
-                                        "
-                                        class="inline-flex rounded-full bg-success-soft px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-success"
-                                    >
-                                        {{ adminLevelLabel(user.admin_level) }}
+                                </td>
+
+                                <!-- Inventory -->
+                                <td class="px-6 py-3 text-ink-secondary">
+                                    <span v-if="user.inventory_skus_count > 0">
+                                        {{
+                                            $t('super_admin.users.inventory_value', {
+                                                skus: numberFmt(
+                                                    user.inventory_skus_count,
+                                                ),
+                                                bags: numberFmt(
+                                                    user.inventory_bags_total,
+                                                ),
+                                            })
+                                        }}
                                     </span>
                                     <span v-else class="text-ink-tertiary">
-                                        {{ $t('super_admin.users.level_none') }}
+                                        {{ $t('super_admin.users.inventory_none') }}
                                     </span>
                                 </td>
+
+                                <!-- Activity -->
+                                <td class="px-6 py-3 text-ink-secondary">
+                                    {{
+                                        $t('super_admin.users.activity_value', {
+                                            tickets: user.support_tickets_count,
+                                            feedback: user.sku_feedback_count,
+                                        })
+                                    }}
+                                </td>
+
+                                <!-- Registered -->
                                 <td class="px-6 py-3 text-ink-secondary">
                                     {{ formatDate(user.created_at) }}
                                 </td>
+
+                                <!-- Last login -->
                                 <td class="px-6 py-3 text-ink-secondary">
                                     {{ formatDateTime(user.last_login_at) }}
                                 </td>
 
-                                <!-- Actions (Super Admin only) -->
-                                <td v-if="isSuperAdmin" class="px-6 py-3">
-                                    <!-- Super Admin: no action -->
+                                <!-- Status -->
+                                <td class="px-6 py-3">
                                     <span
-                                        v-if="
-                                            user.admin_level === 'super_admin'
-                                        "
-                                        class="text-ink-tertiary"
+                                        v-if="user.deleted_at"
+                                        class="inline-flex rounded-full bg-background px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
                                     >
-                                        —
+                                        {{ $t('super_admin.users.status_deleted') }}
                                     </span>
-
-                                    <!-- Site Admin: demote confirm -->
-                                    <template
-                                        v-else-if="
-                                            user.admin_level === 'site_admin'
-                                        "
+                                    <span
+                                        v-else-if="user.frozen_at"
+                                        class="inline-flex rounded-full bg-warning-soft px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-eyebrow text-warning"
                                     >
-                                        <div
-                                            v-if="confirmingDemote === user.id"
-                                            class="flex items-center gap-2"
-                                        >
-                                            <span
-                                                class="font-sans text-[12px] text-ink-secondary"
-                                            >
-                                                {{
-                                                    $t(
-                                                        'super_admin.users.demote_confirm',
-                                                    )
-                                                }}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                class="rounded-md bg-danger px-3 py-1 font-sans text-[12px] font-semibold text-white transition hover:bg-red-700"
-                                                @click="demote(user)"
-                                            >
-                                                {{
-                                                    $t(
-                                                        'super_admin.users.demote_yes',
-                                                    )
-                                                }}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="rounded-md border border-border-strong px-3 py-1 font-sans text-[12px] font-medium text-ink-secondary transition hover:bg-background"
-                                                @click="cancelDemote"
-                                            >
-                                                {{
-                                                    $t(
-                                                        'super_admin.users.demote_cancel',
-                                                    )
-                                                }}
-                                            </button>
-                                        </div>
-                                        <button
-                                            v-else
-                                            type="button"
-                                            class="rounded-md border border-border-strong px-3 py-1 font-sans text-[12px] font-medium text-danger transition hover:bg-danger-soft"
-                                            @click="confirmDemote(user.id)"
-                                        >
-                                            {{
-                                                $t(
-                                                    'super_admin.users.demote_button',
-                                                )
-                                            }}
-                                        </button>
-                                    </template>
+                                        {{ $t('super_admin.users.status_frozen') }}
+                                    </span>
+                                    <span
+                                        v-else-if="user.admin_level === 'super_admin'"
+                                        class="inline-flex rounded-full bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
+                                    >
+                                        {{ $t('super_admin.users.level_super_admin') }}
+                                    </span>
+                                    <span
+                                        v-else-if="user.admin_level === 'site_admin'"
+                                        class="inline-flex rounded-full bg-success-soft px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-eyebrow text-success"
+                                    >
+                                        {{ $t('super_admin.users.level_site_admin') }}
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex rounded-full bg-background px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                    >
+                                        {{ $t('super_admin.users.status_active') }}
+                                    </span>
+                                </td>
 
-                                    <!-- Regular user: promote -->
+                                <!-- Actions -->
+                                <td class="px-6 py-3 text-right">
+                                    <span
+                                        v-if="copiedId === user.id"
+                                        class="mr-2 font-sans text-[12px] text-success"
+                                    >
+                                        {{ $t('super_admin.users.copy_email_done') }}
+                                    </span>
                                     <button
-                                        v-else-if="!user.deleted_at"
                                         type="button"
-                                        class="rounded-md bg-accent px-3 py-1 font-sans text-[12px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                                        @click="promote(user)"
+                                        class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border-strong text-ink-secondary transition hover:bg-background"
+                                        :aria-label="$t('super_admin.users.actions_menu')"
+                                        @click="toggleMenu(user, $event)"
                                     >
-                                        {{
-                                            $t(
-                                                'super_admin.users.promote_button',
-                                            )
-                                        }}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                            class="h-4 w-4"
+                                        >
+                                            <path
+                                                d="M10 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 5.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 5.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"
+                                            />
+                                        </svg>
                                     </button>
-
-                                    <!-- Deleted user: no action -->
-                                    <span v-else class="text-ink-tertiary">
-                                        —
-                                    </span>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination -->
+                <div
+                    v-if="users.last_page > 1"
+                    class="flex items-center justify-between border-t border-border px-6 py-3"
+                >
+                    <p class="font-sans text-[13px] text-ink-secondary">
+                        {{ users.current_page }} / {{ users.last_page }}
+                    </p>
+                    <div class="flex gap-2">
+                        <Link
+                            v-if="users.prev_page_url"
+                            :href="users.prev_page_url"
+                            preserve-state
+                            preserve-scroll
+                            class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-ink-secondary hover:bg-background"
+                        >
+                            ‹
+                        </Link>
+                        <Link
+                            v-if="users.next_page_url"
+                            :href="users.next_page_url"
+                            preserve-state
+                            preserve-scroll
+                            class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] text-ink-secondary hover:bg-background"
+                        >
+                            ›
+                        </Link>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Teleported action menu -->
+        <Teleport to="body">
+            <template v-if="openMenuId && activeUser">
+                <div class="fixed inset-0 z-40" @click="closeMenu" />
+                <div
+                    class="fixed z-50 overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg"
+                    :style="menuStyle"
+                >
+                    <button
+                        v-if="menu.promote"
+                        type="button"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                        @click="promote(activeUser)"
+                    >
+                        {{ $t('super_admin.users.promote_button') }}
+                    </button>
+                    <button
+                        v-if="menu.demote"
+                        type="button"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                        @click="demote(activeUser)"
+                    >
+                        {{ $t('super_admin.users.demote_button') }}
+                    </button>
+                    <button
+                        v-if="menu.freeze"
+                        type="button"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                        @click="freeze(activeUser)"
+                    >
+                        {{ $t('super_admin.users.freeze_button') }}
+                    </button>
+                    <button
+                        v-if="menu.thaw"
+                        type="button"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                        @click="thaw(activeUser)"
+                    >
+                        {{ $t('super_admin.users.thaw_button') }}
+                    </button>
+                    <button
+                        v-if="menu.reset"
+                        type="button"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                        @click="sendReset(activeUser)"
+                    >
+                        {{ $t('super_admin.users.reset_button') }}
+                    </button>
+                    <button
+                        v-if="menu.copy"
+                        type="button"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                        @click="copyEmail(activeUser)"
+                    >
+                        {{ $t('super_admin.users.copy_email') }}
+                    </button>
+                    <button
+                        v-if="menu.delete"
+                        type="button"
+                        class="block w-full border-t border-border px-4 py-2 text-left font-sans text-[13px] text-danger transition hover:bg-danger-soft"
+                        @click="destroyUser(activeUser)"
+                    >
+                        {{ $t('super_admin.users.delete_button') }}
+                    </button>
+                </div>
+            </template>
+        </Teleport>
     </AuthenticatedLayout>
 </template>

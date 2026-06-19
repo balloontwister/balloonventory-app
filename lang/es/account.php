@@ -29,6 +29,4 @@ return [
             'label' => 'Cerrar sesión',
         ],
     ],
-
-    'setup_again' => 'Configurar mi tienda otra vez',
 ];

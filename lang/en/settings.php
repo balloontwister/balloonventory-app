@@ -42,5 +42,10 @@ return [
             'status_free_beta' => 'Free beta',
             'footnote' => 'Billing and plan management coming soon.',
         ],
+        'setup_again' => [
+            'heading' => 'Set up shop again',
+            'subheading' => 'Re-run the guided setup to refresh starter inventory, bins, and preferences.',
+            'button' => 'Set up my shop again',
+        ],
     ],
 ];

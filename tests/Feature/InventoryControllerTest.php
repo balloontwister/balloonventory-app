@@ -264,6 +264,32 @@ class InventoryControllerTest extends TestCase
             );
     }
 
+    public function test_index_search_matches_words_spread_across_fields(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $shape = Shape::factory()->create(['name' => 'Link']);
+        $balloonSize = BalloonSize::factory()->create([
+            'brand_id' => $brand->id,
+            'shape_id' => $shape->id,
+        ]);
+        $color = Color::factory()->create(['name' => 'Macaron Blue']);
+
+        $match = Sku::factory()->create([
+            'name' => 'K-Link 50CT',
+            'brand_id' => $brand->id,
+            'balloon_size_id' => $balloonSize->id,
+            'color_id' => $color->id,
+        ]);
+        Sku::factory()->create(['name' => 'Unrelated Item']);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.index', ['search' => 'Kalisan Blue Link']))
+            ->assertInertia(fn ($page) => $page
+                ->has('catalogSkus', 1)
+                ->where('catalogSkus.0.id', $match->id)
+            );
+    }
+
     // ── show ──────────────────────────────────────────────────────────────────
 
     public function test_show_returns_ok_for_sku_in_inventory(): void

@@ -192,15 +192,8 @@ class InventoryController extends Controller
         }
 
         if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(fn ($q) => $q
-                ->where('skus.name', 'like', "%{$term}%")
-                ->orWhere('skus.computed_name', 'like', "%{$term}%")
-                ->orWhere('skus.warehouse_sku', 'like', "%{$term}%")
-                ->orWhereHas('color', fn ($c) => $c->where('name', 'like', "%{$term}%"))
-                ->orWhereHas('brand', fn ($b) => $b
-                    ->where('name', 'like', "%{$term}%")
-                    ->orWhere('abbreviation', 'like', "%{$term}%")));
+            // Shared tokenized search (name/brand/size/shape/color/texture/SKU).
+            $query->matchesSearch($request->search);
         }
     }
 

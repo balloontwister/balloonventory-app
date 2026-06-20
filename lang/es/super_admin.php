@@ -344,6 +344,16 @@ return [
         'email_subject' => 'Asunto',
         'email_type' => 'Tipo',
         'email_sent' => 'Enviado',
+        'login_empty' => 'Aún no hay actividad de inicio de sesión.',
+        'login_when' => 'Cuándo',
+        'login_outcome' => 'Resultado',
+        'login_ip' => 'Dirección IP',
+        'login_device' => 'Dispositivo',
+        'login_event' => [
+            'success' => 'Inició sesión',
+            'failed' => 'Fallido',
+            'lockout' => 'Bloqueado',
+        ],
     ],
 
     'coming_soon' => [

@@ -9,9 +9,32 @@ defineProps({
     feedback: { type: Array, default: () => [] },
     tickets: { type: Array, default: () => [] },
     emails: { type: Array, default: () => [] },
+    loginEvents: { type: Array, default: () => [] },
 });
 
 const CONTACT_FIELDS = ['phone', 'website', 'city', 'country'];
+
+// Lightweight device label from a user-agent string (no dependency). Falls back
+// to the raw string (shown in full on hover via the title attribute).
+function deviceLabel(ua) {
+    if (!ua) return '—';
+    const browser =
+        /Edg\//.test(ua) ? 'Edge'
+        : /OPR\/|Opera/.test(ua) ? 'Opera'
+        : /Chrome\//.test(ua) ? 'Chrome'
+        : /Firefox\//.test(ua) ? 'Firefox'
+        : /Safari\//.test(ua) ? 'Safari'
+        : null;
+    const os =
+        /iPhone|iPad|iPod/.test(ua) ? 'iOS'
+        : /Android/.test(ua) ? 'Android'
+        : /Mac OS X/.test(ua) ? 'macOS'
+        : /Windows/.test(ua) ? 'Windows'
+        : /Linux/.test(ua) ? 'Linux'
+        : null;
+    if (browser && os) return `${browser} · ${os}`;
+    return browser || os || ua.slice(0, 40);
+}
 
 function formatDate(val) {
     if (!val) return '—';
@@ -378,16 +401,80 @@ function mailableLabel(mailable) {
                 </div>
             </section>
 
-            <!-- Still to come -->
-            <section
-                v-for="key in ['login_history', 'ledger']"
-                :key="key"
-                class="rounded-lg border border-border bg-surface p-5"
-            >
+            <!-- Login history -->
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('super_admin.user_detail.sections.login_history') }}
+                    <span v-if="loginEvents.length" class="text-ink-tertiary">
+                        ({{ loginEvents.length }})
+                    </span>
+                </h2>
+                <p
+                    v-if="loginEvents.length === 0"
+                    class="font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('super_admin.user_detail.login_empty') }}
+                </p>
+                <div v-else class="overflow-x-auto">
+                    <table class="w-full font-sans text-[13px]">
+                        <thead>
+                            <tr class="border-b border-border text-left text-ink-secondary">
+                                <th class="py-2 pr-4 font-medium">
+                                    {{ $t('super_admin.user_detail.login_when') }}
+                                </th>
+                                <th class="py-2 pr-4 font-medium">
+                                    {{ $t('super_admin.user_detail.login_outcome') }}
+                                </th>
+                                <th class="py-2 pr-4 font-medium">
+                                    {{ $t('super_admin.user_detail.login_ip') }}
+                                </th>
+                                <th class="py-2 font-medium">
+                                    {{ $t('super_admin.user_detail.login_device') }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/50">
+                            <tr v-for="e in loginEvents" :key="e.id">
+                                <td class="whitespace-nowrap py-2 pr-4 text-ink-secondary">
+                                    {{ formatDateTime(e.created_at) }}
+                                </td>
+                                <td class="py-2 pr-4">
+                                    <span
+                                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow"
+                                        :class="
+                                            e.event === 'success'
+                                                ? 'text-success'
+                                                : e.event === 'lockout'
+                                                  ? 'text-danger'
+                                                  : 'text-warning'
+                                        "
+                                    >
+                                        {{ $t(`super_admin.user_detail.login_event.${e.event}`) }}
+                                    </span>
+                                </td>
+                                <td class="py-2 pr-4 font-mono text-[12px] text-ink-secondary">
+                                    {{ e.ip_address ?? '—' }}
+                                </td>
+                                <td
+                                    class="py-2 text-ink-secondary"
+                                    :title="e.user_agent"
+                                >
+                                    {{ deviceLabel(e.user_agent) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Ledger — still to come -->
+            <section class="rounded-lg border border-border bg-surface p-5">
                 <h2
                     class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                 >
-                    {{ $t(`super_admin.user_detail.sections.${key}`) }}
+                    {{ $t('super_admin.user_detail.sections.ledger') }}
                 </h2>
                 <p
                     class="mt-3 rounded-md border border-dashed border-border px-3 py-6 text-center font-sans text-[13px] text-ink-tertiary"

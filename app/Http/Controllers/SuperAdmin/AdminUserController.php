@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Enums\AdminLevel;
 use App\Http\Controllers\Controller;
 use App\Models\EmailLog;
+use App\Models\LoginEvent;
 use App\Models\Membership;
 use App\Models\SkuFeedback;
 use App\Models\SupportTicket;
@@ -176,6 +177,15 @@ class AdminUserController extends Controller
             ->limit(50)
             ->get(['id', 'to', 'subject', 'mailable', 'sent_at']);
 
+        // Login history — matched by user_id (successes) or attempted email
+        // (failed/lockout attempts on this account, where user_id may be null).
+        $loginEvents = LoginEvent::where(fn ($q) => $q
+            ->where('user_id', $model->id)
+            ->orWhere('email', $model->email))
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get(['id', 'event', 'ip_address', 'user_agent', 'created_at']);
+
         return Inertia::render('SuperAdmin/Users/Show', [
             'user' => [
                 'id' => $model->id,
@@ -198,6 +208,7 @@ class AdminUserController extends Controller
             'feedback' => $feedback,
             'tickets' => $tickets,
             'emails' => $emails,
+            'loginEvents' => $loginEvents,
         ]);
     }
 

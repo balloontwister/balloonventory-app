@@ -5,6 +5,7 @@ namespace Tests\Feature\SuperAdmin;
 use App\Enums\AdminLevel;
 use App\Models\Business;
 use App\Models\EmailLog;
+use App\Models\LoginEvent;
 use App\Models\Membership;
 use App\Models\Sku;
 use App\Models\SkuFeedback;
@@ -154,6 +155,14 @@ class AdminUsersTest extends TestCase
             'sent_at' => now(),
         ]);
 
+        LoginEvent::create([
+            'user_id' => $target->id,
+            'email' => $target->email,
+            'event' => LoginEvent::SUCCESS,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Mozilla/5.0',
+        ]);
+
         $this->actingAs($this->superAdmin)
             ->get(route('admin.users.show', $target->id))
             ->assertInertia(fn ($page) => $page
@@ -164,6 +173,8 @@ class AdminUsersTest extends TestCase
                 ->where('tickets.0.subject', 'Help me')
                 ->has('emails', 1)
                 ->where('emails.0.subject', 'Welcome')
+                ->has('loginEvents', 1)
+                ->where('loginEvents.0.event', 'success')
             );
     }
 

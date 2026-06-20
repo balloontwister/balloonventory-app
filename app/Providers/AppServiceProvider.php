@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\LoginHistorySubscriber;
 use App\Models\BalloonList;
 use App\Models\Business;
 use App\Models\Job;
@@ -18,6 +19,7 @@ use App\Policies\MembershipPolicy;
 use App\Policies\PendingUpcScanPolicy;
 use App\Policies\SkuErrorReportPolicy;
 use App\Policies\SkuPolicy;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -34,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
         Schema::defaultStringLength(191);
 
         Vite::prefetch(concurrency: 3);
+
+        Event::subscribe(LoginHistorySubscriber::class);
 
         $this->registerModelPolicies();
         $this->registerNamedGates();

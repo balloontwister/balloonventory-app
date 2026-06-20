@@ -344,6 +344,16 @@ return [
         'email_subject' => 'Subject',
         'email_type' => 'Type',
         'email_sent' => 'Sent',
+        'login_empty' => 'No sign-in activity recorded yet.',
+        'login_when' => 'When',
+        'login_outcome' => 'Outcome',
+        'login_ip' => 'IP address',
+        'login_device' => 'Device',
+        'login_event' => [
+            'success' => 'Signed in',
+            'failed' => 'Failed',
+            'lockout' => 'Locked out',
+        ],
     ],
 
     'coming_soon' => [

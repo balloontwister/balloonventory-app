@@ -13,6 +13,9 @@ Schedule::command('app:backup-database')->dailyAt('02:00');
 // quarterly, and yearly. Keeps the backup list from growing without bound.
 Schedule::command('app:prune-backups')->dailyAt('02:30');
 
+// Prune login history past its 18-month retention window.
+Schedule::command('app:prune-login-events')->dailyAt('03:15');
+
 // Process the queued email worker every minute. Uses --stop-when-empty so the
 // process exits cleanly after draining pending jobs (daemon mode is not
 // available on the cPanel/shared host). withoutOverlapping() prevents a second

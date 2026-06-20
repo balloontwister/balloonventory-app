@@ -9,6 +9,10 @@ Schedule::command('app:prune-unverified-users')->dailyAt('03:00');
 // Create a daily database backup at 2:00 AM server time.
 Schedule::command('app:backup-database')->dailyAt('02:00');
 
+// Thin out old backups after the nightly dump: daily for 30 days, then monthly,
+// quarterly, and yearly. Keeps the backup list from growing without bound.
+Schedule::command('app:prune-backups')->dailyAt('02:30');
+
 // Process the queued email worker every minute. Uses --stop-when-empty so the
 // process exits cleanly after draining pending jobs (daemon mode is not
 // available on the cPanel/shared host). withoutOverlapping() prevents a second

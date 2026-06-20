@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { reactive } from 'vue';
 
 defineProps({
@@ -72,9 +73,20 @@ function formatDateTime(val) {
 }
 
 // EmailLog stores the fully-qualified mailable class; show just the short name.
+// Admin-composed direct messages get a friendly label.
 function mailableLabel(mailable) {
     if (!mailable) return '—';
-    return mailable.split('\\').pop();
+    const short = mailable.split('\\').pop();
+    if (short === 'AdminUserMessageMail') {
+        return trans('super_admin.user_detail.email_type_direct');
+    }
+    return short;
+}
+
+// Per-row toggle for revealing an admin direct-message body.
+const expandedBodies = reactive({});
+function toggleBody(id) {
+    expandedBodies[id] = !expandedBodies[id];
 }
 </script>
 
@@ -400,14 +412,22 @@ function mailableLabel(mailable) {
 
             <!-- Emails sent -->
             <section class="rounded-lg border border-border bg-surface p-5">
-                <h2
-                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                >
-                    {{ $t('super_admin.user_detail.sections.emails') }}
-                    <span v-if="emails.length" class="text-ink-tertiary">
-                        ({{ emails.length }})
-                    </span>
-                </h2>
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <h2
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('super_admin.user_detail.sections.emails') }}
+                        <span v-if="emails.length" class="text-ink-tertiary">
+                            ({{ emails.length }})
+                        </span>
+                    </h2>
+                    <Link
+                        :href="route('admin.email-templates.index', { user: user.id })"
+                        class="shrink-0 font-sans text-[13px] font-medium text-accent hover:underline"
+                    >
+                        {{ $t('super_admin.user_detail.email_user') }}
+                    </Link>
+                </div>
                 <p
                     v-if="emails.length === 0"
                     class="font-sans text-[13px] text-ink-tertiary"
@@ -430,15 +450,38 @@ function mailableLabel(mailable) {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border/50">
-                            <tr v-for="e in visible(emails, 'emails')" :key="e.id">
-                                <td class="py-2 pr-4 text-ink-primary">{{ e.subject }}</td>
-                                <td class="py-2 pr-4 text-ink-tertiary">
-                                    {{ mailableLabel(e.mailable) }}
-                                </td>
-                                <td class="whitespace-nowrap py-2 text-right text-ink-secondary">
-                                    {{ formatDateTime(e.sent_at) }}
-                                </td>
-                            </tr>
+                            <template v-for="e in visible(emails, 'emails')" :key="e.id">
+                                <tr>
+                                    <td class="py-2 pr-4 text-ink-primary">
+                                        {{ e.subject }}
+                                        <button
+                                            v-if="e.body"
+                                            type="button"
+                                            class="ml-2 font-sans text-[12px] font-medium text-accent hover:underline"
+                                            @click="toggleBody(e.id)"
+                                        >
+                                            {{
+                                                expandedBodies[e.id]
+                                                    ? $t('super_admin.user_detail.hide_message')
+                                                    : $t('super_admin.user_detail.view_message')
+                                            }}
+                                        </button>
+                                    </td>
+                                    <td class="py-2 pr-4 text-ink-tertiary">
+                                        {{ mailableLabel(e.mailable) }}
+                                    </td>
+                                    <td class="whitespace-nowrap py-2 text-right text-ink-secondary">
+                                        {{ formatDateTime(e.sent_at) }}
+                                    </td>
+                                </tr>
+                                <tr v-if="e.body && expandedBodies[e.id]">
+                                    <td colspan="3" class="pb-3">
+                                        <div
+                                            class="whitespace-pre-wrap rounded-md border border-border bg-background px-3 py-2 font-sans text-[13px] text-ink-secondary"
+                                        >{{ e.body }}</div>
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                     <button

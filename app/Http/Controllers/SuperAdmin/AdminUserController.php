@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Enums\AdminLevel;
 use App\Http\Controllers\Controller;
+use App\Models\AdminUserMessage;
 use App\Models\EmailLog;
 use App\Models\LoginEvent;
 use App\Models\Membership;
@@ -170,12 +171,43 @@ class AdminUserController extends Controller
 
         // Emails are logged with a user_id when known, but also match on the
         // recipient address to catch any sent before the link was recorded.
-        $emails = EmailLog::where(fn ($q) => $q
+        // Admin-composed direct messages are excluded here and instead pulled
+        // from admin_user_messages below (which also carries the body) so the
+        // send isn't listed twice.
+        $loggedEmails = EmailLog::where(fn ($q) => $q
             ->where('user_id', $model->id)
             ->orWhere('to', $model->email))
+            ->where(fn ($q) => $q
+                ->whereNull('mailable')
+                ->orWhere('mailable', '!=', 'AdminUserMessageMail'))
             ->orderByDesc('sent_at')
             ->limit(50)
-            ->get(['id', 'to', 'subject', 'mailable', 'sent_at']);
+            ->get(['id', 'subject', 'mailable', 'sent_at'])
+            ->map(fn (EmailLog $e) => [
+                'id' => $e->id,
+                'subject' => $e->subject,
+                'mailable' => $e->mailable,
+                'sent_at' => $e->sent_at,
+                'body' => null,
+            ]);
+
+        // Admin-composed direct messages — carry the full body for review.
+        $directMessages = AdminUserMessage::where('user_id', $model->id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get(['id', 'subject', 'body', 'created_at'])
+            ->map(fn (AdminUserMessage $m) => [
+                'id' => $m->id,
+                'subject' => $m->subject,
+                'mailable' => 'AdminUserMessageMail',
+                'sent_at' => $m->created_at,
+                'body' => $m->body,
+            ]);
+
+        $emails = $loggedEmails->concat($directMessages)
+            ->sortByDesc('sent_at')
+            ->take(50)
+            ->values();
 
         // Login history — matched by user_id (successes) or attempted email
         // (failed/lockout attempts on this account, where user_id may be null).

@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
+import UserEmailComposer from '@/Pages/SuperAdmin/EmailTemplates/Partials/UserEmailComposer.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -8,6 +9,9 @@ const props = defineProps({
     templates: { type: Array, required: true },
     emailByDay: { type: Array, required: true },
     emailByMonth: { type: Array, required: true },
+    composeUser: { type: Object, default: null },
+    draftTemplates: { type: Array, default: () => [] },
+    appUrl: { type: String, default: '' },
 });
 
 const emailDailyTotals = computed(() => {
@@ -74,6 +78,13 @@ function formatDateTime(val) {
         </template>
 
         <div class="flex flex-col gap-8 py-2">
+            <!-- Email a user directly -->
+            <UserEmailComposer
+                :compose-user="composeUser"
+                :draft-templates="draftTemplates"
+                :app-url="appUrl"
+            />
+
             <!-- Templates -->
             <section class="flex flex-col gap-4">
                 <div>

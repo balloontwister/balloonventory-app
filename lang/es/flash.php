@@ -43,6 +43,11 @@ return [
         'reply_failed' => 'No se pudo enviar el correo de respuesta. Inténtalo de nuevo.',
     ],
 
+    'user_email' => [
+        'sent' => 'Correo enviado a :name.',
+        'failed' => 'No se pudo enviar el correo. Inténtalo de nuevo.',
+    ],
+
     'users' => [
         'frozen' => 'La cuenta de :name ha sido congelada.',
         'thawed' => 'La cuenta de :name ha sido descongelada.',

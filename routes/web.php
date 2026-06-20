@@ -14,6 +14,7 @@ use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SuperAdmin\AdminUserController;
+use App\Http\Controllers\SuperAdmin\AdminUserEmailController;
 use App\Http\Controllers\SuperAdmin\BackupController;
 use App\Http\Controllers\SuperAdmin\BarcodeAuditController;
 use App\Http\Controllers\SuperAdmin\CatalogBrandController;
@@ -135,6 +136,9 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
 
     // ── Users ────────────────────────────────────────────────────────────────
     Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+    // Registered before the /{user} wildcard so "search" isn't captured as an id.
+    Route::get('/admin/users/search', [AdminUserEmailController::class, 'search'])->name('admin.users.search');
+    Route::post('/admin/user-emails', [AdminUserEmailController::class, 'store'])->name('admin.user-emails.store');
     Route::get('/admin/users/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
     Route::post('/admin/users/{user}/site-admin', [AdminUserController::class, 'promote'])->name('admin.users.promote');
     Route::delete('/admin/users/{user}/site-admin', [AdminUserController::class, 'demote'])->name('admin.users.demote');

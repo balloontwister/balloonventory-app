@@ -43,6 +43,11 @@ return [
         'reply_failed' => 'Failed to send the reply email. Please try again.',
     ],
 
+    'user_email' => [
+        'sent' => 'Email sent to :name.',
+        'failed' => 'Failed to send the email. Please try again.',
+    ],
+
     'users' => [
         'frozen' => ':name’s account has been frozen.',
         'thawed' => ':name’s account has been thawed.',

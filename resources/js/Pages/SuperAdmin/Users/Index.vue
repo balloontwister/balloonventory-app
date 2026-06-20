@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -315,12 +316,7 @@ function destroyUser(user) {
                 >
                     {{ $t('super_admin.users.heading') }}
                 </h1>
-                <Link
-                    :href="route('admin.dashboard')"
-                    class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
-                >
-                    {{ $t('super_admin.dashboard.back') }}
-                </Link>
+                <AdminBackLink />
             </div>
         </template>
 

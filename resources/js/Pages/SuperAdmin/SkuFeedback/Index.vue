@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
@@ -106,12 +107,7 @@ function submitReply(item) {
                 >
                     {{ $t('super_admin.dashboard.feedback.heading') }}
                 </h1>
-                <Link
-                    :href="route('admin.dashboard')"
-                    class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
-                >
-                    {{ $t('super_admin.dashboard.back') }}
-                </Link>
+                <AdminBackLink />
             </div>
         </template>
 

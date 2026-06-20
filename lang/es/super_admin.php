@@ -7,7 +7,7 @@ return [
         'back' => 'Panel de administración',
 
         'nav' => [
-            'overview' => 'Vista general',
+            'overview' => 'Panel',
             'email_templates' => 'Plantillas de correo',
             'email' => 'Correo',
             'support_tickets' => 'Tickets de soporte',

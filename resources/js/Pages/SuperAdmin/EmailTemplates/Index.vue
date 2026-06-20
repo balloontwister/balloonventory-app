@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -68,12 +69,7 @@ function formatDateTime(val) {
                 >
                     {{ $t('super_admin.dashboard.nav.email') }}
                 </h1>
-                <Link
-                    :href="route('admin.dashboard')"
-                    class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
-                >
-                    {{ $t('super_admin.dashboard.back') }}
-                </Link>
+                <AdminBackLink />
             </div>
         </template>
 

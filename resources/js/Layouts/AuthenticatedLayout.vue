@@ -34,6 +34,23 @@ onUnmounted(() => mediaQuery?.removeEventListener('change', syncIsDesktop));
 const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
 const isSuperOnly = page.props.auth?.isSuperAdmin ?? false;
 
+// Desktop sidebar collapse — remembered per browser.
+const sidebarCollapsed = ref(
+    typeof localStorage !== 'undefined' &&
+        localStorage.getItem('sidebar.collapsed') === '1',
+);
+function toggleSidebar() {
+    sidebarCollapsed.value = !sidebarCollapsed.value;
+    try {
+        localStorage.setItem(
+            'sidebar.collapsed',
+            sidebarCollapsed.value ? '1' : '0',
+        );
+    } catch {
+        /* ignore storage errors */
+    }
+}
+
 const nav = [
     {
         labelKey: 'nav.inventory',
@@ -67,10 +84,13 @@ function isActive(routeName) {
         <div v-if="isDesktop" class="hidden min-h-screen pt-0.5 lg:flex">
             <!-- Sidebar 240px -->
             <aside
+                v-show="!sidebarCollapsed"
                 class="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-border bg-surface pt-0.5"
             >
                 <!-- logo area -->
-                <div class="flex h-16 flex-shrink-0 items-center px-4">
+                <div
+                    class="flex h-16 flex-shrink-0 items-center justify-between px-4"
+                >
                     <Link :href="route('dashboard')" class="block">
                         <img
                             :src="logoLight"
@@ -83,6 +103,26 @@ function isActive(routeName) {
                             class="hidden h-7 w-auto dark:block"
                         />
                     </Link>
+                    <button
+                        type="button"
+                        :title="$t('nav.collapse_sidebar')"
+                        :aria-label="$t('nav.collapse_sidebar')"
+                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                        @click="toggleSidebar"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-5 w-5"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M2 4.75A2.75 2.75 0 014.75 2h10.5A2.75 2.75 0 0118 4.75v10.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25V4.75zm6 0v10.5h7.25a1.25 1.25 0 001.25-1.25V6a1.25 1.25 0 00-1.25-1.25H8zm-1.5 0H4.75A1.25 1.25 0 003.5 6v8a1.25 1.25 0 001.25 1.25H6.5V4.75z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
                 </div>
 
                 <!-- BusinessSwitcher -->
@@ -486,13 +526,37 @@ function isActive(routeName) {
             </aside>
 
             <!-- Main content -->
-            <div class="ml-60 flex min-h-screen w-full flex-col">
+            <div
+                class="flex min-h-screen w-full flex-col"
+                :class="sidebarCollapsed ? 'ml-0' : 'ml-60'"
+            >
                 <!-- Page header slot -->
                 <header
-                    v-if="$slots.header"
+                    v-if="$slots.header || sidebarCollapsed"
                     class="border-b border-border bg-surface px-8 py-5"
                 >
                     <div class="flex items-center gap-4">
+                        <button
+                            v-show="sidebarCollapsed"
+                            type="button"
+                            :title="$t('nav.expand_sidebar')"
+                            :aria-label="$t('nav.expand_sidebar')"
+                            class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                            @click="toggleSidebar"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-5 w-5"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M2 4.75A2.75 2.75 0 014.75 2h10.5A2.75 2.75 0 0118 4.75v10.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25V4.75zm6 0v10.5h7.25a1.25 1.25 0 001.25-1.25V6a1.25 1.25 0 00-1.25-1.25H8zm-1.5 0H4.75A1.25 1.25 0 003.5 6v8a1.25 1.25 0 001.25 1.25H6.5V4.75z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                        </button>
                         <div class="min-w-0 flex-1">
                             <slot name="header" />
                         </div>

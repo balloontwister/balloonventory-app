@@ -17,4 +17,6 @@ return [
     'manage_businesses' => 'Gestionar negocios',
     'switch_business' => 'Cambiar negocio',
     'go_to_dashboard' => 'Ir al panel',
+    'collapse_sidebar' => 'Contraer barra lateral',
+    'expand_sidebar' => 'Expandir barra lateral',
 ];

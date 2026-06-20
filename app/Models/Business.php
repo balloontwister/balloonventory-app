@@ -27,6 +27,16 @@ class Business extends Model
         'business_type',
         'onboarding_answers',
         'onboarding_completed_at',
+        'phone',
+        'address_line1',
+        'address_line2',
+        'city',
+        'state_region',
+        'postal_code',
+        'country',
+        'website_url',
+        'website_url_2',
+        'contact_email',
     ];
 
     protected function casts(): array

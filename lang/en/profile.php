@@ -22,6 +22,23 @@ return [
         'saved' => 'Profile updated.',
     ],
 
+    'contact' => [
+        'heading' => 'Contact details',
+        'subheading' => 'Optional. Only visible to you and the Balloonventory team.',
+        'privacy_note' => 'Your contact details are private. They\'re only visible to you and the Balloonventory team for account support — we never publish, share, or sell them, and we won\'t use them to send you anything you didn\'t ask for.',
+        'phone' => 'Phone',
+        'address_line1' => 'Address line 1',
+        'address_line2' => 'Address line 2',
+        'city' => 'City',
+        'state_region' => 'State / Region',
+        'postal_code' => 'Postal code',
+        'country' => 'Country',
+        'country_placeholder' => 'Select a country…',
+        'website_url' => 'Website',
+        'website_url_2' => 'Website 2',
+        'saved' => 'Contact details saved.',
+    ],
+
     'password' => [
         'heading' => 'Update password',
         'subheading' => 'Use a long, random password to keep your account secure.',

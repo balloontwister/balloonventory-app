@@ -2,13 +2,17 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class ProfileUpdateRequest extends FormRequest
+class UpdateBusinessRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        return true;
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -16,13 +20,6 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
-            ],
             'phone' => ['nullable', 'string', 'max:32'],
             'address_line1' => ['nullable', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
@@ -32,16 +29,13 @@ class ProfileUpdateRequest extends FormRequest
             'country' => ['nullable', 'string', 'size:2', Rule::in(config('countries', []))],
             'website_url' => ['nullable', 'url', 'max:255'],
             'website_url_2' => ['nullable', 'url', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
         $merge = [];
-
-        if ($this->has('email')) {
-            $merge['email'] = mb_strtolower(trim((string) $this->input('email')));
-        }
 
         foreach (['website_url', 'website_url_2'] as $field) {
             $value = $this->input($field);

@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import BackLink from '@/Components/BackLink.vue';
+import CountrySelect from '@/Components/CountrySelect.vue';
 import ImageUpload from '@/Components/ImageUpload.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -10,6 +11,7 @@ import { computed } from 'vue';
 
 const props = defineProps({
     business: { type: Object, required: true },
+    countries: { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
@@ -22,6 +24,16 @@ const canManageLogo = computed(() =>
 
 const form = useForm({
     name: props.business.name,
+    phone: props.business.phone ?? '',
+    address_line1: props.business.address_line1 ?? '',
+    address_line2: props.business.address_line2 ?? '',
+    city: props.business.city ?? '',
+    state_region: props.business.state_region ?? '',
+    postal_code: props.business.postal_code ?? '',
+    country: props.business.country ?? 'US',
+    website_url: props.business.website_url ?? '',
+    website_url_2: props.business.website_url_2 ?? '',
+    contact_email: props.business.contact_email ?? '',
 });
 const submit = () => form.patch(route('settings.businesses.update'));
 
@@ -110,6 +122,206 @@ const submitLogo = () =>
                         {{ $t('settings.businesses.name.no_permission') }}
                     </p>
                 </form>
+            </div>
+
+            <!-- ── Business contact ──────────────────────────────────────── -->
+            <div
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('settings.businesses.contact.heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
+                    {{ $t('settings.businesses.contact.privacy_note') }}
+                </p>
+
+                <div class="mt-5 flex flex-col gap-4">
+                    <div>
+                        <InputLabel
+                            for="biz_contact_email"
+                            :value="$t('settings.businesses.contact.contact_email')"
+                        />
+                        <TextInput
+                            id="biz_contact_email"
+                            v-model="form.contact_email"
+                            type="email"
+                            class="mt-1 block w-full max-w-sm"
+                            :disabled="!canEditSettings"
+                        />
+                        <InputError class="mt-1" :message="form.errors.contact_email" />
+                    </div>
+
+                    <div>
+                        <InputLabel
+                            for="biz_phone"
+                            :value="$t('settings.businesses.contact.phone')"
+                        />
+                        <TextInput
+                            id="biz_phone"
+                            v-model="form.phone"
+                            type="text"
+                            class="mt-1 block w-full max-w-sm"
+                            :disabled="!canEditSettings"
+                        />
+                        <InputError class="mt-1" :message="form.errors.phone" />
+                    </div>
+
+                    <div>
+                        <InputLabel
+                            for="biz_address_line1"
+                            :value="$t('settings.businesses.contact.address_line1')"
+                        />
+                        <TextInput
+                            id="biz_address_line1"
+                            v-model="form.address_line1"
+                            type="text"
+                            class="mt-1 block w-full max-w-sm"
+                            :disabled="!canEditSettings"
+                        />
+                        <InputError class="mt-1" :message="form.errors.address_line1" />
+                    </div>
+
+                    <div>
+                        <InputLabel
+                            for="biz_address_line2"
+                            :value="$t('settings.businesses.contact.address_line2')"
+                        />
+                        <TextInput
+                            id="biz_address_line2"
+                            v-model="form.address_line2"
+                            type="text"
+                            class="mt-1 block w-full max-w-sm"
+                            :disabled="!canEditSettings"
+                        />
+                        <InputError class="mt-1" :message="form.errors.address_line2" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div>
+                            <InputLabel
+                                for="biz_city"
+                                :value="$t('settings.businesses.contact.city')"
+                            />
+                            <TextInput
+                                id="biz_city"
+                                v-model="form.city"
+                                type="text"
+                                class="mt-1 block w-full"
+                                :disabled="!canEditSettings"
+                            />
+                            <InputError class="mt-1" :message="form.errors.city" />
+                        </div>
+                        <div>
+                            <InputLabel
+                                for="biz_state_region"
+                                :value="$t('settings.businesses.contact.state_region')"
+                            />
+                            <TextInput
+                                id="biz_state_region"
+                                v-model="form.state_region"
+                                type="text"
+                                class="mt-1 block w-full"
+                                :disabled="!canEditSettings"
+                            />
+                            <InputError class="mt-1" :message="form.errors.state_region" />
+                        </div>
+                        <div>
+                            <InputLabel
+                                for="biz_postal_code"
+                                :value="$t('settings.businesses.contact.postal_code')"
+                            />
+                            <TextInput
+                                id="biz_postal_code"
+                                v-model="form.postal_code"
+                                type="text"
+                                class="mt-1 block w-full"
+                                :disabled="!canEditSettings"
+                            />
+                            <InputError class="mt-1" :message="form.errors.postal_code" />
+                        </div>
+                    </div>
+
+                    <div class="max-w-sm">
+                        <InputLabel
+                            for="biz_country"
+                            :value="$t('settings.businesses.contact.country')"
+                        />
+                        <CountrySelect
+                            id="biz_country"
+                            v-model="form.country"
+                            :countries="countries"
+                            :placeholder="$t('settings.businesses.contact.country_placeholder')"
+                            :disabled="!canEditSettings"
+                        />
+                        <InputError class="mt-1" :message="form.errors.country" />
+                    </div>
+
+                    <div>
+                        <InputLabel
+                            for="biz_website_url"
+                            :value="$t('settings.businesses.contact.website_url')"
+                        />
+                        <TextInput
+                            id="biz_website_url"
+                            v-model="form.website_url"
+                            type="text"
+                            class="mt-1 block w-full max-w-sm"
+                            :disabled="!canEditSettings"
+                            placeholder="https://balloonventory.com"
+                        />
+                        <InputError class="mt-1" :message="form.errors.website_url" />
+                    </div>
+
+                    <div>
+                        <InputLabel
+                            for="biz_website_url_2"
+                            :value="$t('settings.businesses.contact.website_url_2')"
+                        />
+                        <TextInput
+                            id="biz_website_url_2"
+                            v-model="form.website_url_2"
+                            type="text"
+                            class="mt-1 block w-full max-w-sm"
+                            :disabled="!canEditSettings"
+                            placeholder="https://instagram.com/balloonventory"
+                        />
+                        <InputError class="mt-1" :message="form.errors.website_url_2" />
+                    </div>
+
+                    <div class="flex items-center gap-4 pt-1">
+                        <button
+                            type="button"
+                            :disabled="form.processing || !canEditSettings"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                            @click="submit"
+                        >
+                            {{ $t('settings.businesses.contact.submit') }}
+                        </button>
+
+                        <Transition
+                            enter-active-class="transition-opacity duration-200"
+                            enter-from-class="opacity-0"
+                            leave-active-class="transition-opacity duration-200"
+                            leave-to-class="opacity-0"
+                        >
+                            <span
+                                v-if="form.recentlySuccessful"
+                                class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
+                            >
+                                {{ $t('settings.businesses.contact.saved') }}
+                            </span>
+                        </Transition>
+                    </div>
+
+                    <p
+                        v-if="!canEditSettings"
+                        class="font-sans text-[12px] text-ink-tertiary"
+                    >
+                        {{ $t('settings.businesses.name.no_permission') }}
+                    </p>
+                </div>
             </div>
 
             <!-- ── Business logo ─────────────────────────────────────────── -->

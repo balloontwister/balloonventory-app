@@ -10,6 +10,7 @@ import { Head, useForm, usePage } from '@inertiajs/vue3';
 defineProps({
     mustVerifyEmail: { type: Boolean },
     status: { type: String },
+    countries: { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
@@ -103,6 +104,7 @@ const submitAvatar = () =>
                 <UpdateProfileInformationForm
                     :must-verify-email="mustVerifyEmail"
                     :status="status"
+                    :countries="countries"
                 />
             </div>
 

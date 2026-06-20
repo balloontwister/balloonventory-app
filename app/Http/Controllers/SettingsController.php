@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateBusinessRequest;
 use App\Models\Business;
 use App\Services\ImageAttachmentService;
 use App\Support\BusinessContext;
+use App\Support\Countries;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -51,7 +53,18 @@ class SettingsController extends Controller
                 'name' => $business->name,
                 'slug' => $business->slug,
                 'logoUrl' => $this->images->url($business, 'logo'),
+                'phone' => $business->phone,
+                'address_line1' => $business->address_line1,
+                'address_line2' => $business->address_line2,
+                'city' => $business->city,
+                'state_region' => $business->state_region,
+                'postal_code' => $business->postal_code,
+                'country' => $business->country,
+                'website_url' => $business->website_url,
+                'website_url_2' => $business->website_url_2,
+                'contact_email' => $business->contact_email,
             ],
+            'countries' => Countries::all(),
         ]);
     }
 
@@ -74,19 +87,27 @@ class SettingsController extends Controller
         return back()->with('success', __('flash.settings.business_logo_updated'));
     }
 
-    public function updateBusiness(Request $request): RedirectResponse
+    public function updateBusiness(UpdateBusinessRequest $request): RedirectResponse
     {
         $business = Business::findOrFail(BusinessContext::currentId());
 
         Gate::authorize('business.edit_settings', $business);
 
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $business->update([
-            'name' => $request->name,
-            'slug' => $this->uniqueSlug($request->name, $business->id),
+            'name' => $validated['name'],
+            'slug' => $this->uniqueSlug($validated['name'], $business->id),
+            'phone' => $validated['phone'] ?? null,
+            'address_line1' => $validated['address_line1'] ?? null,
+            'address_line2' => $validated['address_line2'] ?? null,
+            'city' => $validated['city'] ?? null,
+            'state_region' => $validated['state_region'] ?? null,
+            'postal_code' => $validated['postal_code'] ?? null,
+            'country' => $validated['country'] ?? null,
+            'website_url' => $validated['website_url'] ?? null,
+            'website_url_2' => $validated['website_url_2'] ?? null,
+            'contact_email' => $validated['contact_email'] ?? null,
         ]);
 
         return back()->with('success', __('flash.settings.business_name_updated'));

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Enums\AdminLevel;
 use App\Http\Controllers\Controller;
 use App\Models\AdminUserMessage;
+use App\Models\Business;
 use App\Models\EmailLog;
 use App\Models\LoginEvent;
 use App\Models\Membership;
@@ -12,6 +13,7 @@ use App\Models\SkuFeedback;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Scopes\BusinessScope;
+use App\Support\Countries;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -146,7 +148,7 @@ class AdminUserController extends Controller
         // regardless of the acting admin's current business.
         $businesses = Membership::withoutGlobalScope(BusinessScope::class)
             ->where('user_id', $model->id)
-            ->with('business:id,name')
+            ->with('business')
             ->orderBy('joined_at')
             ->get()
             ->map(fn (Membership $m) => [
@@ -154,6 +156,18 @@ class AdminUserController extends Controller
                 'name' => $m->business?->name,
                 'role' => $m->role,
                 'joined_at' => $m->joined_at,
+                'contact' => $m->business ? [
+                    'phone' => $m->business->phone,
+                    'address_line1' => $m->business->address_line1,
+                    'address_line2' => $m->business->address_line2,
+                    'city' => $m->business->city,
+                    'state_region' => $m->business->state_region,
+                    'postal_code' => $m->business->postal_code,
+                    'country' => Countries::name($m->business->country),
+                    'website_url' => $m->business->website_url,
+                    'website_url_2' => $m->business->website_url_2,
+                    'contact_email' => $m->business->contact_email,
+                ] : null,
             ])
             ->filter(fn (array $b) => $b['name'] !== null)
             ->values();
@@ -235,6 +249,15 @@ class AdminUserController extends Controller
                 'deleted_at' => $model->deleted_at,
                 'locale' => $model->locale,
                 'timezone' => $model->timezone,
+                'phone' => $model->phone,
+                'address_line1' => $model->address_line1,
+                'address_line2' => $model->address_line2,
+                'city' => $model->city,
+                'state_region' => $model->state_region,
+                'postal_code' => $model->postal_code,
+                'country' => Countries::name($model->country),
+                'website_url' => $model->website_url,
+                'website_url_2' => $model->website_url_2,
             ],
             'businesses' => $businesses,
             'feedback' => $feedback,

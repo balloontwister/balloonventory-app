@@ -17,4 +17,6 @@ return [
     'manage_businesses' => 'Manage businesses',
     'switch_business' => 'Switch business',
     'go_to_dashboard' => 'Go to dashboard',
+    'collapse_sidebar' => 'Collapse sidebar',
+    'expand_sidebar' => 'Expand sidebar',
 ];

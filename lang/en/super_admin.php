@@ -7,7 +7,7 @@ return [
         'back' => 'Admin Dashboard',
 
         'nav' => [
-            'overview' => 'Overview',
+            'overview' => 'Dashboard',
             'email_templates' => 'Email Templates',
             'email' => 'Email',
             'support_tickets' => 'Support Tickets',

@@ -3,16 +3,34 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import UserEmailComposer from '@/Pages/SuperAdmin/EmailTemplates/Partials/UserEmailComposer.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { trans } from 'laravel-vue-i18n';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     templates: { type: Array, required: true },
     emailByDay: { type: Array, required: true },
     emailByMonth: { type: Array, required: true },
+    sentEmails: { type: Array, default: () => [] },
     composeUser: { type: Object, default: null },
     draftTemplates: { type: Array, default: () => [] },
     appUrl: { type: String, default: '' },
 });
+
+// Outgoing log: preview the most recent few, expand to the full (≤50) set.
+const LOG_PREVIEW = 10;
+const logExpanded = ref(false);
+const visibleEmails = computed(() =>
+    logExpanded.value ? props.sentEmails : props.sentEmails.slice(0, LOG_PREVIEW),
+);
+
+// mailable is stored as the class basename; give the direct-message type a label.
+function emailType(mailable) {
+    if (!mailable) return '—';
+    if (mailable === 'AdminUserMessageMail') {
+        return trans('super_admin.dashboard.log_type_direct');
+    }
+    return mailable;
+}
 
 const emailDailyTotals = computed(() => {
     const map = {};
@@ -155,6 +173,79 @@ function formatDateTime(val) {
                             {{ $t('super_admin.dashboard.template_edit_button') }}
                         </Link>
                     </div>
+                </div>
+            </section>
+
+            <!-- Outgoing email log -->
+            <section class="rounded-lg border border-border bg-surface p-6">
+                <h2
+                    class="font-display text-[15px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('super_admin.dashboard.log_heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('super_admin.dashboard.log_subheading') }}
+                </p>
+                <div
+                    v-if="sentEmails.length === 0"
+                    class="mt-4 font-sans text-[13px] text-ink-secondary"
+                >
+                    {{ $t('super_admin.dashboard.log_empty') }}
+                </div>
+                <div v-else class="mt-4 overflow-x-auto">
+                    <table class="w-full font-sans text-[13px]">
+                        <thead>
+                            <tr class="border-b border-border text-left text-ink-secondary">
+                                <th class="pb-2 pr-4 font-medium">
+                                    {{ $t('super_admin.dashboard.log_col_to') }}
+                                </th>
+                                <th class="pb-2 pr-4 font-medium">
+                                    {{ $t('super_admin.dashboard.log_col_subject') }}
+                                </th>
+                                <th class="pb-2 pr-4 font-medium">
+                                    {{ $t('super_admin.dashboard.log_col_type') }}
+                                </th>
+                                <th class="pb-2 text-right font-medium">
+                                    {{ $t('super_admin.dashboard.log_col_sent') }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/50">
+                            <tr v-for="email in visibleEmails" :key="email.id">
+                                <td class="py-2 pr-4">
+                                    <Link
+                                        v-if="email.user_id"
+                                        :href="route('admin.users.show', email.user_id)"
+                                        class="text-accent hover:underline"
+                                    >
+                                        {{ email.to }}
+                                    </Link>
+                                    <span v-else class="text-ink-primary">{{ email.to }}</span>
+                                </td>
+                                <td class="py-2 pr-4 text-ink-primary">{{ email.subject }}</td>
+                                <td class="py-2 pr-4 text-ink-tertiary">
+                                    {{ emailType(email.mailable) }}
+                                </td>
+                                <td class="whitespace-nowrap py-2 text-right text-ink-secondary">
+                                    {{ formatDateTime(email.sent_at) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button
+                        v-if="sentEmails.length > LOG_PREVIEW"
+                        type="button"
+                        class="mt-3 font-sans text-[13px] font-medium text-accent hover:underline"
+                        @click="logExpanded = !logExpanded"
+                    >
+                        {{
+                            logExpanded
+                                ? $t('super_admin.dashboard.log_show_less')
+                                : $t('super_admin.dashboard.log_show_more', {
+                                      count: sentEmails.length - LOG_PREVIEW,
+                                  })
+                        }}
+                    </button>
                 </div>
             </section>
 

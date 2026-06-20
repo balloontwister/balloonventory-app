@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\SuperAdmin;
 
+use App\Models\EmailLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -82,6 +83,28 @@ class AdminDashboardTest extends TestCase
                 ->has('templates')
                 ->has('emailByDay')
                 ->has('emailByMonth')
+                ->has('sentEmails')
+            );
+    }
+
+    public function test_email_index_outgoing_log_returns_recent_emails_capped_at_50(): void
+    {
+        foreach (range(1, 55) as $i) {
+            EmailLog::create([
+                'to' => "user{$i}@example.com",
+                'subject' => "Subject {$i}",
+                'mailable' => 'TemplatedMailable',
+                'sent_at' => now()->subMinutes($i),
+            ]);
+        }
+
+        $this->actingAs($this->siteAdmin())
+            ->get(route('admin.email-templates.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('sentEmails', 50) // capped
+                ->where('sentEmails.0.subject', 'Subject 1') // most recent first
+                ->where('sentEmails.0.to', 'user1@example.com')
             );
     }
 

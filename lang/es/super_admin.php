@@ -128,6 +128,17 @@ return [
         'col_month' => 'Mes',
         'col_emails_sent' => 'Correos enviados',
 
+        'log_heading' => 'Registro de correos enviados',
+        'log_subheading' => 'Correos individuales que ha enviado el sistema, del más reciente al más antiguo.',
+        'log_empty' => 'Aún no se han enviado correos.',
+        'log_col_to' => 'Para',
+        'log_col_subject' => 'Asunto',
+        'log_col_type' => 'Tipo',
+        'log_col_sent' => 'Enviado',
+        'log_type_direct' => 'Mensaje directo',
+        'log_show_more' => 'Mostrar :count más',
+        'log_show_less' => 'Mostrar menos',
+
         'recent_users_heading' => 'Registrados recientemente',
         'recently_active_heading' => 'Activos recientemente',
         'recently_active_empty' => 'Aún no hay actividad de inicio de sesión.',

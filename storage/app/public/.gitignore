@@ -9,3 +9,10 @@ color-images/*
 color-images/sempertex/*
 !color-images/sempertex/clusters/
 !color-images/sempertex/clusters/*
+
+# Decomex single-balloon images are pre-downloaded from Shopify collection pages
+# and committed so the seeder can reference them without CDN calls.
+!color-images/decomex/
+color-images/decomex/*
+!color-images/decomex/singles/
+!color-images/decomex/singles/*

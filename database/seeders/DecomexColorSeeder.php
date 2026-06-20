@@ -8,6 +8,7 @@ use App\Models\ColorFamily;
 use App\Models\Material;
 use App\Models\Texture;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 
 class DecomexColorSeeder extends Seeder
 {
@@ -23,7 +24,12 @@ class DecomexColorSeeder extends Seeder
      *
      * 128 colors across 5 finishes: Standard (18), Pastel Deco (62),
      * Jewel Crystal (6), Pearl/Metallic (36), Luster (6).
+     *
+     * Single-balloon hero images are downloaded from each color's Shopify
+     * collection page and cached at storage/app/public/color-images/decomex/singles/.
      */
+    private const SINGLE_DIR = 'color-images/decomex/singles';
+
     public function run(): void
     {
         $decomex = Brand::where('name', 'Decomex')->firstOrFail();
@@ -49,6 +55,7 @@ class DecomexColorSeeder extends Seeder
                     'texture_id' => $data['texture']->id,
                     'color_hex' => $data['hex'],
                     'pms_value' => $data['pms'],
+                    'single_image_file_path' => $this->singleImagePath($data['name']),
                     'sort_order' => $data['sort_order'],
                 ],
             );
@@ -58,6 +65,32 @@ class DecomexColorSeeder extends Seeder
     private function decomexTexture(string $name, string $decomexId): Texture
     {
         return Texture::where('name', $name)->where('brand_id', $decomexId)->firstOrFail();
+    }
+
+    /**
+     * Resolve the storage-relative path for a color's single-balloon image.
+     *
+     * Images are pre-downloaded from each color's Shopify collection page and
+     * committed under storage/app/public/color-images/decomex/singles/, named
+     * "{color name}.{ext}" (e.g. "100 - Standard White.jpg"). The extension
+     * varies — most are .jpg, but Luster and a few Standard colors are .png.
+     *
+     * Returns null if no matching file exists, so the color row is still
+     * created and the UI falls back to the hex swatch.
+     */
+    private function singleImagePath(string $colorName): ?string
+    {
+        $disk = Storage::disk('public');
+
+        foreach (['jpg', 'png', 'webp'] as $ext) {
+            $relative = self::SINGLE_DIR.'/'.$colorName.'.'.$ext;
+
+            if ($disk->exists($relative)) {
+                return $relative;
+            }
+        }
+
+        return null;
     }
 
     /**

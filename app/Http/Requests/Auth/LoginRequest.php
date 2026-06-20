@@ -34,6 +34,17 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Emails are stored lowercase, so normalize the input — users can sign in
+     * with whatever casing they typed.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge(['email' => mb_strtolower(trim((string) $this->input('email')))]);
+        }
+    }
+
+    /**
      * Attempt to authenticate the request's credentials.
      *
      * @throws ValidationException

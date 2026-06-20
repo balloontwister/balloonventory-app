@@ -54,6 +54,18 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /**
+     * Store emails canonically lowercased so accounts are case-insensitive —
+     * users may register/sign in with any casing. Covers every write path
+     * (registration, profile update, factories, seeders).
+     */
+    public function setEmailAttribute(?string $value): void
+    {
+        $this->attributes['email'] = is_string($value)
+            ? mb_strtolower(trim($value))
+            : $value;
+    }
+
     protected static function boot(): void
     {
         parent::boot();

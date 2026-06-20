@@ -22,6 +22,9 @@ class PasswordResetLinkController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // Emails are stored lowercase; normalize so the lookup matches any casing.
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+
         $request->validate([
             'email' => 'required|email',
         ]);
@@ -30,6 +33,7 @@ class PasswordResetLinkController extends Controller
             $status = Password::sendResetLink($request->only('email'));
         } catch (\Throwable $e) {
             Log::error('Failed to send password reset email', ['error' => $e->getMessage()]);
+
             // Return the same success message to avoid leaking whether the email exists
             return back()->with('status', __('passwords.sent'));
         }

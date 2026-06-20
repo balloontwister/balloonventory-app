@@ -34,6 +34,7 @@ class AdminDashboardTest extends TestCase
                 ->has('summary.feedback.open')
                 ->has('summary.tickets.open')
                 ->has('summary.email.sent_30d')
+                ->has('summary.login.failed_7d')
             );
     }
 

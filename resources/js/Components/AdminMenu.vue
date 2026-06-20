@@ -19,6 +19,7 @@ const LINKS = [
     { key: 'feedback', route: 'admin.feedback.index', match: 'admin.feedback.*' },
     { key: 'support_tickets', route: 'admin.tickets.index', match: 'admin.tickets.*' },
     { key: 'barcode_log', route: 'admin.barcode-audits.index', match: 'admin.barcode-audits.*' },
+    { key: 'login_log', route: 'admin.login-log.index', match: 'admin.login-log.*' },
     { key: 'email', route: 'admin.email-templates.index', match: 'admin.email-templates.*' },
     { key: 'backups', route: 'admin.backups.index', match: 'admin.backups.*', superOnly: true },
     { key: 'subscriptions', route: 'admin.subscriptions.index', match: 'admin.subscriptions.*', superOnly: true },

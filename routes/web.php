@@ -22,6 +22,7 @@ use App\Http\Controllers\SuperAdmin\CatalogController;
 use App\Http\Controllers\SuperAdmin\CatalogReferenceController;
 use App\Http\Controllers\SuperAdmin\ComingSoonController;
 use App\Http\Controllers\SuperAdmin\EmailTemplateController;
+use App\Http\Controllers\SuperAdmin\LoginLogController;
 use App\Http\Controllers\SuperAdmin\SkuFeedbackController;
 use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SuperAdminController;
@@ -188,6 +189,9 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     // ── Barcode link audit log ────────────────────────────────────────────────
     Route::get('/admin/barcode-audits', [BarcodeAuditController::class, 'index'])->name('admin.barcode-audits.index');
     Route::post('/admin/barcode-audits/{audit}/revert', [BarcodeAuditController::class, 'revert'])->name('admin.barcode-audits.revert');
+
+    // ── Login log (global sign-in history) ─────────────────────────────────────
+    Route::get('/admin/login-log', [LoginLogController::class, 'index'])->name('admin.login-log.index');
 
     // ── Item feedback (user-reported catalog discrepancies) ────────────────────
     Route::get('/admin/feedback', [SkuFeedbackController::class, 'index'])->name('admin.feedback.index');

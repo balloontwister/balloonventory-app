@@ -14,6 +14,7 @@ return [
             'catalog' => 'Catalog',
             'users' => 'Users',
             'barcode_log' => 'Barcode log',
+            'login_log' => 'Login log',
             'feedback' => 'Item feedback',
             'backups' => 'Backups',
             'subscriptions' => 'Subscriptions',
@@ -34,6 +35,8 @@ return [
             'barcode_title' => 'Barcode log',
             'barcode_label' => 'active links',
             'barcode_recent' => ':count linked this week',
+            'login_title' => 'Login log',
+            'login_label' => 'failed sign-ins (7d)',
             'email_title' => 'Email',
             'email_label' => 'sent · 30 days',
             'email_today' => ':count sent today',
@@ -309,6 +312,21 @@ return [
             'preview' => 'Preview send uses your account email with sample values listed at right.',
             'activate' => 'Activate only when both bodies are filled in and all tokens are recognised.',
         ],
+    ],
+
+    'login_log' => [
+        'meta_title' => 'Login log',
+        'heading' => 'Login log',
+        'subheading' => 'Every sign-in attempt across all accounts — successes, failures, and lockouts.',
+        'failed_badge' => ':count failed in last 7 days',
+        'search_placeholder' => 'Search name, email or IP…',
+        'filter_all' => 'All events',
+        'col_when' => 'When',
+        'col_user' => 'User',
+        'col_outcome' => 'Outcome',
+        'col_ip' => 'IP address',
+        'col_device' => 'Device',
+        'empty' => 'No sign-in activity recorded yet.',
     ],
 
     'user_detail' => [

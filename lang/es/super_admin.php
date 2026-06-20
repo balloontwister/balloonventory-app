@@ -14,6 +14,7 @@ return [
             'catalog' => 'Catálogo',
             'users' => 'Usuarios',
             'barcode_log' => 'Registro de códigos',
+            'login_log' => 'Registro de accesos',
             'feedback' => 'Comentarios de artículos',
             'backups' => 'Copias de seguridad',
             'subscriptions' => 'Suscripciones',
@@ -34,6 +35,8 @@ return [
             'barcode_title' => 'Registro de códigos',
             'barcode_label' => 'enlaces activos',
             'barcode_recent' => ':count enlazados esta semana',
+            'login_title' => 'Registro de accesos',
+            'login_label' => 'accesos fallidos (7d)',
             'email_title' => 'Correo',
             'email_label' => 'enviados · 30 días',
             'email_today' => ':count enviados hoy',
@@ -309,6 +312,21 @@ return [
             'preview' => 'La vista previa se envía al correo de tu cuenta con los valores de ejemplo a la derecha.',
             'activate' => 'Activa solo cuando ambos cuerpos estén completos y todos los tokens sean reconocidos.',
         ],
+    ],
+
+    'login_log' => [
+        'meta_title' => 'Registro de accesos',
+        'heading' => 'Registro de accesos',
+        'subheading' => 'Cada intento de inicio de sesión en todas las cuentas — exitosos, fallidos y bloqueos.',
+        'failed_badge' => ':count fallidos en los últimos 7 días',
+        'search_placeholder' => 'Buscar nombre, correo o IP…',
+        'filter_all' => 'Todos los eventos',
+        'col_when' => 'Cuándo',
+        'col_user' => 'Usuario',
+        'col_outcome' => 'Resultado',
+        'col_ip' => 'Dirección IP',
+        'col_device' => 'Dispositivo',
+        'empty' => 'Aún no hay actividad de inicio de sesión.',
     ],
 
     'user_detail' => [

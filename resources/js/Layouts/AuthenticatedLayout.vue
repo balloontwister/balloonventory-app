@@ -430,6 +430,30 @@ const topNavItems = computed(() =>
                             {{ $t('super_admin.dashboard.nav.feedback') }}
                         </Link>
 
+                        <Link
+                            :href="route('admin.login-log.index')"
+                            class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
+                            :class="
+                                route().current('admin.login-log.*')
+                                    ? 'bg-accent-soft font-semibold text-accent'
+                                    : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
+                            "
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 flex-shrink-0"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            {{ $t('super_admin.dashboard.nav.login_log') }}
+                        </Link>
+
                         <!-- Super-Admin-only areas -->
                         <template v-if="isSuperOnly">
                             <Link

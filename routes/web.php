@@ -134,6 +134,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
 
     // ── Users ────────────────────────────────────────────────────────────────
     Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+    Route::get('/admin/users/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
     Route::post('/admin/users/{user}/site-admin', [AdminUserController::class, 'promote'])->name('admin.users.promote');
     Route::delete('/admin/users/{user}/site-admin', [AdminUserController::class, 'demote'])->name('admin.users.demote');
     Route::post('/admin/users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('admin.users.freeze');

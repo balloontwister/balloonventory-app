@@ -101,6 +101,44 @@ class AdminUsersTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // show (user detail)
+    // -------------------------------------------------------------------------
+
+    public function test_admin_can_view_a_user_detail_page(): void
+    {
+        $target = User::factory()->create(['name' => 'Detail Target']);
+
+        $this->actingAs($this->siteAdmin)
+            ->get(route('admin.users.show', $target))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('SuperAdmin/Users/Show')
+                ->where('user.id', $target->id)
+                ->where('user.name', 'Detail Target')
+            );
+    }
+
+    public function test_user_detail_page_resolves_deleted_users(): void
+    {
+        $target = User::factory()->create();
+        $target->delete();
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.users.show', $target->id))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('user.id', $target->id));
+    }
+
+    public function test_regular_user_cannot_view_a_user_detail_page(): void
+    {
+        $target = User::factory()->create();
+
+        $this->actingAs($this->regularUser)
+            ->get(route('admin.users.show', $target))
+            ->assertForbidden();
+    }
+
+    // -------------------------------------------------------------------------
     // promote
     // -------------------------------------------------------------------------
 

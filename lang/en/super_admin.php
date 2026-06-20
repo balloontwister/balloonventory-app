@@ -229,6 +229,7 @@ return [
         'email_unverified' => 'Email not verified',
 
         'actions_menu' => 'Actions',
+        'view_details' => 'View details',
         'promote_button' => 'Make Site Admin',
         'demote_button' => 'Remove Site Admin',
         'demote_confirm' => 'Remove Site Admin access from :name?',
@@ -307,6 +308,19 @@ return [
             'plain_html' => 'Use plain HTML. The body is rendered as-is inside the chrome.',
             'preview' => 'Preview send uses your account email with sample values listed at right.',
             'activate' => 'Activate only when both bodies are filled in and all tokens are recognised.',
+        ],
+    ],
+
+    'user_detail' => [
+        'email_verified' => 'Email verified',
+        'coming_soon' => 'Coming soon — this section will be filled in next.',
+        'sections' => [
+            'login_history' => 'Login history',
+            'emails' => 'Emails sent',
+            'feedback' => 'Item feedback',
+            'tickets' => 'Support tickets',
+            'ledger' => 'Ledger',
+            'businesses' => 'Businesses',
         ],
     ],
 

@@ -67,4 +67,30 @@ class RegistrationTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_plus_addressing_and_dots_are_preserved_as_distinct_accounts(): void
+    {
+        Mail::fake();
+
+        // Sub-addressed emails route to the same inbox but are distinct accounts;
+        // dots and the + tag must be kept verbatim (no canonicalization).
+        $this->post('/register', [
+            'name' => 'Todd One',
+            'email' => 'todd+test1@gmail.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasNoErrors();
+
+        $this->post('/logout');
+
+        $this->post('/register', [
+            'name' => 'Todd Two',
+            'email' => 'todd+test2@gmail.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('users', ['email' => 'todd+test1@gmail.com']);
+        $this->assertDatabaseHas('users', ['email' => 'todd+test2@gmail.com']);
+    }
 }

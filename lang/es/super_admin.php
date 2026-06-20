@@ -229,6 +229,7 @@ return [
         'email_unverified' => 'Correo no verificado',
 
         'actions_menu' => 'Acciones',
+        'view_details' => 'Ver detalles',
         'promote_button' => 'Hacer Site Admin',
         'demote_button' => 'Quitar Site Admin',
         'demote_confirm' => '¿Quitar acceso de Site Admin a :name?',
@@ -307,6 +308,19 @@ return [
             'plain_html' => 'Usa HTML plano. El cuerpo se renderiza tal cual dentro del formato.',
             'preview' => 'La vista previa se envía al correo de tu cuenta con los valores de ejemplo a la derecha.',
             'activate' => 'Activa solo cuando ambos cuerpos estén completos y todos los tokens sean reconocidos.',
+        ],
+    ],
+
+    'user_detail' => [
+        'email_verified' => 'Correo verificado',
+        'coming_soon' => 'Próximamente — esta sección se completará pronto.',
+        'sections' => [
+            'login_history' => 'Historial de inicio de sesión',
+            'emails' => 'Correos enviados',
+            'feedback' => 'Comentarios de artículos',
+            'tickets' => 'Tickets de soporte',
+            'ledger' => 'Libro mayor',
+            'businesses' => 'Negocios',
         ],
     ],
 

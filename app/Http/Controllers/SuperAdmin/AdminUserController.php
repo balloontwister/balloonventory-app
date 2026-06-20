@@ -126,6 +126,32 @@ class AdminUserController extends Controller
         ]);
     }
 
+    /**
+     * A single user's detail/support view. Resolves trashed users too so support
+     * can still inspect pruned/deleted accounts. STUB — the data sections (login
+     * history, emails, feedback, tickets, ledger, businesses, …) will be filled
+     * in next; for now it carries a basic user summary.
+     */
+    public function show(string $user): Response
+    {
+        $model = User::withTrashed()->findOrFail($user);
+
+        return Inertia::render('SuperAdmin/Users/Show', [
+            'user' => [
+                'id' => $model->id,
+                'name' => $model->name,
+                'email' => $model->email,
+                'original_email' => $model->original_email,
+                'admin_level' => $model->admin_level,
+                'email_verified_at' => $model->email_verified_at,
+                'created_at' => $model->created_at,
+                'last_login_at' => $model->last_login_at,
+                'frozen_at' => $model->frozen_at,
+                'deleted_at' => $model->deleted_at,
+            ],
+        ]);
+    }
+
     public function promote(Request $request, User $user): RedirectResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);

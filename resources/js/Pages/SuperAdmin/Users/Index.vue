@@ -453,14 +453,15 @@ function destroyUser(user) {
                             >
                                 <!-- Name -->
                                 <td class="px-6 py-3">
-                                    <span
-                                        class="font-medium"
+                                    <Link
+                                        :href="route('admin.users.show', user.id)"
+                                        class="font-medium text-ink-primary transition hover:text-accent hover:underline"
                                         :class="{
                                             'line-through': user.deleted_at,
                                         }"
                                     >
                                         {{ user.name }}
-                                    </span>
+                                    </Link>
                                 </td>
 
                                 <!-- Email -->
@@ -691,6 +692,13 @@ function destroyUser(user) {
                     class="fixed z-50 overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg"
                     :style="menuStyle"
                 >
+                    <Link
+                        :href="route('admin.users.show', activeUser.id)"
+                        class="block w-full border-b border-border px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
+                        @click="closeMenu"
+                    >
+                        {{ $t('super_admin.users.view_details') }}
+                    </Link>
                     <button
                         v-if="menu.promote"
                         type="button"

@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { reactive } from 'vue';
 
 defineProps({
     user: { type: Object, required: true },
@@ -13,6 +14,20 @@ defineProps({
 });
 
 const CONTACT_FIELDS = ['phone', 'website', 'city', 'country'];
+
+// Long lists preview the 5 most recent and expand on demand (these come from
+// the controller capped at 50). Keyed per section.
+const PREVIEW = 5;
+const expanded = reactive({
+    feedback: false,
+    tickets: false,
+    emails: false,
+    login: false,
+});
+
+function visible(list, key) {
+    return expanded[key] ? list : list.slice(0, PREVIEW);
+}
 
 // Lightweight device label from a user-agent string (no dependency). Falls back
 // to the raw string (shown in full on hover via the title attribute).
@@ -263,7 +278,7 @@ function mailableLabel(mailable) {
                 </p>
                 <div v-else class="flex flex-col gap-2">
                     <div
-                        v-for="f in feedback"
+                        v-for="f in visible(feedback, 'feedback')"
                         :key="f.id"
                         class="rounded-md border border-border px-3 py-2"
                     >
@@ -302,6 +317,20 @@ function mailableLabel(mailable) {
                             </div>
                         </div>
                     </div>
+                    <button
+                        v-if="feedback.length > PREVIEW"
+                        type="button"
+                        class="mt-1 self-start font-sans text-[13px] font-medium text-accent hover:underline"
+                        @click="expanded.feedback = !expanded.feedback"
+                    >
+                        {{
+                            expanded.feedback
+                                ? $t('super_admin.user_detail.show_less')
+                                : $t('super_admin.user_detail.show_more', {
+                                      count: feedback.length - PREVIEW,
+                                  })
+                        }}
+                    </button>
                 </div>
             </section>
 
@@ -323,7 +352,7 @@ function mailableLabel(mailable) {
                 </p>
                 <div v-else class="flex flex-col gap-2">
                     <Link
-                        v-for="t in tickets"
+                        v-for="t in visible(tickets, 'tickets')"
                         :key="t.id"
                         :href="route('admin.tickets.index')"
                         class="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 transition hover:bg-background"
@@ -352,6 +381,20 @@ function mailableLabel(mailable) {
                             </p>
                         </div>
                     </Link>
+                    <button
+                        v-if="tickets.length > PREVIEW"
+                        type="button"
+                        class="mt-1 self-start font-sans text-[13px] font-medium text-accent hover:underline"
+                        @click="expanded.tickets = !expanded.tickets"
+                    >
+                        {{
+                            expanded.tickets
+                                ? $t('super_admin.user_detail.show_less')
+                                : $t('super_admin.user_detail.show_more', {
+                                      count: tickets.length - PREVIEW,
+                                  })
+                        }}
+                    </button>
                 </div>
             </section>
 
@@ -387,7 +430,7 @@ function mailableLabel(mailable) {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border/50">
-                            <tr v-for="e in emails" :key="e.id">
+                            <tr v-for="e in visible(emails, 'emails')" :key="e.id">
                                 <td class="py-2 pr-4 text-ink-primary">{{ e.subject }}</td>
                                 <td class="py-2 pr-4 text-ink-tertiary">
                                     {{ mailableLabel(e.mailable) }}
@@ -398,6 +441,20 @@ function mailableLabel(mailable) {
                             </tr>
                         </tbody>
                     </table>
+                    <button
+                        v-if="emails.length > PREVIEW"
+                        type="button"
+                        class="mt-2 font-sans text-[13px] font-medium text-accent hover:underline"
+                        @click="expanded.emails = !expanded.emails"
+                    >
+                        {{
+                            expanded.emails
+                                ? $t('super_admin.user_detail.show_less')
+                                : $t('super_admin.user_detail.show_more', {
+                                      count: emails.length - PREVIEW,
+                                  })
+                        }}
+                    </button>
                 </div>
             </section>
 
@@ -436,7 +493,7 @@ function mailableLabel(mailable) {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border/50">
-                            <tr v-for="e in loginEvents" :key="e.id">
+                            <tr v-for="e in visible(loginEvents, 'login')" :key="e.id">
                                 <td class="whitespace-nowrap py-2 pr-4 text-ink-secondary">
                                     {{ formatDateTime(e.created_at) }}
                                 </td>
@@ -466,6 +523,20 @@ function mailableLabel(mailable) {
                             </tr>
                         </tbody>
                     </table>
+                    <button
+                        v-if="loginEvents.length > PREVIEW"
+                        type="button"
+                        class="mt-2 font-sans text-[13px] font-medium text-accent hover:underline"
+                        @click="expanded.login = !expanded.login"
+                    >
+                        {{
+                            expanded.login
+                                ? $t('super_admin.user_detail.show_less')
+                                : $t('super_admin.user_detail.show_more', {
+                                      count: loginEvents.length - PREVIEW,
+                                  })
+                        }}
+                    </button>
                 </div>
             </section>
 

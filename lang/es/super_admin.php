@@ -334,6 +334,8 @@ return [
         'locale' => 'Idioma',
         'timezone' => 'Zona horaria',
         'coming_soon' => 'Próximamente — esta sección se completará pronto.',
+        'show_more' => 'Mostrar :count más',
+        'show_less' => 'Mostrar menos',
         'sections' => [
             'contact' => 'Contacto',
             'login_history' => 'Historial de inicio de sesión',

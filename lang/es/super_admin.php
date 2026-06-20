@@ -313,8 +313,11 @@ return [
 
     'user_detail' => [
         'email_verified' => 'Correo verificado',
+        'locale' => 'Idioma',
+        'timezone' => 'Zona horaria',
         'coming_soon' => 'Próximamente — esta sección se completará pronto.',
         'sections' => [
+            'contact' => 'Contacto',
             'login_history' => 'Historial de inicio de sesión',
             'emails' => 'Correos enviados',
             'feedback' => 'Comentarios de artículos',
@@ -322,6 +325,25 @@ return [
             'ledger' => 'Libro mayor',
             'businesses' => 'Negocios',
         ],
+        'contact' => [
+            'phone' => 'Teléfono',
+            'website' => 'Sitio web',
+            'city' => 'Ciudad',
+            'country' => 'País',
+            'not_collected' => 'Aún no recopilado',
+        ],
+        'biz_joined' => 'se unió',
+        'biz_empty' => 'No es miembro de ningún negocio.',
+        'feedback_empty' => 'No ha enviado comentarios de artículos.',
+        'feedback_says' => 'debería ser',
+        'tickets_empty' => 'Sin tickets de soporte.',
+        'ticket_open' => 'Abierto',
+        'ticket_archived' => 'Archivado',
+        'ticket_replies' => ':count respuestas',
+        'emails_empty' => 'No se han enviado correos a esta dirección.',
+        'email_subject' => 'Asunto',
+        'email_type' => 'Tipo',
+        'email_sent' => 'Enviado',
     ],
 
     'coming_soon' => [

@@ -14,7 +14,10 @@ defineProps({
     loginEvents: { type: Array, default: () => [] },
 });
 
-const CONTACT_FIELDS = ['phone', 'website', 'city', 'country'];
+const USER_CONTACT_FIELDS = [
+    'phone', 'address_line1', 'address_line2', 'city',
+    'state_region', 'postal_code', 'country', 'website_url', 'website_url_2',
+];
 
 // Long lists preview the 5 most recent and expand on demand (these come from
 // the controller capped at 50). Keyed per section.
@@ -219,7 +222,7 @@ function toggleBody(id) {
                 </dl>
             </div>
 
-            <!-- Contact (not collected yet — placeholders) -->
+            <!-- Contact -->
             <section class="rounded-lg border border-border bg-surface p-5">
                 <h2
                     class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
@@ -227,14 +230,17 @@ function toggleBody(id) {
                     {{ $t('super_admin.user_detail.sections.contact') }}
                 </h2>
                 <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-                    <div v-for="field in CONTACT_FIELDS" :key="field">
+                    <div v-for="field in USER_CONTACT_FIELDS" :key="field">
                         <dt
                             class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
                         >
                             {{ $t(`super_admin.user_detail.contact.${field}`) }}
                         </dt>
-                        <dd class="mt-0.5 font-sans text-[13px] text-ink-tertiary italic">
-                            {{ $t('super_admin.user_detail.contact.not_collected') }}
+                        <dd
+                            class="mt-0.5 font-sans text-[13px]"
+                            :class="user[field] ? 'text-ink-primary' : 'text-ink-tertiary italic'"
+                        >
+                            {{ user[field] ?? $t('super_admin.user_detail.contact.not_collected') }}
                         </dd>
                     </div>
                 </dl>

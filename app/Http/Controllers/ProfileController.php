@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\ImageAttachmentService;
+use App\Support\Countries;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,14 +17,12 @@ class ProfileController extends Controller
 {
     public function __construct(private readonly ImageAttachmentService $images) {}
 
-    /**
-     * Display the user's profile form.
-     */
     public function edit(Request $request): Response
     {
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'countries' => Countries::all(),
         ]);
     }
 

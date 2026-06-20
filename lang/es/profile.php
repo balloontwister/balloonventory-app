@@ -22,6 +22,23 @@ return [
         'saved' => 'Perfil actualizado.',
     ],
 
+    'contact' => [
+        'heading' => 'Datos de contacto',
+        'subheading' => 'Opcional. Solo visible para ti y el equipo de Balloonventory.',
+        'privacy_note' => 'Tus datos de contacto son privados. Solo son visibles para ti y el equipo de Balloonventory para soporte de cuenta — nunca los publicamos, compartimos ni vendemos, y no los usaremos para enviarte nada que no hayas solicitado.',
+        'phone' => 'Teléfono',
+        'address_line1' => 'Dirección línea 1',
+        'address_line2' => 'Dirección línea 2',
+        'city' => 'Ciudad',
+        'state_region' => 'Estado / Región',
+        'postal_code' => 'Código postal',
+        'country' => 'País',
+        'country_placeholder' => 'Selecciona un país…',
+        'website_url' => 'Sitio web',
+        'website_url_2' => 'Sitio web 2',
+        'saved' => 'Datos de contacto guardados.',
+    ],
+
     'password' => [
         'heading' => 'Actualizar contraseña',
         'subheading' => 'Usa una contraseña larga y aleatoria para mantener tu cuenta segura.',

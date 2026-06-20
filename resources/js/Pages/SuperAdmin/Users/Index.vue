@@ -694,10 +694,17 @@ function destroyUser(user) {
                 >
                     <Link
                         :href="route('admin.users.show', activeUser.id)"
-                        class="block w-full border-b border-border px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
+                        class="block w-full px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
                         @click="closeMenu"
                     >
                         {{ $t('super_admin.users.view_details') }}
+                    </Link>
+                    <Link
+                        :href="route('admin.email-templates.index', { user: activeUser.id })"
+                        class="block w-full border-b border-border px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
+                        @click="closeMenu"
+                    >
+                        {{ $t('super_admin.users.email_user') }}
                     </Link>
                     <button
                         v-if="menu.promote"

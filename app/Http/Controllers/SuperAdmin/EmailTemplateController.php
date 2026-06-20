@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\TemplatedMailable;
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
+use App\Models\User;
 use App\Support\EmailTemplateRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,12 +19,21 @@ use Inertia\Response;
 
 class EmailTemplateController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $composeUser = null;
+
+        if ($request->filled('user')) {
+            $composeUser = User::find($request->input('user'))?->only(['id', 'name', 'email']);
+        }
+
         return Inertia::render('SuperAdmin/EmailTemplates/Index', [
             'templates' => $this->templates(),
             'emailByDay' => $this->emailByDay(),
             'emailByMonth' => $this->emailByMonth(),
+            'composeUser' => $composeUser,
+            'draftTemplates' => $this->draftTemplates(),
+            'appUrl' => (string) config('app.url'),
         ]);
     }
 
@@ -143,6 +153,27 @@ class EmailTemplateController extends Controller
                 'has_body' => filled($t->body_html),
                 'updated_at' => $t->updated_at,
                 'last_edited_by' => $t->lastEditedBy?->only(['id', 'name']),
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Templates that have copy written, offered in the composer as editable
+     * starting drafts. Returns the plain-text body since the composer is plain text.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function draftTemplates(): array
+    {
+        return EmailTemplate::whereNotNull('body_html')
+            ->where('body_html', '!=', '')
+            ->orderBy('label')
+            ->get()
+            ->map(fn (EmailTemplate $t) => [
+                'key' => $t->key,
+                'label' => $t->label,
+                'subject' => $t->subject ?? '',
+                'body_text' => $t->body_text ?? '',
             ])
             ->toArray();
     }

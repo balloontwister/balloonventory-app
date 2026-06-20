@@ -3,19 +3,24 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link } from '@inertiajs/vue3';
 
-const props = defineProps({
+defineProps({
     user: { type: Object, required: true },
+    businesses: { type: Array, default: () => [] },
+    feedback: { type: Array, default: () => [] },
+    tickets: { type: Array, default: () => [] },
+    emails: { type: Array, default: () => [] },
 });
 
-// Sections to be filled in next — each becomes a real data panel later.
-const sections = [
-    'login_history',
-    'emails',
-    'feedback',
-    'tickets',
-    'ledger',
-    'businesses',
-];
+const CONTACT_FIELDS = ['phone', 'website', 'city', 'country'];
+
+function formatDate(val) {
+    if (!val) return '—';
+    return new Date(val).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
 
 function formatDateTime(val) {
     if (!val) return '—';
@@ -26,6 +31,12 @@ function formatDateTime(val) {
         hour: 'numeric',
         minute: '2-digit',
     });
+}
+
+// EmailLog stores the fully-qualified mailable class; show just the short name.
+function mailableLabel(mailable) {
+    if (!mailable) return '—';
+    return mailable.split('\\').pop();
 }
 </script>
 
@@ -57,15 +68,24 @@ function formatDateTime(val) {
             <!-- Identity summary -->
             <div class="rounded-lg border border-border bg-surface p-5">
                 <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div class="min-w-0">
-                        <p
-                            class="font-display text-[18px] font-semibold text-ink-primary"
-                        >
-                            {{ user.name }}
-                        </p>
-                        <p class="mt-0.5 font-sans text-[13px] text-ink-secondary">
-                            {{ user.original_email ?? user.email }}
-                        </p>
+                    <div class="flex min-w-0 items-center gap-4">
+                        <img
+                            :src="user.avatar_url"
+                            :alt="user.name"
+                            class="h-16 w-16 flex-shrink-0 rounded-full object-cover ring-2 ring-border"
+                        />
+                        <div class="min-w-0">
+                            <p
+                                class="font-display text-[18px] font-semibold text-ink-primary"
+                            >
+                                {{ user.name }}
+                            </p>
+                            <p
+                                class="mt-0.5 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{ user.original_email ?? user.email }}
+                            </p>
+                        </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <span
@@ -95,9 +115,7 @@ function formatDateTime(val) {
                     </div>
                 </div>
 
-                <dl
-                    class="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3"
-                >
+                <dl class="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
                     <div>
                         <dt
                             class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
@@ -128,12 +146,241 @@ function formatDateTime(val) {
                             {{ formatDateTime(user.email_verified_at) }}
                         </dd>
                     </div>
+                    <div>
+                        <dt
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{ $t('super_admin.user_detail.locale') }}
+                        </dt>
+                        <dd class="mt-0.5 font-sans text-[13px] text-ink-primary">
+                            {{ user.locale ?? '—' }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{ $t('super_admin.user_detail.timezone') }}
+                        </dt>
+                        <dd class="mt-0.5 font-sans text-[13px] text-ink-primary">
+                            {{ user.timezone ?? '—' }}
+                        </dd>
+                    </div>
                 </dl>
             </div>
 
-            <!-- Placeholder sections — wired up next -->
+            <!-- Contact (not collected yet — placeholders) -->
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2
+                    class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('super_admin.user_detail.sections.contact') }}
+                </h2>
+                <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                    <div v-for="field in CONTACT_FIELDS" :key="field">
+                        <dt
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{ $t(`super_admin.user_detail.contact.${field}`) }}
+                        </dt>
+                        <dd class="mt-0.5 font-sans text-[13px] text-ink-tertiary italic">
+                            {{ $t('super_admin.user_detail.contact.not_collected') }}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
+            <!-- Businesses -->
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('super_admin.user_detail.sections.businesses') }}
+                </h2>
+                <p
+                    v-if="businesses.length === 0"
+                    class="font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('super_admin.user_detail.biz_empty') }}
+                </p>
+                <div v-else class="flex flex-col gap-2">
+                    <div
+                        v-for="b in businesses"
+                        :key="b.id"
+                        class="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+                    >
+                        <span class="font-sans text-[14px] font-medium text-ink-primary">
+                            {{ b.name }}
+                        </span>
+                        <span class="font-sans text-[12px] text-ink-secondary">
+                            {{ b.role }}
+                            <span class="text-ink-tertiary">·</span>
+                            {{ $t('super_admin.user_detail.biz_joined') }}
+                            {{ formatDate(b.joined_at) }}
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Item feedback -->
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('super_admin.user_detail.sections.feedback') }}
+                    <span v-if="feedback.length" class="text-ink-tertiary">
+                        ({{ feedback.length }})
+                    </span>
+                </h2>
+                <p
+                    v-if="feedback.length === 0"
+                    class="font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('super_admin.user_detail.feedback_empty') }}
+                </p>
+                <div v-else class="flex flex-col gap-2">
+                    <div
+                        v-for="f in feedback"
+                        :key="f.id"
+                        class="rounded-md border border-border px-3 py-2"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <Link
+                                    :href="route('admin.catalog.skus.show', f.sku_id)"
+                                    class="font-sans text-[14px] font-medium text-accent hover:underline"
+                                >
+                                    {{ f.sku_name }}
+                                </Link>
+                                <p class="font-sans text-[12px] text-ink-secondary">
+                                    {{ $t(`inventory.show.feedback_field_${f.field}`) }}
+                                    <template v-if="f.suggested_value">
+                                        <span class="text-ink-tertiary">
+                                            · {{ $t('super_admin.user_detail.feedback_says') }}
+                                        </span>
+                                        {{ f.suggested_value }}
+                                    </template>
+                                </p>
+                            </div>
+                            <div class="shrink-0 text-right">
+                                <span
+                                    class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow"
+                                    :class="
+                                        f.status === 'open'
+                                            ? 'text-warning'
+                                            : 'text-ink-tertiary'
+                                    "
+                                >
+                                    {{ $t(`super_admin.dashboard.feedback.status_${f.status}`) }}
+                                </span>
+                                <p class="font-sans text-[12px] text-ink-tertiary">
+                                    {{ formatDate(f.created_at) }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Support tickets -->
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('super_admin.user_detail.sections.tickets') }}
+                    <span v-if="tickets.length" class="text-ink-tertiary">
+                        ({{ tickets.length }})
+                    </span>
+                </h2>
+                <p
+                    v-if="tickets.length === 0"
+                    class="font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('super_admin.user_detail.tickets_empty') }}
+                </p>
+                <div v-else class="flex flex-col gap-2">
+                    <Link
+                        v-for="t in tickets"
+                        :key="t.id"
+                        :href="route('admin.tickets.index')"
+                        class="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 transition hover:bg-background"
+                    >
+                        <div class="min-w-0">
+                            <p class="truncate font-sans text-[14px] font-medium text-ink-primary">
+                                {{ t.subject }}
+                            </p>
+                            <p class="font-sans text-[12px] text-ink-tertiary">
+                                {{ $t('super_admin.user_detail.ticket_replies', { count: t.replies_count }) }}
+                            </p>
+                        </div>
+                        <div class="shrink-0 text-right">
+                            <span
+                                class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow"
+                                :class="t.archived_at ? 'text-ink-tertiary' : 'text-warning'"
+                            >
+                                {{
+                                    t.archived_at
+                                        ? $t('super_admin.user_detail.ticket_archived')
+                                        : $t('super_admin.user_detail.ticket_open')
+                                }}
+                            </span>
+                            <p class="font-sans text-[12px] text-ink-tertiary">
+                                {{ formatDate(t.created_at) }}
+                            </p>
+                        </div>
+                    </Link>
+                </div>
+            </section>
+
+            <!-- Emails sent -->
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2
+                    class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('super_admin.user_detail.sections.emails') }}
+                    <span v-if="emails.length" class="text-ink-tertiary">
+                        ({{ emails.length }})
+                    </span>
+                </h2>
+                <p
+                    v-if="emails.length === 0"
+                    class="font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('super_admin.user_detail.emails_empty') }}
+                </p>
+                <div v-else class="overflow-x-auto">
+                    <table class="w-full font-sans text-[13px]">
+                        <thead>
+                            <tr class="border-b border-border text-left text-ink-secondary">
+                                <th class="py-2 pr-4 font-medium">
+                                    {{ $t('super_admin.user_detail.email_subject') }}
+                                </th>
+                                <th class="py-2 pr-4 font-medium">
+                                    {{ $t('super_admin.user_detail.email_type') }}
+                                </th>
+                                <th class="py-2 text-right font-medium">
+                                    {{ $t('super_admin.user_detail.email_sent') }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/50">
+                            <tr v-for="e in emails" :key="e.id">
+                                <td class="py-2 pr-4 text-ink-primary">{{ e.subject }}</td>
+                                <td class="py-2 pr-4 text-ink-tertiary">
+                                    {{ mailableLabel(e.mailable) }}
+                                </td>
+                                <td class="whitespace-nowrap py-2 text-right text-ink-secondary">
+                                    {{ formatDateTime(e.sent_at) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Still to come -->
             <section
-                v-for="key in sections"
+                v-for="key in ['login_history', 'ledger']"
                 :key="key"
                 class="rounded-lg border border-border bg-surface p-5"
             >

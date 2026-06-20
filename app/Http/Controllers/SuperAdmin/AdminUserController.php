@@ -4,13 +4,17 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Enums\AdminLevel;
 use App\Http\Controllers\Controller;
+use App\Models\EmailLog;
 use App\Models\Membership;
+use App\Models\SkuFeedback;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Scopes\BusinessScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -128,13 +132,49 @@ class AdminUserController extends Controller
 
     /**
      * A single user's detail/support view. Resolves trashed users too so support
-     * can still inspect pruned/deleted accounts. STUB — the data sections (login
-     * history, emails, feedback, tickets, ledger, businesses, …) will be filled
-     * in next; for now it carries a basic user summary.
+     * can still inspect pruned/deleted accounts. Login history and ledger are
+     * still placeholders (no source tables yet); contact fields (phone/website/
+     * city/country) aren't collected yet either.
      */
     public function show(string $user): Response
     {
         $model = User::withTrashed()->findOrFail($user);
+
+        // Businesses the user belongs to — bypass the tenant scope so this works
+        // regardless of the acting admin's current business.
+        $businesses = Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('user_id', $model->id)
+            ->with('business:id,name')
+            ->orderBy('joined_at')
+            ->get()
+            ->map(fn (Membership $m) => [
+                'id' => $m->business?->id,
+                'name' => $m->business?->name,
+                'role' => $m->role,
+                'joined_at' => $m->joined_at,
+            ])
+            ->filter(fn (array $b) => $b['name'] !== null)
+            ->values();
+
+        $feedback = SkuFeedback::where('user_id', $model->id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get(['id', 'sku_id', 'sku_name', 'field', 'suggested_value', 'status', 'created_at']);
+
+        $tickets = SupportTicket::where('user_id', $model->id)
+            ->withCount('replies')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get(['id', 'subject', 'archived_at', 'created_at']);
+
+        // Emails are logged with a user_id when known, but also match on the
+        // recipient address to catch any sent before the link was recorded.
+        $emails = EmailLog::where(fn ($q) => $q
+            ->where('user_id', $model->id)
+            ->orWhere('to', $model->email))
+            ->orderByDesc('sent_at')
+            ->limit(50)
+            ->get(['id', 'to', 'subject', 'mailable', 'sent_at']);
 
         return Inertia::render('SuperAdmin/Users/Show', [
             'user' => [
@@ -142,13 +182,22 @@ class AdminUserController extends Controller
                 'name' => $model->name,
                 'email' => $model->email,
                 'original_email' => $model->original_email,
+                'avatar_url' => $model->avatar_path
+                    ? Storage::disk('public')->url($model->avatar_path)
+                    : asset('images/defaults/user-profile-default.png'),
                 'admin_level' => $model->admin_level,
                 'email_verified_at' => $model->email_verified_at,
                 'created_at' => $model->created_at,
                 'last_login_at' => $model->last_login_at,
                 'frozen_at' => $model->frozen_at,
                 'deleted_at' => $model->deleted_at,
+                'locale' => $model->locale,
+                'timezone' => $model->timezone,
             ],
+            'businesses' => $businesses,
+            'feedback' => $feedback,
+            'tickets' => $tickets,
+            'emails' => $emails,
         ]);
     }
 

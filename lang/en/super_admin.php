@@ -313,8 +313,11 @@ return [
 
     'user_detail' => [
         'email_verified' => 'Email verified',
+        'locale' => 'Language',
+        'timezone' => 'Timezone',
         'coming_soon' => 'Coming soon — this section will be filled in next.',
         'sections' => [
+            'contact' => 'Contact',
             'login_history' => 'Login history',
             'emails' => 'Emails sent',
             'feedback' => 'Item feedback',
@@ -322,6 +325,25 @@ return [
             'ledger' => 'Ledger',
             'businesses' => 'Businesses',
         ],
+        'contact' => [
+            'phone' => 'Phone',
+            'website' => 'Website',
+            'city' => 'City',
+            'country' => 'Country',
+            'not_collected' => 'Not collected yet',
+        ],
+        'biz_joined' => 'joined',
+        'biz_empty' => 'Not a member of any business.',
+        'feedback_empty' => 'No item feedback submitted.',
+        'feedback_says' => 'should be',
+        'tickets_empty' => 'No support tickets.',
+        'ticket_open' => 'Open',
+        'ticket_archived' => 'Archived',
+        'ticket_replies' => ':count replies',
+        'emails_empty' => 'No emails sent to this address.',
+        'email_subject' => 'Subject',
+        'email_type' => 'Type',
+        'email_sent' => 'Sent',
     ],
 
     'coming_soon' => [

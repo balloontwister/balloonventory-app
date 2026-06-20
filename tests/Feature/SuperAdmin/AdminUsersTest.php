@@ -4,6 +4,7 @@ namespace Tests\Feature\SuperAdmin;
 
 use App\Enums\AdminLevel;
 use App\Models\Business;
+use App\Models\EmailLog;
 use App\Models\Membership;
 use App\Models\Sku;
 use App\Models\SkuFeedback;
@@ -115,6 +116,54 @@ class AdminUsersTest extends TestCase
                 ->component('SuperAdmin/Users/Show')
                 ->where('user.id', $target->id)
                 ->where('user.name', 'Detail Target')
+                ->has('user.avatar_url')
+                ->has('businesses')
+                ->has('feedback')
+                ->has('tickets')
+                ->has('emails')
+            );
+    }
+
+    public function test_user_detail_page_aggregates_related_records(): void
+    {
+        $target = User::factory()->create(['email' => 'related@example.com']);
+
+        $business = Business::factory()->create();
+        Membership::create([
+            'user_id' => $target->id,
+            'business_id' => $business->id,
+            'role' => 'owner',
+            'joined_at' => now(),
+        ]);
+
+        SkuFeedback::factory()->create(['user_id' => $target->id]);
+
+        SupportTicket::create([
+            'user_id' => $target->id,
+            'user_name' => $target->name,
+            'user_email' => $target->email,
+            'subject' => 'Help me',
+            'body' => 'Please',
+        ]);
+
+        EmailLog::create([
+            'to' => $target->email,
+            'subject' => 'Welcome',
+            'mailable' => 'App\\Mail\\EmailVerificationCode',
+            'user_id' => $target->id,
+            'sent_at' => now(),
+        ]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.users.show', $target->id))
+            ->assertInertia(fn ($page) => $page
+                ->has('businesses', 1)
+                ->where('businesses.0.name', $business->name)
+                ->has('feedback', 1)
+                ->has('tickets', 1)
+                ->where('tickets.0.subject', 'Help me')
+                ->has('emails', 1)
+                ->where('emails.0.subject', 'Welcome')
             );
     }
 

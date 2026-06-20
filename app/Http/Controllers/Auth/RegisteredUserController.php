@@ -36,9 +36,13 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Emails are case-insensitive: accept any casing and canonicalize to
+        // lowercase so the uniqueness check (and storage) compare like-for-like.
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 

@@ -22,8 +22,8 @@ class DecomexColorSeeder extends Seeder
      *
      * Color names follow the "number - name" convention (e.g. "100 - Standard White").
      *
-     * 128 colors across 5 finishes: Standard (18), Pastel Deco (62),
-     * Jewel Crystal (6), Pearl/Metallic (36), Luster (6).
+     * 130 colors across 5 finishes: Standard (19), Pastel Deco (62),
+     * Jewel Crystal (6), Pearl/Metallic (36), Luster (7).
      *
      * Single-balloon hero images are downloaded from each color's Shopify
      * collection page and cached at storage/app/public/color-images/decomex/singles/.
@@ -126,6 +126,8 @@ class DecomexColorSeeder extends Seeder
             ['name' => '174 - Standard Ocean Blue',   'texture' => $standard, 'family' => 'Blues',      'hex' => '#08729A', 'pms' => null, 'sort_order' => 174],
             ['name' => '180 - Standard Black',        'texture' => $standard, 'family' => 'Blacks',     'hex' => '#0C0D0F', 'pms' => null, 'sort_order' => 180],
             ['name' => '199 - Standard Assorted',     'texture' => $standard, 'family' => 'Assortment', 'hex' => null,       'pms' => null, 'sort_order' => 199],
+            // Not on the official chart but sold by distributors (BargainBalloons)
+            ['name' => '210 - Standard Dynasty Red',   'texture' => $standard, 'family' => 'Reds',       'hex' => null,       'pms' => null, 'sort_order' => 210],
 
             // ============================================================
             // PASTEL DECO FINISH (200–279) — 62 colors
@@ -260,6 +262,8 @@ class DecomexColorSeeder extends Seeder
             ['name' => '505 - Luster Purple',    'texture' => $luster, 'family' => 'Purples',  'hex' => '#4C3B62', 'pms' => null, 'sort_order' => 505],
             ['name' => '507 - Luster Blue',      'texture' => $luster, 'family' => 'Blues',    'hex' => '#305971', 'pms' => null, 'sort_order' => 507],
             ['name' => '508 - Luster Green',     'texture' => $luster, 'family' => 'Greens',   'hex' => '#37615A', 'pms' => null, 'sort_order' => 508],
+            // Not on the official chart but sold by distributors (BargainBalloons)
+            ['name' => '510 - Luster Red',       'texture' => $luster, 'family' => 'Reds',     'hex' => null,       'pms' => null, 'sort_order' => 510],
         ];
     }
 }

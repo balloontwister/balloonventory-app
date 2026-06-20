@@ -128,6 +128,17 @@ return [
         'col_month' => 'Month',
         'col_emails_sent' => 'Emails sent',
 
+        'log_heading' => 'Outgoing email log',
+        'log_subheading' => 'Individual emails the system has sent, most recent first.',
+        'log_empty' => 'No emails sent yet.',
+        'log_col_to' => 'To',
+        'log_col_subject' => 'Subject',
+        'log_col_type' => 'Type',
+        'log_col_sent' => 'Sent',
+        'log_type_direct' => 'Direct message',
+        'log_show_more' => 'Show :count more',
+        'log_show_less' => 'Show less',
+
         'recent_users_heading' => 'Recently registered',
         'recently_active_heading' => 'Recently active',
         'recently_active_empty' => 'No login activity recorded yet.',

@@ -31,6 +31,7 @@ class EmailTemplateController extends Controller
             'templates' => $this->templates(),
             'emailByDay' => $this->emailByDay(),
             'emailByMonth' => $this->emailByMonth(),
+            'sentEmails' => $this->sentEmails(),
             'composeUser' => $composeUser,
             'draftTemplates' => $this->draftTemplates(),
             'appUrl' => (string) config('app.url'),
@@ -175,6 +176,20 @@ class EmailTemplateController extends Controller
                 'subject' => $t->subject ?? '',
                 'body_text' => $t->body_text ?? '',
             ])
+            ->toArray();
+    }
+
+    /**
+     * The most recent individual emails the system has sent — the outgoing log.
+     * Capped at 50 (the page previews the first few with a show-more toggle).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function sentEmails(): array
+    {
+        return EmailLog::orderByDesc('sent_at')
+            ->limit(50)
+            ->get(['id', 'to', 'subject', 'mailable', 'user_id', 'sent_at'])
             ->toArray();
     }
 

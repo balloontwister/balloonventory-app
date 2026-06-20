@@ -37,6 +37,9 @@ class DatabaseSeeder extends Seeder
             SempertexTextureSeeder::class,
             SempertexBalloonSizeSeeder::class,
             SempertexColorSeeder::class,
+            DecomexTextureSeeder::class,
+            DecomexBalloonSizeSeeder::class,
+            DecomexColorSeeder::class,
         ]);
     }
 }

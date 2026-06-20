@@ -44,7 +44,7 @@ class DecomexColorSeederTest extends TestCase
     {
         $decomex = Brand::where('name', 'Decomex')->firstOrFail();
 
-        $this->assertSame(128, Color::where('brand_id', $decomex->id)->count());
+        $this->assertSame(130, Color::where('brand_id', $decomex->id)->count());
     }
 
     public function test_texture_seeder_adds_decomex_textures(): void
@@ -145,11 +145,11 @@ class DecomexColorSeederTest extends TestCase
         $decomex = Brand::where('name', 'Decomex')->firstOrFail();
 
         $counts = [
-            'Standard (D)' => 18,
+            'Standard (D)' => 19,
             'Pastel Deco (D)' => 62,
             'Jewel Crystal (D)' => 6,
             'Pearl/Metallic (D)' => 36,
-            'Luster (D)' => 6,
+            'Luster (D)' => 7,
         ];
 
         foreach ($counts as $textureName => $expectedCount) {
@@ -203,7 +203,7 @@ class DecomexColorSeederTest extends TestCase
 
         $this->seed(DecomexColorSeeder::class);
 
-        $this->assertSame(128, Color::where('brand_id', $decomex->id)->count());
+        $this->assertSame(130, Color::where('brand_id', $decomex->id)->count());
     }
 
     public function test_pastel_deco_256_pink_blush_is_only_entry(): void

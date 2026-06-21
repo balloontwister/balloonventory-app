@@ -311,6 +311,39 @@ class InventoryControllerTest extends TestCase
             );
     }
 
+    public function test_show_includes_custom_lists_but_not_favorites(): void
+    {
+        $sku = Sku::factory()->create();
+        StockLevel::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'sku_id' => $sku->id,
+            'bin_id' => $this->bin->id,
+            'full_bags' => 1,
+            'open_bags' => 0,
+        ]);
+
+        // On both the Favorites list and a custom list.
+        $favorites = BalloonList::where('is_business_favorites', true)->first();
+        ListItem::create(['list_id' => $favorites->id, 'sku_id' => $sku->id]);
+
+        $custom = BalloonList::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'name' => 'Smith Wedding',
+            'is_business_favorites' => false,
+            'created_by_user_id' => $this->owner->id,
+        ]);
+        ListItem::create(['list_id' => $custom->id, 'sku_id' => $sku->id]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', $sku))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('onLists', 1)
+                ->where('onLists.0.name', 'Smith Wedding')
+                ->where('isFavorite', true)
+            );
+    }
+
     public function test_show_returns_404_for_sku_not_in_inventory(): void
     {
         $sku = Sku::factory()->create();

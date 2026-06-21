@@ -114,6 +114,7 @@ return [
 
         'reorder_label' => 'Reorder quantity (Favorites)',
         'reorder_hint' => 'Set on your Favorites list. Edit it there.',
+        'on_lists_label' => 'On lists',
 
         'history_direction_in' => 'Check in',
         'history_direction_out' => 'Check out',

@@ -114,6 +114,7 @@ return [
 
         'reorder_label' => 'Cantidad de reorden (Favoritos)',
         'reorder_hint' => 'Se establece en tu lista de Favoritos. Edítalo allí.',
+        'on_lists_label' => 'En listas',
 
         'history_direction_in' => 'Entrada',
         'history_direction_out' => 'Salida',

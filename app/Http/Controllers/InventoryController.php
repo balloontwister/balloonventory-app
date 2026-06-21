@@ -279,6 +279,16 @@ class InventoryController extends Controller
             $reorderQuantity = $favItem?->planned_quantity;
         }
 
+        // Custom (non-Favorites) lists this SKU appears on, for this business.
+        // The BalloonList global scope keeps the whereHas tenant-scoped; the
+        // Favorites membership is already conveyed by the star in the header.
+        $onLists = ListItem::where('sku_id', $sku->id)
+            ->whereHas('list', fn ($q) => $q->where('is_business_favorites', false))
+            ->with('list:id,name')
+            ->get()
+            ->map(fn (ListItem $item) => ['id' => $item->list->id, 'name' => $item->list->name])
+            ->values();
+
         return Inertia::render('Inventory/Show', [
             'sku' => $sku,
             'override' => $override,
@@ -289,6 +299,7 @@ class InventoryController extends Controller
             'favoritesListId' => $favoritesListId,
             'isFavorite' => $isFavorite,
             'reorderQuantity' => $reorderQuantity,
+            'onLists' => $onLists,
             'returnQuery' => $request->query('return', ''),
         ]);
     }

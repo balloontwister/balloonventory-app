@@ -407,7 +407,7 @@ function formatDate(value) {
                     <div
                         class="rounded-lg border border-border bg-surface p-4 lg:sticky lg:top-4"
                     >
-                        <div v-if="galleryImages.length" class="mb-4">
+                        <div v-if="galleryImages.length" class="mb-4 flex gap-2">
                             <img
                                 :src="activeImage"
                                 :alt="
@@ -415,11 +415,11 @@ function formatDate(value) {
                                         name: sku.name,
                                     })
                                 "
-                                class="h-40 w-full rounded-md object-contain ring-1 ring-inset ring-border"
+                                class="h-28 w-28 shrink-0 rounded-md object-contain ring-1 ring-inset ring-border"
                             />
                             <div
                                 v-if="galleryImages.length > 1"
-                                class="mt-2 flex gap-2"
+                                class="flex flex-col gap-2"
                             >
                                 <button
                                     v-for="img in galleryImages"
@@ -427,7 +427,7 @@ function formatDate(value) {
                                     type="button"
                                     :aria-label="img.label"
                                     :aria-pressed="img.url === activeImage"
-                                    class="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-surface transition"
+                                    class="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-surface transition"
                                     :class="
                                         img.url === activeImage
                                             ? 'ring-2 ring-accent'

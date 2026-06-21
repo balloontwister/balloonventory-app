@@ -345,12 +345,27 @@ class InventoryControllerTest extends TestCase
             );
     }
 
-    public function test_show_returns_404_for_sku_not_in_inventory(): void
+    public function test_show_renders_visible_sku_not_in_inventory(): void
     {
+        // A shared catalog SKU the business doesn't stock (e.g. added to a list).
         $sku = Sku::factory()->create();
 
         $this->actingAs($this->owner)
             ->get(route('inventory.sku.show', $sku))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('sku.id', $sku->id)
+                ->where('inInventory', false)
+            );
+    }
+
+    public function test_show_returns_404_for_foreign_private_sku(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $privateSku = Sku::factory()->create(['owned_by_business_id' => $otherBusiness->id]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', $privateSku))
             ->assertNotFound();
     }
 

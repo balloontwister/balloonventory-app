@@ -115,6 +115,9 @@ return [
         'reorder_label' => 'Reorder quantity (Favorites)',
         'reorder_hint' => 'Set on your Favorites list. Edit it there.',
         'on_lists_label' => 'On lists',
+        'not_in_inventory_title' => 'Not in your inventory yet',
+        'not_in_inventory_hint' => 'This item is on a list but you don’t stock it yet. Add it to start tracking stock.',
+        'add_to_inventory' => 'Add to inventory',
 
         'history_direction_in' => 'Check in',
         'history_direction_out' => 'Check out',

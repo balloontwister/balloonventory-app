@@ -222,7 +222,12 @@ class InventoryController extends Controller
 
     public function show(Request $request, Sku $sku): Response
     {
-        abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+        // Visible SKUs (shared OR owned by this business) can be viewed even when
+        // not yet stocked — e.g. a catalog item added to a list. The page shows
+        // an "Add to inventory" CTA in that case (see $inInventory below).
+        abort_unless($sku->isVisibleTo(BusinessContext::currentId()), 404);
+
+        $inInventory = StockLevel::where('sku_id', $sku->id)->exists();
 
         $sku->load([
             'brand',
@@ -302,6 +307,7 @@ class InventoryController extends Controller
             'isFavorite' => $isFavorite,
             'reorderQuantity' => $reorderQuantity,
             'onLists' => $onLists,
+            'inInventory' => $inInventory,
             'returnQuery' => $request->query('return', ''),
         ]);
     }

@@ -24,8 +24,38 @@ const props = defineProps({
     reorderQuantity: { type: [Number, String], default: null },
     onLists: { type: Array, default: () => [] },
     inInventory: { type: Boolean, default: true },
+    lists: { type: Array, default: () => [] },
+    canManageLists: { type: Boolean, default: false },
     returnQuery: { type: String, default: '' },
 });
+
+// ── Add to list ────────────────────────────────────────────────────────────────
+const addListOpen = ref(false);
+const addingToList = ref(null); // list id being added
+
+const onListIds = computed(
+    () => new Set(props.onLists.map((list) => list.id)),
+);
+
+function addToList(list) {
+    if (onListIds.value.has(list.id) || addingToList.value) {
+        return;
+    }
+    addingToList.value = list.id;
+    router.post(
+        route('lists.items.store', { list: list.id }),
+        { sku_id: props.sku.id },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                addingToList.value = null;
+            },
+            onSuccess: () => {
+                addListOpen.value = false;
+            },
+        },
+    );
+}
 
 // For SKUs viewed from a list that aren't stocked yet — add to inventory
 // (creates a Default-bin stock row), then the normal stock UI takes over.
@@ -413,12 +443,101 @@ function formatDate(value) {
                         {{ sku.name }}
                     </p>
                 </div>
-                <FavoriteStar
-                    v-if="favoritesListId"
-                    :sku-id="sku.id"
-                    :is-favorite="isFavorite"
-                    :favorite-list-id="favoritesListId"
-                />
+                <div class="flex shrink-0 items-center gap-1">
+                    <!-- Add to list -->
+                    <div class="relative">
+                        <button
+                            type="button"
+                            class="flex h-9 items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3 font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
+                            @click="addListOpen = !addListOpen"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                class="h-4 w-4"
+                            >
+                                <path
+                                    d="M8.75 3.75a.75.75 0 00-1.5 0v3.5h-3.5a.75.75 0 000 1.5h3.5v3.5a.75.75 0 001.5 0v-3.5h3.5a.75.75 0 000-1.5h-3.5v-3.5z"
+                                />
+                            </svg>
+                            {{ $t('inventory.show.add_to_list') }}
+                        </button>
+
+                        <div
+                            v-if="addListOpen"
+                            class="absolute right-0 top-full z-40 mt-1 max-h-72 min-w-[200px] overflow-y-auto rounded-md border border-border bg-surface shadow-pop"
+                        >
+                            <button
+                                v-for="list in lists"
+                                :key="list.id"
+                                type="button"
+                                :disabled="
+                                    onListIds.has(list.id) ||
+                                    addingToList === list.id
+                                "
+                                class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition hover:bg-background disabled:cursor-default disabled:hover:bg-transparent"
+                                @click="addToList(list)"
+                            >
+                                <span
+                                    class="min-w-0 truncate font-sans text-[14px] text-ink-primary"
+                                    >{{ list.name }}</span
+                                >
+                                <svg
+                                    v-if="onListIds.has(list.id)"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    class="h-4 w-4 shrink-0 text-success"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </button>
+
+                            <p
+                                v-if="lists.length === 0"
+                                class="px-3 py-2.5 font-sans text-[13px] text-ink-tertiary"
+                            >
+                                {{ $t('inventory.show.add_to_list_none') }}
+                            </p>
+
+                            <Link
+                                v-if="canManageLists"
+                                :href="route('lists.create')"
+                                class="flex items-center gap-1.5 border-t border-border px-3 py-2 font-sans text-[14px] text-accent hover:bg-background"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    class="h-4 w-4"
+                                >
+                                    <path
+                                        d="M8.75 3.75a.75.75 0 00-1.5 0v3.5h-3.5a.75.75 0 000 1.5h3.5v3.5a.75.75 0 001.5 0v-3.5h3.5a.75.75 0 000-1.5h-3.5v-3.5z"
+                                    />
+                                </svg>
+                                {{ $t('inventory.show.add_to_list_new') }}
+                            </Link>
+                        </div>
+
+                        <div
+                            v-if="addListOpen"
+                            class="fixed inset-0 z-30"
+                            @click="addListOpen = false"
+                        />
+                    </div>
+
+                    <FavoriteStar
+                        v-if="favoritesListId"
+                        :sku-id="sku.id"
+                        :is-favorite="isFavorite"
+                        :favorite-list-id="favoritesListId"
+                    />
+                </div>
             </div>
 
             <div class="grid gap-6 lg:grid-cols-3">

@@ -308,6 +308,8 @@ class InventoryControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('sku.id', $sku->id)
+                ->has('lists')
+                ->has('canManageLists')
             );
     }
 

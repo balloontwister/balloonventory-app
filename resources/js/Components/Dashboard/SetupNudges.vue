@@ -52,7 +52,7 @@ defineProps({
                 {{ $t('dashboard.nudges.user_contact') }}
             </p>
             <Link
-                :href="route('account.index')"
+                :href="route('profile.edit')"
                 class="flex-shrink-0 font-sans text-[13px] font-semibold text-accent hover:underline"
             >
                 {{ $t('dashboard.nudges.user_contact_action') }}
@@ -68,7 +68,7 @@ defineProps({
                 {{ $t('dashboard.nudges.business_contact') }}
             </p>
             <Link
-                :href="route('account.index')"
+                :href="route('settings.businesses')"
                 class="flex-shrink-0 font-sans text-[13px] font-semibold text-accent hover:underline"
             >
                 {{ $t('dashboard.nudges.business_contact_action') }}

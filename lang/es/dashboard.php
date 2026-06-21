@@ -47,6 +47,8 @@ return [
         ],
         'bags' => ':count bolsa|:count bolsas',
         'open_bags' => ':count bolsa abierta|:count bolsas abiertas',
+        'show_more' => 'Mostrar :count más',
+        'show_less' => 'Mostrar menos',
     ],
 
     'nudges' => [

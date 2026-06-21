@@ -47,6 +47,8 @@ return [
         ],
         'bags' => ':count bag|:count bags',
         'open_bags' => ':count open bag|:count open bags',
+        'show_more' => 'Show :count more',
+        'show_less' => 'Show less',
     ],
 
     'nudges' => [

@@ -59,7 +59,7 @@ defineProps({
         <!-- Bins -->
         <AdminCard
             :title="$t('dashboard.kpis.bins')"
-            :href="route('account.index')"
+            :href="route('inventory.bins.index')"
             :stat="kpis.binCount"
         >
             <template #icon>

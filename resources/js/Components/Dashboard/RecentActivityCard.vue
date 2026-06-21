@@ -1,6 +1,6 @@
 <script setup>
 import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     activities: { type: Array, required: true },
@@ -8,6 +8,15 @@ const props = defineProps({
 
 const page = usePage();
 const locale = computed(() => page.props.locale ?? 'en');
+
+const PREVIEW_COUNT = 3;
+const showAll = ref(false);
+const visibleActivities = computed(() =>
+    showAll.value ? props.activities : props.activities.slice(0, PREVIEW_COUNT),
+);
+const hiddenCount = computed(() =>
+    Math.max(0, props.activities.length - PREVIEW_COUNT),
+);
 
 function relativeTime(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -83,7 +92,7 @@ function bagSummary(activity) {
             <!-- Activity feed -->
             <ul v-else class="flex flex-col divide-y divide-border">
                 <li
-                    v-for="activity in activities"
+                    v-for="activity in visibleActivities"
                     :key="activity.id"
                     class="flex items-start gap-3 py-2.5"
                 >
@@ -104,6 +113,19 @@ function bagSummary(activity) {
                     </span>
                 </li>
             </ul>
+
+            <button
+                v-if="hiddenCount > 0 || showAll"
+                type="button"
+                class="mt-2 font-sans text-[13px] font-medium text-accent hover:underline"
+                @click="showAll = !showAll"
+            >
+                {{
+                    showAll
+                        ? $t('dashboard.activity.show_less')
+                        : $t('dashboard.activity.show_more', { count: hiddenCount })
+                }}
+            </button>
         </div>
     </div>
 </template>

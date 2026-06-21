@@ -62,6 +62,7 @@ return [
         'business_contact_action' => 'Actualizar Negocio',
         'onboarding' => 'Termina de configurar tu cuenta para aprovechar al máximo Balloonventory.',
         'onboarding_action' => 'Continuar Configuración',
+        'dismiss' => 'Descartar',
     ],
 
     'empty_state' => [

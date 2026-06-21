@@ -44,6 +44,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'country',
         'website_url',
         'website_url_2',
+        'dismissed_nudges',
     ];
 
     protected $hidden = [
@@ -60,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'admin_level' => AdminLevel::class,
+            'dismissed_nudges' => 'array',
         ];
     }
 

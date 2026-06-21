@@ -75,6 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // ─── Authenticated + verified + business-gated routes ────────────────────────
 Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/nudges/dismiss', [DashboardController::class, 'dismissNudge'])->name('dashboard.nudges.dismiss');
 
     // ─── Onboarding wizard (business exists; auto-shown after creation, re-runnable) ──
     Route::get('/onboarding/wizard', [OnboardingController::class, 'show'])->name('onboarding.wizard');

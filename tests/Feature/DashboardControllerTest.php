@@ -343,4 +343,46 @@ class DashboardControllerTest extends TestCase
             ->where('nudges.onboardingComplete', true)
         );
     }
+
+    public function test_user_can_dismiss_user_level_nudge(): void
+    {
+        // Ensure nudge is visible first
+        $this->owner->update(['phone' => null]);
+
+        $this->actingAs($this->owner)->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page->where('nudges.userContactIncomplete', true));
+
+        // Dismiss it
+        $this->actingAs($this->owner)
+            ->post(route('dashboard.nudges.dismiss'), ['key' => 'user_contact'])
+            ->assertRedirect();
+
+        // Nudge no longer shown
+        $this->actingAs($this->owner)->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page->where('nudges.userContactIncomplete', false));
+    }
+
+    public function test_business_nudge_dismissal_is_scoped_to_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+
+        // Dismiss onboarding for the primary business
+        $this->actingAs($this->owner)
+            ->post(route('dashboard.nudges.dismiss'), ['key' => 'onboarding'])
+            ->assertRedirect();
+
+        // The stored key includes the primary business ID, not the other one
+        $this->owner->refresh();
+        $dismissed = $this->owner->dismissed_nudges ?? [];
+
+        $this->assertContains("onboarding:{$this->business->id}", $dismissed);
+        $this->assertNotContains("onboarding:{$otherBusiness->id}", $dismissed);
+    }
+
+    public function test_dismiss_rejects_invalid_nudge_key(): void
+    {
+        $this->actingAs($this->owner)
+            ->post(route('dashboard.nudges.dismiss'), ['key' => 'not_a_real_nudge'])
+            ->assertSessionHasErrors('key');
+    }
 }

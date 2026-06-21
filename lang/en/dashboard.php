@@ -62,6 +62,7 @@ return [
         'business_contact_action' => 'Update Business Info',
         'onboarding' => 'Finish setting up your account to get the most out of Balloonventory.',
         'onboarding_action' => 'Continue Setup',
+        'dismiss' => 'Dismiss',
     ],
 
     'empty_state' => [

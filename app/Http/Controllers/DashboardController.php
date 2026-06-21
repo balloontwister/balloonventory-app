@@ -10,8 +10,10 @@ use App\Models\ListItem;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Support\BusinessContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -151,14 +153,43 @@ class DashboardController extends Controller
         ])->all();
     }
 
+    public function dismissNudge(Request $request): RedirectResponse
+    {
+        $businessScoped = ['clear_samples', 'onboarding', 'business_contact'];
+
+        $validated = $request->validate([
+            'key' => ['required', 'string', Rule::in([...$businessScoped, 'user_contact'])],
+        ]);
+
+        $key = in_array($validated['key'], $businessScoped)
+            ? "{$validated['key']}:".BusinessContext::currentId()
+            : $validated['key'];
+
+        $user = $request->user();
+        $dismissed = $user->dismissed_nudges ?? [];
+
+        if (! in_array($key, $dismissed)) {
+            $user->update(['dismissed_nudges' => [...$dismissed, $key]]);
+        }
+
+        return back();
+    }
+
     private function buildNudges(mixed $user, Business $business): array
     {
+        $dismissed = $user->dismissed_nudges ?? [];
+        $bid = $business->id;
+        $isDismissed = fn (string $key) => in_array($key, $dismissed);
+
         return [
-            'hasSampleStock' => StockLevel::where('is_sample', true)->exists(),
+            'hasSampleStock' => ! $isDismissed("clear_samples:{$bid}")
+                && StockLevel::where('is_sample', true)->exists(),
             'emailVerified' => $user->email_verified_at !== null,
-            'onboardingComplete' => $business->onboarding_completed_at !== null,
-            'userContactIncomplete' => empty($user->phone),
-            'businessContactIncomplete' => empty($business->phone) && empty($business->contact_email),
+            'onboardingComplete' => $business->onboarding_completed_at !== null
+                || $isDismissed("onboarding:{$bid}"),
+            'userContactIncomplete' => ! $isDismissed('user_contact') && empty($user->phone),
+            'businessContactIncomplete' => ! $isDismissed("business_contact:{$bid}")
+                && empty($business->phone) && empty($business->contact_email),
         ];
     }
 }

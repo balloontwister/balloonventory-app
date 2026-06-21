@@ -40,7 +40,7 @@ const hasAnyAction = computed(
             <template v-if="hasAnyAction">
                 <Link
                     v-if="can.checkIn"
-                    :href="route('scan.index', { mode: 'in' })"
+                    :href="route('scan.index', { mode: 'add' })"
                     class="flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2.5 font-sans text-[14px] font-semibold text-white transition hover:bg-accent-hover"
                 >
                     <svg
@@ -63,7 +63,7 @@ const hasAnyAction = computed(
 
                 <Link
                     v-if="can.checkOut"
-                    :href="route('scan.index', { mode: 'out' })"
+                    :href="route('scan.index', { mode: 'remove' })"
                     class="flex items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 font-sans text-[14px] font-semibold text-ink-primary transition hover:border-border-strong hover:bg-surface"
                 >
                     <svg

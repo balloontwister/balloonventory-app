@@ -12,6 +12,7 @@ import { ref, computed, onBeforeUnmount, watch } from 'vue';
 const props = defineProps({
     bins: { type: Array, default: () => [] },
     defaultBinId: { type: String, default: null },
+    initialMode: { type: String, default: 'add' },
 });
 
 // ── Working bin ───────────────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ function binLabel(bin) {
 }
 
 // ── Mode ────────────────────────────────────────────────────────────────────────
-const mode = ref('add'); // add | remove
+const mode = ref(props.initialMode); // add | remove
 const isAdding = computed(() => mode.value === 'add');
 const isRemoving = computed(() => mode.value === 'remove');
 

@@ -29,7 +29,7 @@ class ScanController extends Controller
         private readonly BinResolver $binResolver,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $businessId = BusinessContext::currentId();
 
@@ -38,9 +38,12 @@ class ScanController extends Controller
         $business = Business::findOrFail($businessId);
         $defaultBin = $this->binResolver->resolveDefault($business);
 
+        $initialMode = in_array($request->query('mode'), ['add', 'remove']) ? $request->query('mode') : 'add';
+
         return Inertia::render('Scan/Index', [
             'bins' => $this->binsForSelector($businessId),
             'defaultBinId' => $defaultBin->id,
+            'initialMode' => $initialMode,
         ]);
     }
 

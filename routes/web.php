@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BinController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ListsController;
@@ -73,9 +74,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // ─── Authenticated + verified + business-gated routes ────────────────────────
 Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ─── Onboarding wizard (business exists; auto-shown after creation, re-runnable) ──
     Route::get('/onboarding/wizard', [OnboardingController::class, 'show'])->name('onboarding.wizard');

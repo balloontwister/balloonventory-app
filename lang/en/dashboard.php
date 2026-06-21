@@ -20,7 +20,7 @@ return [
 
     'low_stock' => [
         'title' => 'Low Stock',
-        'empty' => "You're well stocked.",
+        'empty' => 'Nothing needs restocking.',
         'on_hand' => 'on hand',
         'threshold' => 'threshold',
         'view_all' => 'View reorder list',

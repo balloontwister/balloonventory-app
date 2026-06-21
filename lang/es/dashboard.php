@@ -20,7 +20,7 @@ return [
 
     'low_stock' => [
         'title' => 'Stock Bajo',
-        'empty' => 'Estás bien abastecido.',
+        'empty' => 'Nada necesita reposición.',
         'on_hand' => 'en mano',
         'threshold' => 'mínimo',
         'view_all' => 'Ver lista de reorden',

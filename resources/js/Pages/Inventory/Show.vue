@@ -6,6 +6,7 @@ import BackLink from '@/Components/BackLink.vue';
 import Modal from '@/Components/Modal.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
+import ListChip from '@/Components/ListChip.vue';
 import ItemFeedbackModal from '@/Components/ItemFeedbackModal.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -21,6 +22,7 @@ const props = defineProps({
     favoritesListId: { type: String, default: null },
     isFavorite: { type: Boolean, default: false },
     reorderQuantity: { type: [Number, String], default: null },
+    onLists: { type: Array, default: () => [] },
     returnQuery: { type: String, default: '' },
 });
 
@@ -855,6 +857,19 @@ function formatDate(value) {
                             <span class="font-sans text-[12px] text-ink-tertiary"
                                 >— {{ $t('inventory.show.reorder_hint') }}</span
                             >
+                        </div>
+
+                        <!-- Lists this item is on -->
+                        <div
+                            v-if="onLists.length"
+                            class="mt-4 rounded-md border border-accent/20 bg-accent-soft/40 px-4 py-3"
+                        >
+                            <p
+                                class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                            >
+                                {{ $t('inventory.show.on_lists_label') }}
+                            </p>
+                            <ListChip :lists="onLists" />
                         </div>
                     </section>
 

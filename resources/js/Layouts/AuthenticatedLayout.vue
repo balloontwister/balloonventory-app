@@ -57,7 +57,7 @@ const nav = [
         icon: 'inventory',
         routeName: 'inventory.index',
     },
-    { labelKey: 'nav.jobs', icon: 'jobs', routeName: 'jobs.index' },
+    { labelKey: 'nav.lists_jobs', icon: 'jobs', routeName: 'lists.index' },
     { labelKey: 'nav.scan', icon: 'scan', routeName: 'scan.index' },
     { labelKey: 'nav.reorder', icon: 'reorder', routeName: 'reorder.index' },
     { labelKey: 'nav.account', icon: 'account', routeName: 'account.index' },
@@ -738,12 +738,12 @@ const topNavItems = computed(() =>
                     }}</span>
                 </Link>
 
-                <!-- Jobs -->
+                <!-- Lists & Jobs -->
                 <Link
-                    :href="route('jobs.index')"
+                    :href="route('lists.index')"
                     class="flex flex-1 flex-col items-center justify-center gap-0.5 transition"
                     :class="
-                        isActive('jobs.index')
+                        isActive('lists.index')
                             ? 'text-accent'
                             : 'text-ink-tertiary'
                     "
@@ -761,7 +761,7 @@ const topNavItems = computed(() =>
                         />
                     </svg>
                     <span class="font-sans text-[10px] font-medium">{{
-                        $t('nav.jobs')
+                        $t('nav.lists_jobs')
                     }}</span>
                 </Link>
 

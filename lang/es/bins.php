@@ -7,6 +7,7 @@ return [
     'tabs' => [
         'by_item' => 'Por artículo',
         'by_bin' => 'Por contenedor',
+        'by_list' => 'Por lista',
     ],
 
     'add_location' => 'Agregar ubicación',

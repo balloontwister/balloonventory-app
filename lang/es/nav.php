@@ -6,6 +6,7 @@ return [
     'admin' => 'Admin',
     'inventory' => 'Inventario',
     'jobs' => 'Trabajos',
+    'lists_jobs' => 'Listas y trabajos',
     'reorder' => 'Reabastecer',
     'settings' => 'Configuración',
     'account' => 'Cuenta',

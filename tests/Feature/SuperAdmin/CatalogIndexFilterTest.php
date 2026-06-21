@@ -8,6 +8,7 @@ use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\Material;
 use App\Models\Shape;
+use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
 use App\Models\TextureFamily;
@@ -196,6 +197,46 @@ class CatalogIndexFilterTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Fashion White R-5')->etc())
+            );
+    }
+
+    public function test_multiword_numeric_token_is_a_size_hint_not_a_barcode_fragment(): void
+    {
+        // "Green 360" should resolve to a green size-360 balloon, NOT every green
+        // balloon whose UPC merely contains the digits "360".
+        $green = Color::factory()->create(['name' => 'Green']);
+
+        $bs360 = BalloonSize::factory()->create([
+            'brand_id' => $this->brand->id,
+            'size_id' => Size::factory()->create(['name' => '360'])->id,
+            'shape_id' => Shape::factory()->create(['name' => 'Non-round'])->id,
+        ]);
+        $bs11 = BalloonSize::factory()->create([
+            'brand_id' => $this->brand->id,
+            'size_id' => Size::factory()->create(['name' => '11-inch'])->id,
+            'shape_id' => Shape::factory()->create(['name' => 'Round'])->id,
+        ]);
+
+        Sku::factory()->create([
+            'name' => 'Green Modeling',
+            'brand_id' => $this->brand->id,
+            'color_id' => $green->id,
+            'balloon_size_id' => $bs360->id,
+        ]);
+        // Decoy: green, but round 11-inch whose UPC happens to contain "360".
+        Sku::factory()->create([
+            'name' => 'Green Round',
+            'brand_id' => $this->brand->id,
+            'color_id' => $green->id,
+            'balloon_size_id' => $bs11->id,
+            'upc' => '012360678905',
+        ]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus', ['search' => 'Green 360']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Green Modeling')->etc())
             );
     }
 

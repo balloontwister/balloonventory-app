@@ -259,21 +259,29 @@ class Sku extends Model
             return $query;
         }
 
-        foreach (preg_split('/\s+/', $term) as $word) {
-            if ($word === '') {
-                continue;
-            }
+        $words = array_values(array_filter(
+            preg_split('/\s+/', $term),
+            fn (string $w): bool => $w !== '',
+        ));
 
+        $isSingleToken = count($words) === 1;
+
+        foreach ($words as $word) {
             $like = '%'.$word.'%';
 
-            $query->where(function (Builder $q) use ($like): void {
+            // A short, purely-numeric token inside a multi-word query (e.g. the
+            // "360" in "Green 360") is a size/attribute hint, NOT a barcode
+            // fragment. Matching it against UPC/EAN/SKU substrings pulls in
+            // unrelated items whose identifiers merely contain those digits,
+            // which makes the token stop filtering. Single-token searches still
+            // match identifiers so partial-barcode / SKU lookup keeps working.
+            $matchIdentifiers = $isSingleToken
+                || ! ctype_digit($word)
+                || strlen($word) >= 6;
+
+            $query->where(function (Builder $q) use ($like, $matchIdentifiers): void {
                 $q->where('skus.name', 'like', $like)
                     ->orWhere('skus.computed_name', 'like', $like)
-                    ->orWhere('skus.warehouse_sku', 'like', $like)
-                    ->orWhere('skus.mfg_no', 'like', $like)
-                    ->orWhere('skus.asin', 'like', $like)
-                    ->orWhere('skus.upc', 'like', $like)
-                    ->orWhere('skus.ean', 'like', $like)
                     ->orWhereHas('color', fn (Builder $c) => $c->where('name', 'like', $like))
                     ->orWhereHas('color.texture', fn (Builder $t) => $t->where('name', 'like', $like))
                     ->orWhereHas('brand', fn (Builder $b) => $b
@@ -281,6 +289,14 @@ class Sku extends Model
                         ->orWhere('abbreviation', 'like', $like))
                     ->orWhereHas('balloonSize.size', fn (Builder $s) => $s->where('name', 'like', $like))
                     ->orWhereHas('balloonSize.shape', fn (Builder $s) => $s->where('name', 'like', $like));
+
+                if ($matchIdentifiers) {
+                    $q->orWhere('skus.warehouse_sku', 'like', $like)
+                        ->orWhere('skus.mfg_no', 'like', $like)
+                        ->orWhere('skus.asin', 'like', $like)
+                        ->orWhere('skus.upc', 'like', $like)
+                        ->orWhere('skus.ean', 'like', $like);
+                }
             });
         }
 

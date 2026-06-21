@@ -88,4 +88,12 @@ return [
         'completed' => '¡Tu tienda está lista! Bienvenido a bordo.',
         'samples_cleared' => 'Se eliminaron :count productos de muestra.',
     ],
+
+    'lists' => [
+        'created' => 'Lista ":list" creada.',
+        'updated' => 'Lista ":list" actualizada.',
+        'deleted' => 'Lista ":list" eliminada.',
+        'item_added' => 'Agregado a ":list".',
+        'item_removed' => 'Artículo eliminado de la lista.',
+    ],
 ];

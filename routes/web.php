@@ -107,6 +107,8 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::post('/inventory/locations', [LocationController::class, 'store'])->name('inventory.locations.store');
     Route::patch('/inventory/locations/{location}', [LocationController::class, 'update'])->name('inventory.locations.update');
     Route::delete('/inventory/locations/{location}', [LocationController::class, 'destroy'])->name('inventory.locations.destroy');
+    // The "By List" tab on the Inventory page.
+    Route::get('/inventory/lists', [ListsController::class, 'inventoryView'])->name('inventory.lists.index');
     Route::get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
     Route::post('/scan/lookup', [ScanController::class, 'lookup'])->name('scan.lookup');
@@ -125,9 +127,17 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
     Route::post('/settings/businesses/logo', [SettingsController::class, 'updateBusinessLogo'])->name('settings.businesses.logo.update');
 
+    // ── Lists & Jobs hub ──────────────────────────────────────────────────────
+    Route::get('/lists', [ListsController::class, 'index'])->name('lists.index');
+    Route::post('/lists', [ListsController::class, 'store'])->name('lists.store');
     Route::get('/lists/create', [ListsController::class, 'create'])->name('lists.create');
     Route::get('/lists/{list}', [ListsController::class, 'show'])->name('lists.show');
     Route::get('/lists/{list}/edit', [ListsController::class, 'edit'])->name('lists.edit');
+    Route::patch('/lists/{list}', [ListsController::class, 'update'])->name('lists.update');
+    Route::delete('/lists/{list}', [ListsController::class, 'destroy'])->name('lists.destroy');
+    Route::post('/lists/{list}/items', [ListsController::class, 'itemsStore'])->name('lists.items.store');
+    Route::patch('/lists/{list}/items/{item}', [ListsController::class, 'itemsUpdate'])->name('lists.items.update');
+    Route::delete('/lists/{list}/items/{item}', [ListsController::class, 'itemsDestroy'])->name('lists.items.destroy');
 });
 
 // ─── SuperAdmin ───────────────────────────────────────────────────────────────

@@ -88,4 +88,12 @@ return [
         'completed' => 'Your shop is set up! Welcome aboard.',
         'samples_cleared' => 'Removed :count sample products.',
     ],
+
+    'lists' => [
+        'created' => 'List ":list" created.',
+        'updated' => 'List ":list" updated.',
+        'deleted' => 'List ":list" deleted.',
+        'item_added' => 'Added to ":list".',
+        'item_removed' => 'Item removed from the list.',
+    ],
 ];

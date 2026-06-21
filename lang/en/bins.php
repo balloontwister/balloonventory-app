@@ -7,6 +7,7 @@ return [
     'tabs' => [
         'by_item' => 'By item',
         'by_bin' => 'By bin',
+        'by_list' => 'By list',
     ],
 
     'add_location' => 'Add location',

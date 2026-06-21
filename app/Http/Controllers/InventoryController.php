@@ -279,13 +279,15 @@ class InventoryController extends Controller
             $reorderQuantity = $favItem?->planned_quantity;
         }
 
-        // Custom (non-Favorites) lists this SKU appears on, for this business.
-        // The BalloonList global scope keeps the whereHas tenant-scoped; the
-        // Favorites membership is already conveyed by the star in the header.
+        // Every list this SKU appears on, for this business — Favorites first.
+        // Favorites gets a chip too (membership), distinct from the header star
+        // (which toggles membership). The BalloonList global scope keeps the
+        // whereHas tenant-scoped.
         $onLists = ListItem::where('sku_id', $sku->id)
-            ->whereHas('list', fn ($q) => $q->where('is_business_favorites', false))
-            ->with('list:id,name')
+            ->whereHas('list')
+            ->with('list:id,name,is_business_favorites')
             ->get()
+            ->sortByDesc(fn (ListItem $item) => $item->list->is_business_favorites)
             ->map(fn (ListItem $item) => ['id' => $item->list->id, 'name' => $item->list->name])
             ->values();
 

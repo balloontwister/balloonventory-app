@@ -311,7 +311,7 @@ class InventoryControllerTest extends TestCase
             );
     }
 
-    public function test_show_includes_custom_lists_but_not_favorites(): void
+    public function test_show_includes_all_lists_with_favorites_first(): void
     {
         $sku = Sku::factory()->create();
         StockLevel::withoutGlobalScope(BusinessScope::class)->create([
@@ -338,8 +338,9 @@ class InventoryControllerTest extends TestCase
             ->get(route('inventory.sku.show', $sku))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('onLists', 1)
-                ->where('onLists.0.name', 'Smith Wedding')
+                ->has('onLists', 2)
+                ->where('onLists.0.name', 'Favorites')
+                ->where('onLists.1.name', 'Smith Wedding')
                 ->where('isFavorite', true)
             );
     }

@@ -115,6 +115,9 @@ return [
         'reorder_label' => 'Cantidad de reorden (Favoritos)',
         'reorder_hint' => 'Se establece en tu lista de Favoritos. Edítalo allí.',
         'on_lists_label' => 'En listas',
+        'not_in_inventory_title' => 'Aún no está en tu inventario',
+        'not_in_inventory_hint' => 'Este artículo está en una lista pero aún no lo tienes en stock. Agrégalo para empezar a registrar existencias.',
+        'add_to_inventory' => 'Agregar al inventario',
 
         'history_direction_in' => 'Entrada',
         'history_direction_out' => 'Salida',

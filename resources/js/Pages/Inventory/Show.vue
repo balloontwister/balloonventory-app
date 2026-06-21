@@ -23,8 +23,28 @@ const props = defineProps({
     isFavorite: { type: Boolean, default: false },
     reorderQuantity: { type: [Number, String], default: null },
     onLists: { type: Array, default: () => [] },
+    inInventory: { type: Boolean, default: true },
     returnQuery: { type: String, default: '' },
 });
+
+// For SKUs viewed from a list that aren't stocked yet — add to inventory
+// (creates a Default-bin stock row), then the normal stock UI takes over.
+const addingToInventory = ref(false);
+
+function addToInventory() {
+    if (addingToInventory.value) return;
+    addingToInventory.value = true;
+    router.post(
+        route('inventory.sku.store'),
+        { sku_id: props.sku.id },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                addingToInventory.value = false;
+            },
+        },
+    );
+}
 
 // Back link restores the list's filters (returnQuery) and scrolls to the row
 // that was opened (#sku-<id>), mirroring the master catalog.
@@ -595,7 +615,11 @@ function formatDate(value) {
                                 />
                             </div>
                             <AppButton
-                                v-if="availableBins.length > 0 && !addingBin"
+                                v-if="
+                                    inInventory &&
+                                    availableBins.length > 0 &&
+                                    !addingBin
+                                "
                                 variant="ghost"
                                 size="sm"
                                 @click="addingBin = true"
@@ -644,8 +668,33 @@ function formatDate(value) {
                             </AppButton>
                         </div>
 
+                        <!-- Not in inventory yet -->
+                        <div
+                            v-if="!inInventory"
+                            class="flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-center"
+                        >
+                            <p
+                                class="font-sans text-[14px] font-semibold text-ink-primary"
+                            >
+                                {{ $t('inventory.show.not_in_inventory_title') }}
+                            </p>
+                            <p
+                                class="max-w-sm font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{ $t('inventory.show.not_in_inventory_hint') }}
+                            </p>
+                            <AppButton
+                                variant="primary"
+                                size="sm"
+                                :disabled="addingToInventory"
+                                @click="addToInventory"
+                            >
+                                {{ $t('inventory.show.add_to_inventory') }}
+                            </AppButton>
+                        </div>
+
                         <!-- Per-bin rows -->
-                        <div class="space-y-2">
+                        <div v-else class="space-y-2">
                             <div
                                 v-for="row in rows"
                                 :key="row.bin_id"

@@ -184,6 +184,39 @@ class CatalogIndexFilterTest extends TestCase
             );
     }
 
+    public function test_search_matches_a_partial_barcode(): void
+    {
+        // Admin catalog search now shares Sku::scopeMatchesSearch, so a UPC
+        // fragment resolves the product just like the Scan / Inventory search.
+        Sku::factory()->create(['name' => 'Fashion White R-5', 'brand_id' => $this->brand->id, 'upc' => '030625510028']);
+        Sku::factory()->create(['name' => 'Some Other SKU', 'brand_id' => $this->brand->id, 'upc' => '012345678905']);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus', ['search' => '51002']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'Fashion White R-5')->etc())
+            );
+    }
+
+    public function test_search_matches_brand_and_color_via_shared_scope(): void
+    {
+        // A multi-word query whose words live in different columns (brand + color)
+        // resolves — behavior the old single-LIKE admin search couldn't do.
+        $brand = Brand::factory()->create(['name' => 'Sempertex']);
+        $color = Color::factory()->create(['name' => 'Fashion White']);
+
+        Sku::factory()->create(['name' => 'R-5', 'brand_id' => $brand->id, 'color_id' => $color->id]);
+        Sku::factory()->create(['name' => 'Unrelated', 'brand_id' => $this->brand->id]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus', ['search' => 'Sempertex White']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('skus.data', 1, fn ($sku) => $sku->where('name', 'R-5')->etc())
+            );
+    }
+
     public function test_no_filters_returns_all_shared_skus(): void
     {
         Sku::factory()->create(['brand_id' => $this->brand->id]);

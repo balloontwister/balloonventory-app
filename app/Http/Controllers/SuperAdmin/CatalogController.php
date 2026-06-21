@@ -106,13 +106,9 @@ class CatalogController extends Controller
         }
 
         if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(function ($q) use ($term) {
-                $q->where('name', 'like', "%{$term}%")
-                    ->orWhere('computed_name', 'like', "%{$term}%")
-                    ->orWhere('warehouse_sku', 'like', "%{$term}%")
-                    ->orWhere('upc', 'like', "%{$term}%");
-            });
+            // Single source of truth for catalog search — same fields and
+            // word-splitting as the Scan fallback and Inventory search.
+            $query->matchesSearch($request->search);
         }
 
         $skus = $query->orderBy('name')->paginate(100)->withQueryString();

@@ -24,6 +24,18 @@ use Inertia\Response;
 
 class ScanController extends Controller
 {
+    /** Match tag for the typed-text fallback (vs. the barcode match tiers). */
+    private const MATCH_TEXT = 'text';
+
+    /** Shortest typed query that triggers the text-search fallback. */
+    private const MIN_TEXT_SEARCH_LENGTH = 2;
+
+    /** Most text-fallback matches to return. */
+    private const TEXT_SEARCH_LIMIT = 8;
+
+    /** Min all-digit length for an input to be treated as a barcode, not text. */
+    private const MIN_BARCODE_DIGITS = 8;
+
     public function __construct(
         private readonly BarcodeMatcher $barcodeMatcher,
         private readonly BinResolver $binResolver,
@@ -96,15 +108,91 @@ class ScanController extends Controller
         ];
 
         if ($result['candidates'] === []) {
+            // Nothing matched as a barcode. Fall back to a free-text search so a
+            // typed SKU, warehouse number, mfg #, ASIN, or name resolves to the
+            // product directly instead of dead-ending. The search runs only on
+            // this miss path, never on a successful scan. Most warehouse SKUs are
+            // 8-digit all-numeric strings, so a digit-length heuristic can't
+            // distinguish them from a barcode — let the catalog decide.
+            $textMatches = $this->textSearchCandidates($raw, $businessId);
+
+            if ($textMatches !== []) {
+                return response()->json($meta + [
+                    'found' => false,
+                    'auto_apply' => false,
+                    'barcode_detected' => false,
+                    'text_matches' => $textMatches,
+                ]);
+            }
+
+            // No product matched the text either. If the input still looks like a
+            // real (just-unrecognized) barcode, offer the link-a-barcode flow;
+            // otherwise it's a typed query that simply found nothing.
             return response()->json($meta + [
                 'found' => false,
                 'auto_apply' => false,
+                'barcode_detected' => $this->looksLikeBarcode($raw),
             ]);
         }
 
-        // Batch-load relations + stock levels for every candidate so the
-        // confirm-match UI can render any of them without a second request.
-        $candidateIds = array_map(static fn (array $c) => $c['sku']->id, $result['candidates']);
+        $candidates = $this->loadCandidates($result['candidates']);
+
+        $top = $candidates[0];
+        $autoApply = count($candidates) === 1 && $top['score'] >= 100;
+
+        return response()->json($meta + [
+            'found' => true,
+            'auto_apply' => $autoApply,
+            'match_type' => $top['match'],
+            'sku' => $top['sku'],
+            'candidates' => $candidates,
+        ]);
+    }
+
+    /**
+     * Free-text fallback for a scan that wasn't a barcode. Searches the visible
+     * catalog by name / warehouse SKU / mfg # / ASIN (see Sku::scopeMatchesSearch)
+     * and returns the top matches shaped exactly like the barcode candidates, so
+     * the frontend renders them through the same confirm-and-record UI.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function textSearchCandidates(string $term, ?string $businessId): array
+    {
+        $term = trim($term);
+
+        if (mb_strlen($term) < self::MIN_TEXT_SEARCH_LENGTH) {
+            return [];
+        }
+
+        $skus = Sku::visibleTo($businessId)
+            ->matchesSearch($term)
+            ->orderBy('skus.name')
+            ->limit(self::TEXT_SEARCH_LIMIT)
+            ->get(['id']);
+
+        $matches = $skus
+            ->map(fn (Sku $sku) => ['sku' => $sku, 'match' => self::MATCH_TEXT, 'score' => 0])
+            ->all();
+
+        return $this->loadCandidates($matches);
+    }
+
+    /**
+     * Batch-load relations + stock levels for a set of matcher hits and shape
+     * them into the candidate arrays the confirm-match UI renders, without an
+     * N+1 across candidates. Shared by the barcode path and the text fallback.
+     *
+     * @param  array<int, array{sku: Sku, match: string, score: int}>  $matches
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadCandidates(array $matches): array
+    {
+        if ($matches === []) {
+            return [];
+        }
+
+        $candidateIds = array_map(static fn (array $c) => $c['sku']->id, $matches);
 
         $skus = Sku::with([
             'brand:id,name,abbreviation',
@@ -123,7 +211,7 @@ class ScanController extends Controller
             ->get()
             ->groupBy('sku_id');
 
-        $candidates = array_map(function (array $c) use ($skus, $stockBySkuId) {
+        return array_map(function (array $c) use ($skus, $stockBySkuId) {
             $sku = $skus[$c['sku']->id];
 
             return [
@@ -131,18 +219,23 @@ class ScanController extends Controller
                 'score' => $c['score'],
                 'sku' => $this->serializeSku($sku, $stockBySkuId->get($sku->id, collect())),
             ];
-        }, $result['candidates']);
+        }, $matches);
+    }
 
-        $top = $candidates[0];
-        $autoApply = count($candidates) === 1 && $top['score'] >= 100;
+    /**
+     * Whether an input that matched neither a barcode nor any product still
+     * looks like a real (just-unrecognized) barcode — the bare numeric payload a
+     * scanner or camera emits (separators a person might type are tolerated).
+     * Used only to choose between the "link a barcode" flow and a plain
+     * "nothing matched" result; it does NOT gate the text search above.
+     */
+    private function looksLikeBarcode(string $raw): bool
+    {
+        $cleaned = (string) preg_replace('/[\s\-]+/', '', $raw);
 
-        return response()->json($meta + [
-            'found' => true,
-            'auto_apply' => $autoApply,
-            'match_type' => $top['match'],
-            'sku' => $top['sku'],
-            'candidates' => $candidates,
-        ]);
+        return $cleaned !== ''
+            && ctype_digit($cleaned)
+            && strlen($cleaned) >= self::MIN_BARCODE_DIGITS;
     }
 
     /**

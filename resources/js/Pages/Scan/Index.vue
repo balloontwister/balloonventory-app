@@ -177,6 +177,20 @@ async function processScan(upc) {
 
         if (!lookup.data.found) {
             scanStatus.value = null;
+
+            // The input wasn't a barcode at all — a typed SKU, warehouse #,
+            // mfg #, ASIN, or name. Offer the text matches so the user can
+            // add/remove the product directly instead of dead-ending on
+            // "unknown barcode". Routed through the same confirm UI.
+            if (lookup.data.barcode_detected === false) {
+                pendingMatch.value = {
+                    upc,
+                    candidates: lookup.data.text_matches ?? [],
+                    reason: 'no_barcode',
+                };
+                return;
+            }
+
             unknownUpc.value = { upc };
             return;
         }
@@ -589,12 +603,29 @@ const contextHintKey = computed(() => {
                         <p
                             class="font-sans text-[14px] font-semibold text-ink-primary"
                         >
-                            {{ $t('scan.confirm_heading') }}
+                            {{
+                                pendingMatch.reason === 'no_barcode'
+                                    ? $t('scan.no_barcode_heading')
+                                    : $t('scan.confirm_heading')
+                            }}
                         </p>
                         <p
                             class="mt-0.5 font-sans text-[13px] text-ink-secondary"
                         >
-                            {{ $t('scan.confirm_body') }}
+                            <template
+                                v-if="pendingMatch.reason === 'no_barcode'"
+                            >
+                                {{
+                                    $t('scan.no_barcode_body', {
+                                        action: isAdding
+                                            ? $t('scan.action_add')
+                                            : $t('scan.action_remove'),
+                                    })
+                                }}
+                            </template>
+                            <template v-else>
+                                {{ $t('scan.confirm_body') }}
+                            </template>
                             <span class="font-mono">{{
                                 pendingMatch.upc
                             }}</span>
@@ -609,7 +640,16 @@ const contextHintKey = computed(() => {
                     </button>
                 </div>
 
+                <!-- Text fallback with no matches: explain, no empty list. -->
+                <p
+                    v-if="pendingMatch.candidates.length === 0"
+                    class="rounded-md border border-border bg-surface px-3 py-3 font-sans text-[13px] text-ink-secondary"
+                >
+                    {{ $t('scan.no_barcode_empty') }}
+                </p>
+
                 <ul
+                    v-else
                     class="divide-y divide-border rounded-md border border-border bg-surface"
                 >
                     <li

@@ -55,6 +55,13 @@ return [
     'confirm_select' => 'This one',
     'confirm_cancel' => 'Cancel',
 
+    // Barcode not detected — typed text fell back to a product search
+    'no_barcode_heading' => 'Barcode not detected',
+    'no_barcode_body' => 'Is this the product you\'re trying to :action? Top matches for',
+    'no_barcode_empty' => 'No products matched what you typed. Check the spelling, or scan or enter the barcode.',
+    'action_add' => 'add',
+    'action_remove' => 'remove',
+
     // Unknown UPC
     'unknown_upc' => 'Unknown barcode',
     'unknown_upc_body' => 'This barcode isn\'t linked to any SKU in your catalog.',

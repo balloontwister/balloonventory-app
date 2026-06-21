@@ -55,6 +55,13 @@ return [
     'confirm_select' => 'Este',
     'confirm_cancel' => 'Cancelar',
 
+    // Barcode not detected — typed text fell back to a product search
+    'no_barcode_heading' => 'Código de barras no detectado',
+    'no_barcode_body' => '¿Es este el producto que intentas :action? Mejores coincidencias para',
+    'no_barcode_empty' => 'Ningún producto coincide con lo que escribiste. Revisa la ortografía, o escanea o ingresa el código de barras.',
+    'action_add' => 'agregar',
+    'action_remove' => 'quitar',
+
     // Unknown UPC
     'unknown_upc' => 'Código desconocido',
     'unknown_upc_body' => 'Este código de barras no está vinculado a ningún SKU en tu catálogo.',

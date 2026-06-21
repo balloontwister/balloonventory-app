@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -308,6 +309,12 @@ class InventoryController extends Controller
             'reorderQuantity' => $reorderQuantity,
             'onLists' => $onLists,
             'inInventory' => $inInventory,
+            // Custom (non-Favorites) lists for the "Add to list" picker. Favorites
+            // is handled by the header star.
+            'lists' => BalloonList::where('is_business_favorites', false)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'canManageLists' => Gate::allows('list.create', Business::findOrFail(BusinessContext::currentId())),
             'returnQuery' => $request->query('return', ''),
         ]);
     }

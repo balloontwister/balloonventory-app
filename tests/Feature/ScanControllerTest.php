@@ -246,6 +246,90 @@ class ScanControllerTest extends TestCase
             ->assertUnprocessable();
     }
 
+    // ── text-search fallback (typed, non-barcode input) ──────────────────────────
+
+    public function test_lookup_falls_back_to_text_search_for_typed_name(): void
+    {
+        $response = $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'Test Balloon'])
+            ->assertOk()
+            ->assertJson([
+                'found' => false,
+                'barcode_detected' => false,
+            ]);
+
+        $this->assertSame($this->sku->id, $response->json('text_matches.0.sku.id'));
+        $this->assertSame('text', $response->json('text_matches.0.match'));
+    }
+
+    public function test_lookup_text_fallback_matches_warehouse_sku_mfg_and_asin(): void
+    {
+        $byWarehouse = Sku::factory()->create(['name' => 'Wh One', 'warehouse_sku' => 'WH-9001']);
+        $byMfg = Sku::factory()->create(['name' => 'Mfg One', 'mfg_no' => 'MF-7788']);
+        $byAsin = Sku::factory()->create(['name' => 'Asin One', 'asin' => 'B0ABCDXYZ9']);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'WH-9001'])
+            ->assertOk()
+            ->assertJsonPath('barcode_detected', false)
+            ->assertJsonPath('text_matches.0.sku.id', $byWarehouse->id);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'MF-7788'])
+            ->assertOk()
+            ->assertJsonPath('text_matches.0.sku.id', $byMfg->id);
+
+        // A partial ASIN exercises the text fallback; the full ASIN would be a
+        // confident asin_exact barcode match instead (found: true).
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'ABCDXYZ'])
+            ->assertOk()
+            ->assertJsonPath('barcode_detected', false)
+            ->assertJsonPath('text_matches.0.sku.id', $byAsin->id);
+    }
+
+    public function test_lookup_text_fallback_resolves_eight_digit_numeric_warehouse_sku(): void
+    {
+        // Most warehouse SKUs are 8-digit all-numeric strings. Typing one must
+        // surface the product, not dead-end on the "unknown barcode" link flow.
+        $sku = Sku::factory()->create(['name' => 'Numeric Wh', 'warehouse_sku' => '10543277']);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '10543277'])
+            ->assertOk()
+            ->assertJson([
+                'found' => false,
+                'barcode_detected' => false,
+            ])
+            ->assertJsonPath('text_matches.0.sku.id', $sku->id);
+    }
+
+    public function test_lookup_text_fallback_returns_empty_when_nothing_matches(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => 'zzz-no-such-product'])
+            ->assertOk()
+            ->assertJson([
+                'found' => false,
+                'barcode_detected' => false,
+            ])
+            ->assertJsonMissingPath('text_matches');
+    }
+
+    public function test_lookup_unknown_barcode_length_digits_keeps_link_flow(): void
+    {
+        // A real-but-unrecognized barcode must NOT trigger the text fallback —
+        // it stays on the "unknown barcode, link to a product" path.
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '999999999999'])
+            ->assertOk()
+            ->assertJson([
+                'found' => false,
+                'barcode_detected' => true,
+            ])
+            ->assertJsonMissingPath('text_matches');
+    }
+
     // ── check-in ─────────────────────────────────────────────────────────────────
 
     public function test_check_in_creates_stock_movement_and_updates_level(): void

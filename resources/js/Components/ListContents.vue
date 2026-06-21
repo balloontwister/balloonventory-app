@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import StockBadge from '@/Components/StockBadge.vue';
 
@@ -11,6 +11,67 @@ const props = defineProps({
 const items = computed(() => props.list.items ?? []);
 const isFavorites = computed(() => !!props.list.is_business_favorites);
 const canEdit = computed(() => !!props.list.can?.editItems);
+
+// ── Add items by search (reuses the shared scan.search-skus typeahead) ──────────
+const query = ref('');
+const results = ref([]);
+const searching = ref(false);
+const open = ref(false);
+const adding = ref(null); // sku_id currently being added
+let searchTimer = null;
+
+const existingSkuIds = computed(
+    () => new Set(items.value.map((item) => item.sku_id)),
+);
+
+watch(query, (q) => {
+    clearTimeout(searchTimer);
+    const term = (q ?? '').trim();
+    if (term.length < 2) {
+        results.value = [];
+        searching.value = false;
+        open.value = false;
+        return;
+    }
+    searching.value = true;
+    open.value = true;
+    searchTimer = setTimeout(async () => {
+        try {
+            const res = await window.axios.get(route('scan.search-skus'), {
+                params: { q: term },
+            });
+            results.value = res.data.skus ?? [];
+        } catch {
+            results.value = [];
+        } finally {
+            searching.value = false;
+        }
+    }, 300);
+});
+
+function addSku(sku) {
+    if (existingSkuIds.value.has(sku.id) || adding.value) {
+        return;
+    }
+    adding.value = sku.id;
+    router.post(
+        route('lists.items.store', { list: props.list.id }),
+        { sku_id: sku.id },
+        {
+            preserveScroll: true,
+            // Full reload so the new row appears; local state resets afterward.
+            onFinish: () => {
+                adding.value = null;
+            },
+        },
+    );
+}
+
+function closeSearch() {
+    open.value = false;
+}
+
+onBeforeUnmount(() => clearTimeout(searchTimer));
 
 // On the Favorites list, planned_quantity is the reorder threshold.
 const quantityLabelKey = computed(() =>
@@ -44,6 +105,90 @@ function removeItem(item) {
 
 <template>
     <div>
+        <!-- Add items by search -->
+        <div v-if="canEdit" class="border-b border-border p-3">
+            <div class="relative">
+                <input
+                    v-model="query"
+                    type="search"
+                    :placeholder="$t('lists.detail.add_placeholder')"
+                    class="w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    @focus="query.trim().length >= 2 && (open = true)"
+                />
+
+                <!-- Results dropdown -->
+                <div
+                    v-if="open"
+                    class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-md border border-border bg-surface shadow-pop"
+                >
+                    <p
+                        v-if="searching"
+                        class="px-3 py-2.5 font-sans text-[13px] text-ink-tertiary"
+                    >
+                        {{ $t('lists.detail.add_searching') }}
+                    </p>
+                    <p
+                        v-else-if="results.length === 0"
+                        class="px-3 py-2.5 font-sans text-[13px] text-ink-tertiary"
+                    >
+                        {{ $t('lists.detail.add_no_results') }}
+                    </p>
+                    <button
+                        v-for="sku in results"
+                        v-else
+                        :key="sku.id"
+                        type="button"
+                        :disabled="existingSkuIds.has(sku.id) || adding === sku.id"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-background disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
+                        @click="addSku(sku)"
+                    >
+                        <span
+                            v-if="sku.color?.color_hex"
+                            class="inline-block h-4 w-4 shrink-0 rounded-sm ring-1 ring-inset ring-black/10"
+                            :style="{ backgroundColor: sku.color.color_hex }"
+                        />
+                        <span class="min-w-0 flex-1">
+                            <span
+                                class="block truncate font-sans text-[14px] text-ink-primary"
+                                >{{ sku.name }}</span
+                            >
+                            <span
+                                class="block truncate font-mono text-[12px] text-ink-tertiary"
+                            >
+                                {{ sku.brand?.abbreviation
+                                }}<template v-if="sku.balloon_size?.name">
+                                    · {{ sku.balloon_size.name }}</template
+                                >
+                            </span>
+                        </span>
+                        <span
+                            v-if="existingSkuIds.has(sku.id)"
+                            class="shrink-0 font-sans text-[12px] font-medium text-ink-tertiary"
+                            >{{ $t('lists.detail.add_already') }}</span
+                        >
+                        <svg
+                            v-else
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            class="h-4 w-4 shrink-0 text-accent"
+                        >
+                            <path
+                                d="M8.75 3.75a.75.75 0 00-1.5 0v3.5h-3.5a.75.75 0 000 1.5h3.5v3.5a.75.75 0 001.5 0v-3.5h3.5a.75.75 0 000-1.5h-3.5v-3.5z"
+                            />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Click-away overlay -->
+                <div
+                    v-if="open"
+                    class="fixed inset-0 z-30"
+                    @click="closeSearch"
+                />
+            </div>
+        </div>
+
         <!-- Empty state -->
         <div
             v-if="items.length === 0"

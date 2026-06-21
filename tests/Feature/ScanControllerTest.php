@@ -304,6 +304,22 @@ class ScanControllerTest extends TestCase
             ->assertJsonPath('text_matches.0.sku.id', $sku->id);
     }
 
+    public function test_lookup_text_fallback_matches_partial_barcode(): void
+    {
+        // A fragment of a stored UPC/EAN — e.g. "51002" inside "030625510028" —
+        // must surface the product, matching the admin catalog search.
+        $sku = Sku::factory()->create(['name' => 'Fashion White R-5', 'upc' => '030625510028']);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('scan.lookup'), ['upc' => '51002'])
+            ->assertOk()
+            ->assertJson([
+                'found' => false,
+                'barcode_detected' => false,
+            ])
+            ->assertJsonPath('text_matches.0.sku.id', $sku->id);
+    }
+
     public function test_lookup_text_fallback_returns_empty_when_nothing_matches(): void
     {
         $this->actingAs($this->owner)

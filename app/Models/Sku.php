@@ -244,11 +244,12 @@ class Sku extends Model
 
     /**
      * Free-text search across the fields a person naturally types: the SKU name,
-     * computed name, warehouse SKU, manufacturer number, ASIN, and the related
-     * brand / size / shape / color / texture names. The term is split into words
-     * and EACH word must match at least one field (AND across words, OR across
-     * fields), so a query like "Kalisan Blue Link" — whose words live in
-     * different columns — still resolves.
+     * computed name, warehouse SKU, manufacturer number, ASIN, barcode (UPC/EAN),
+     * and the related brand / size / shape / color / texture names. The term is
+     * split into words and EACH word must match at least one field (AND across
+     * words, OR across fields), so a query like "Kalisan Blue Link" — whose words
+     * live in different columns — still resolves. A partial barcode like "51002"
+     * matches the stored UPC/EAN as a substring.
      */
     public function scopeMatchesSearch(Builder $query, ?string $term): Builder
     {
@@ -271,6 +272,8 @@ class Sku extends Model
                     ->orWhere('skus.warehouse_sku', 'like', $like)
                     ->orWhere('skus.mfg_no', 'like', $like)
                     ->orWhere('skus.asin', 'like', $like)
+                    ->orWhere('skus.upc', 'like', $like)
+                    ->orWhere('skus.ean', 'like', $like)
                     ->orWhereHas('color', fn (Builder $c) => $c->where('name', 'like', $like))
                     ->orWhereHas('color.texture', fn (Builder $t) => $t->where('name', 'like', $like))
                     ->orWhereHas('brand', fn (Builder $b) => $b

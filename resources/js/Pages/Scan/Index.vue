@@ -5,7 +5,7 @@ import ScanToast from '@/Components/ScanToast.vue';
 import CameraScanner from '@/Components/CameraScanner.vue';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import Modal from '@/Components/Modal.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { ref, computed, onBeforeUnmount, watch } from 'vue';
 
@@ -777,14 +777,18 @@ const contextHintKey = computed(() => {
 
                         <!-- Name + bin -->
                         <span class="flex min-w-0 flex-1 flex-col">
+                            <Link
+                                v-if="s.sku?.id"
+                                :href="route('inventory.sku.show', s.sku.id)"
+                                class="truncate font-sans text-[14px] text-ink-primary hover:underline"
+                            >
+                                {{ s.sku.computed_name ?? s.sku.name }}
+                            </Link>
                             <span
+                                v-else
                                 class="truncate font-sans text-[14px] text-ink-primary"
                             >
-                                {{
-                                    s.sku?.computed_name ??
-                                    s.sku?.name ??
-                                    $t('scan.unknown_sku')
-                                }}
+                                {{ $t('scan.unknown_sku') }}
                             </span>
                             <span
                                 v-if="s.bin"

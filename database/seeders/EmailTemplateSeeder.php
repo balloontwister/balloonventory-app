@@ -88,8 +88,11 @@ TEXT,
             ],
         ];
 
+        // firstOrCreate (not updateOrCreate): seed missing templates only, never
+        // overwrite an existing row. This keeps the seeder safe to re-run on
+        // production, where admins may have edited template copy via the UI.
         foreach ($templates as $data) {
-            EmailTemplate::updateOrCreate(
+            EmailTemplate::firstOrCreate(
                 ['key' => $data['key']],
                 $data,
             );

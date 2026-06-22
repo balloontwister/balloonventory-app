@@ -155,6 +155,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::post('/admin/users/{user}/freeze', [AdminUserController::class, 'freeze'])->name('admin.users.freeze');
     Route::delete('/admin/users/{user}/freeze', [AdminUserController::class, 'thaw'])->name('admin.users.thaw');
     Route::post('/admin/users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])->name('admin.users.password-reset');
+    Route::post('/admin/users/{user}/password', [AdminUserController::class, 'setPassword'])->name('admin.users.set-password');
     Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
 
     // ── Catalog ──────────────────────────────────────────────────────────────

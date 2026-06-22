@@ -2,7 +2,7 @@
 import Modal from '@/Components/Modal.vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { pushToast } from '@/Composables/useToast';
 
 const props = defineProps({
@@ -159,6 +159,18 @@ const pwForm = useForm({
     notify: false,
     logout_sessions: false,
 });
+
+// The "passwords don't match" error comes from the server's `confirmed` rule
+// and otherwise lingers until resubmit. Clear it as soon as the two fields
+// agree again so the red notice doesn't confuse the admin.
+watch(
+    [() => pwForm.password, () => pwForm.password_confirmation],
+    ([password, confirmation]) => {
+        if (pwForm.errors.password && password === confirmation) {
+            pwForm.clearErrors('password');
+        }
+    },
+);
 
 function openPasswordModal() {
     closeMenu();

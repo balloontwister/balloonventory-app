@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Enums\AdminLevel;
 use App\Http\Controllers\Controller;
+use App\Mail\TemplatedMailable;
 use App\Models\AdminUserMessage;
 use App\Models\Business;
 use App\Models\EmailLog;
@@ -17,8 +18,12 @@ use App\Support\Countries;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -323,6 +328,54 @@ class AdminUserController extends Controller
         }
 
         return back()->with('warning', __('flash.users.reset_failed'));
+    }
+
+    /**
+     * Directly set a password for a regular user account. Useful when the user
+     * has lost access to their email and cannot receive a reset link. The new
+     * password is communicated out-of-band by the admin. An optional notification
+     * email (never containing the password) can be sent to alert the user.
+     */
+    public function setPassword(Request $request, User $user): RedirectResponse
+    {
+        abort_if($user->id === $request->user()->id, 422, 'Use your profile to change your own password.');
+        abort_if($user->isAnyAdmin(), 422, 'You cannot set the password for an admin account.');
+
+        $request->validate([
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'notify' => ['boolean'],
+            'logout_sessions' => ['boolean'],
+        ]);
+
+        $user->forceFill([
+            'password' => Hash::make($request->string('password')),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        if ($request->boolean('logout_sessions')) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
+
+        if (! $request->boolean('notify')) {
+            return back()->with('success', __('flash.users.password_set', ['name' => $user->name]));
+        }
+
+        if (! $user->email) {
+            return back()->with('warning', __('flash.users.password_set_no_email', ['name' => $user->name]));
+        }
+
+        $mail = TemplatedMailable::forKey('password_changed_by_admin', [
+            'user_name' => $user->name,
+            'app_url' => config('app.url'),
+        ]);
+
+        if (! $mail) {
+            return back()->with('warning', __('flash.users.password_set_notify_unavailable', ['name' => $user->name]));
+        }
+
+        Mail::to($user->email)->send($mail);
+
+        return back()->with('success', __('flash.users.password_set_notified', ['name' => $user->name]));
     }
 
     /**

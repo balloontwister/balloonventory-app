@@ -55,6 +55,10 @@ return [
         'reset_failed' => 'Could not send a reset link to that address.',
         'deleted' => ':name’s account has been deleted.',
         'frozen_notice' => 'Your account is limited right now. Contact support to restore full access.',
+        'password_set' => 'Password updated for :name.',
+        'password_set_notified' => 'Password updated for :name and a notification email was sent.',
+        'password_set_no_email' => 'Password updated for :name, but no email address is on file — no notification was sent.',
+        'password_set_notify_unavailable' => 'Password updated for :name, but the notification email template is inactive — no notification was sent.',
     ],
 
     'email_template' => [

@@ -1,19 +1,14 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { pushToast } from '@/Composables/useToast';
+import UserActionMenu from '@/Components/UserActionMenu.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
     users: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
 });
-
-const page = usePage();
-const isSuperAdmin = page.props.auth?.isSuperAdmin ?? false;
-const selfId = page.props.auth?.user?.id ?? null;
 
 // ── Filters + search ──────────────────────────────────────────────────────────
 const search = ref(props.filters.search ?? '');
@@ -170,139 +165,6 @@ function numberFmt(n) {
     return new Intl.NumberFormat().format(n ?? 0);
 }
 
-// ── Per-row action menu (teleported so the table's overflow can't clip it) ─────
-const openMenuId = ref(null);
-const activeUser = ref(null);
-const menuStyle = ref({});
-
-function toggleMenu(user, event) {
-    if (openMenuId.value === user.id) {
-        closeMenu();
-        return;
-    }
-    const rect = event.currentTarget.getBoundingClientRect();
-    const width = 224;
-    let left = rect.right - width;
-    if (left < 8) left = 8;
-    menuStyle.value = {
-        top: `${rect.bottom + 4}px`,
-        left: `${left}px`,
-        width: `${width}px`,
-    };
-    activeUser.value = user;
-    openMenuId.value = user.id;
-}
-
-function closeMenu() {
-    openMenuId.value = null;
-    activeUser.value = null;
-}
-
-function onKey(e) {
-    if (e.key === 'Escape') closeMenu();
-}
-
-onMounted(() => {
-    document.addEventListener('keydown', onKey);
-    window.addEventListener('scroll', closeMenu, true);
-    window.addEventListener('resize', closeMenu);
-});
-onUnmounted(() => {
-    document.removeEventListener('keydown', onKey);
-    window.removeEventListener('scroll', closeMenu, true);
-    window.removeEventListener('resize', closeMenu);
-});
-
-// Which actions apply to the menu's active user.
-const menu = computed(() => {
-    const u = activeUser.value;
-    if (!u) return {};
-    const isSuper = u.admin_level === 'super_admin';
-    const isSite = u.admin_level === 'site_admin';
-    const isSelf = u.id === selfId;
-    const deleted = !!u.deleted_at;
-    const frozen = !!u.frozen_at;
-    return {
-        promote: isSuperAdmin && !u.admin_level && !deleted,
-        demote: isSuperAdmin && isSite,
-        freeze: !deleted && !isSuper && !isSelf && !frozen,
-        thaw: !deleted && frozen,
-        reset: !deleted,
-        copy: true,
-        delete: isSuperAdmin && !u.admin_level && !isSelf && !deleted,
-    };
-});
-
-// ── Actions ───────────────────────────────────────────────────────────────────
-function promote(user) {
-    closeMenu();
-    router.post(
-        route('admin.users.promote', user.id),
-        {},
-        { preserveScroll: true, preserveState: true },
-    );
-}
-
-function demote(user) {
-    closeMenu();
-    if (!window.confirm(trans('super_admin.users.demote_confirm', { name: user.name }))) {
-        return;
-    }
-    router.delete(route('admin.users.demote', user.id), {
-        preserveScroll: true,
-        preserveState: true,
-    });
-}
-
-function freeze(user) {
-    closeMenu();
-    if (!window.confirm(trans('super_admin.users.freeze_confirm', { name: user.name }))) {
-        return;
-    }
-    router.post(
-        route('admin.users.freeze', user.id),
-        {},
-        { preserveScroll: true, preserveState: true },
-    );
-}
-
-function thaw(user) {
-    closeMenu();
-    router.delete(route('admin.users.thaw', user.id), {
-        preserveScroll: true,
-        preserveState: true,
-    });
-}
-
-function sendReset(user) {
-    closeMenu();
-    router.post(
-        route('admin.users.password-reset', user.id),
-        {},
-        { preserveScroll: true, preserveState: true },
-    );
-}
-
-async function copyEmail(user) {
-    closeMenu();
-    try {
-        await navigator.clipboard.writeText(user.email);
-        pushToast(trans('super_admin.users.copy_email_done'), 'info');
-    } catch {
-        /* clipboard unavailable — no-op */
-    }
-}
-
-function destroyUser(user) {
-    closeMenu();
-    if (!window.confirm(trans('super_admin.users.delete_confirm', { name: user.name }))) {
-        return;
-    }
-    router.delete(route('admin.users.destroy', user.id), {
-        preserveScroll: true,
-        preserveState: true,
-    });
-}
 </script>
 
 <template>
@@ -598,23 +460,7 @@ function destroyUser(user) {
 
                                 <!-- Actions -->
                                 <td class="px-6 py-3 text-right">
-                                    <button
-                                        type="button"
-                                        class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border-strong text-ink-secondary transition hover:bg-background"
-                                        :aria-label="$t('super_admin.users.actions_menu')"
-                                        @click="toggleMenu(user, $event)"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            class="h-4 w-4"
-                                        >
-                                            <path
-                                                d="M10 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 5.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 5.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"
-                                            />
-                                        </svg>
-                                    </button>
+                                    <UserActionMenu :user="user" />
                                 </td>
                             </tr>
                         </tbody>
@@ -684,86 +530,5 @@ function destroyUser(user) {
             </div>
         </div>
 
-        <!-- Teleported action menu -->
-        <Teleport to="body">
-            <template v-if="openMenuId && activeUser">
-                <div class="fixed inset-0 z-40" @click="closeMenu" />
-                <div
-                    class="fixed z-50 overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg"
-                    :style="menuStyle"
-                >
-                    <Link
-                        :href="route('admin.users.show', activeUser.id)"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
-                        @click="closeMenu"
-                    >
-                        {{ $t('super_admin.users.view_details') }}
-                    </Link>
-                    <Link
-                        :href="route('admin.email-templates.index', { user: activeUser.id })"
-                        class="block w-full border-b border-border px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
-                        @click="closeMenu"
-                    >
-                        {{ $t('super_admin.users.email_user') }}
-                    </Link>
-                    <button
-                        v-if="menu.promote"
-                        type="button"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
-                        @click="promote(activeUser)"
-                    >
-                        {{ $t('super_admin.users.promote_button') }}
-                    </button>
-                    <button
-                        v-if="menu.demote"
-                        type="button"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
-                        @click="demote(activeUser)"
-                    >
-                        {{ $t('super_admin.users.demote_button') }}
-                    </button>
-                    <button
-                        v-if="menu.freeze"
-                        type="button"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
-                        @click="freeze(activeUser)"
-                    >
-                        {{ $t('super_admin.users.freeze_button') }}
-                    </button>
-                    <button
-                        v-if="menu.thaw"
-                        type="button"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
-                        @click="thaw(activeUser)"
-                    >
-                        {{ $t('super_admin.users.thaw_button') }}
-                    </button>
-                    <button
-                        v-if="menu.reset"
-                        type="button"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
-                        @click="sendReset(activeUser)"
-                    >
-                        {{ $t('super_admin.users.reset_button') }}
-                    </button>
-                    <button
-                        v-if="menu.copy"
-                        type="button"
-                        class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
-                        @click="copyEmail(activeUser)"
-                    >
-                        {{ $t('super_admin.users.copy_email') }}
-                    </button>
-                    <button
-                        v-if="menu.delete"
-                        type="button"
-                        class="block w-full border-t border-border px-4 py-2 text-left font-sans text-[13px] text-danger transition hover:bg-danger-soft"
-                        @click="destroyUser(activeUser)"
-                    >
-                        {{ $t('super_admin.users.delete_button') }}
-                    </button>
-                </div>
-            </template>
-        </Teleport>
     </AuthenticatedLayout>
 </template>

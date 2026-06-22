@@ -55,6 +55,10 @@ return [
         'reset_failed' => 'No se pudo enviar el enlace de restablecimiento a esa dirección.',
         'deleted' => 'La cuenta de :name ha sido eliminada.',
         'frozen_notice' => 'Tu cuenta está limitada por ahora. Comunícate con soporte para restaurar el acceso completo.',
+        'password_set' => 'Contraseña actualizada para :name.',
+        'password_set_notified' => 'Contraseña actualizada para :name y se envió un correo de notificación.',
+        'password_set_no_email' => 'Contraseña actualizada para :name, pero no hay correo registrado — no se envió notificación.',
+        'password_set_notify_unavailable' => 'Contraseña actualizada para :name, pero la plantilla de correo de notificación está inactiva — no se envió notificación.',
     ],
 
     'email_template' => [

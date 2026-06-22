@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
+import UserActionMenu from '@/Components/UserActionMenu.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { reactive } from 'vue';
@@ -165,6 +166,7 @@ function toggleBody(id) {
                         >
                             {{ $t('super_admin.users.level_site_admin') }}
                         </span>
+                        <UserActionMenu :user="user" :show-view-details="false" />
                     </div>
                 </div>
 

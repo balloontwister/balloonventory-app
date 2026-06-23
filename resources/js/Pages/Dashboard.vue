@@ -1,7 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import InvitationNotice from '@/Components/Dashboard/InvitationNotice.vue';
 import KpiRow from '@/Components/Dashboard/KpiRow.vue';
 import LowStockCard from '@/Components/Dashboard/LowStockCard.vue';
+import MembershipStatusNotice from '@/Components/Dashboard/MembershipStatusNotice.vue';
 import QuickActionsCard from '@/Components/Dashboard/QuickActionsCard.vue';
 import RecentActivityCard from '@/Components/Dashboard/RecentActivityCard.vue';
 import SetupNudges from '@/Components/Dashboard/SetupNudges.vue';
@@ -13,6 +15,8 @@ const props = defineProps({
     lowStock: { type: Array, required: true },
     recentActivity: { type: Array, required: true },
     nudges: { type: Object, required: true },
+    pendingInvitations: { type: Array, default: () => [] },
+    membershipNotices: { type: Array, default: () => [] },
     can: { type: Object, required: true },
 });
 
@@ -46,6 +50,20 @@ const hasInventory = computed(() => props.kpis.distinctSkus > 0);
             <h1 class="font-display text-2xl font-semibold text-ink-primary">
                 {{ $t(greeting.key, { name: greeting.name }) }}
             </h1>
+
+            <!-- Pending invitations (top priority) -->
+            <div v-if="pendingInvitations.length || membershipNotices.length" class="flex flex-col gap-3">
+                <InvitationNotice
+                    v-for="invitation in pendingInvitations"
+                    :key="invitation.token"
+                    :invitation="invitation"
+                />
+                <MembershipStatusNotice
+                    v-for="notice in membershipNotices"
+                    :key="notice.invitation_id"
+                    :notice="notice"
+                />
+            </div>
 
             <!-- Setup nudges -->
             <SetupNudges :nudges="nudges" :can="can" />

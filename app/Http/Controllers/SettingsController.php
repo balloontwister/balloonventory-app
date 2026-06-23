@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateBusinessRequest;
 use App\Models\Business;
+use App\Models\BusinessInvitation;
+use App\Models\Membership;
+use App\Scopes\BusinessScope;
 use App\Services\ImageAttachmentService;
 use App\Support\BusinessContext;
 use App\Support\Countries;
@@ -43,9 +46,49 @@ class SettingsController extends Controller
         return back()->with('success', __('flash.settings.preferences_updated'));
     }
 
-    public function businesses(): Response
+    public function businesses(Request $request): Response
     {
         $business = Business::findOrFail(BusinessContext::currentId());
+        $canManageMembers = Gate::allows('business.edit_settings', $business);
+
+        $members = [];
+        $pendingInvitations = [];
+
+        if ($canManageMembers) {
+            $members = Membership::withoutGlobalScope(BusinessScope::class)
+                ->with('user:id,name,email')
+                ->where('business_id', $business->id)
+                ->whereNull('deleted_at')
+                ->get()
+                ->map(fn (Membership $m) => [
+                    'id' => $m->id,
+                    'user_id' => $m->user_id,
+                    'name' => $m->user->name,
+                    'email' => $m->user->email,
+                    'role' => $m->role,
+                    'is_self' => $m->user_id === $request->user()->id,
+                ])
+                ->values()
+                ->all();
+
+            $pendingInvitations = BusinessInvitation::withoutGlobalScope(BusinessScope::class)
+                ->with('inviter:id,name')
+                ->where('business_id', $business->id)
+                ->where('status', BusinessInvitation::STATUS_PENDING)
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                })
+                ->get()
+                ->map(fn (BusinessInvitation $inv) => [
+                    'id' => $inv->id,
+                    'invited_email' => $inv->invited_email,
+                    'role' => $inv->role,
+                    'inviter_name' => $inv->inviter->name,
+                    'expires_at' => $inv->expires_at?->toISOString(),
+                ])
+                ->values()
+                ->all();
+        }
 
         return Inertia::render('Settings/Businesses', [
             'business' => [
@@ -65,6 +108,13 @@ class SettingsController extends Controller
                 'contact_email' => $business->contact_email,
             ],
             'countries' => Countries::all(),
+            'members' => $members,
+            'pendingInvitations' => $pendingInvitations,
+            'can' => [
+                'manageMembers' => $canManageMembers,
+                'invite' => Gate::allows('membership.invite', [$business, 'staff']),
+                'inviteOwner' => Gate::allows('membership.invite', [$business, 'owner']),
+            ],
         ]);
     }
 

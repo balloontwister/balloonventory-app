@@ -7,11 +7,15 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 const props = defineProps({
     business: { type: Object, required: true },
     countries: { type: Object, default: () => ({}) },
+    members: { type: Array, default: () => [] },
+    pendingInvitations: { type: Array, default: () => [] },
+    can: { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
@@ -21,6 +25,39 @@ const canEditSettings = computed(() =>
 const canManageLogo = computed(() =>
     page.props.permissions?.includes('business.manage_logo'),
 );
+
+const inviteForm = useForm({ email: '', role: 'staff' });
+const submitInvite = () =>
+    inviteForm.post(route('memberships.invite'), {
+        preserveScroll: true,
+        onSuccess: () => inviteForm.reset(),
+    });
+
+function roleOptions(includeOwner) {
+    const base = [
+        { value: 'staff', label: 'Artist' },
+        { value: 'guest', label: 'Guest Artist' },
+    ];
+    if (includeOwner) {
+        base.unshift({ value: 'owner', label: 'Owner' });
+    }
+    return base;
+}
+
+function handleRoleChange(membershipId, role) {
+    if (role === 'none') {
+        if (!confirm(trans('settings.team.confirm_remove'))) { return; }
+        useForm({}).delete(route('memberships.destroy', membershipId), { preserveScroll: true });
+    } else {
+        useForm({ role }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
+    }
+}
+
+function revokeInvite(invitationId) {
+    useForm({}).delete(route('memberships.invitations.revoke', invitationId), {
+        preserveScroll: true,
+    });
+}
 
 const form = useForm({
     name: props.business.name,
@@ -405,22 +442,127 @@ const submitLogo = () =>
             </div>
 
             <!-- ── Team members ──────────────────────────────────────────── -->
-            <!--
-                TODO: Invite team members — requires membership invite flow (Phase 2)
+            <div
+                v-if="can.manageMembers"
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('settings.team.heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('settings.team.subheading') }}
+                </p>
 
-                This section will show:
-                - A list of current members with their roles
-                - "Invite Artist" button — visible to owner + manager (membership.invite_staff permission)
-                - "Invite Guest" button — visible to owner + manager (membership.invite_guest permission)
-
-                Both invite flows send an email with a sign-up link pre-linked to this business.
-
-                <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
-                    <h2>Team members</h2>
-                    <button v-if="can('membership.invite_staff')">Invite Artist</button>
-                    <button v-if="can('membership.invite_guest')">Invite Guest</button>
+                <!-- Current members -->
+                <div v-if="members.length" class="mt-5 divide-y divide-border">
+                    <div
+                        v-for="member in members"
+                        :key="member.id"
+                        class="flex items-center gap-3 py-3"
+                    >
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-sans text-[14px] font-medium text-ink-primary">
+                                {{ member.name }}
+                                <span v-if="member.is_self" class="ml-1 font-sans text-[12px] text-ink-tertiary">({{ $t('settings.team.you') }})</span>
+                            </p>
+                            <p class="truncate font-sans text-[12px] text-ink-tertiary">
+                                {{ member.email }}
+                            </p>
+                        </div>
+                        <select
+                            :value="member.role"
+                            :disabled="member.is_self"
+                            class="rounded-md border border-border bg-background px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none disabled:opacity-50"
+                            @change="(e) => handleRoleChange(member.id, e.target.value)"
+                        >
+                            <option
+                                v-for="opt in roleOptions(can.inviteOwner)"
+                                :key="opt.value"
+                                :value="opt.value"
+                            >
+                                {{ opt.label }}
+                            </option>
+                            <option value="none">{{ $t('settings.team.remove') }}</option>
+                        </select>
+                    </div>
                 </div>
-            -->
+
+                <!-- Pending invitations -->
+                <div v-if="pendingInvitations.length" class="mt-4">
+                    <p class="font-sans text-[12px] font-semibold uppercase tracking-widest text-ink-tertiary">
+                        {{ $t('settings.team.pending_heading') }}
+                    </p>
+                    <div class="mt-2 divide-y divide-border">
+                        <div
+                            v-for="inv in pendingInvitations"
+                            :key="inv.id"
+                            class="flex items-center gap-3 py-2.5"
+                        >
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate font-sans text-[13px] text-ink-primary">
+                                    {{ inv.invited_email }}
+                                </p>
+                                <p class="font-sans text-[12px] text-ink-tertiary">
+                                    {{ $t('settings.team.pending_role', { role: roleOptions(true).find(r => r.value === inv.role)?.label ?? inv.role }) }}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="flex-shrink-0 font-sans text-[13px] text-ink-tertiary hover:text-danger"
+                                @click="revokeInvite(inv.id)"
+                            >
+                                {{ $t('settings.team.revoke') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invite form -->
+                <div v-if="can.invite" class="mt-5 border-t border-border pt-5">
+                    <p class="font-display text-[14px] font-semibold text-ink-primary">
+                        {{ $t('settings.team.invite_heading') }}
+                    </p>
+                    <form class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="submitInvite">
+                        <div class="flex-1">
+                            <InputLabel for="invite_email" :value="$t('settings.team.invite_email')" />
+                            <TextInput
+                                id="invite_email"
+                                v-model="inviteForm.email"
+                                type="email"
+                                class="mt-1 block w-full"
+                                :placeholder="$t('settings.team.invite_email_placeholder')"
+                                required
+                            />
+                            <InputError class="mt-1" :message="inviteForm.errors.email" />
+                        </div>
+                        <div>
+                            <InputLabel for="invite_role" :value="$t('settings.team.invite_role')" />
+                            <select
+                                id="invite_role"
+                                v-model="inviteForm.role"
+                                class="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none"
+                            >
+                                <option
+                                    v-for="opt in roleOptions(can.inviteOwner)"
+                                    :key="opt.value"
+                                    :value="opt.value"
+                                >
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                        </div>
+                        <button
+                            type="submit"
+                            :disabled="inviteForm.processing"
+                            class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                        >
+                            {{ $t('settings.team.invite_submit') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
 
             <!-- ── Subscription ──────────────────────────────────────────── -->
             <div

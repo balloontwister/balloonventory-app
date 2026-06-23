@@ -71,4 +71,16 @@ return [
         'add' => 'Ver Inventario',
         'scan' => 'Escanear una Bolsa',
     ],
+
+    'invitations' => [
+        'notice' => ':inviter te invitó a unirte a :business como :role.',
+        'accept' => 'Aceptar',
+        'decline' => 'Rechazar',
+    ],
+
+    'membership_status' => [
+        'notice' => 'Ahora eres :role en :business.',
+        'switch' => 'Cambiar a :business',
+        'dismiss' => 'Descartar',
+    ],
 ];

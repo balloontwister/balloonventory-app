@@ -100,4 +100,22 @@ return [
         'item_added' => 'Agregado a ":list".',
         'item_removed' => 'Artículo eliminado de la lista.',
     ],
+
+    'memberships' => [
+        'invited' => ':name ha sido invitado.',
+        'invite_sent_no_email' => ':name ha sido invitado pero la plantilla de correo de notificación está inactiva — no se envió correo.',
+        'unknown_email' => 'No se encontró ninguna cuenta de Balloonventory para esa dirección de correo.',
+        'self_invite' => 'No puedes invitarte a ti mismo.',
+        'already_member' => 'Esa persona ya es miembro de este negocio.',
+        'role_updated' => 'El rol de :name ha sido actualizado.',
+        'removed' => ':name ha sido eliminado del negocio.',
+        'invite_revoked' => 'Invitación revocada.',
+    ],
+
+    'invitations' => [
+        'accepted' => '¡Bienvenido a :business!',
+        'declined' => 'Invitación rechazada.',
+        'invalid_link' => 'Este enlace de invitación no es válido o ha expirado.',
+        'wrong_account' => 'Esta invitación es para una cuenta diferente. Por favor inicia sesión con la cuenta correcta.',
+    ],
 ];

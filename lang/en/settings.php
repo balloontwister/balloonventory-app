@@ -66,4 +66,20 @@ return [
             'button' => 'Set up my shop again',
         ],
     ],
+
+    'team' => [
+        'heading' => 'Team',
+        'subheading' => 'Manage who has access to this business.',
+        'you' => 'you',
+        'remove' => 'Remove',
+        'confirm_remove' => 'Remove this person from the business?',
+        'pending_heading' => 'Pending invitations',
+        'pending_role' => ':role (pending)',
+        'revoke' => 'Revoke',
+        'invite_heading' => 'Invite someone',
+        'invite_email' => 'Email address',
+        'invite_email_placeholder' => 'colleague@example.com',
+        'invite_role' => 'Role',
+        'invite_submit' => 'Send invite',
+    ],
 ];

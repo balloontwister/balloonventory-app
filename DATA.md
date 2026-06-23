@@ -70,6 +70,7 @@ Tenant-scoped (every row belongs to exactly one business; every query MUST filte
 - `local_price`
 - `pending_upc_scan`
 - `membership` (when querying a single business's membership list)
+- `business_invitation` (tenant-scoped; cross-business reads for the invitee must use `withoutGlobalScope`)
 
 Note: `upc` columns on `sku` are direct attributes, not a separate table. UPC visibility is inherited from the SKU's visibility rule.
 
@@ -662,6 +663,26 @@ A user-submitted report of a problem with a SKU (wrong color hex, wrong size, wr
 
 This table is global-ish — a report against a shared SKU has no single business owner — but reads should still be tenant-scoped where possible. A business should only see reports it filed or that pertain to its private SKUs. SuperAdmin sees all reports.
 
+### `business_invitation`
+
+An invitation from a business owner or manager to an existing Balloonventory user to join that business. The magic-link token auto-accepts and logs in the invitee in one step. Tenant-scoped; cross-business reads (e.g. the dashboard notice query for the invitee) must use `withoutGlobalScope(BusinessScope::class)`.
+
+- `id` (uuid, pk)
+- `business_id` (uuid, fk → business.id, idx)
+- `invited_email` (string, idx) — snapshotted from the user's email at invite time
+- `invited_user_id` (uuid, fk → user.id, idx)
+- `role` (string: `owner|manager|staff|guest`) — the role the invitee will receive on accept
+- `token` (string(64), unique, idx) — 64-char random secret; single-use (rotated on accept)
+- `invited_by_user_id` (uuid, fk → user.id) — the owner/manager who sent the invite
+- `status` (string, default `pending`) — `pending|accepted|declined|revoked|expired`
+- `expires_at` (timestamp, nullable) — null means no expiry; default is 14 days from creation
+- `acknowledged_at` (timestamp, nullable) — set when the invitee dismisses the post-join status notice
+- `responded_at` (timestamp, nullable) — set when status transitions to accepted/declined/revoked
+- `created_at`, `updated_at`, `deleted_at`
+- `unique(business_id, invited_user_id, deleted_at)` — one active invite per user per business; soft-deletes allow re-invitation
+
+The notification row in PERMISSIONS.md ("Membership invitation accepted → notify the inviter") is now implemented via this table's accept flow.
+
 ### `email_template`
 
 A database-stored email template editable via the super-admin UI. One row per named template key. See EMAIL.md for the full design, variable system, and authoring guidelines.
@@ -728,6 +749,7 @@ Creating a reply auto-archives the parent ticket (`archived_at = now()`).
 
 ```
 user ──< membership >── business
+user ──< business_invitation >── business  (invited_by_user_id + invited_user_id)
                           │
                           ├──< location ──< bin
                           │

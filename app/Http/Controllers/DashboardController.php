@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\BalloonList;
 use App\Models\Bin;
 use App\Models\Business;
+use App\Models\BusinessInvitation;
 use App\Models\BusinessSkuOverride;
 use App\Models\ListItem;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
+use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +46,8 @@ class DashboardController extends Controller
             'lowStock' => $can['viewCounts'] ? $lowStockData['items'] : [],
             'recentActivity' => $can['viewCounts'] ? $this->buildRecentActivity() : [],
             'nudges' => $this->buildNudges($user, $business),
+            'pendingInvitations' => $this->buildPendingInvitations($user),
+            'membershipNotices' => $this->buildMembershipNotices($user),
             'can' => $can,
         ]);
     }
@@ -173,6 +177,61 @@ class DashboardController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * @return list<array{token: string, business_name: string, inviter_name: string, role_label: string}>
+     */
+    private function buildPendingInvitations(mixed $user): array
+    {
+        return BusinessInvitation::withoutGlobalScope(BusinessScope::class)
+            ->with(['business', 'inviter'])
+            ->where('invited_user_id', $user->id)
+            ->where('status', BusinessInvitation::STATUS_PENDING)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->get()
+            ->map(fn (BusinessInvitation $inv) => [
+                'token' => $inv->token,
+                'business_name' => $inv->business->name,
+                'inviter_name' => $inv->inviter->name,
+                'role_label' => $this->roleLabel($inv->role),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{invitation_id: string, business_id: string, business_name: string, role_label: string}>
+     */
+    private function buildMembershipNotices(mixed $user): array
+    {
+        return BusinessInvitation::withoutGlobalScope(BusinessScope::class)
+            ->with('business')
+            ->where('invited_user_id', $user->id)
+            ->where('status', BusinessInvitation::STATUS_ACCEPTED)
+            ->whereNull('acknowledged_at')
+            ->get()
+            ->map(fn (BusinessInvitation $inv) => [
+                'invitation_id' => $inv->id,
+                'business_id' => $inv->business_id,
+                'business_name' => $inv->business->name,
+                'role_label' => $this->roleLabel($inv->role),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function roleLabel(string $role): string
+    {
+        return match ($role) {
+            'owner' => 'Owner',
+            'manager' => 'Manager',
+            'staff' => 'Artist',
+            'guest' => 'Guest Artist',
+            default => $role,
+        };
     }
 
     private function buildNudges(mixed $user, Business $business): array

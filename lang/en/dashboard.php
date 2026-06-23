@@ -71,4 +71,16 @@ return [
         'add' => 'Browse Inventory',
         'scan' => 'Scan a Bag',
     ],
+
+    'invitations' => [
+        'notice' => ':inviter invited you to join :business as :role.',
+        'accept' => 'Accept',
+        'decline' => 'Decline',
+    ],
+
+    'membership_status' => [
+        'notice' => 'You\'re now a :role at :business.',
+        'switch' => 'Switch to :business',
+        'dismiss' => 'Dismiss',
+    ],
 ];

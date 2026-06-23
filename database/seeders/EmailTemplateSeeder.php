@@ -78,6 +78,42 @@ TEXT,
                 'is_active' => true,
             ],
             [
+                'key' => 'business_invitation',
+                'label' => 'Business Invitation',
+                'trigger_description' => 'Sent to an existing Balloonventory user when they are invited to join a business.',
+                'subject' => 'You\'ve been invited to join {{business_name}} on Balloonventory',
+                'body_html' => <<<'HTML'
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;"><strong>{{inviter_name}}</strong> has invited you to join <strong>{{business_name}}</strong> on Balloonventory as <strong>{{role_label}}</strong>.</p>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#0A0A0A;">Click the button below to accept and get started right away — no password required.</p>
+<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td style="background:#6D28D9;border-radius:10px;">
+            <a href="{{accept_url}}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;">Accept invitation →</a>
+        </td>
+    </tr>
+</table>
+<p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:#71717A;">This link expires in 14 days. If you weren't expecting this invitation, you can safely ignore this email.</p>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#0A0A0A;">See you there,<br><strong>Tallie</strong><br><span style="font-size:13px;color:#A1A1AA;">at Balloonventory</span></p>
+HTML,
+                'body_text' => <<<'TEXT'
+Hi {{user_name}},
+
+{{inviter_name}} has invited you to join {{business_name}} on Balloonventory as {{role_label}}.
+
+Click the link below to accept — no password required:
+
+{{accept_url}}
+
+This link expires in 14 days. If you weren't expecting this invitation, you can safely ignore this email.
+
+See you there,
+Tallie
+at Balloonventory
+TEXT,
+                'is_active' => true,
+            ],
+            [
                 'key' => 'subscription_upgrade',
                 'label' => 'Subscription Upgrade Confirmation',
                 'trigger_description' => 'Sent when a user upgrades their subscription plan.',

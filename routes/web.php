@@ -5,10 +5,12 @@ use App\Http\Controllers\BinController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ListsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
@@ -59,6 +61,10 @@ Route::middleware('auth')->group(function () {
 // ─── Business switcher ────────────────────────────────────────────────────────
 Route::middleware('auth')->post('/business/{business}/switch', [BusinessController::class, 'switch'])
     ->name('business.switch');
+
+// ─── Invitation magic link (auth optional — logs in the invitee) ──────────────
+Route::get('/invitations/{token}/accept', [InvitationController::class, 'accept'])
+    ->name('invitations.accept');
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -126,6 +132,17 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/settings/businesses', [SettingsController::class, 'businesses'])->name('settings.businesses');
     Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
     Route::post('/settings/businesses/logo', [SettingsController::class, 'updateBusinessLogo'])->name('settings.businesses.logo.update');
+
+    // ─── Membership management (invite, role change, remove, revoke invite) ──────
+    Route::post('/memberships/invite', [MembershipController::class, 'invite'])->name('memberships.invite');
+    Route::patch('/memberships/{membership}/role', [MembershipController::class, 'updateRole'])->name('memberships.update-role');
+    Route::delete('/memberships/{membership}', [MembershipController::class, 'destroy'])->name('memberships.destroy');
+    Route::delete('/memberships/invitations/{invitation}/revoke', [MembershipController::class, 'revokeInvite'])->name('memberships.invitations.revoke');
+
+    // ─── Invitation in-app paths (accept/decline/acknowledge from dashboard) ─────
+    Route::post('/invitations/accept-in-app', [InvitationController::class, 'acceptInApp'])->name('invitations.accept-in-app');
+    Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
+    Route::post('/invitations/acknowledge', [InvitationController::class, 'acknowledge'])->name('invitations.acknowledge');
 
     // ── Lists & Jobs hub ──────────────────────────────────────────────────────
     Route::get('/lists', [ListsController::class, 'index'])->name('lists.index');

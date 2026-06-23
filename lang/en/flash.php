@@ -100,4 +100,22 @@ return [
         'item_added' => 'Added to ":list".',
         'item_removed' => 'Item removed from the list.',
     ],
+
+    'memberships' => [
+        'invited' => ':name has been invited.',
+        'invite_sent_no_email' => ':name has been invited but the notification email template is inactive — no email was sent.',
+        'unknown_email' => 'No Balloonventory account found for that email address.',
+        'self_invite' => 'You cannot invite yourself.',
+        'already_member' => 'That person is already a member of this business.',
+        'role_updated' => ':name\'s role has been updated.',
+        'removed' => ':name has been removed from the business.',
+        'invite_revoked' => 'Invitation revoked.',
+    ],
+
+    'invitations' => [
+        'accepted' => 'Welcome to :business!',
+        'declined' => 'Invitation declined.',
+        'invalid_link' => 'This invitation link is invalid or has expired.',
+        'wrong_account' => 'This invitation is for a different account. Please sign in with the correct account.',
+    ],
 ];

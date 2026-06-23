@@ -66,4 +66,20 @@ return [
             'button' => 'Configurar mi tienda otra vez',
         ],
     ],
+
+    'team' => [
+        'heading' => 'Equipo',
+        'subheading' => 'Gestiona quién tiene acceso a este negocio.',
+        'you' => 'tú',
+        'remove' => 'Eliminar',
+        'confirm_remove' => '¿Eliminar a esta persona del negocio?',
+        'pending_heading' => 'Invitaciones pendientes',
+        'pending_role' => ':role (pendiente)',
+        'revoke' => 'Revocar',
+        'invite_heading' => 'Invitar a alguien',
+        'invite_email' => 'Correo electrónico',
+        'invite_email_placeholder' => 'colega@ejemplo.com',
+        'invite_role' => 'Rol',
+        'invite_submit' => 'Enviar invitación',
+    ],
 ];

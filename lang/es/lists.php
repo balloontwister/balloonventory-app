@@ -90,5 +90,7 @@ return [
         'item_added' => ':user agregó :sku',
         'item_removed' => ':user eliminó :sku',
         'item_qty_changed' => ':user cambió la cantidad planificada de :sku de :old a :new',
+        'show_more' => 'Mostrar :count más',
+        'show_less' => 'Mostrar menos',
     ],
 ];

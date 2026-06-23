@@ -16,6 +16,17 @@ const confirmingDelete = ref(false);
 const page = usePage();
 const locale = computed(() => page.props.locale ?? 'en');
 
+const HISTORY_PREVIEW = 5;
+const showAllEvents = ref(false);
+const visibleEvents = computed(() =>
+    showAllEvents.value
+        ? props.list.events
+        : (props.list.events ?? []).slice(0, HISTORY_PREVIEW),
+);
+const hiddenEventCount = computed(() =>
+    Math.max(0, (props.list.events?.length ?? 0) - HISTORY_PREVIEW),
+);
+
 function relativeTime(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
@@ -159,7 +170,7 @@ function unarchive() {
                 </div>
                 <ul class="divide-y divide-border">
                     <li
-                        v-for="event in list.events"
+                        v-for="event in visibleEvents"
                         :key="event.id"
                         class="flex items-start gap-3 px-4 py-3"
                     >
@@ -207,6 +218,22 @@ function unarchive() {
                         </span>
                     </li>
                 </ul>
+                <div
+                    v-if="hiddenEventCount > 0 || showAllEvents"
+                    class="border-t border-border px-4 py-2.5"
+                >
+                    <button
+                        type="button"
+                        class="font-sans text-[13px] font-medium text-accent hover:underline"
+                        @click="showAllEvents = !showAllEvents"
+                    >
+                        {{
+                            showAllEvents
+                                ? $t('lists.history.show_less')
+                                : $t('lists.history.show_more', { count: hiddenEventCount })
+                        }}
+                    </button>
+                </div>
             </div>
         </div>
 

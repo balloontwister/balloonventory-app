@@ -90,5 +90,7 @@ return [
         'item_added' => ':user added :sku',
         'item_removed' => ':user removed :sku',
         'item_qty_changed' => ':user changed planned qty for :sku from :old to :new',
+        'show_more' => 'Show :count more',
+        'show_less' => 'Show less',
     ],
 ];

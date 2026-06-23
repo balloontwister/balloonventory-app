@@ -13,6 +13,7 @@ const page = usePage();
 const { can } = useBusiness();
 const canEditFavorites = computed(() => can('favorites.edit'));
 const canAddToInventory = computed(() => can('inventory.check_in'));
+const canManageVisibility = computed(() => can('list.manage_visibility'));
 
 // Carry the list's current filters/page into the show link so the detail page's
 // back link can restore them — and scroll back to the row that was opened.
@@ -132,7 +133,11 @@ const showAddToListModal = computed(() => addToListSku.value !== null);
 const addToListForm = useForm({ list_id: '' });
 
 const nonFavoriteLists = computed(() =>
-    props.lists.filter((l) => !l.is_business_favorites),
+    props.lists.filter((l) => {
+        if (l.is_business_favorites) return false;
+        if (!canManageVisibility.value && (l.visibility === 'owner_editable' || l.visibility === 'private')) return false;
+        return true;
+    }),
 );
 
 function openAddToList(sku) {

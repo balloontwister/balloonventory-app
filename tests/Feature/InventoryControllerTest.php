@@ -902,6 +902,33 @@ class InventoryControllerTest extends TestCase
         ]);
     }
 
+    public function test_guest_cannot_add_to_owner_editable_list(): void
+    {
+        $guest = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $guest->id,
+            'business_id' => $this->business->id,
+            'role' => 'guest',
+            'joined_at' => now(),
+        ]);
+
+        $sku = Sku::factory()->create();
+
+        $ownerList = BalloonList::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'name' => 'Owners Only',
+            'is_business_favorites' => false,
+            'visibility' => 'owner_editable',
+            'created_by_user_id' => $this->owner->id,
+        ]);
+
+        $this->actingAs($guest)
+            ->post(route('inventory.sku.add-to-list', $sku), ['list_id' => $ownerList->id])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('list_items', ['list_id' => $ownerList->id]);
+    }
+
     // ── favorites ─────────────────────────────────────────────────────────────
 
     public function test_add_favorite_creates_list_item_in_favorites(): void

@@ -162,7 +162,7 @@ class InventoryController extends Controller
             'textureFamilies' => TextureFamily::orderBy('sort_order')->get(['id', 'name']),
             'colorFamilies' => ColorFamily::orderBy('sort_order')->get(['id', 'name']),
             'materials' => Material::orderBy('sort_order')->get(['id', 'name']),
-            'lists' => BalloonList::get(['id', 'name', 'is_business_favorites']),
+            'lists' => BalloonList::get(['id', 'name', 'is_business_favorites', 'visibility']),
             'favoritesListId' => BalloonList::where('is_business_favorites', true)->value('id'),
             'hasSampleStock' => StockLevel::where('is_sample', true)->exists(),
         ]);
@@ -686,6 +686,9 @@ class InventoryController extends Controller
 
         // BalloonList global scope ensures the list belongs to the current business.
         $list = BalloonList::findOrFail($data['list_id']);
+
+        // Enforce per-list visibility rules (owner_editable / private require owner role).
+        Gate::authorize('update', $list);
 
         ListItem::firstOrCreate(
             ['list_id' => $list->id, 'sku_id' => $sku->id],

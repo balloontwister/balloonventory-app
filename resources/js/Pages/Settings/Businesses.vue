@@ -29,11 +29,21 @@ const canManageLogo = computed(() =>
 );
 
 const inviteForm = useForm({ email: '', role: 'staff' });
-const submitInvite = () =>
+
+function doSubmitInvite() {
     inviteForm.post(route('memberships.invite'), {
         preserveScroll: true,
         onSuccess: () => inviteForm.reset(),
     });
+}
+
+function submitInvite() {
+    if (inviteForm.role === 'owner') {
+        ownerWarningPending.value = { type: 'invite_owner', direction: 'add', personLabel: inviteForm.email };
+        return;
+    }
+    doSubmitInvite();
+}
 
 function roleOptions(includeOwner) {
     const base = [
@@ -55,9 +65,13 @@ const ownerWarningPending = ref(null);
 const selectResetKey = ref(0);
 
 function handleRoleChange(membershipId, newRole, currentRole) {
+    const member = props.members.find((m) => m.id === membershipId);
     if (currentRole === 'owner') {
-        const member = props.members.find((m) => m.id === membershipId);
-        ownerWarningPending.value = { type: 'role_change', membershipId, newRole, memberName: member?.name ?? '' };
+        ownerWarningPending.value = { type: 'role_change', direction: 'remove', membershipId, newRole, memberName: member?.name ?? '' };
+        return;
+    }
+    if (newRole === 'owner') {
+        ownerWarningPending.value = { type: 'promote', direction: 'add', membershipId, newRole, personLabel: member?.name ?? '' };
         return;
     }
     useForm({ role: newRole }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
@@ -66,7 +80,7 @@ function handleRoleChange(membershipId, newRole, currentRole) {
 function revokeMember(membershipId, currentRole) {
     if (currentRole === 'owner') {
         const member = props.members.find((m) => m.id === membershipId);
-        ownerWarningPending.value = { type: 'revoke', membershipId, memberName: member?.name ?? '' };
+        ownerWarningPending.value = { type: 'revoke', direction: 'remove', membershipId, memberName: member?.name ?? '' };
         return;
     }
     if (!confirm(trans('settings.team.confirm_remove'))) { return; }
@@ -77,8 +91,10 @@ function confirmOwnerWarning() {
     const pending = ownerWarningPending.value;
     ownerWarningPending.value = null;
     if (!pending) { return; }
-    if (pending.type === 'role_change') {
+    if (pending.type === 'role_change' || pending.type === 'promote') {
         useForm({ role: pending.newRole }).patch(route('memberships.update-role', pending.membershipId), { preserveScroll: true });
+    } else if (pending.type === 'invite_owner') {
+        doSubmitInvite();
     } else {
         useForm({}).delete(route('memberships.destroy', pending.membershipId), { preserveScroll: true });
     }
@@ -657,20 +673,38 @@ const submitLogo = () =>
         <!-- Owner access warning modal -->
         <Modal :show="!!ownerWarningPending" @close="cancelOwnerWarning">
             <div class="p-6">
-                <h2 class="font-display text-[18px] font-semibold text-ink-primary">
-                    {{ $t('settings.team.owner_warning_title') }}
-                </h2>
-                <p class="mt-2 font-sans text-[14px] text-ink-secondary">
-                    {{ $t('settings.team.owner_warning_body', { name: ownerWarningPending?.memberName ?? '' }) }}
-                </p>
-                <div class="mt-6 flex justify-end gap-2">
-                    <AppButton variant="secondary" @click="cancelOwnerWarning">
-                        {{ $t('common.cancel') }}
-                    </AppButton>
-                    <AppButton variant="danger" @click="confirmOwnerWarning">
-                        {{ $t('settings.team.owner_warning_confirm') }}
-                    </AppButton>
-                </div>
+                <template v-if="ownerWarningPending?.direction === 'add'">
+                    <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                        {{ $t('settings.team.owner_promote_title') }}
+                    </h2>
+                    <p class="mt-2 font-sans text-[14px] text-ink-secondary">
+                        {{ $t('settings.team.owner_promote_body', { person: ownerWarningPending?.personLabel ?? '' }) }}
+                    </p>
+                    <div class="mt-6 flex justify-end gap-2">
+                        <AppButton variant="secondary" @click="cancelOwnerWarning">
+                            {{ $t('common.cancel') }}
+                        </AppButton>
+                        <AppButton variant="primary" @click="confirmOwnerWarning">
+                            {{ $t('settings.team.owner_promote_confirm') }}
+                        </AppButton>
+                    </div>
+                </template>
+                <template v-else>
+                    <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                        {{ $t('settings.team.owner_warning_title') }}
+                    </h2>
+                    <p class="mt-2 font-sans text-[14px] text-ink-secondary">
+                        {{ $t('settings.team.owner_warning_body', { name: ownerWarningPending?.memberName ?? '' }) }}
+                    </p>
+                    <div class="mt-6 flex justify-end gap-2">
+                        <AppButton variant="secondary" @click="cancelOwnerWarning">
+                            {{ $t('common.cancel') }}
+                        </AppButton>
+                        <AppButton variant="danger" @click="confirmOwnerWarning">
+                            {{ $t('settings.team.owner_warning_confirm') }}
+                        </AppButton>
+                    </div>
+                </template>
             </div>
         </Modal>
     </AuthenticatedLayout>

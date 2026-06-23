@@ -84,5 +84,8 @@ return [
         'owner_warning_title' => 'Remove owner access?',
         'owner_warning_body' => ':name is currently an owner of this business. Removing their owner access means they will no longer be able to manage settings, team members, or billing.',
         'owner_warning_confirm' => 'Yes, remove access',
+        'owner_promote_title' => 'Make this person an owner?',
+        'owner_promote_body' => ':person will be able to see and edit every part of the business, including removing you.',
+        'owner_promote_confirm' => 'Yes, make owner',
     ],
 ];

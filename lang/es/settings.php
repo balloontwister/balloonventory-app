@@ -84,5 +84,8 @@ return [
         'owner_warning_title' => '¿Quitar acceso de propietario?',
         'owner_warning_body' => ':name es actualmente propietario de este negocio. Quitarle el acceso de propietario significa que ya no podrá gestionar la configuración, los miembros del equipo ni la facturación.',
         'owner_warning_confirm' => 'Sí, quitar acceso',
+        'owner_promote_title' => '¿Hacer propietario a esta persona?',
+        'owner_promote_body' => ':person podrá ver y editar cada parte del negocio, incluyendo eliminarte a ti.',
+        'owner_promote_confirm' => 'Sí, hacer propietario',
     ],
 ];

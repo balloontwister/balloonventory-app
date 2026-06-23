@@ -107,7 +107,7 @@ return [
 
     // Working bin selector
     'working_bin_label' => 'Working bin',
-    'working_bin_auto' => 'Auto — item’s location',
+    'working_bin_auto' => 'Auto — item\'s location',
     'working_bin_hint' => 'New items go here. Items already in stock stay in their bin.',
     'bin_default_suffix' => '(default)',
     'recorded_to_bin' => 'in :bin',
@@ -120,5 +120,10 @@ return [
 
     // Bin-label scan
     'bin_set' => 'Working bin set to :bin',
-    'bin_not_recognized' => 'That bin barcode wasn’t recognized.',
+    'bin_not_recognized' => 'That bin barcode wasn\'t recognized.',
+
+    // Lookup-only (guest) mode
+    'lookup_only_notice' => 'You have read-only access. Scan or type to look up products.',
+    'found_heading' => 'Product found',
+    'view_item' => 'View',
 ];

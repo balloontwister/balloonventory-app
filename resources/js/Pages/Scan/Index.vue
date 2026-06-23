@@ -8,6 +8,10 @@ import Modal from '@/Components/Modal.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { ref, computed, onBeforeUnmount, watch } from 'vue';
+import { useBusiness } from '@/Composables/useBusiness.js';
+
+const { can } = useBusiness();
+const canRecordMovements = computed(() => can('inventory.check_in'));
 
 const props = defineProps({
     bins: { type: Array, default: () => [] },
@@ -215,6 +219,18 @@ async function processScan(upc) {
         if (needsBinChoice(lookup.data.sku)) {
             scanStatus.value = null;
             pendingBinChoice.value = { upc, sku: lookup.data.sku };
+            return;
+        }
+
+        // Guests can look up products but cannot record movements — show a
+        // lookup card with a link to the inventory detail page instead.
+        if (!canRecordMovements.value) {
+            scanStatus.value = null;
+            pendingMatch.value = {
+                upc,
+                candidates: [{ match: lookup.data.match_type, score: 100, sku: lookup.data.sku }],
+                lookupOnly: true,
+            };
             return;
         }
 
@@ -434,8 +450,18 @@ const contextHintKey = computed(() => {
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
+            <!-- ── Lookup-only notice (guests) ────────────────────────────────── -->
+            <div
+                v-if="!canRecordMovements"
+                class="rounded-lg border border-border bg-surface px-4 py-3"
+            >
+                <p class="font-sans text-[13px] text-ink-secondary">
+                    {{ $t('scan.lookup_only_notice') }}
+                </p>
+            </div>
+
             <!-- ── Mode toggle ────────────────────────────────────────────────── -->
-            <div class="flex gap-3">
+            <div v-if="canRecordMovements" class="flex gap-3">
                 <button
                     type="button"
                     class="flex-1 rounded-lg px-6 py-4 font-display text-[20px] font-semibold transition-colors"
@@ -465,6 +491,7 @@ const contextHintKey = computed(() => {
 
             <!-- ── Quantity controls ──────────────────────────────────────────── -->
             <div
+                v-if="canRecordMovements"
                 class="flex flex-wrap items-start gap-6 rounded-lg border border-border bg-surface px-4 py-3"
             >
                 <div>
@@ -604,9 +631,11 @@ const contextHintKey = computed(() => {
                             class="font-sans text-[14px] font-semibold text-ink-primary"
                         >
                             {{
-                                pendingMatch.reason === 'no_barcode'
-                                    ? $t('scan.no_barcode_heading')
-                                    : $t('scan.confirm_heading')
+                                pendingMatch.lookupOnly
+                                    ? $t('scan.found_heading')
+                                    : pendingMatch.reason === 'no_barcode'
+                                        ? $t('scan.no_barcode_heading')
+                                        : $t('scan.confirm_heading')
                             }}
                         </p>
                         <p
@@ -671,7 +700,15 @@ const contextHintKey = computed(() => {
                                 $t('scan.unknown_sku')
                             }}
                         </span>
+                        <Link
+                            v-if="!canRecordMovements || pendingMatch.lookupOnly"
+                            :href="route('inventory.sku.show', c.sku.id)"
+                            class="shrink-0 rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-semibold text-ink-primary hover:bg-background"
+                        >
+                            {{ $t('scan.view_item') }}
+                        </Link>
                         <button
+                            v-else
                             type="button"
                             class="shrink-0 rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on hover:bg-accent-hover"
                             @click="confirmPendingMatch(c.sku)"
@@ -747,6 +784,7 @@ const contextHintKey = computed(() => {
 
             <!-- ── Toasts ─────────────────────────────────────────────────────── -->
             <TransitionGroup
+                v-if="canRecordMovements"
                 tag="div"
                 enter-active-class="transition duration-150 ease-out"
                 enter-from-class="opacity-0 -translate-y-2"
@@ -763,7 +801,7 @@ const contextHintKey = computed(() => {
             </TransitionGroup>
 
             <!-- ── Recent scans list ───────────────────────────────────────────── -->
-            <div class="rounded-lg border border-border">
+            <div v-if="canRecordMovements" class="rounded-lg border border-border">
                 <div
                     class="flex items-center justify-between border-b border-border bg-background px-4 py-2.5"
                 >

@@ -121,4 +121,9 @@ return [
     // Bin-label scan
     'bin_set' => 'Contenedor de trabajo establecido en :bin',
     'bin_not_recognized' => 'No se reconoció ese código de contenedor.',
+
+    // Modo solo lectura (invitado)
+    'lookup_only_notice' => 'Tienes acceso de solo lectura. Escanea o escribe para buscar productos.',
+    'found_heading' => 'Producto encontrado',
+    'view_item' => 'Ver',
 ];

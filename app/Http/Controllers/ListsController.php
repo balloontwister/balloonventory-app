@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BalloonList;
 use App\Models\Business;
 use App\Models\BusinessSkuOverride;
+use App\Models\ListEvent;
 use App\Models\ListItem;
 use App\Models\Membership;
 use App\Models\Sku;
@@ -78,7 +79,7 @@ class ListsController extends Controller
         abort_if(($list->visibility ?? 'standard') === 'private' && ! $isOwner, 403);
 
         return Inertia::render('Lists/Show', [
-            'list' => $this->listPayload($list, $isOwner),
+            'list' => $this->listPayload($list, $isOwner, withEvents: true),
         ]);
     }
 
@@ -113,6 +114,8 @@ class ListsController extends Controller
             'created_by_user_id' => $request->user()->id,
             'visibility' => $isOwner ? ($data['visibility'] ?? 'standard') : 'standard',
         ]);
+
+        $this->recordListEvent($list, 'created', ['name' => $list->name]);
 
         return redirect()
             ->route('lists.show', $list)
@@ -151,6 +154,10 @@ class ListsController extends Controller
             'visibility' => ['nullable', 'string', 'in:standard,owner_editable,private'],
         ]);
 
+        $oldName = $list->name;
+        $oldArchivedAt = $list->archived_at;
+        $oldVisibility = $list->visibility ?? 'standard';
+
         $updates = [
             'name' => $data['name'],
             'notes' => $data['notes'] ?? null,
@@ -162,6 +169,24 @@ class ListsController extends Controller
         }
 
         $list->update($updates);
+
+        if ($list->name !== $oldName) {
+            $this->recordListEvent($list, 'renamed', ['old' => $oldName, 'new' => $list->name]);
+        }
+
+        if ($isOwner) {
+            $newArchivedAt = $list->archived_at;
+            if ($oldArchivedAt === null && $newArchivedAt !== null) {
+                $this->recordListEvent($list, 'archived');
+            } elseif ($oldArchivedAt !== null && $newArchivedAt === null) {
+                $this->recordListEvent($list, 'unarchived');
+            }
+
+            $newVisibility = $list->visibility ?? 'standard';
+            if ($newVisibility !== $oldVisibility) {
+                $this->recordListEvent($list, 'visibility_changed', ['old' => $oldVisibility, 'new' => $newVisibility]);
+            }
+        }
 
         return redirect()
             ->route('lists.show', $list)
@@ -192,10 +217,17 @@ class ListsController extends Controller
         $sku = Sku::findOrFail($data['sku_id']);
         abort_unless($sku->isVisibleTo(BusinessContext::currentId()), 404);
 
-        ListItem::firstOrCreate(
+        $created = ListItem::firstOrCreate(
             ['list_id' => $list->id, 'sku_id' => $sku->id],
             ['planned_quantity' => null, 'sort_order' => 0],
         );
+
+        if ($created->wasRecentlyCreated) {
+            $this->recordListEvent($list, 'item_added', [
+                'sku_id' => $sku->id,
+                'sku_name' => $sku->computed_name ?? $sku->name,
+            ]);
+        }
 
         return back()->with('success', __('flash.lists.item_added', ['list' => $list->name]));
     }
@@ -211,7 +243,18 @@ class ListsController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $oldQty = $listItem->planned_quantity;
         $listItem->update($data);
+
+        if (array_key_exists('planned_quantity', $data) && $data['planned_quantity'] != $oldQty) {
+            $sku = $listItem->sku;
+            $this->recordListEvent($list, 'item_qty_changed', [
+                'sku_id' => $listItem->sku_id,
+                'sku_name' => $sku?->computed_name ?? $sku?->name,
+                'old_qty' => $oldQty,
+                'new_qty' => $data['planned_quantity'],
+            ]);
+        }
 
         return back();
     }
@@ -221,7 +264,13 @@ class ListsController extends Controller
         $this->authorizeListEdit($list);
 
         $listItem = $list->items()->findOrFail($item);
+        $sku = $listItem->sku;
         $listItem->forceDelete();
+
+        $this->recordListEvent($list, 'item_removed', [
+            'sku_id' => $listItem->sku_id,
+            'sku_name' => $sku?->computed_name ?? $sku?->name,
+        ]);
 
         return back()->with('success', __('flash.lists.item_removed'));
     }
@@ -313,7 +362,7 @@ class ListsController extends Controller
      *
      * @return array<string,mixed>
      */
-    private function listPayload(BalloonList $list, bool $isOwner = false): array
+    private function listPayload(BalloonList $list, bool $isOwner = false, bool $withEvents = false): array
     {
         $business = $this->currentBusiness();
 
@@ -333,6 +382,20 @@ class ListsController extends Controller
                 'delete' => Gate::allows('delete', $list),
                 'manage_visibility' => $isOwner,
             ],
+            'events' => $withEvents
+                ? ListEvent::where('list_id', $list->id)
+                    ->with('user:id,name')
+                    ->orderByDesc('created_at')
+                    ->limit(50)
+                    ->get()
+                    ->map(fn ($e) => [
+                        'id' => $e->id,
+                        'type' => $e->event_type,
+                        'payload' => $e->payload ?? [],
+                        'user_name' => $e->user?->name ?? 'System',
+                        'created_at' => $e->created_at,
+                    ])->all()
+                : [],
         ];
     }
 
@@ -404,5 +467,17 @@ class ListsController extends Controller
             ->where('business_id', $business->id)
             ->whereNull('deleted_at')
             ->value('role') === 'owner';
+    }
+
+    private function recordListEvent(BalloonList $list, string $type, array $payload = []): void
+    {
+        ListEvent::create([
+            'business_id' => $list->business_id,
+            'list_id' => $list->id,
+            'user_id' => auth()->id(),
+            'event_type' => $type,
+            'payload' => $payload ?: null,
+            'created_at' => now(),
+        ]);
     }
 }

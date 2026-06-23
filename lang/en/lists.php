@@ -79,4 +79,16 @@ return [
         'meta_title' => 'Edit List',
         'heading' => 'Edit List',
     ],
+
+    'history' => [
+        'heading' => 'History',
+        'created' => ':user created this list',
+        'renamed' => ':user renamed from ":old" to ":new"',
+        'archived' => ':user archived this list',
+        'unarchived' => ':user unarchived this list',
+        'visibility_changed' => ':user changed the list type',
+        'item_added' => ':user added :sku',
+        'item_removed' => ':user removed :sku',
+        'item_qty_changed' => ':user changed planned qty for :sku from :old to :new',
+    ],
 ];

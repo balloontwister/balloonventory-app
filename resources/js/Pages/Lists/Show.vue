@@ -4,14 +4,36 @@ import BackLink from '@/Components/BackLink.vue';
 import ListContents from '@/Components/ListContents.vue';
 import Modal from '@/Components/Modal.vue';
 import AppButton from '@/Components/AppButton.vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     list: { type: Object, required: true },
 });
 
 const confirmingDelete = ref(false);
+
+const page = usePage();
+const locale = computed(() => page.props.locale ?? 'en');
+
+function relativeTime(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
+    const intervals = [
+        ['year', 31536000000],
+        ['month', 2592000000],
+        ['week', 604800000],
+        ['day', 86400000],
+        ['hour', 3600000],
+        ['minute', 60000],
+    ];
+    for (const [unit, ms] of intervals) {
+        if (diff >= ms) {
+            return rtf.format(-Math.floor(diff / ms), unit);
+        }
+    }
+    return rtf.format(0, 'second');
+}
 
 function deleteList() {
     router.delete(route('lists.destroy', { list: props.list.id }), {
@@ -121,6 +143,70 @@ function unarchive() {
 
             <div class="rounded-lg border border-border bg-surface">
                 <ListContents :list="list" />
+            </div>
+
+            <!-- History -->
+            <div
+                v-if="list.events?.length"
+                class="rounded-lg border border-border bg-surface"
+            >
+                <div class="border-b border-border px-4 py-3">
+                    <h2
+                        class="font-sans text-[13px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('lists.history.heading') }}
+                    </h2>
+                </div>
+                <ul class="divide-y divide-border">
+                    <li
+                        v-for="event in list.events"
+                        :key="event.id"
+                        class="flex items-start gap-3 px-4 py-3"
+                    >
+                        <!-- Type pill -->
+                        <span
+                            class="mt-0.5 shrink-0 rounded-full bg-background px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-eyebrow text-ink-tertiary ring-1 ring-border"
+                        >
+                            {{ event.type.replace('_', ' ') }}
+                        </span>
+
+                        <!-- Description -->
+                        <span class="min-w-0 flex-1 font-sans text-[13px] text-ink-primary">
+                            <template v-if="event.type === 'created'">
+                                {{ $t('lists.history.created', { user: event.user_name }) }}
+                            </template>
+                            <template v-else-if="event.type === 'renamed'">
+                                {{ $t('lists.history.renamed', { user: event.user_name, old: event.payload.old, new: event.payload.new }) }}
+                            </template>
+                            <template v-else-if="event.type === 'archived'">
+                                {{ $t('lists.history.archived', { user: event.user_name }) }}
+                            </template>
+                            <template v-else-if="event.type === 'unarchived'">
+                                {{ $t('lists.history.unarchived', { user: event.user_name }) }}
+                            </template>
+                            <template v-else-if="event.type === 'visibility_changed'">
+                                {{ $t('lists.history.visibility_changed', { user: event.user_name }) }}
+                            </template>
+                            <template v-else-if="event.type === 'item_added'">
+                                {{ $t('lists.history.item_added', { user: event.user_name, sku: event.payload.sku_name }) }}
+                            </template>
+                            <template v-else-if="event.type === 'item_removed'">
+                                {{ $t('lists.history.item_removed', { user: event.user_name, sku: event.payload.sku_name }) }}
+                            </template>
+                            <template v-else-if="event.type === 'item_qty_changed'">
+                                {{ $t('lists.history.item_qty_changed', { user: event.user_name, sku: event.payload.sku_name, old: event.payload.old_qty ?? '—', new: event.payload.new_qty ?? '—' }) }}
+                            </template>
+                        </span>
+
+                        <!-- Relative timestamp -->
+                        <span
+                            class="shrink-0 font-sans text-[12px] text-ink-tertiary"
+                            :title="event.created_at"
+                        >
+                            {{ relativeTime(event.created_at) }}
+                        </span>
+                    </li>
+                </ul>
             </div>
         </div>
 

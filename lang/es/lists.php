@@ -79,4 +79,16 @@ return [
         'meta_title' => 'Editar lista',
         'heading' => 'Editar lista',
     ],
+
+    'history' => [
+        'heading' => 'Historial',
+        'created' => ':user creó esta lista',
+        'renamed' => ':user renombró de ":old" a ":new"',
+        'archived' => ':user archivó esta lista',
+        'unarchived' => ':user desarchivó esta lista',
+        'visibility_changed' => ':user cambió el tipo de lista',
+        'item_added' => ':user agregó :sku',
+        'item_removed' => ':user eliminó :sku',
+        'item_qty_changed' => ':user cambió la cantidad planificada de :sku de :old a :new',
+    ],
 ];

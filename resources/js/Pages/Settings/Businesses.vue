@@ -36,7 +36,8 @@ const submitInvite = () =>
 function roleOptions(includeOwner) {
     const base = [
         { value: 'staff', label: 'Artist' },
-        { value: 'guest', label: 'Guest Artist' },
+        { value: 'guest', label: 'Guest' },
+        { value: 'none', label: 'No Access' },
     ];
     if (includeOwner) {
         base.unshift({ value: 'owner', label: 'Owner' });
@@ -45,12 +46,12 @@ function roleOptions(includeOwner) {
 }
 
 function handleRoleChange(membershipId, role) {
-    if (role === 'none') {
-        if (!confirm(trans('settings.team.confirm_remove'))) { return; }
-        useForm({}).delete(route('memberships.destroy', membershipId), { preserveScroll: true });
-    } else {
-        useForm({ role }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
-    }
+    useForm({ role }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
+}
+
+function revokeMember(membershipId) {
+    if (!confirm(trans('settings.team.confirm_remove'))) { return; }
+    useForm({}).delete(route('memberships.destroy', membershipId), { preserveScroll: true });
 }
 
 function revokeInvite(invitationId) {
@@ -484,8 +485,15 @@ const submitLogo = () =>
                             >
                                 {{ opt.label }}
                             </option>
-                            <option value="none">{{ $t('settings.team.remove') }}</option>
                         </select>
+                        <button
+                            v-if="!member.is_self"
+                            type="button"
+                            class="flex-shrink-0 font-sans text-[13px] text-ink-tertiary hover:text-danger"
+                            @click="revokeMember(member.id)"
+                        >
+                            {{ $t('settings.team.revoke') }}
+                        </button>
                     </div>
                 </div>
 

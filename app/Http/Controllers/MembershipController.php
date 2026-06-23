@@ -103,7 +103,7 @@ class MembershipController extends Controller
     public function updateRole(Request $request, Membership $membership): RedirectResponse
     {
         $validated = $request->validate([
-            'role' => ['required', 'string', 'in:owner,staff,guest'],
+            'role' => ['required', 'string', 'in:owner,staff,guest,none'],
         ]);
 
         try {
@@ -153,7 +153,8 @@ class MembershipController extends Controller
             'owner' => 'Owner',
             'manager' => 'Manager',
             'staff' => 'Artist',
-            'guest' => 'Guest Artist',
+            'guest' => 'Guest',
+            'none' => 'No Access',
             default => $role,
         };
     }

@@ -5,7 +5,8 @@ export const ROLE_LABELS = {
     owner: 'Owner',
     manager: 'Manager',
     staff: 'Artist',
-    guest: 'Guest Artist',
+    guest: 'Guest',
+    none: 'No Access',
 };
 
 export function roleLabelFor(role) {

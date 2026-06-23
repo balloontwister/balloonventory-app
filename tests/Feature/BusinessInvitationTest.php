@@ -381,6 +381,54 @@ class BusinessInvitationTest extends TestCase
         ]);
     }
 
+    public function test_owner_can_set_member_role_to_none(): void
+    {
+        $member = User::factory()->create(['email_verified_at' => now()]);
+        $membership = Membership::create([
+            'user_id' => $member->id,
+            'business_id' => $this->business->id,
+            'role' => 'staff',
+            'joined_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->owner)
+            ->patch(route('memberships.update-role', ['membership' => $membership->id]), [
+                'role' => 'none',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('memberships', [
+            'id' => $membership->id,
+            'role' => 'none',
+        ]);
+    }
+
+    public function test_none_role_member_can_be_reinstated(): void
+    {
+        $member = User::factory()->create(['email_verified_at' => now()]);
+        $membership = Membership::create([
+            'user_id' => $member->id,
+            'business_id' => $this->business->id,
+            'role' => 'none',
+            'joined_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->owner)
+            ->patch(route('memberships.update-role', ['membership' => $membership->id]), [
+                'role' => 'staff',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('memberships', [
+            'id' => $membership->id,
+            'role' => 'staff',
+        ]);
+    }
+
     public function test_demoting_last_owner_flashes_error(): void
     {
         $ownerMembership = $this->ownerMembership();

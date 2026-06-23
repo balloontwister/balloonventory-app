@@ -599,6 +599,9 @@ const topNavItems = computed(() =>
                     >
                         {{ $t(item.labelKey) }}
                     </Link>
+                    <div class="ml-auto w-56 flex-shrink-0">
+                        <BusinessSwitcher />
+                    </div>
                 </nav>
 
                 <!-- Page header slot -->

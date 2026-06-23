@@ -15,7 +15,7 @@ return [
             'subtext' => 'Name, email, password, avatar',
         ],
         'business' => [
-            'label' => 'Business',
+            'label' => 'My Business',
             'subtext_fallback' => 'Manage business name and logo',
         ],
         'preferences' => [
@@ -33,5 +33,10 @@ return [
         'log_out' => [
             'label' => 'Log out',
         ],
+    ],
+
+    'other_businesses' => [
+        'heading' => 'Other Businesses',
+        'switch' => 'Switch',
     ],
 ];

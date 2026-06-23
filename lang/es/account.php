@@ -15,7 +15,7 @@ return [
             'subtext' => 'Nombre, correo, contraseña, avatar',
         ],
         'business' => [
-            'label' => 'Negocio',
+            'label' => 'Mi Negocio',
             'subtext_fallback' => 'Gestiona el nombre y el logo del negocio',
         ],
         'preferences' => [
@@ -33,5 +33,10 @@ return [
         'log_out' => [
             'label' => 'Cerrar sesión',
         ],
+    ],
+
+    'other_businesses' => [
+        'heading' => 'Otros Negocios',
+        'switch' => 'Cambiar',
     ],
 ];

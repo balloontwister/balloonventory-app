@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ContactSupportModal from '@/Components/ContactSupportModal.vue';
+import RoleBadge from '@/Components/RoleBadge.vue';
 
 const page = usePage();
 
@@ -11,6 +12,7 @@ const showSupportModal = ref(false);
 const user = computed(() => page.props.auth?.user ?? {});
 const avatarUrl = computed(() => page.props.auth?.avatarUrl ?? null);
 const business = computed(() => page.props.business ?? null);
+const businesses = computed(() => page.props.businesses ?? []);
 const isAnyAdmin = computed(() => page.props.auth?.isAnyAdmin ?? false);
 const isFrozen = computed(() => page.props.auth?.isFrozen ?? false);
 
@@ -22,8 +24,16 @@ const canManageBusiness = computed(() => {
     );
 });
 
+const otherBusinesses = computed(() =>
+    businesses.value.filter((biz) => biz.id !== business.value?.id),
+);
+
 function logout() {
     router.post(route('logout'));
+}
+
+function switchBusiness(id) {
+    router.post(route('business.switch', { business: id }));
 }
 </script>
 
@@ -359,6 +369,51 @@ function logout() {
                         />
                     </svg>
                 </Link>
+            </div>
+
+            <!-- ── Other Businesses ─────────────────────────────────────── -->
+            <div
+                v-if="otherBusinesses.length > 0"
+                class="overflow-hidden rounded-lg border border-border bg-surface shadow-pop"
+            >
+                <p
+                    class="border-b border-border px-4 py-2.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                >
+                    {{ $t('account.other_businesses.heading') }}
+                </p>
+                <div
+                    v-for="(biz, index) in otherBusinesses"
+                    :key="biz.id"
+                    class="flex items-center gap-3 px-4 py-3"
+                    :class="index > 0 ? 'border-t border-border' : ''"
+                >
+                    <img
+                        v-if="biz.logoUrl"
+                        :src="biz.logoUrl"
+                        alt=""
+                        class="h-8 w-8 flex-shrink-0 rounded-full object-cover ring-1 ring-border"
+                    />
+                    <span
+                        v-else
+                        class="h-2 w-2 flex-shrink-0 rounded-full"
+                        :style="{ backgroundColor: biz.color ?? '#A1A1AA' }"
+                    />
+                    <div class="min-w-0 flex-1">
+                        <p
+                            class="truncate font-sans text-[14px] font-medium text-ink-primary"
+                        >
+                            {{ biz.name }}
+                        </p>
+                        <RoleBadge :role="biz.pivot?.role ?? 'guest'" />
+                    </div>
+                    <button
+                        type="button"
+                        class="flex-shrink-0 rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
+                        @click="switchBusiness(biz.id)"
+                    >
+                        {{ $t('account.other_businesses.switch') }}
+                    </button>
+                </div>
             </div>
 
             <!-- ── Log out ───────────────────────────────────────────────── -->

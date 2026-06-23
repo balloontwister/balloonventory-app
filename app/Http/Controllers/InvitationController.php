@@ -41,6 +41,10 @@ class InvitationController extends Controller
 
         $this->acceptInvitation($invitation);
 
+        // Magic-link: user followed a link for this specific business, so switch to it.
+        session()->put('current_business_id', $invitation->business->id);
+        BusinessContext::set($invitation->business->id);
+
         return redirect()->route('dashboard')
             ->with('success', __('flash.invitations.accepted', ['business' => $invitation->business->name]));
     }
@@ -66,8 +70,9 @@ class InvitationController extends Controller
 
         $this->acceptInvitation($invitation);
 
-        return redirect()->route('dashboard')
-            ->with('success', __('flash.invitations.accepted', ['business' => $invitation->business->name]));
+        // Stay in the current business — the membership notice on the dashboard
+        // already informs the user about their new access.
+        return back()->with('success', __('flash.invitations.accepted', ['business' => $invitation->business->name]));
     }
 
     /**
@@ -160,9 +165,5 @@ class InvitationController extends Controller
             'responded_at' => now(),
             'token' => Str::random(64),
         ]);
-
-        // Switch the session to the invited business.
-        session()->put('current_business_id', $business->id);
-        BusinessContext::set($business->id);
     }
 }

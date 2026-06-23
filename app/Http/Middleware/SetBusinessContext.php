@@ -30,8 +30,14 @@ class SetBusinessContext
 
         $sessionId = $request->session()->get('current_business_id');
 
-        $current = $memberships->firstWhere('business_id', $sessionId)
-            ?? $memberships->first();
+        // Prefer businesses where the user has real access (not 'none').
+        // This prevents a suspended membership from locking the user out of
+        // the dashboard entirely when they have other active businesses.
+        $accessible = $memberships->where('role', '!=', 'none');
+        $pool = $accessible->isNotEmpty() ? $accessible : $memberships;
+
+        $current = $pool->firstWhere('business_id', $sessionId)
+            ?? $pool->first();
 
         BusinessContext::set($current->business_id);
 

@@ -260,7 +260,9 @@ class BusinessInvitationTest extends TestCase
         $response = $this->actingAs($invitee)
             ->post(route('invitations.accept-in-app'), ['token' => $token]);
 
-        $response->assertRedirect(route('dashboard'));
+        // In-app acceptance stays in the current context (back()) so the user
+        // isn't jarred away from their own business dashboard.
+        $response->assertRedirect();
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('memberships', [

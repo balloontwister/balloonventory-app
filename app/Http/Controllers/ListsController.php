@@ -386,7 +386,7 @@ class ListsController extends Controller
                 ? ListEvent::where('list_id', $list->id)
                     ->with('user:id,name')
                     ->orderByDesc('created_at')
-                    ->limit(50)
+                    ->limit(100)
                     ->get()
                     ->map(fn ($e) => [
                         'id' => $e->id,

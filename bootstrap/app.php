@@ -19,9 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             SetUserLocale::class,
+            SetBusinessContext::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            SetBusinessContext::class,
             EnsureAccountActive::class,
         ]);
 

@@ -1,9 +1,13 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const props = defineProps({
     notice: { type: Object, required: true },
 });
+
+const page = usePage();
+const isCurrentBusiness = computed(() => page.props.business?.id === props.notice.business_id);
 
 const switchForm = useForm({ business: props.notice.business_id });
 const ackForm = useForm({ invitation_id: props.notice.invitation_id });
@@ -28,6 +32,7 @@ function dismiss() {
         </p>
         <div class="flex flex-shrink-0 gap-2">
             <button
+                v-if="!isCurrentBusiness"
                 type="button"
                 :disabled="switchForm.processing || ackForm.processing"
                 class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"

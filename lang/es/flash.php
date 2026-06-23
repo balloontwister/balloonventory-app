@@ -110,6 +110,8 @@ return [
         'role_updated' => 'El rol de :name ha sido actualizado.',
         'removed' => ':name ha sido eliminado del negocio.',
         'invite_revoked' => 'Invitación revocada.',
+        'left' => 'Has salido de :business.',
+        'last_owner_leave' => 'No puedes salir porque eres el único propietario. Transfiere la propiedad primero.',
     ],
 
     'invitations' => [

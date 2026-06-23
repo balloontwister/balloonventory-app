@@ -136,6 +136,7 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::post('/memberships/invite', [MembershipController::class, 'invite'])->name('memberships.invite');
     Route::patch('/memberships/{membership}/role', [MembershipController::class, 'updateRole'])->name('memberships.update-role');
     Route::delete('/memberships/{membership}', [MembershipController::class, 'destroy'])->name('memberships.destroy');
+    Route::delete('/memberships/{membership}/leave', [MembershipController::class, 'leave'])->name('memberships.leave');
     Route::delete('/memberships/invitations/{invitation}/revoke', [MembershipController::class, 'revokeInvite'])->name('memberships.invitations.revoke');
 
     // ─── Invitation in-app paths (accept/decline/acknowledge from dashboard) ─────

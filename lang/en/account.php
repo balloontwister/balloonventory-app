@@ -38,5 +38,7 @@ return [
     'other_businesses' => [
         'heading' => 'Other Businesses',
         'switch' => 'Switch',
+        'leave' => 'Leave',
+        'leave_confirm' => 'Leave :business? You will lose access unless re-invited.',
     ],
 ];

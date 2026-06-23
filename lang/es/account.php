@@ -38,5 +38,7 @@ return [
     'other_businesses' => [
         'heading' => 'Otros Negocios',
         'switch' => 'Cambiar',
+        'leave' => 'Salir',
+        'leave_confirm' => '¿Salir de :business? Perderás el acceso a menos que te vuelvan a invitar.',
     ],
 ];

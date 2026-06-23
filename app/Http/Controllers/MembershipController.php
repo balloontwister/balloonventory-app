@@ -117,6 +117,30 @@ class MembershipController extends Controller
         return back()->with('success', __('flash.memberships.role_updated', ['name' => $membership->user->name]));
     }
 
+    /** DELETE /memberships/{membership}/leave — the authenticated user removes themselves */
+    public function leave(Request $request, Membership $membership): RedirectResponse
+    {
+        abort_unless($membership->user_id === $request->user()->id, 403);
+
+        if ($membership->role === 'owner') {
+            $ownerCount = Membership::withoutGlobalScope(BusinessScope::class)
+                ->where('business_id', $membership->business_id)
+                ->where('role', 'owner')
+                ->whereNull('deleted_at')
+                ->count();
+
+            if ($ownerCount <= 1) {
+                return back()->with('error', __('flash.memberships.last_owner_leave'));
+            }
+        }
+
+        $businessName = $membership->business->name;
+        $membership->delete();
+
+        return redirect()->route('account.index')
+            ->with('success', __('flash.memberships.left', ['business' => $businessName]));
+    }
+
     /** DELETE /memberships/{membership} */
     public function destroy(Request $request, Membership $membership): RedirectResponse
     {

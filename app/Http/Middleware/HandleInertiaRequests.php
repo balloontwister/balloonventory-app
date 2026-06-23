@@ -92,7 +92,7 @@ class HandleInertiaRequests extends Middleware
                 'name' => $m->business->name,
                 'color' => $m->business_badge_color,
                 'logoUrl' => $this->businessLogoUrl($m->business),
-                'pivot' => ['role' => $m->role],
+                'pivot' => ['role' => $m->role, 'membership_id' => $m->id],
             ])->values(),
 
             'membership' => [

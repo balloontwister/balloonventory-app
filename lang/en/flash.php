@@ -117,6 +117,8 @@ return [
         'role_updated' => ':name\'s role has been updated.',
         'removed' => ':name has been removed from the business.',
         'invite_revoked' => 'Invitation revoked.',
+        'left' => 'You have left :business.',
+        'last_owner_leave' => 'You cannot leave because you are the only owner. Transfer ownership first.',
     ],
 
     'invitations' => [

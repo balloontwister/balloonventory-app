@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ContactSupportModal from '@/Components/ContactSupportModal.vue';
 import RoleBadge from '@/Components/RoleBadge.vue';
@@ -34,6 +35,13 @@ function logout() {
 
 function switchBusiness(id) {
     router.post(route('business.switch', { business: id }));
+}
+
+function leaveBusiness(biz) {
+    if (!confirm(trans('account.other_businesses.leave_confirm', { business: biz.name }))) {
+        return;
+    }
+    useForm({}).delete(route('memberships.leave', { membership: biz.pivot.membership_id }));
 }
 </script>
 
@@ -406,13 +414,23 @@ function switchBusiness(id) {
                         </p>
                         <RoleBadge :role="biz.pivot?.role ?? 'guest'" />
                     </div>
-                    <button
-                        type="button"
-                        class="flex-shrink-0 rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
-                        @click="switchBusiness(biz.id)"
-                    >
-                        {{ $t('account.other_businesses.switch') }}
-                    </button>
+                    <div class="flex flex-shrink-0 items-center gap-2">
+                        <button
+                            type="button"
+                            class="font-sans text-[13px] text-ink-tertiary hover:text-danger"
+                            @click="leaveBusiness(biz)"
+                        >
+                            {{ $t('account.other_businesses.leave') }}
+                        </button>
+                        <button
+                            v-if="biz.pivot?.role !== 'none'"
+                            type="button"
+                            class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
+                            @click="switchBusiness(biz.id)"
+                        >
+                            {{ $t('account.other_businesses.switch') }}
+                        </button>
+                    </div>
                 </div>
             </div>
 

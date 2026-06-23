@@ -872,6 +872,36 @@ class InventoryControllerTest extends TestCase
         ]);
     }
 
+    public function test_guest_can_add_catalog_sku_to_list(): void
+    {
+        $guest = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $guest->id,
+            'business_id' => $this->business->id,
+            'role' => 'guest',
+            'joined_at' => now(),
+        ]);
+
+        // A shared catalog SKU with no StockLevel for this business.
+        $sku = Sku::factory()->create();
+
+        $list = BalloonList::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'name' => 'Event Planning',
+            'is_business_favorites' => false,
+            'created_by_user_id' => $this->owner->id,
+        ]);
+
+        $this->actingAs($guest)
+            ->post(route('inventory.sku.add-to-list', $sku), ['list_id' => $list->id])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('list_items', [
+            'list_id' => $list->id,
+            'sku_id' => $sku->id,
+        ]);
+    }
+
     // ── favorites ─────────────────────────────────────────────────────────────
 
     public function test_add_favorite_creates_list_item_in_favorites(): void

@@ -677,7 +677,7 @@ class InventoryController extends Controller
 
     public function addToList(Request $request, Sku $sku): RedirectResponse
     {
-        abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+        abort_unless($sku->isVisibleTo(BusinessContext::currentId()), 404);
         Gate::authorize('list.edit', Business::findOrFail(BusinessContext::currentId()));
 
         $data = $request->validate([

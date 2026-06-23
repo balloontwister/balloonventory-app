@@ -12,6 +12,7 @@ import { useBusiness } from '@/Composables/useBusiness.js';
 const page = usePage();
 const { can } = useBusiness();
 const canEditFavorites = computed(() => can('favorites.edit'));
+const canAddToInventory = computed(() => can('inventory.check_in'));
 
 // Carry the list's current filters/page into the show link so the detail page's
 // back link can restore them — and scroll back to the row that was opened.
@@ -563,15 +564,20 @@ function isFavorite(sku) {
                                     class="flex justify-end opacity-0 transition group-hover:opacity-100"
                                 >
                                     <AppButton
+                                        v-if="canAddToInventory"
                                         variant="secondary"
                                         size="sm"
                                         @click="addToInventory(sku)"
                                     >
-                                        {{
-                                            $t(
-                                                'inventory.action_add_to_inventory',
-                                            )
-                                        }}
+                                        {{ $t('inventory.action_add_to_inventory') }}
+                                    </AppButton>
+                                    <AppButton
+                                        v-else
+                                        variant="secondary"
+                                        size="sm"
+                                        @click="openAddToList(sku)"
+                                    >
+                                        {{ $t('inventory.action_add_to_list') }}
                                     </AppButton>
                                 </div>
                             </td>

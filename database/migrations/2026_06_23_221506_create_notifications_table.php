@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('type');
-            $table->morphs('notifiable');
+            // uuidMorphs (not morphs): notifiables use UUID primary keys, so
+            // notifiable_id must be a CHAR/UUID column, not a BIGINT.
+            $table->uuidMorphs('notifiable');
             $table->text('data');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();

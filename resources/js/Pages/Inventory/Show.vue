@@ -541,6 +541,7 @@ function formatDate(value) {
                         :sku-id="sku.id"
                         :is-favorite="isFavorite"
                         :favorite-list-id="favoritesListId"
+                        :readonly="!can('favorites.edit')"
                     />
                 </div>
             </div>

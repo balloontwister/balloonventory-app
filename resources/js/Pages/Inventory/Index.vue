@@ -7,8 +7,11 @@ import Modal from '@/Components/Modal.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
+import { useBusiness } from '@/Composables/useBusiness.js';
 
 const page = usePage();
+const { can } = useBusiness();
+const canEditFavorites = computed(() => can('favorites.edit'));
 
 // Carry the list's current filters/page into the show link so the detail page's
 // back link can restore them — and scroll back to the row that was opened.
@@ -485,6 +488,7 @@ function isFavorite(sku) {
                                         :sku-id="sku.id"
                                         :is-favorite="isFavorite(sku)"
                                         :favorite-list-id="favoritesListId"
+                                        :readonly="!canEditFavorites"
                                     />
                                     <AppButton
                                         variant="ghost"

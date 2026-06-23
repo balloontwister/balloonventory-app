@@ -81,5 +81,8 @@ return [
         'invite_email_placeholder' => 'colleague@example.com',
         'invite_role' => 'Role',
         'invite_submit' => 'Send invite',
+        'owner_warning_title' => 'Remove owner access?',
+        'owner_warning_body' => ':name is currently an owner of this business. Removing their owner access means they will no longer be able to manage settings, team members, or billing.',
+        'owner_warning_confirm' => 'Yes, remove access',
     ],
 ];

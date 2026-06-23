@@ -81,5 +81,8 @@ return [
         'invite_email_placeholder' => 'colega@ejemplo.com',
         'invite_role' => 'Rol',
         'invite_submit' => 'Enviar invitación',
+        'owner_warning_title' => '¿Quitar acceso de propietario?',
+        'owner_warning_body' => ':name es actualmente propietario de este negocio. Quitarle el acceso de propietario significa que ya no podrá gestionar la configuración, los miembros del equipo ni la facturación.',
+        'owner_warning_confirm' => 'Sí, quitar acceso',
     ],
 ];

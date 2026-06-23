@@ -6,9 +6,11 @@ import ImageUpload from '@/Components/ImageUpload.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
+import Modal from '@/Components/Modal.vue';
+import AppButton from '@/Components/AppButton.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     business: { type: Object, required: true },
@@ -45,13 +47,46 @@ function roleOptions(includeOwner) {
     return base;
 }
 
-function handleRoleChange(membershipId, role) {
-    useForm({ role }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
+// Holds the pending action when the owner-warning modal is open.
+// { type: 'role_change'|'revoke', membershipId, memberName, newRole? }
+const ownerWarningPending = ref(null);
+// Incrementing this key forces the role selects to re-render on cancel,
+// reverting any visually-selected value that was intercepted by the modal.
+const selectResetKey = ref(0);
+
+function handleRoleChange(membershipId, newRole, currentRole) {
+    if (currentRole === 'owner') {
+        const member = props.members.find((m) => m.id === membershipId);
+        ownerWarningPending.value = { type: 'role_change', membershipId, newRole, memberName: member?.name ?? '' };
+        return;
+    }
+    useForm({ role: newRole }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
 }
 
-function revokeMember(membershipId) {
+function revokeMember(membershipId, currentRole) {
+    if (currentRole === 'owner') {
+        const member = props.members.find((m) => m.id === membershipId);
+        ownerWarningPending.value = { type: 'revoke', membershipId, memberName: member?.name ?? '' };
+        return;
+    }
     if (!confirm(trans('settings.team.confirm_remove'))) { return; }
     useForm({}).delete(route('memberships.destroy', membershipId), { preserveScroll: true });
+}
+
+function confirmOwnerWarning() {
+    const pending = ownerWarningPending.value;
+    ownerWarningPending.value = null;
+    if (!pending) { return; }
+    if (pending.type === 'role_change') {
+        useForm({ role: pending.newRole }).patch(route('memberships.update-role', pending.membershipId), { preserveScroll: true });
+    } else {
+        useForm({}).delete(route('memberships.destroy', pending.membershipId), { preserveScroll: true });
+    }
+}
+
+function cancelOwnerWarning() {
+    ownerWarningPending.value = null;
+    selectResetKey.value++;
 }
 
 function revokeInvite(invitationId) {
@@ -473,10 +508,11 @@ const submitLogo = () =>
                             </p>
                         </div>
                         <select
+                            :key="member.id + '-' + selectResetKey"
                             :value="member.role"
                             :disabled="member.is_self"
                             class="rounded-md border border-border bg-background px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none disabled:opacity-50"
-                            @change="(e) => handleRoleChange(member.id, e.target.value)"
+                            @change="(e) => handleRoleChange(member.id, e.target.value, member.role)"
                         >
                             <option
                                 v-for="opt in roleOptions(can.inviteOwner)"
@@ -490,7 +526,7 @@ const submitLogo = () =>
                             v-if="!member.is_self"
                             type="button"
                             class="flex-shrink-0 font-sans text-[13px] text-ink-tertiary hover:text-danger"
-                            @click="revokeMember(member.id)"
+                            @click="revokeMember(member.id, member.role)"
                         >
                             {{ $t('settings.team.revoke') }}
                         </button>
@@ -618,5 +654,24 @@ const submitLogo = () =>
                 </Link>
             </div>
         </div>
+        <!-- Owner access warning modal -->
+        <Modal :show="!!ownerWarningPending" @close="cancelOwnerWarning">
+            <div class="p-6">
+                <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                    {{ $t('settings.team.owner_warning_title') }}
+                </h2>
+                <p class="mt-2 font-sans text-[14px] text-ink-secondary">
+                    {{ $t('settings.team.owner_warning_body', { name: ownerWarningPending?.memberName ?? '' }) }}
+                </p>
+                <div class="mt-6 flex justify-end gap-2">
+                    <AppButton variant="secondary" @click="cancelOwnerWarning">
+                        {{ $t('common.cancel') }}
+                    </AppButton>
+                    <AppButton variant="danger" @click="confirmOwnerWarning">
+                        {{ $t('settings.team.owner_warning_confirm') }}
+                    </AppButton>
+                </div>
+            </div>
+        </Modal>
     </AuthenticatedLayout>
 </template>

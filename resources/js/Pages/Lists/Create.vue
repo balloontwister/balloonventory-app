@@ -5,9 +5,14 @@ import AppInput from '@/Components/AppInput.vue';
 import AppButton from '@/Components/AppButton.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 
+const props = defineProps({
+    canManageVisibility: { type: Boolean, default: false },
+});
+
 const form = useForm({
     name: '',
     notes: '',
+    visibility: 'standard',
 });
 
 function submit() {
@@ -61,6 +66,25 @@ function submit() {
                 <p v-if="form.errors.notes" class="text-[13px] text-danger">
                     {{ form.errors.notes }}
                 </p>
+            </div>
+
+            <!-- Visibility type — owners only -->
+            <div v-if="canManageVisibility" class="flex flex-col gap-1">
+                <label
+                    for="visibility"
+                    class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    {{ $t('lists.form.visibility_label') }}
+                </label>
+                <select
+                    id="visibility"
+                    v-model="form.visibility"
+                    class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                >
+                    <option value="standard">{{ $t('lists.form.visibility_standard') }}</option>
+                    <option value="owner_editable">{{ $t('lists.form.visibility_owner_editable') }}</option>
+                    <option value="private">{{ $t('lists.form.visibility_private') }}</option>
+                </select>
             </div>
 
             <div class="flex justify-end gap-2">

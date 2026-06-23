@@ -4,7 +4,7 @@ import BackLink from '@/Components/BackLink.vue';
 import ListContents from '@/Components/ListContents.vue';
 import Modal from '@/Components/Modal.vue';
 import AppButton from '@/Components/AppButton.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
@@ -17,6 +17,10 @@ function deleteList() {
     router.delete(route('lists.destroy', { list: props.list.id }), {
         onFinish: () => (confirmingDelete.value = false),
     });
+}
+
+function unarchive() {
+    useForm({ archived: false }).patch(route('lists.update', { list: props.list.id }));
 }
 </script>
 
@@ -51,12 +55,26 @@ function deleteList() {
                     </h1>
 
                     <div class="ml-auto flex items-center gap-2">
+                        <!-- Visibility badge -->
+                        <span
+                            v-if="list.visibility === 'owner_editable'"
+                            class="rounded-full bg-accent-soft px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
+                        >
+                            {{ $t('lists.form.visibility_owner_editable').split(' — ')[0] }}
+                        </span>
+                        <span
+                            v-else-if="list.visibility === 'private'"
+                            class="rounded-full bg-ink-tertiary/10 px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('lists.form.visibility_private').split(' — ')[0] }}
+                        </span>
+
                         <Link
-                            v-if="list.can.rename"
+                            v-if="list.can.edit"
                             :href="route('lists.edit', { list: list.id })"
                             class="rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
                         >
-                            {{ $t('lists.detail.rename') }}
+                            {{ $t('lists.detail.edit') }}
                         </Link>
                         <button
                             v-if="list.can.delete"
@@ -68,17 +86,42 @@ function deleteList() {
                         </button>
                     </div>
                 </div>
-                <p
-                    v-if="list.notes"
-                    class="font-sans text-[14px] text-ink-secondary"
-                >
-                    {{ list.notes }}
-                </p>
             </div>
         </template>
 
-        <div class="rounded-lg border border-border bg-surface">
-            <ListContents :list="list" />
+        <div class="flex flex-col gap-4">
+            <!-- Notes -->
+            <div
+                v-if="list.notes"
+                class="rounded-lg border border-border bg-surface px-4 py-3"
+            >
+                <p class="font-sans text-[14px] text-ink-secondary">{{ list.notes }}</p>
+            </div>
+
+            <!-- Archived notice -->
+            <div
+                v-if="list.archived_at"
+                class="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3"
+            >
+                <span class="rounded-full bg-ink-tertiary/10 px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                    {{ $t('lists.detail.archived_badge') }}
+                </span>
+                <p class="flex-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('lists.detail.archived_notice') }}
+                </p>
+                <button
+                    v-if="list.can.manage_visibility"
+                    type="button"
+                    class="shrink-0 rounded-md border border-border-strong bg-surface px-3 py-1.5 font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
+                    @click="unarchive"
+                >
+                    {{ $t('lists.detail.unarchive') }}
+                </button>
+            </div>
+
+            <div class="rounded-lg border border-border bg-surface">
+                <ListContents :list="list" />
+            </div>
         </div>
 
         <!-- Delete confirmation -->

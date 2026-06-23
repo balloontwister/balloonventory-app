@@ -26,6 +26,8 @@ class BalloonList extends Model
         'name',
         'is_business_favorites',
         'notes',
+        'archived_at',
+        'visibility',
         'created_by_user_id',
     ];
 
@@ -33,6 +35,7 @@ class BalloonList extends Model
     {
         return [
             'is_business_favorites' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -53,8 +56,13 @@ class BalloonList extends Model
         });
 
         static::saving(function (self $model) {
-            if ($model->exists && $model->is_business_favorites && $model->isDirty('name')) {
-                throw new \RuntimeException('The Favorites list cannot be renamed.');
+            if ($model->exists && $model->is_business_favorites) {
+                if ($model->isDirty('name')) {
+                    throw new \RuntimeException('The Favorites list cannot be renamed.');
+                }
+                if ($model->isDirty('archived_at') && $model->archived_at !== null) {
+                    throw new \RuntimeException('The Favorites list cannot be archived.');
+                }
             }
         });
     }

@@ -6,8 +6,10 @@ use App\Models\BalloonList;
 use App\Models\Business;
 use App\Models\BusinessSkuOverride;
 use App\Models\ListItem;
+use App\Models\Membership;
 use App\Models\Sku;
 use App\Models\StockLevel;
+use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,13 +23,18 @@ class ListsController extends Controller
      * The "Lists & Jobs" hub: every list for the business, Favorites pinned
      * first, each with a SKU count and a small swatch preview for its card.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $business = $this->currentBusiness();
         Gate::authorize('list.view', $business);
 
+        $showArchived = $request->boolean('archived');
+        $isOwner = $this->currentUserIsOwner($business);
+
         return Inertia::render('Lists/Index', [
-            'lists' => $this->listsSummary(withPreview: true),
+            'lists' => $this->listsSummary(withPreview: true, archived: $showArchived, isOwner: $isOwner),
+            'archivedCount' => BalloonList::where('business_id', $business->id)->whereNotNull('archived_at')->count(),
+            'showArchived' => $showArchived,
             'can' => [
                 'create' => Gate::allows('list.create', $business),
             ],
@@ -44,6 +51,8 @@ class ListsController extends Controller
         $business = $this->currentBusiness();
         Gate::authorize('list.view', $business);
 
+        $isOwner = $this->currentUserIsOwner($business);
+
         $active = $request->filled('list')
             ? BalloonList::find($request->query('list'))
             : null;
@@ -53,25 +62,34 @@ class ListsController extends Controller
             ->first();
 
         return Inertia::render('Inventory/Lists', [
-            'lists' => $this->listsSummary(),
-            'activeList' => $active ? $this->listPayload($active) : null,
+            'lists' => $this->listsSummary(isOwner: $isOwner),
+            'activeList' => $active ? $this->listPayload($active, $isOwner) : null,
         ]);
     }
 
     public function show(BalloonList $list): Response
     {
-        Gate::authorize('list.view', $this->currentBusiness());
+        $business = $this->currentBusiness();
+        Gate::authorize('list.view', $business);
+
+        $isOwner = $this->currentUserIsOwner($business);
+
+        // Private lists are invisible to non-owners.
+        abort_if(($list->visibility ?? 'standard') === 'private' && ! $isOwner, 403);
 
         return Inertia::render('Lists/Show', [
-            'list' => $this->listPayload($list),
+            'list' => $this->listPayload($list, $isOwner),
         ]);
     }
 
     public function create(): Response
     {
-        Gate::authorize('list.create', $this->currentBusiness());
+        $business = $this->currentBusiness();
+        Gate::authorize('list.create', $business);
 
-        return Inertia::render('Lists/Create');
+        return Inertia::render('Lists/Create', [
+            'canManageVisibility' => $this->currentUserIsOwner($business),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -79,9 +97,12 @@ class ListsController extends Controller
         $business = $this->currentBusiness();
         Gate::authorize('list.create', $business);
 
+        $isOwner = $this->currentUserIsOwner($business);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'visibility' => ['nullable', 'string', 'in:standard,owner_editable,private'],
         ]);
 
         $list = BalloonList::create([
@@ -90,6 +111,7 @@ class ListsController extends Controller
             'notes' => $data['notes'] ?? null,
             'is_business_favorites' => false,
             'created_by_user_id' => $request->user()->id,
+            'visibility' => $isOwner ? ($data['visibility'] ?? 'standard') : 'standard',
         ]);
 
         return redirect()
@@ -99,15 +121,20 @@ class ListsController extends Controller
 
     public function edit(BalloonList $list): Response
     {
-        // Favorites cannot be renamed; the policy blocks the update.
         Gate::authorize('update', $list);
+
+        $business = $this->currentBusiness();
+        $isOwner = $this->currentUserIsOwner($business);
 
         return Inertia::render('Lists/Edit', [
             'list' => [
                 'id' => $list->id,
                 'name' => $list->name,
                 'notes' => $list->notes,
+                'archived' => $list->archived_at !== null,
+                'visibility' => $list->visibility ?? 'standard',
             ],
+            'canManageVisibility' => $isOwner,
         ]);
     }
 
@@ -115,12 +142,26 @@ class ListsController extends Controller
     {
         Gate::authorize('update', $list);
 
+        $isOwner = $this->currentUserIsOwner($this->currentBusiness());
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'archived' => ['nullable', 'boolean'],
+            'visibility' => ['nullable', 'string', 'in:standard,owner_editable,private'],
         ]);
 
-        $list->update($data);
+        $updates = [
+            'name' => $data['name'],
+            'notes' => $data['notes'] ?? null,
+        ];
+
+        if ($isOwner) {
+            $updates['archived_at'] = ($data['archived'] ?? false) ? now() : null;
+            $updates['visibility'] = $data['visibility'] ?? $list->visibility ?? 'standard';
+        }
+
+        $list->update($updates);
 
         return redirect()
             ->route('lists.show', $list)
@@ -203,15 +244,32 @@ class ListsController extends Controller
     /**
      * Summary rows for every list (Favorites first). Used by both the hub cards
      * and the Inventory "By List" switcher; `withPreview` adds swatch previews.
+     * Non-owners never see private lists. The hub can toggle between active and
+     * archived lists via the `archived` flag.
      *
      * @return list<array<string,mixed>>
      */
-    private function listsSummary(bool $withPreview = false): array
+    private function listsSummary(bool $withPreview = false, bool $archived = false, bool $isOwner = false): array
     {
         $query = BalloonList::query()
             ->withCount('items')
             ->orderByDesc('is_business_favorites')
             ->orderBy('name');
+
+        // Show archived OR active lists — never both at once.
+        if ($archived) {
+            $query->whereNotNull('archived_at');
+        } else {
+            $query->whereNull('archived_at');
+        }
+
+        // Non-owners cannot see private lists.
+        if (! $isOwner) {
+            $query->where(fn ($q) => $q
+                ->whereNull('visibility')
+                ->orWhereIn('visibility', ['standard', 'owner_editable'])
+            );
+        }
 
         if ($withPreview) {
             $query->with(['items' => fn ($q) => $q
@@ -228,6 +286,8 @@ class ListsController extends Controller
                 'name' => $list->name,
                 'is_business_favorites' => (bool) $list->is_business_favorites,
                 'notes' => $list->notes,
+                'visibility' => $list->visibility ?? 'standard',
+                'archived_at' => $list->archived_at,
                 'sku_count' => (int) $list->items_count,
                 'updated_at' => $list->updated_at,
             ];
@@ -253,7 +313,7 @@ class ListsController extends Controller
      *
      * @return array<string,mixed>
      */
-    private function listPayload(BalloonList $list): array
+    private function listPayload(BalloonList $list, bool $isOwner = false): array
     {
         $business = $this->currentBusiness();
 
@@ -262,13 +322,16 @@ class ListsController extends Controller
             'name' => $list->name,
             'is_business_favorites' => (bool) $list->is_business_favorites,
             'notes' => $list->notes,
+            'visibility' => $list->visibility ?? 'standard',
+            'archived_at' => $list->archived_at?->toISOString(),
             'items' => $this->itemsWithStock($list),
             'can' => [
                 'editItems' => $list->is_business_favorites
                     ? Gate::allows('favorites.edit', $business)
                     : Gate::allows('update', $list),
-                'rename' => Gate::allows('update', $list),
+                'edit' => Gate::allows('update', $list),
                 'delete' => Gate::allows('delete', $list),
+                'manage_visibility' => $isOwner,
             ],
         ];
     }
@@ -332,5 +395,14 @@ class ListsController extends Controller
     private function currentBusiness(): Business
     {
         return Business::findOrFail(BusinessContext::currentId());
+    }
+
+    private function currentUserIsOwner(Business $business): bool
+    {
+        return Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('user_id', auth()->id())
+            ->where('business_id', $business->id)
+            ->whereNull('deleted_at')
+            ->value('role') === 'owner';
     }
 }

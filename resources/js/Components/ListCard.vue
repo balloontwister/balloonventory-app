@@ -35,13 +35,25 @@ const updatedAt = computed(() => {
             class="rounded-lg border border-border bg-surface p-5 transition hover:border-border-strong"
         >
             <!-- header -->
-            <div class="mb-3 flex items-center justify-between gap-2">
+            <div class="mb-3 flex items-center gap-2">
                 <h3
                     class="font-sans text-[18px] font-semibold leading-[1.3] tracking-h3 text-ink-primary"
                 >
                     {{ list.name }}
                 </h3>
-                <span class="font-mono text-[14px] text-ink-secondary"
+                <span
+                    v-if="list.visibility === 'owner_editable'"
+                    class="rounded-full bg-accent-soft px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-eyebrow text-accent"
+                >
+                    Owner's
+                </span>
+                <span
+                    v-else-if="list.visibility === 'private'"
+                    class="rounded-full bg-ink-tertiary/10 px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
+                    Private
+                </span>
+                <span class="ml-auto font-mono text-[14px] text-ink-secondary"
                     >{{ list.sku_count }} SKUs</span
                 >
             </div>

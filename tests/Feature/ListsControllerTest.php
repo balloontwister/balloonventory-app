@@ -299,6 +299,178 @@ class ListsControllerTest extends TestCase
             ->assertForbidden();
     }
 
+    // ── archive ──────────────────────────────────────────────────────────────────
+
+    public function test_owner_can_archive_a_list(): void
+    {
+        $list = $this->customList();
+
+        $this->actingAs($this->owner)
+            ->patch(route('lists.update', $list), ['name' => $list->name, 'archived' => true])
+            ->assertRedirect();
+
+        $this->assertNotNull($list->fresh()->archived_at);
+    }
+
+    public function test_archived_lists_hidden_from_index_by_default(): void
+    {
+        $this->customList(['name' => 'Active']);
+        $this->customList(['name' => 'Archived', 'archived_at' => now()]);
+
+        $this->actingAs($this->owner)
+            ->get(route('lists.index'))
+            ->assertInertia(fn ($page) => $page
+                ->has('lists', 2) // Favorites + Active
+                ->where('archivedCount', 1)
+                ->where('showArchived', false)
+            );
+    }
+
+    public function test_archived_lists_appear_with_archived_query_param(): void
+    {
+        $this->customList(['name' => 'Active']);
+        $this->customList(['name' => 'Archived', 'archived_at' => now()]);
+
+        $this->actingAs($this->owner)
+            ->get(route('lists.index', ['archived' => 1]))
+            ->assertInertia(fn ($page) => $page
+                ->has('lists', 1)
+                ->where('lists.0.name', 'Archived')
+                ->where('showArchived', true)
+            );
+    }
+
+    public function test_favorites_cannot_be_archived(): void
+    {
+        $this->actingAs($this->owner)
+            ->patch(route('lists.update', $this->favorites), ['name' => 'Favorites', 'archived' => true])
+            ->assertForbidden();
+
+        $this->assertNull($this->favorites->fresh()->archived_at);
+    }
+
+    public function test_non_owner_cannot_archive_a_list(): void
+    {
+        $staff = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $staff->id,
+            'business_id' => $this->business->id,
+            'role' => 'staff',
+            'joined_at' => now(),
+        ]);
+
+        $list = $this->customList();
+
+        $this->actingAs($staff)
+            ->patch(route('lists.update', $list), ['name' => $list->name, 'archived' => true])
+            ->assertRedirect();
+
+        $this->assertNull($list->fresh()->archived_at);
+    }
+
+    // ── visibility ────────────────────────────────────────────────────────────────
+
+    public function test_owner_can_set_visibility_on_create(): void
+    {
+        $this->actingAs($this->owner)
+            ->post(route('lists.store'), ['name' => 'Owners Only', 'visibility' => 'owner_editable'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('lists', [
+            'business_id' => $this->business->id,
+            'name' => 'Owners Only',
+            'visibility' => 'owner_editable',
+        ]);
+    }
+
+    public function test_non_owner_cannot_set_visibility_on_create(): void
+    {
+        $staff = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $staff->id,
+            'business_id' => $this->business->id,
+            'role' => 'staff',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('lists.store'), ['name' => 'Attempted', 'visibility' => 'private'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('lists', [
+            'name' => 'Attempted',
+            'visibility' => 'standard',
+        ]);
+    }
+
+    public function test_private_list_is_hidden_from_non_owner(): void
+    {
+        $staff = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $staff->id,
+            'business_id' => $this->business->id,
+            'role' => 'staff',
+            'joined_at' => now(),
+        ]);
+
+        $privateList = $this->customList(['visibility' => 'private']);
+
+        $this->actingAs($staff)
+            ->get(route('lists.show', $privateList))
+            ->assertForbidden();
+    }
+
+    public function test_private_list_excluded_from_non_owner_index(): void
+    {
+        $staff = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $staff->id,
+            'business_id' => $this->business->id,
+            'role' => 'staff',
+            'joined_at' => now(),
+        ]);
+
+        $this->customList(['name' => 'Public']);
+        $this->customList(['name' => 'Secret', 'visibility' => 'private']);
+
+        $this->actingAs($staff)
+            ->get(route('lists.index'))
+            ->assertInertia(fn ($page) => $page
+                ->has('lists', 2) // Favorites + Public only
+            );
+    }
+
+    public function test_owner_editable_list_cannot_be_updated_by_non_owner(): void
+    {
+        $staff = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $staff->id,
+            'business_id' => $this->business->id,
+            'role' => 'staff',
+            'joined_at' => now(),
+        ]);
+
+        $list = $this->customList(['visibility' => 'owner_editable']);
+
+        $this->actingAs($staff)
+            ->patch(route('lists.update', $list), ['name' => 'Hijacked'])
+            ->assertForbidden();
+
+        $this->assertSame('Smith Wedding', $list->fresh()->name);
+    }
+
+    public function test_can_manage_visibility_is_true_for_owner(): void
+    {
+        $list = $this->customList();
+
+        $this->actingAs($this->owner)
+            ->get(route('lists.edit', $list))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('canManageVisibility', true)
+            );
+    }
+
     // ── inventory "By List" tab ──────────────────────────────────────────────────
 
     public function test_inventory_view_defaults_to_favorites(): void

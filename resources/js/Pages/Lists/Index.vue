@@ -2,11 +2,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ListCard from '@/Components/ListCard.vue';
 import BalloonSwatch from '@/Components/BalloonSwatch.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps({
     lists: { type: Array, required: true },
+    archivedCount: { type: Number, default: 0 },
+    showArchived: { type: Boolean, default: false },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -18,6 +20,13 @@ const customLists = computed(() =>
 );
 
 const MAX_SWATCHES = 6;
+
+function toggleArchived() {
+    router.get(route('lists.index'), props.showArchived ? {} : { archived: 1 }, {
+        preserveState: true,
+        replace: true,
+    });
+}
 </script>
 
 <template>
@@ -55,12 +64,12 @@ const MAX_SWATCHES = 6;
                 <h2
                     class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                 >
-                    {{ $t('lists.index.section_lists') }}
+                    {{ showArchived ? $t('lists.index.section_archived') : $t('lists.index.section_lists') }}
                 </h2>
 
-                <!-- Favorites — pinned at top -->
+                <!-- Favorites — pinned at top (only when viewing active lists) -->
                 <Link
-                    v-if="favorites"
+                    v-if="favorites && !showArchived"
                     :href="route('lists.show', { list: favorites.id })"
                     class="block rounded-lg border border-accent/30 bg-accent-soft/40 p-5 transition hover:border-accent/60"
                 >
@@ -114,7 +123,7 @@ const MAX_SWATCHES = 6;
                     </div>
                 </Link>
 
-                <!-- Custom lists -->
+                <!-- Custom / archived lists -->
                 <div
                     v-if="customLists.length"
                     class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -129,8 +138,26 @@ const MAX_SWATCHES = 6;
                     v-else
                     class="rounded-lg border border-dashed border-border px-4 py-6 text-center font-sans text-[14px] text-ink-tertiary"
                 >
-                    {{ $t('lists.index.no_custom_lists') }}
+                    {{ showArchived ? $t('lists.index.no_archived_lists') : $t('lists.index.no_custom_lists') }}
                 </p>
+
+                <!-- Archived toggle -->
+                <button
+                    v-if="showArchived"
+                    type="button"
+                    class="self-start font-sans text-[13px] text-ink-tertiary underline-offset-2 hover:text-ink-secondary hover:underline"
+                    @click="toggleArchived"
+                >
+                    {{ $t('lists.index.hide_archived') }}
+                </button>
+                <button
+                    v-else-if="archivedCount > 0"
+                    type="button"
+                    class="self-start font-sans text-[13px] text-ink-tertiary underline-offset-2 hover:text-ink-secondary hover:underline"
+                    @click="toggleArchived"
+                >
+                    {{ $tChoice('lists.index.show_archived', archivedCount, { count: archivedCount }) }}
+                </button>
             </section>
 
             <!-- Jobs (Phase 2) -->

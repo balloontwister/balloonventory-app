@@ -33,6 +33,11 @@ class BalloonListPolicy
             return false;
         }
 
+        // Owner's List and Private List: only the owner role may edit.
+        if (in_array($list->visibility ?? 'standard', ['owner_editable', 'private'])) {
+            return $this->membershipRole($user, $list->business) === 'owner';
+        }
+
         return $this->userCan($user, $list->business, 'list.edit');
     }
 

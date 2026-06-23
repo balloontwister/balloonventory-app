@@ -138,7 +138,7 @@ class HandleInertiaRequests extends Middleware
                 'inventory.override_count', 'inventory.view_counts', 'inventory.view_audit_log',
                 'sku.create_private', 'sku.edit_private', 'sku.delete_private',
                 'sku.edit_override', 'sku.report_error',
-                'list.view', 'list.create', 'list.edit', 'list.delete', 'favorites.edit',
+                'list.view', 'list.create', 'list.edit', 'list.delete', 'list.manage_visibility', 'favorites.edit',
                 'job.view', 'job.create', 'job.edit', 'job.delete', 'job.set_status',
                 'local_price.view', 'local_price.edit',
                 'membership.invite_owner', 'membership.invite_manager',

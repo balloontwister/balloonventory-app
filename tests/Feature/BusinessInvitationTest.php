@@ -489,35 +489,6 @@ class BusinessInvitationTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Acknowledge (dismiss status notice)
-    // -------------------------------------------------------------------------
-
-    public function test_acknowledge_sets_acknowledged_at(): void
-    {
-        $invitee = User::factory()->create(['email_verified_at' => now()]);
-        $this->giveUserOwnBusiness($invitee);
-
-        $invitation = BusinessInvitation::withoutGlobalScope(BusinessScope::class)->create([
-            'business_id' => $this->business->id,
-            'invited_email' => $invitee->email,
-            'invited_user_id' => $invitee->id,
-            'role' => 'staff',
-            'token' => Str::random(64),
-            'invited_by_user_id' => $this->owner->id,
-            'status' => BusinessInvitation::STATUS_ACCEPTED,
-            'expires_at' => now()->addDays(14),
-        ]);
-
-        $this->assertNull($invitation->acknowledged_at);
-
-        $response = $this->actingAs($invitee)
-            ->post(route('invitations.acknowledge'), ['invitation_id' => $invitation->id]);
-
-        $response->assertRedirect();
-        $this->assertNotNull($invitation->fresh()->acknowledged_at);
-    }
-
-    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 

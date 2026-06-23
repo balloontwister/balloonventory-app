@@ -11,6 +11,7 @@ use App\Http\Controllers\ListsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MembershipController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
@@ -142,7 +143,9 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     // ─── Invitation in-app paths (accept/decline/acknowledge from dashboard) ─────
     Route::post('/invitations/accept-in-app', [InvitationController::class, 'acceptInApp'])->name('invitations.accept-in-app');
     Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
-    Route::post('/invitations/acknowledge', [InvitationController::class, 'acknowledge'])->name('invitations.acknowledge');
+
+    // ─── Notifications (unified dashboard notice feed) ───────────────────────────
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // ── Lists & Jobs hub ──────────────────────────────────────────────────────
     Route::get('/lists', [ListsController::class, 'index'])->name('lists.index');

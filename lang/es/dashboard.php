@@ -78,8 +78,11 @@ return [
         'decline' => 'Rechazar',
     ],
 
-    'membership_status' => [
-        'notice' => 'Ahora eres :role en :business.',
+    'notifications' => [
+        'business_access_granted' => 'Ahora eres :role en :business.',
+        'invitation_accepted' => ':name aceptó tu invitación para unirse a :business.',
+        'member_left' => ':name dejó :business.',
+        'member_role_changed' => 'Tu rol en :business ahora es :role.',
         'switch' => 'Cambiar a :business',
         'dismiss' => 'Descartar',
     ],

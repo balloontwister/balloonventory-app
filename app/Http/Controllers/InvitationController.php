@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Business;
 use App\Models\BusinessInvitation;
 use App\Models\Membership;
+use App\Models\User;
+use App\Notifications\BusinessAccessGranted;
+use App\Notifications\InvitationAccepted;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
@@ -101,27 +105,6 @@ class InvitationController extends Controller
         return back()->with('success', __('flash.invitations.declined'));
     }
 
-    /**
-     * POST /invitations/acknowledge — clears the post-join status notice.
-     */
-    public function acknowledge(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'invitation_id' => ['required', 'string'],
-        ]);
-
-        $invitation = BusinessInvitation::withoutGlobalScope(BusinessScope::class)
-            ->where('id', $validated['invitation_id'])
-            ->where('invited_user_id', $request->user()->id)
-            ->first();
-
-        if ($invitation) {
-            $invitation->update(['acknowledged_at' => now()]);
-        }
-
-        return back();
-    }
-
     private function acceptInvitation(BusinessInvitation $invitation): void
     {
         $business = $invitation->business;
@@ -133,6 +116,8 @@ class InvitationController extends Controller
             ->where('user_id', $invitedUser->id)
             ->whereNull('deleted_at')
             ->first();
+
+        $justJoined = ! $existingMembership;
 
         if (! $existingMembership) {
             // Restore a soft-deleted membership or create fresh.
@@ -165,5 +150,48 @@ class InvitationController extends Controller
             'responded_at' => now(),
             'token' => Str::random(64),
         ]);
+
+        if ($justJoined) {
+            $this->notifyOfJoin($business, $invitedUser, $invitation->role);
+        }
+    }
+
+    /**
+     * Notify the joiner (in-app access notice) and every owner (accepted notice).
+     */
+    private function notifyOfJoin(Business $business, User $invitedUser, string $role): void
+    {
+        $invitedUser->notify(new BusinessAccessGranted(
+            $business->id,
+            $business->name,
+            $this->roleLabel($role),
+        ));
+
+        $owners = Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('business_id', $business->id)
+            ->where('role', 'owner')
+            ->whereNull('deleted_at')
+            ->where('user_id', '!=', $invitedUser->id)
+            ->with('user')
+            ->get();
+
+        foreach ($owners as $ownerMembership) {
+            $ownerMembership->user->notify(new InvitationAccepted(
+                $business->id,
+                $business->name,
+                $invitedUser->name,
+            ));
+        }
+    }
+
+    private function roleLabel(string $role): string
+    {
+        return match ($role) {
+            'owner' => 'Owner',
+            'manager' => 'Manager',
+            'staff' => 'Artist',
+            'guest' => 'Guest Artist',
+            default => $role,
+        };
     }
 }

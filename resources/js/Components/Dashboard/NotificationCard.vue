@@ -1,0 +1,75 @@
+<script setup>
+import { useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const props = defineProps({
+    notification: { type: Object, required: true },
+});
+
+const page = usePage();
+
+const MESSAGE_KEYS = {
+    business_access_granted: 'dashboard.notifications.business_access_granted',
+    invitation_accepted: 'dashboard.notifications.invitation_accepted',
+    member_left: 'dashboard.notifications.member_left',
+    member_role_changed: 'dashboard.notifications.member_role_changed',
+};
+
+const messageKey = computed(() => MESSAGE_KEYS[props.notification.type] ?? null);
+const messageParams = computed(() => ({
+    role: props.notification.role_label ?? '',
+    business: props.notification.business_name ?? '',
+    name: props.notification.actor_name ?? '',
+}));
+
+// Offer "Switch" whenever the notice is about a business other than the active one.
+const canSwitch = computed(
+    () =>
+        !!props.notification.business_id &&
+        page.props.business?.id !== props.notification.business_id,
+);
+
+const switchForm = useForm({ business: props.notification.business_id });
+const dismissForm = useForm({});
+
+function switchBusiness() {
+    switchForm.post(route('business.switch', { business: props.notification.business_id }), {
+        preserveScroll: true,
+    });
+}
+
+function dismiss() {
+    dismissForm.delete(route('notifications.destroy', { notification: props.notification.id }), {
+        preserveScroll: true,
+    });
+}
+</script>
+
+<template>
+    <div
+        class="flex flex-col gap-3 rounded-lg border border-border bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+        <p v-if="messageKey" class="font-sans text-[13px] text-ink-primary">
+            {{ $t(messageKey, messageParams) }}
+        </p>
+        <div class="flex flex-shrink-0 gap-2">
+            <button
+                v-if="canSwitch"
+                type="button"
+                :disabled="switchForm.processing || dismissForm.processing"
+                class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                @click="switchBusiness"
+            >
+                {{ $t('dashboard.notifications.switch', { business: notification.business_name }) }}
+            </button>
+            <button
+                type="button"
+                :disabled="switchForm.processing || dismissForm.processing"
+                class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-sans text-[13px] font-semibold text-ink-primary transition hover:bg-background disabled:opacity-40"
+                @click="dismiss"
+            >
+                {{ $t('dashboard.notifications.dismiss') }}
+            </button>
+        </div>
+    </div>
+</template>

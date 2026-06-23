@@ -8,6 +8,9 @@ use App\Models\Business;
 use App\Models\BusinessInvitation;
 use App\Models\Membership;
 use App\Models\User;
+use App\Notifications\MemberLeftBusiness;
+use App\Notifications\MemberRemoved;
+use App\Notifications\MemberRoleChanged;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Illuminate\Http\RedirectResponse;
@@ -66,7 +69,6 @@ class MembershipController extends Controller
                 'status' => BusinessInvitation::STATUS_PENDING,
                 'expires_at' => now()->addDays(14),
                 'responded_at' => null,
-                'acknowledged_at' => null,
             ]);
         } else {
             $invitation = BusinessInvitation::withoutGlobalScope(BusinessScope::class)->create([
@@ -114,6 +116,14 @@ class MembershipController extends Controller
 
         $membership->update(['role' => $validated['role']]);
 
+        if ($membership->user_id !== $request->user()->id) {
+            $membership->user->notify(new MemberRoleChanged(
+                $membership->business_id,
+                $membership->business->name,
+                $this->roleLabel($validated['role']),
+            ));
+        }
+
         return back()->with('success', __('flash.memberships.role_updated', ['name' => $membership->user->name]));
     }
 
@@ -137,6 +147,22 @@ class MembershipController extends Controller
         $businessName = $membership->business->name;
         $membership->delete();
 
+        $owners = Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('business_id', $membership->business_id)
+            ->where('role', 'owner')
+            ->whereNull('deleted_at')
+            ->where('user_id', '!=', $request->user()->id)
+            ->with('user')
+            ->get();
+
+        foreach ($owners as $ownerMembership) {
+            $ownerMembership->user->notify(new MemberLeftBusiness(
+                $membership->business_id,
+                $businessName,
+                $request->user()->name,
+            ));
+        }
+
         return redirect()->route('account.index')
             ->with('success', __('flash.memberships.left', ['business' => $businessName]));
     }
@@ -150,9 +176,14 @@ class MembershipController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
+        $removedUser = $membership->user;
+        $businessName = $membership->business->name;
+
         $membership->delete();
 
-        return back()->with('success', __('flash.memberships.removed', ['name' => $membership->user->name]));
+        $removedUser->notify(new MemberRemoved($businessName));
+
+        return back()->with('success', __('flash.memberships.removed', ['name' => $removedUser->name]));
     }
 
     /** DELETE /memberships/invitations/{invitation}/revoke */

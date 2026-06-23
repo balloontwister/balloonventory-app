@@ -78,8 +78,11 @@ return [
         'decline' => 'Decline',
     ],
 
-    'membership_status' => [
-        'notice' => 'You\'re now a :role at :business.',
+    'notifications' => [
+        'business_access_granted' => 'You\'re now a :role at :business.',
+        'invitation_accepted' => ':name accepted your invitation to join :business.',
+        'member_left' => ':name left :business.',
+        'member_role_changed' => 'Your role at :business is now :role.',
         'switch' => 'Switch to :business',
         'dismiss' => 'Dismiss',
     ],

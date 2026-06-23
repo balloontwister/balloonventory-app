@@ -38,7 +38,6 @@ class BusinessInvitation extends Model
         'invited_by_user_id',
         'status',
         'expires_at',
-        'acknowledged_at',
         'responded_at',
     ];
 
@@ -46,7 +45,6 @@ class BusinessInvitation extends Model
     {
         return [
             'expires_at' => 'datetime',
-            'acknowledged_at' => 'datetime',
             'responded_at' => 'datetime',
         ];
     }

@@ -122,6 +122,115 @@ TEXT,
                 'body_text' => '',
                 'is_active' => false,
             ],
+            [
+                'key' => 'invitation_accepted',
+                'label' => 'Invitation Accepted',
+                'trigger_description' => 'Sent to a business owner when someone they invited accepts and joins the business.',
+                'subject' => '{{actor_name}} joined {{business_name}}',
+                'body_html' => <<<'HTML'
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Good news — <strong>{{actor_name}}</strong> accepted your invitation and has joined <strong>{{business_name}}</strong>.</p>
+<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td style="background:#6D28D9;border-radius:10px;">
+            <a href="{{app_url}}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;">Go to your dashboard →</a>
+        </td>
+    </tr>
+</table>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#0A0A0A;">— Tallie at Balloonventory</p>
+HTML,
+                'body_text' => <<<'TEXT'
+Hi {{user_name}},
+
+Good news — {{actor_name}} accepted your invitation and has joined {{business_name}}.
+
+Go to your dashboard: {{app_url}}
+
+— Tallie at Balloonventory
+TEXT,
+                'is_active' => true,
+            ],
+            [
+                'key' => 'member_left_business',
+                'label' => 'Member Left Business',
+                'trigger_description' => 'Sent to every owner of a business when a member removes themselves from it.',
+                'subject' => '{{actor_name}} left {{business_name}}',
+                'body_html' => <<<'HTML'
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;"><strong>{{actor_name}}</strong> has left <strong>{{business_name}}</strong> and no longer has access.</p>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#0A0A0A;">If this was unexpected, you can re-invite them anytime from your business settings.</p>
+<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td style="background:#6D28D9;border-radius:10px;">
+            <a href="{{app_url}}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;">Go to your dashboard →</a>
+        </td>
+    </tr>
+</table>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#0A0A0A;">— Tallie at Balloonventory</p>
+HTML,
+                'body_text' => <<<'TEXT'
+Hi {{user_name}},
+
+{{actor_name}} has left {{business_name}} and no longer has access.
+
+If this was unexpected, you can re-invite them anytime from your business settings.
+
+Go to your dashboard: {{app_url}}
+
+— Tallie at Balloonventory
+TEXT,
+                'is_active' => true,
+            ],
+            [
+                'key' => 'member_role_changed',
+                'label' => 'Member Role Changed',
+                'trigger_description' => 'Sent to a member when an owner changes their role within a business.',
+                'subject' => 'Your role at {{business_name}} has changed',
+                'body_html' => <<<'HTML'
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Your role at <strong>{{business_name}}</strong> is now <strong>{{role_label}}</strong>.</p>
+<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td style="background:#6D28D9;border-radius:10px;">
+            <a href="{{app_url}}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;">Go to your dashboard →</a>
+        </td>
+    </tr>
+</table>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#0A0A0A;">— Tallie at Balloonventory</p>
+HTML,
+                'body_text' => <<<'TEXT'
+Hi {{user_name}},
+
+Your role at {{business_name}} is now {{role_label}}.
+
+Go to your dashboard: {{app_url}}
+
+— Tallie at Balloonventory
+TEXT,
+                'is_active' => true,
+            ],
+            [
+                'key' => 'member_removed',
+                'label' => 'Member Removed',
+                'trigger_description' => 'Sent to a member when an owner removes them from a business.',
+                'subject' => 'Your access to {{business_name}} has been removed',
+                'body_html' => <<<'HTML'
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Your access to <strong>{{business_name}}</strong> has been removed by a business owner.</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">If you believe this was a mistake, please reach out to the business owner directly.</p>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#0A0A0A;">— Tallie at Balloonventory</p>
+HTML,
+                'body_text' => <<<'TEXT'
+Hi {{user_name}},
+
+Your access to {{business_name}} has been removed by a business owner.
+
+If you believe this was a mistake, please reach out to the business owner directly.
+
+— Tallie at Balloonventory
+TEXT,
+                'is_active' => true,
+            ],
         ];
 
         // firstOrCreate (not updateOrCreate): seed missing templates only, never

@@ -47,7 +47,7 @@ class DashboardController extends Controller
             'recentActivity' => $can['viewCounts'] ? $this->buildRecentActivity() : [],
             'nudges' => $this->buildNudges($user, $business),
             'pendingInvitations' => $this->buildPendingInvitations($user),
-            'membershipNotices' => $this->buildMembershipNotices($user),
+            'notifications' => $this->buildNotifications($user),
             'can' => $can,
         ]);
     }
@@ -203,23 +203,23 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return list<array{invitation_id: string, business_id: string, business_name: string, role_label: string}>
+     * Unified, user-level notice feed (all businesses) from the notifications table.
+     *
+     * @return list<array{id: string, type: ?string, business_id: ?string, business_name: ?string, role_label: ?string, actor_name: ?string, created_at: mixed}>
      */
-    private function buildMembershipNotices(mixed $user): array
+    private function buildNotifications(mixed $user): array
     {
-        return BusinessInvitation::withoutGlobalScope(BusinessScope::class)
-            ->with('business')
-            ->where('invited_user_id', $user->id)
-            ->where('status', BusinessInvitation::STATUS_ACCEPTED)
-            ->whereNull('acknowledged_at')
+        return $user->unreadNotifications()
             ->get()
-            ->map(fn (BusinessInvitation $inv) => [
-                'invitation_id' => $inv->id,
-                'business_id' => $inv->business_id,
-                'business_name' => $inv->business->name,
-                'role_label' => $this->roleLabel($inv->role),
+            ->map(fn ($notification) => [
+                'id' => $notification->id,
+                'type' => $notification->data['type'] ?? null,
+                'business_id' => $notification->data['business_id'] ?? null,
+                'business_name' => $notification->data['business_name'] ?? null,
+                'role_label' => $notification->data['role_label'] ?? null,
+                'actor_name' => $notification->data['actor_name'] ?? null,
+                'created_at' => $notification->created_at,
             ])
-            ->values()
             ->all();
     }
 

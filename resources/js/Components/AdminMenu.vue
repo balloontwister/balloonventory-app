@@ -15,6 +15,7 @@ const isSuper = computed(() => page.props.auth?.isSuperAdmin ?? false);
 const LINKS = [
     { key: 'overview', route: 'admin.dashboard', match: 'admin.dashboard' },
     { key: 'catalog', route: 'admin.catalog.skus', match: 'admin.catalog.*' },
+    { key: 'distributors', route: 'admin.distributors.index', match: 'admin.distributors.*' },
     { key: 'users', route: 'admin.users.index', match: 'admin.users.*' },
     { key: 'feedback', route: 'admin.feedback.index', match: 'admin.feedback.*' },
     { key: 'support_tickets', route: 'admin.tickets.index', match: 'admin.tickets.*' },

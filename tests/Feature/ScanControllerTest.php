@@ -20,6 +20,7 @@ use App\Models\StockMovement;
 use App\Models\User;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,6 +39,7 @@ class ScanControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(PermissionSeeder::class);
 
         $this->owner = User::factory()->create(['email_verified_at' => now()]);
         $this->business = Business::factory()->create();

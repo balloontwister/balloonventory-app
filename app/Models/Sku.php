@@ -219,6 +219,18 @@ class Sku extends Model
         return $this->hasMany(BusinessSkuOverride::class);
     }
 
+    public function distributorUrls(): HasMany
+    {
+        return $this->hasMany(DistributorSkuUrl::class);
+    }
+
+    public function distributors(): BelongsToMany
+    {
+        return $this->belongsToMany(Distributor::class, 'distributor_sku_urls')
+            ->withPivot(['url', 'price', 'currency', 'in_stock', 'last_checked_at'])
+            ->withTimestamps();
+    }
+
     public function isShared(): bool
     {
         return $this->owned_by_business_id === null;

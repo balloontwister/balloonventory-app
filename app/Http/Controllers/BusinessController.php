@@ -84,6 +84,7 @@ class BusinessController extends Controller
             ->first();
 
         abort_unless($membership !== null, 403);
+        abort_if($membership->role === 'none', 403);
 
         $request->session()->put('current_business_id', $business);
         BusinessContext::set($business);

@@ -41,6 +41,11 @@ class SkuPolicy
         return $this->userCan($user, $business, 'sku.edit_override');
     }
 
+    public function submitFeedback(User $user, Business $business): bool
+    {
+        return $this->userCan($user, $business, 'sku.report_error');
+    }
+
     public function editShared(User $user): bool
     {
         return $user->isSuperAdmin();

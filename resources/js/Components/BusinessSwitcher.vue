@@ -84,10 +84,14 @@ function switchBusiness(id) {
                 v-for="biz in businesses"
                 :key="biz.id"
                 type="button"
-                :disabled="biz.id === business?.id"
+                :disabled="biz.id === business?.id || biz.pivot?.role === 'none'"
                 class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition"
-                :class="biz.id === business?.id ? 'cursor-default opacity-60' : 'hover:bg-background'"
-                @click="biz.id !== business?.id && switchBusiness(biz.id)"
+                :class="
+                    biz.id === business?.id || biz.pivot?.role === 'none'
+                        ? 'cursor-default opacity-50'
+                        : 'hover:bg-background'
+                "
+                @click="biz.id !== business?.id && biz.pivot?.role !== 'none' && switchBusiness(biz.id)"
             >
                 <img
                     v-if="biz.logoUrl"

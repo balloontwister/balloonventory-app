@@ -45,6 +45,11 @@ class BalloonListPolicy
         return $this->userCan($user, $list->business, 'list.delete');
     }
 
+    public function editItem(User $user, Business $business): bool
+    {
+        return $this->userCan($user, $business, 'list.edit');
+    }
+
     public function editFavorites(User $user, Business $business): bool
     {
         return $this->userCan($user, $business, 'favorites.edit');

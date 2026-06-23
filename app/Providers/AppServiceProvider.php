@@ -71,10 +71,12 @@ class AppServiceProvider extends ServiceProvider
         $sku = app(SkuPolicy::class);
         Gate::define('sku.create_private', fn ($u, $b) => $sku->createPrivate($u, $b));
         Gate::define('sku.edit_override', fn ($u, $b) => $sku->editOverride($u, $b));
+        Gate::define('sku.report_error', fn ($u, $b) => $sku->submitFeedback($u, $b));
 
         $list = app(BalloonListPolicy::class);
         Gate::define('list.view', fn ($u, $b) => $list->viewAny($u, $b));
         Gate::define('list.create', fn ($u, $b) => $list->create($u, $b));
+        Gate::define('list.edit', fn ($u, $b) => $list->editItem($u, $b));
         Gate::define('favorites.edit', fn ($u, $b) => $list->editFavorites($u, $b));
 
         $job = app(JobPolicy::class);

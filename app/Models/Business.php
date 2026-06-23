@@ -6,6 +6,7 @@ use App\Enums\BusinessPlan;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -106,5 +107,14 @@ class Business extends Model
     public function jobs(): HasMany
     {
         return $this->hasMany(Job::class);
+    }
+
+    public function distributors(): BelongsToMany
+    {
+        return $this->belongsToMany(Distributor::class, 'business_distributors')
+            ->withPivot(['sort_order', 'is_enabled'])
+            ->wherePivot('is_enabled', true)
+            ->orderByPivot('sort_order')
+            ->withTimestamps();
     }
 }

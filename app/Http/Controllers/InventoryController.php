@@ -64,6 +64,8 @@ class InventoryController extends Controller
 
     public function index(Request $request): Response
     {
+        Gate::authorize('inventory.view_counts', Business::findOrFail(BusinessContext::currentId()));
+
         $request->validate([
             'brand' => ['nullable', 'uuid'],
             'size' => ['nullable', 'uuid'],
@@ -227,6 +229,7 @@ class InventoryController extends Controller
         // not yet stocked — e.g. a catalog item added to a list. The page shows
         // an "Add to inventory" CTA in that case (see $inInventory below).
         abort_unless($sku->isVisibleTo(BusinessContext::currentId()), 404);
+        Gate::authorize('inventory.view_counts', Business::findOrFail(BusinessContext::currentId()));
 
         $inInventory = StockLevel::where('sku_id', $sku->id)->exists();
 
@@ -339,6 +342,7 @@ class InventoryController extends Controller
         }
 
         $business = Business::findOrFail($businessId);
+        Gate::authorize('inventory.check_in', $business);
         $bin = $this->binResolver->resolveDefault($business);
 
         StockLevel::firstOrCreate(
@@ -356,6 +360,7 @@ class InventoryController extends Controller
     public function destroy(Request $request, Sku $sku): RedirectResponse
     {
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.check_out', Business::findOrFail($businessId));
 
         $levels = StockLevel::where('sku_id', $sku->id)->get();
 
@@ -387,6 +392,7 @@ class InventoryController extends Controller
         abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
 
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
 
         $binExistsForBusiness = Rule::exists('bins', 'id')
             ->where('business_id', $businessId)
@@ -497,6 +503,7 @@ class InventoryController extends Controller
         abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
 
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
 
         $binExistsForBusiness = Rule::exists('bins', 'id')
             ->where('business_id', $businessId)
@@ -566,6 +573,7 @@ class InventoryController extends Controller
     public function removeStockBin(Sku $sku, Bin $bin): RedirectResponse
     {
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
 
         $level = StockLevel::where('business_id', $businessId)
             ->where('sku_id', $sku->id)
@@ -614,6 +622,7 @@ class InventoryController extends Controller
     public function updateOverride(Request $request, Sku $sku): RedirectResponse
     {
         abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+        Gate::authorize('sku.edit_override', Business::findOrFail(BusinessContext::currentId()));
 
         $data = $request->validate([
             'custom_name' => ['nullable', 'string', 'max:255'],
@@ -642,6 +651,7 @@ class InventoryController extends Controller
     public function submitFeedback(Request $request, Sku $sku): RedirectResponse
     {
         abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+        Gate::authorize('sku.report_error', Business::findOrFail(BusinessContext::currentId()));
 
         $data = $request->validate([
             'field' => ['required', Rule::in(self::FEEDBACK_FIELDS)],
@@ -668,6 +678,7 @@ class InventoryController extends Controller
     public function addToList(Request $request, Sku $sku): RedirectResponse
     {
         abort_unless(StockLevel::where('sku_id', $sku->id)->exists(), 404);
+        Gate::authorize('list.edit', Business::findOrFail(BusinessContext::currentId()));
 
         $data = $request->validate([
             'list_id' => ['required', 'uuid'],
@@ -688,6 +699,7 @@ class InventoryController extends Controller
     {
         // A business may only favorite SKUs it can see (shared OR its own).
         abort_unless($sku->isVisibleTo(BusinessContext::currentId()), 404);
+        Gate::authorize('favorites.edit', Business::findOrFail(BusinessContext::currentId()));
 
         $list = BalloonList::where('is_business_favorites', true)->firstOrFail();
 
@@ -701,6 +713,7 @@ class InventoryController extends Controller
 
     public function removeFavorite(Sku $sku): RedirectResponse
     {
+        Gate::authorize('favorites.edit', Business::findOrFail(BusinessContext::currentId()));
         $list = BalloonList::where('is_business_favorites', true)->firstOrFail();
 
         ListItem::where('list_id', $list->id)

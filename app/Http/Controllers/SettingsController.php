@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateBusinessRequest;
 use App\Models\Business;
+use App\Models\BusinessDistributor;
 use App\Models\BusinessInvitation;
+use App\Models\Distributor;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Services\ImageAttachmentService;
@@ -115,6 +117,15 @@ class SettingsController extends Controller
                 'invite' => Gate::allows('membership.invite', [$business, 'staff']),
                 'inviteOwner' => Gate::allows('membership.invite', [$business, 'owner']),
             ],
+            'availableDistributors' => Distributor::active()
+                ->orderBy('sort_order')
+                ->get(['id', 'name', 'slug', 'description'])
+                ->toArray(),
+            'enabledDistributorIds' => BusinessDistributor::where('business_id', $business->id)
+                ->where('is_enabled', true)
+                ->orderBy('sort_order')
+                ->pluck('distributor_id')
+                ->toArray(),
         ]);
     }
 
@@ -174,5 +185,31 @@ class SettingsController extends Controller
         }
 
         return $slug;
+    }
+
+    public function updateDistributors(Request $request): RedirectResponse
+    {
+        $business = Business::findOrFail(BusinessContext::currentId());
+
+        Gate::authorize('business.edit_settings', $business);
+
+        $validated = $request->validate([
+            'distributors' => ['array'],
+            'distributors.*.id' => ['required', 'exists:distributors,id'],
+            'distributors.*.enabled' => ['boolean'],
+            'distributors.*.sort_order' => ['integer', 'min:0'],
+        ]);
+
+        foreach ($validated['distributors'] as $entry) {
+            BusinessDistributor::updateOrCreate(
+                ['business_id' => $business->id, 'distributor_id' => $entry['id']],
+                [
+                    'is_enabled' => $entry['enabled'] ?? true,
+                    'sort_order' => $entry['sort_order'] ?? 0,
+                ],
+            );
+        }
+
+        return back()->with('success', __('flash.settings.distributors_updated'));
     }
 }

@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             DecomexBalloonSizeSeeder::class,
             DecomexColorSeeder::class,
             GemarColorSeeder::class,
+            DistributorSeeder::class,
         ]);
     }
 }

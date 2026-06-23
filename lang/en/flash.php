@@ -5,6 +5,7 @@ return [
         'preferences_updated' => 'Preferences updated.',
         'business_name_updated' => 'Business name updated.',
         'business_logo_updated' => 'Business logo updated.',
+        'distributors_updated' => 'Preferred distributors updated.',
     ],
 
     'profile' => [
@@ -33,6 +34,12 @@ return [
             'gs1_added' => 'GS1 prefix :prefix added.',
             'gs1_removed' => 'GS1 prefix :prefix removed.',
         ],
+    ],
+
+    'distributors' => [
+        'created' => 'Distributor ":name" created.',
+        'updated' => 'Distributor ":name" updated.',
+        'deleted' => 'Distributor ":name" deleted.',
     ],
 
     'support' => [

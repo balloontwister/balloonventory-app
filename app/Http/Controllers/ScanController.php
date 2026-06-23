@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -48,6 +49,7 @@ class ScanController extends Controller
         // Guarantee a Default bin so the working-bin selector is never empty
         // (mirrors the bins page; businesses predating bins were seeded lazily).
         $business = Business::findOrFail($businessId);
+        Gate::authorize('inventory.view_counts', $business);
         $defaultBin = $this->binResolver->resolveDefault($business);
 
         $initialMode = in_array($request->query('mode'), ['add', 'remove']) ? $request->query('mode') : 'add';
@@ -440,17 +442,22 @@ class ScanController extends Controller
 
     public function checkIn(Request $request): JsonResponse
     {
+        Gate::authorize('inventory.check_in', Business::findOrFail(BusinessContext::currentId()));
+
         return $this->recordMovement($request, StockDirection::In);
     }
 
     public function checkOut(Request $request): JsonResponse
     {
+        Gate::authorize('inventory.check_out', Business::findOrFail(BusinessContext::currentId()));
+
         return $this->recordMovement($request, StockDirection::Out);
     }
 
     public function undo(Request $request, StockMovement $stockMovement): JsonResponse
     {
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
 
         // Implicit binding already enforces business_id via the global scope on
         // StockMovement; the explicit check is defense-in-depth in case the

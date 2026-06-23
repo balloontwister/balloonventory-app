@@ -11,6 +11,7 @@ import ItemFeedbackModal from '@/Components/ItemFeedbackModal.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+import { useBusiness } from '@/Composables/useBusiness.js';
 
 const props = defineProps({
     sku: { type: Object, required: true },
@@ -28,6 +29,10 @@ const props = defineProps({
     canManageLists: { type: Boolean, default: false },
     returnQuery: { type: String, default: '' },
 });
+
+const { can } = useBusiness();
+const canAdjust = computed(() => can('inventory.manual_adjust'));
+const canEditOverride = computed(() => can('sku.edit_override'));
 
 // ── Add to list ────────────────────────────────────────────────────────────────
 const addListOpen = ref(false);
@@ -735,6 +740,7 @@ function formatDate(value) {
                             </div>
                             <AppButton
                                 v-if="
+                                    canAdjust &&
                                     inInventory &&
                                     availableBins.length > 0 &&
                                     !addingBin
@@ -749,7 +755,7 @@ function formatDate(value) {
 
                         <!-- Add-bin picker -->
                         <div
-                            v-if="addingBin"
+                            v-if="canAdjust && addingBin"
                             class="mb-3 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2"
                         >
                             <select
@@ -803,6 +809,7 @@ function formatDate(value) {
                                 {{ $t('inventory.show.not_in_inventory_hint') }}
                             </p>
                             <AppButton
+                                v-if="canAdjust"
                                 variant="primary"
                                 size="sm"
                                 :disabled="addingToInventory"
@@ -834,6 +841,7 @@ function formatDate(value) {
                                     <div class="flex items-center gap-1">
                                         <AppButton
                                             v-if="
+                                                canAdjust &&
                                                 canTransfer &&
                                                 rowHasStock(row) &&
                                                 !isDirty(row)
@@ -845,7 +853,7 @@ function formatDate(value) {
                                             {{ $t('inventory.show.stock_move') }}
                                         </AppButton>
                                         <AppButton
-                                            v-if="rowIsEmpty(row) && !isDirty(row)"
+                                            v-if="canAdjust && rowIsEmpty(row) && !isDirty(row)"
                                             variant="ghost"
                                             size="sm"
                                             class="text-ink-tertiary hover:text-danger"
@@ -865,140 +873,154 @@ function formatDate(value) {
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-4">
-                                    <!-- Full bags stepper -->
-                                    <div class="flex items-center gap-2">
-                                        <span
-                                            class="w-10 font-sans text-[12px] text-ink-secondary"
-                                            >{{
-                                                $t('inventory.show.stock_full')
-                                            }}</span
-                                        >
-                                        <button
-                                            type="button"
-                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background disabled:opacity-40"
-                                            :disabled="row.full <= 0"
-                                            :aria-label="`− ${$t('inventory.show.stock_full')}`"
-                                            @click="step(row, 'full', -1)"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                                class="h-3.5 w-3.5"
+                                    <template v-if="canAdjust">
+                                        <!-- Full bags stepper -->
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="w-10 font-sans text-[12px] text-ink-secondary"
+                                                >{{
+                                                    $t('inventory.show.stock_full')
+                                                }}</span
                                             >
-                                                <path
-                                                    d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"
-                                                />
-                                            </svg>
-                                        </button>
-                                        <span
-                                            class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary"
-                                            >{{ row.full }}</span
-                                        >
-                                        <button
-                                            type="button"
-                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background"
-                                            :aria-label="`+ ${$t('inventory.show.stock_full')}`"
-                                            @click="step(row, 'full', 1)"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                                class="h-3.5 w-3.5"
+                                            <button
+                                                type="button"
+                                                class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background disabled:opacity-40"
+                                                :disabled="row.full <= 0"
+                                                :aria-label="`− ${$t('inventory.show.stock_full')}`"
+                                                @click="step(row, 'full', -1)"
                                             >
-                                                <path
-                                                    d="M10 4a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V5a1 1 0 011-1z"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </div>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    class="h-3.5 w-3.5"
+                                                >
+                                                    <path
+                                                        d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                            <span
+                                                class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary"
+                                                >{{ row.full }}</span
+                                            >
+                                            <button
+                                                type="button"
+                                                class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background"
+                                                :aria-label="`+ ${$t('inventory.show.stock_full')}`"
+                                                @click="step(row, 'full', 1)"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    class="h-3.5 w-3.5"
+                                                >
+                                                    <path
+                                                        d="M10 4a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V5a1 1 0 011-1z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
 
-                                    <!-- Open bags stepper -->
-                                    <div class="flex items-center gap-2">
-                                        <span
-                                            class="w-10 font-sans text-[12px] text-ink-secondary"
-                                            >{{
-                                                $t('inventory.show.stock_open')
-                                            }}</span
-                                        >
-                                        <button
-                                            type="button"
-                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background disabled:opacity-40"
-                                            :disabled="row.open <= 0"
-                                            :aria-label="`− ${$t('inventory.show.stock_open')}`"
-                                            @click="step(row, 'open', -1)"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                                class="h-3.5 w-3.5"
+                                        <!-- Open bags stepper -->
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="w-10 font-sans text-[12px] text-ink-secondary"
+                                                >{{
+                                                    $t('inventory.show.stock_open')
+                                                }}</span
                                             >
-                                                <path
-                                                    d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"
-                                                />
-                                            </svg>
-                                        </button>
-                                        <span
-                                            class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary"
-                                            >{{ row.open }}</span
-                                        >
-                                        <button
-                                            type="button"
-                                            class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background"
-                                            :aria-label="`+ ${$t('inventory.show.stock_open')}`"
-                                            @click="step(row, 'open', 1)"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                                class="h-3.5 w-3.5"
+                                            <button
+                                                type="button"
+                                                class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background disabled:opacity-40"
+                                                :disabled="row.open <= 0"
+                                                :aria-label="`− ${$t('inventory.show.stock_open')}`"
+                                                @click="step(row, 'open', -1)"
                                             >
-                                                <path
-                                                    d="M10 4a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V5a1 1 0 011-1z"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </div>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    class="h-3.5 w-3.5"
+                                                >
+                                                    <path
+                                                        d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                            <span
+                                                class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary"
+                                                >{{ row.open }}</span
+                                            >
+                                            <button
+                                                type="button"
+                                                class="flex h-7 w-7 items-center justify-center rounded-md border border-border-strong text-ink-secondary hover:bg-background"
+                                                :aria-label="`+ ${$t('inventory.show.stock_open')}`"
+                                                @click="step(row, 'open', 1)"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    class="h-3.5 w-3.5"
+                                                >
+                                                    <path
+                                                        d="M10 4a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V5a1 1 0 011-1z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
 
-                                    <!-- Save / reset (only when dirty) -->
-                                    <div
-                                        v-if="isDirty(row)"
-                                        class="ml-auto flex items-center gap-2"
-                                    >
-                                        <span
-                                            class="font-sans text-[12px] text-ink-tertiary"
+                                        <!-- Save / reset (only when dirty) -->
+                                        <div
+                                            v-if="isDirty(row)"
+                                            class="ml-auto flex items-center gap-2"
                                         >
-                                            {{
-                                                $t(
-                                                    'inventory.show.stock_pending_hint',
-                                                    {
-                                                        full: row.currentFull,
-                                                        open: row.currentOpen,
-                                                    },
-                                                )
-                                            }}
-                                        </span>
-                                        <AppButton
-                                            variant="ghost"
-                                            size="sm"
-                                            @click="resetRow(row)"
-                                        >
-                                            {{
-                                                $t('inventory.show.stock_reset')
-                                            }}
-                                        </AppButton>
-                                        <AppButton
-                                            variant="primary"
-                                            size="sm"
-                                            :disabled="row.saving"
-                                            @click="saveRow(row)"
-                                        >
-                                            {{ $t('inventory.show.stock_save') }}
-                                        </AppButton>
-                                    </div>
+                                            <span
+                                                class="font-sans text-[12px] text-ink-tertiary"
+                                            >
+                                                {{
+                                                    $t(
+                                                        'inventory.show.stock_pending_hint',
+                                                        {
+                                                            full: row.currentFull,
+                                                            open: row.currentOpen,
+                                                        },
+                                                    )
+                                                }}
+                                            </span>
+                                            <AppButton
+                                                variant="ghost"
+                                                size="sm"
+                                                @click="resetRow(row)"
+                                            >
+                                                {{
+                                                    $t('inventory.show.stock_reset')
+                                                }}
+                                            </AppButton>
+                                            <AppButton
+                                                variant="primary"
+                                                size="sm"
+                                                :disabled="row.saving"
+                                                @click="saveRow(row)"
+                                            >
+                                                {{ $t('inventory.show.stock_save') }}
+                                            </AppButton>
+                                        </div>
+                                    </template>
+
+                                    <!-- Read-only counts for guests -->
+                                    <template v-else>
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-10 font-sans text-[12px] text-ink-secondary">{{ $t('inventory.show.stock_full') }}</span>
+                                            <span class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary">{{ row.full }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-10 font-sans text-[12px] text-ink-secondary">{{ $t('inventory.show.stock_open') }}</span>
+                                            <span class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary">{{ row.open }}</span>
+                                        </div>
+                                    </template>
                                 </div>
 
                                 <p
@@ -1100,7 +1122,7 @@ function formatDate(value) {
                     </section>
 
                     <!-- Customizations (collapsed by default) -->
-                    <section>
+                    <section v-if="canEditOverride">
                         <!-- Collapsed: prompt / summary -->
                         <div v-if="!editingOverride">
                             <button

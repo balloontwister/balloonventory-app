@@ -7,6 +7,7 @@ import Modal from '@/Components/Modal.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';
+import { useBusiness } from '@/Composables/useBusiness.js';
 import {
     AVERY_FORMATS,
     LABEL_PRESETS,
@@ -18,6 +19,9 @@ import {
 const props = defineProps({
     locations: { type: Array, required: true },
 });
+
+const { can } = useBusiness();
+const canManageBins = computed(() => can('inventory.manual_adjust'));
 
 const allBins = computed(() =>
     props.locations.flatMap((location) =>
@@ -357,7 +361,7 @@ function binSummaryLabel(bin) {
             >
                 {{ $t('bins.print_all') }}
             </AppButton>
-            <AppButton variant="primary" size="sm" @click="openCreateLocation">
+            <AppButton v-if="canManageBins" variant="primary" size="sm" @click="openCreateLocation">
                 {{ $t('bins.add_location') }}
             </AppButton>
         </div>
@@ -398,7 +402,7 @@ function binSummaryLabel(bin) {
                         {{ binsCountLabel(location) }}
                     </span>
 
-                    <div class="ml-auto flex items-center gap-1">
+                    <div v-if="canManageBins" class="ml-auto flex items-center gap-1">
                         <button
                             type="button"
                             class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
@@ -567,6 +571,7 @@ function binSummaryLabel(bin) {
                                     {{ $t('bins.view_label') }}
                                 </button>
                                 <button
+                                    v-if="canManageBins"
                                     type="button"
                                     class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
                                     @click="openEditBin(bin)"
@@ -574,7 +579,7 @@ function binSummaryLabel(bin) {
                                     {{ $t('bins.form.edit') }}
                                 </button>
                                 <button
-                                    v-if="!bin.is_default"
+                                    v-if="canManageBins && !bin.is_default"
                                     type="button"
                                     class="rounded-md px-2 py-1 font-sans text-[13px] text-danger hover:bg-danger-soft"
                                     @click="deleteBin(bin)"

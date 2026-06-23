@@ -26,6 +26,12 @@ export function useBusiness() {
     const userRole = computed(() => membership.value?.role ?? null);
     const userRoleLabel = computed(() => roleLabelFor(userRole.value));
 
+    const permissions = computed(() => page.props.permissions ?? []);
+
+    function can(permission) {
+        return permissions.value.includes(permission);
+    }
+
     return {
         business,
         businesses,
@@ -35,5 +41,6 @@ export function useBusiness() {
         businessLogoUrl,
         userRole,
         userRoleLabel,
+        can,
     };
 }

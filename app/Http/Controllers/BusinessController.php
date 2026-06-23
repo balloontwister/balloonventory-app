@@ -77,6 +77,7 @@ class BusinessController extends Controller
     public function switch(Request $request, string $business): RedirectResponse
     {
         $membership = Membership::withoutGlobalScope(BusinessScope::class)
+            ->with('business')
             ->where('user_id', $request->user()->id)
             ->where('business_id', $business)
             ->whereNull('deleted_at')
@@ -87,7 +88,7 @@ class BusinessController extends Controller
         $request->session()->put('current_business_id', $business);
         BusinessContext::set($business);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', __('flash.business.switched', ['name' => $membership->business->name]));
     }
 
     private function uniqueSlug(string $name): string

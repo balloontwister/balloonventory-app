@@ -84,8 +84,10 @@ function switchBusiness(id) {
                 v-for="biz in businesses"
                 :key="biz.id"
                 type="button"
-                class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-background"
-                @click="switchBusiness(biz.id)"
+                :disabled="biz.id === business?.id"
+                class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition"
+                :class="biz.id === business?.id ? 'cursor-default opacity-60' : 'hover:bg-background'"
+                @click="biz.id !== business?.id && switchBusiness(biz.id)"
             >
                 <img
                     v-if="biz.logoUrl"

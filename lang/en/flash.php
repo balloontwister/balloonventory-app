@@ -118,4 +118,8 @@ return [
         'invalid_link' => 'This invitation link is invalid or has expired.',
         'wrong_account' => 'This invitation is for a different account. Please sign in with the correct account.',
     ],
+
+    'business' => [
+        'switched' => 'Switched to :name.',
+    ],
 ];

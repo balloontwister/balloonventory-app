@@ -118,4 +118,8 @@ return [
         'invalid_link' => 'Este enlace de invitación no es válido o ha expirado.',
         'wrong_account' => 'Esta invitación es para una cuenta diferente. Por favor inicia sesión con la cuenta correcta.',
     ],
+
+    'business' => [
+        'switched' => 'Cambiado a :name.',
+    ],
 ];

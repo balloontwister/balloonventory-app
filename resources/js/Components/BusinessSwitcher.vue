@@ -4,7 +4,7 @@ import { Link, router } from '@inertiajs/vue3';
 import RoleBadge from '@/Components/RoleBadge.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 
-const { business, businesses, userRole, businessColor, businessLogoUrl } =
+const { business, businesses, userRole, userRoleLabel, businessColor, businessLogoUrl } =
     useBusiness();
 
 const open = ref(false);
@@ -47,7 +47,7 @@ function switchBusiness(id) {
                     <p
                         class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                     >
-                        {{ userRole ?? '' }}
+                        {{ userRoleLabel ?? '' }}
                     </p>
                 </div>
             </Link>

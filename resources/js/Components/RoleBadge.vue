@@ -1,4 +1,6 @@
 <script setup>
+import { roleLabelFor } from '@/Composables/useBusiness';
+
 defineProps({
     role: { type: String, required: true }, // owner | manager | staff | guest
 });
@@ -15,6 +17,6 @@ defineProps({
             'text-ink-tertiary': role === 'guest',
         }"
     >
-        {{ role }}
+        {{ roleLabelFor(role) }}
     </span>
 </template>

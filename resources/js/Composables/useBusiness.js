@@ -1,6 +1,17 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
+export const ROLE_LABELS = {
+    owner: 'Owner',
+    manager: 'Manager',
+    staff: 'Artist',
+    guest: 'Guest Artist',
+};
+
+export function roleLabelFor(role) {
+    return ROLE_LABELS[role] ?? role;
+}
+
 export function useBusiness() {
     const page = usePage();
 
@@ -12,6 +23,7 @@ export function useBusiness() {
     const businessName = computed(() => business.value?.name ?? '');
     const businessLogoUrl = computed(() => business.value?.logoUrl ?? null);
     const userRole = computed(() => membership.value?.role ?? null);
+    const userRoleLabel = computed(() => roleLabelFor(userRole.value));
 
     return {
         business,
@@ -21,5 +33,6 @@ export function useBusiness() {
         businessName,
         businessLogoUrl,
         userRole,
+        userRoleLabel,
     };
 }

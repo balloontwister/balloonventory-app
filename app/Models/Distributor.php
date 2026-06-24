@@ -21,6 +21,15 @@ class Distributor extends Model
         'name',
         'slug',
         'description',
+        'logo_path',
+        'contact_email',
+        'contact_phone',
+        'contact_url',
+        'shipping_minimum',
+        'free_shipping_threshold',
+        'shipping_policy',
+        'hours',
+        'notes',
         'platform_type',
         'base_url',
         'sitemap_url',
@@ -34,6 +43,8 @@ class Distributor extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'config' => 'array',
+        'shipping_minimum' => 'decimal:2',
+        'free_shipping_threshold' => 'decimal:2',
         'last_synced_at' => 'datetime',
     ];
 

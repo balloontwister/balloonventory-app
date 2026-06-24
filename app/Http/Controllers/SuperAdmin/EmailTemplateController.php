@@ -66,8 +66,15 @@ class EmailTemplateController extends Controller
             'action' => ['required', 'in:save,activate,deactivate'],
         ]);
 
-        // Activation requires complete copy and only-known tokens.
-        if ($data['action'] === 'activate') {
+        // Any edit that leaves the template live must pass the same gate as
+        // activation — complete copy and only-known tokens. Without this, a
+        // plain "save" on an already-active template could push unknown tokens
+        // (e.g. a typo'd {{token}}) straight to production. Drafts (inactive)
+        // may still be saved freely while they're being worked on.
+        $willBeActive = $data['action'] === 'activate'
+            || ($data['action'] === 'save' && $template->is_active);
+
+        if ($willBeActive) {
             $this->ensureActivatable($template->key, $data);
         }
 

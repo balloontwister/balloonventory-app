@@ -63,7 +63,6 @@ function dismiss() {
                 {{ $t('dashboard.notifications.switch', { business: notification.business_name }) }}
             </button>
             <button
-                v-if="isUnread"
                 type="button"
                 :disabled="switchForm.processing || dismissForm.processing"
                 class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-sans text-[13px] font-semibold text-ink-primary transition hover:bg-background disabled:opacity-40"

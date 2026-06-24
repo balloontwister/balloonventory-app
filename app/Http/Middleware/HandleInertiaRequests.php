@@ -44,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             'notifications' => fn () => ($user = $request->user())
                 ? [
                     'unreadCount' => $user->unreadNotifications()->count(),
-                    'recent' => NotificationPresenter::recent($user, 10),
+                    'recent' => NotificationPresenter::recent($user, 10, unreadOnly: true),
                 ]
                 : ['unreadCount' => 0, 'recent' => []],
             ...$this->businessProps($request),

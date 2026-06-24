@@ -180,18 +180,31 @@ class NotificationTest extends TestCase
     // Dismiss
     // -------------------------------------------------------------------------
 
-    public function test_user_can_dismiss_a_notification(): void
+    public function test_dismissing_a_notification_deletes_it(): void
     {
         $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
 
-        $notice = $this->owner->unreadNotifications()->first();
+        $notice = $this->owner->notifications()->first();
         $this->assertNotNull($notice);
 
         $this->actingAs($this->owner)
             ->delete(route('notifications.destroy', $notice->id))
             ->assertRedirect();
 
-        $this->assertSame(0, $this->owner->fresh()->unreadNotifications()->count());
+        $this->assertSame(0, $this->owner->fresh()->notifications()->count());
+    }
+
+    public function test_a_read_notification_can_still_be_dismissed(): void
+    {
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
+        $notice = $this->owner->notifications()->first();
+        $notice->markAsRead();
+
+        $this->actingAs($this->owner)
+            ->delete(route('notifications.destroy', $notice->id))
+            ->assertRedirect();
+
+        $this->assertSame(0, $this->owner->fresh()->notifications()->count());
     }
 
     public function test_user_cannot_dismiss_another_users_notification(): void
@@ -199,13 +212,13 @@ class NotificationTest extends TestCase
         $other = User::factory()->create(['email_verified_at' => now()]);
         $other->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
 
-        $notice = $other->unreadNotifications()->first();
+        $notice = $other->notifications()->first();
 
         $this->actingAs($this->owner)
             ->delete(route('notifications.destroy', $notice->id))
             ->assertRedirect();
 
-        $this->assertSame(1, $other->fresh()->unreadNotifications()->count());
+        $this->assertSame(1, $other->fresh()->notifications()->count());
     }
 
     public function test_user_can_mark_all_notifications_read(): void
@@ -221,16 +234,18 @@ class NotificationTest extends TestCase
         $this->assertSame(0, $this->owner->fresh()->unreadNotifications()->count());
     }
 
-    public function test_notifications_are_shared_to_every_page(): void
+    public function test_bell_shares_unread_only_to_every_page(): void
     {
+        // One unread, one read — the bell (recent) should surface only the unread.
         $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Manager'));
+        $this->owner->notifications()->first()->markAsRead();
 
         $this->actingAs($this->owner)
             ->get(route('dashboard'))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('notifications.unreadCount', 1)
                 ->has('notifications.recent', 1)
-                ->where('notifications.recent.0.type', 'business_access_granted')
                 ->where('notifications.recent.0.read_at', null)
             );
     }

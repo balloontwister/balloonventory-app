@@ -46,10 +46,7 @@ function close() {
     open.value = false;
 }
 
-function markRead(notification) {
-    if (notification.read_at) {
-        return;
-    }
+function dismiss(notification) {
     router.delete(route('notifications.destroy', { notification: notification.id }), {
         preserveScroll: true,
     });
@@ -138,18 +135,12 @@ onUnmounted(() => {
                             {{ $t('dashboard.notifications.empty') }}
                         </p>
 
-                        <button
+                        <div
                             v-for="notification in recent"
                             :key="notification.id"
-                            type="button"
-                            class="flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition hover:bg-background"
-                            :class="notification.read_at ? '' : 'bg-accent-soft/40'"
-                            @click="markRead(notification)"
+                            class="flex items-start gap-2.5 px-4 py-2.5 transition hover:bg-background"
                         >
-                            <span
-                                class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                                :class="notification.read_at ? 'bg-transparent' : 'bg-accent'"
-                            />
+                            <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
                             <span class="min-w-0 flex-1">
                                 <span class="block font-sans text-[13px] text-ink-primary">
                                     <template v-if="notificationMessageKey(notification)">
@@ -160,7 +151,25 @@ onUnmounted(() => {
                                     {{ notificationTimeAgo(notification.created_at) }}
                                 </span>
                             </span>
-                        </button>
+                            <button
+                                type="button"
+                                :title="$t('dashboard.notifications.dismiss')"
+                                :aria-label="$t('dashboard.notifications.dismiss')"
+                                class="-mr-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-border/40 hover:text-ink-primary"
+                                @click="dismiss(notification)"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-3.5 w-3.5"
+                                >
+                                    <path
+                                        d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <Link

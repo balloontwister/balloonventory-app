@@ -30,10 +30,10 @@ class NotificationController extends Controller
      */
     public function destroy(Request $request, string $notification): RedirectResponse
     {
-        $request->user()->unreadNotifications()
+        $request->user()->notifications()
             ->where('id', $notification)
             ->first()
-            ?->markAsRead();
+            ?->delete();
 
         return back();
     }

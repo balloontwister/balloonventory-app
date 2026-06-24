@@ -37,9 +37,11 @@ class NotificationPresenter
      *
      * @return list<array<string, mixed>>
      */
-    public static function recent(User $user, int $limit = 10): array
+    public static function recent(User $user, int $limit = 10, bool $unreadOnly = false): array
     {
-        return $user->notifications()
+        $query = $unreadOnly ? $user->unreadNotifications() : $user->notifications();
+
+        return $query
             ->limit($limit)
             ->get()
             ->map(fn (DatabaseNotification $n) => self::present($n))

@@ -29,6 +29,22 @@ class ProductText
     }
 
     /**
+     * Canonicalise the many ways a balloon size is written so they compare
+     * equal: "11 inch", "11-inch", "11inch", "11 inches", and 11" / 11” / 11″
+     * all become "11in". Applied to both the product text and the catalog size
+     * name before matching, so a distributor's "11 inch" lines up with our
+     * "11-inch" reference name. Non-size text is left untouched.
+     */
+    public static function normalizeSizeTokens(string $text): string
+    {
+        $text = preg_replace('/(\d+)\s*-?\s*inch(?:es)?\b/i', '${1}in', $text);
+        $text = preg_replace('/(\d+)\s*["”″]/u', '${1}in', $text);
+        $text = preg_replace('/(\d+)-in\b/i', '${1}in', $text);
+
+        return $text;
+    }
+
+    /**
      * Case-insensitive "name appears as a distinct token" test. Requires a
      * non-alphanumeric boundary (or string start) immediately before the needle
      * so "5-inch" doesn't match inside "15-inch" and "blue" doesn't match inside

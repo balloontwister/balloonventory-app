@@ -121,6 +121,26 @@ class DistributorCatalogPromoterTest extends TestCase
         ]);
     }
 
+    public function test_resolves_size_across_real_world_inch_notations(): void
+    {
+        $this->seedSempertex(); // balloon size name is "11-inch"
+        $bargain = Distributor::factory()->shopify()->create(['slug' => 'bargain-balloons']);
+
+        // The distributor titles never write "11-inch": havinaparty uses 11"S,
+        // BargainBalloons uses "11 inch". Normalization must still resolve size.
+        $proposal = $this->proposal([
+            'proposed_name' => '11"S Red Fashion (100 count)',
+            'evidence' => [
+                ['distributor_id' => $bargain->id, 'url' => 'https://bargainballoons.com/p/bl-53012', 'raw_upc' => '030625530125', 'title' => '11 inch Latex Balloons Sempertex Fashion Red'],
+            ],
+        ]);
+
+        $sku = $this->promoter->promote($proposal);
+
+        $this->assertNotNull($sku, 'Expected the proposal to auto-create despite inch-notation differences');
+        $this->assertNotNull($sku->balloon_size_id);
+    }
+
     public function test_leaves_unresolvable_proposal_pending(): void
     {
         $this->seedSempertex();

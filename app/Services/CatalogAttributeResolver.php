@@ -36,8 +36,13 @@ class CatalogAttributeResolver
             return ['brand' => null, 'balloonSize' => null, 'color' => null];
         }
 
+        // Size notation varies wildly across distributors ("11 inch" vs our
+        // "11-inch"), so canonicalise both sides before comparing.
+        $sizeHaystack = ProductText::normalizeSizeTokens($haystack);
+
         $balloonSize = $data['balloonSizes']
-            ->first(fn (BalloonSize $bs, string $sizeName) => $bs->brand_id === $brand->id && ProductText::mentions($haystack, $sizeName));
+            ->first(fn (BalloonSize $bs, string $sizeName) => $bs->brand_id === $brand->id
+                && ProductText::mentions($sizeHaystack, ProductText::normalizeSizeTokens($sizeName)));
 
         $color = $this->firstMention($data['colors']->get($brand->id, collect()), $haystack);
 

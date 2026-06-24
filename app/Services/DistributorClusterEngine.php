@@ -165,6 +165,7 @@ class DistributorClusterEngine
             'distributor_id' => $m['distributor_id'],
             'raw_sku' => $m['raw_sku'],
             'normalized_sku' => $m['normalized_sku'],
+            'raw_upc' => $m['raw_upc'],
             'title' => $m['title'],
             'url' => $m['url'],
             'price' => $m['price'],
@@ -183,6 +184,7 @@ class DistributorClusterEngine
             'distributor_id' => $product->distributor_id,
             'raw_sku' => $product->raw_sku,
             'normalized_sku' => $product->normalized_sku,
+            'raw_upc' => $product->upc, // the distributor's original barcode, as reported
             'title' => $product->title,
             'url' => $product->url,
             'price' => $product->price,

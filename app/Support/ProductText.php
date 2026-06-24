@@ -27,4 +27,22 @@ class ProductText
 
         return null;
     }
+
+    /**
+     * Case-insensitive "name appears as a distinct token" test. Requires a
+     * non-alphanumeric boundary (or string start) immediately before the needle
+     * so "5-inch" doesn't match inside "15-inch" and "blue" doesn't match inside
+     * a longer word. A trailing boundary is intentionally NOT required so
+     * "5-inch" still matches "5-inches".
+     */
+    public static function mentions(string $haystack, string $needle): bool
+    {
+        $needle = trim($needle);
+
+        if ($needle === '') {
+            return false;
+        }
+
+        return (bool) preg_match('/(?<![a-z0-9])'.preg_quote($needle, '/').'/i', $haystack);
+    }
 }

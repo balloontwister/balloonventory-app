@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorProduct;
+use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
 use App\Services\DistributorClusterEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,19 +40,19 @@ class DistributorClusterEngineTest extends TestCase
 
     private function the100ctTrio(): void
     {
-        // havinaparty: no barcode exposed.
+        // havinaparty: no barcode, no price (login-gated).
         $this->stage($this->havin, [
             'external_id' => 'h-1', 'raw_sku' => '53012', 'normalized_sku' => '53012',
-            'upc' => null, 'title' => '11"S Red Fashion (100 count)', 'stock' => 54,
+            'upc' => null, 'price' => null, 'title' => '11"S Red Fashion (100 count)', 'stock' => 54,
         ]);
         // BargainBalloons + LA Balloons: same product, same UPC, decorated SKUs.
         $this->stage($this->bargain, [
             'external_id' => 'b-1', 'raw_sku' => 'BL-53012', 'normalized_sku' => '53012',
-            'upc' => '030625530125', 'title' => '11 inch Latex Balloons 100 Per Bag Fashion Red Betallatex',
+            'upc' => '030625530125', 'price' => 13.97, 'title' => '11 inch Latex Balloons 100 Per Bag Fashion Red Betallatex',
         ]);
         $this->stage($this->laballoons, [
             'external_id' => 'l-1', 'raw_sku' => '53012-B', 'normalized_sku' => '53012',
-            'upc' => '030625530125', 'title' => '11 inch Sempertex Fashion Red Latex Balloons',
+            'upc' => '030625530125', 'price' => 21.69, 'title' => '11 inch Sempertex Fashion Red Latex Balloons',
         ]);
     }
 
@@ -117,13 +118,31 @@ class DistributorClusterEngineTest extends TestCase
     public function test_run_skips_clusters_already_in_the_catalog(): void
     {
         $this->the100ctTrio();
-        Sku::factory()->create(['upc' => '030625530125', 'is_active' => true]);
+        $sku = Sku::factory()->create(['upc' => '030625530125', 'is_active' => true]);
 
         $stats = $this->engine->run(execute: true);
 
         $this->assertSame(1, $stats['matched_existing']);
         $this->assertSame(0, $stats['proposals']);
         $this->assertSame(0, DistributorCatalogProposal::count());
+
+        // Distributor URLs should be attached for the Reorder page.
+        $this->assertSame(3, $stats['urls_attached']);
+
+        $urls = DistributorSkuUrl::where('sku_id', $sku->id)->get();
+        $this->assertCount(3, $urls);
+
+        // Each distributor gets one URL row.
+        $distributorIds = $urls->pluck('distributor_id')->unique();
+        $this->assertCount(3, $distributorIds);
+        $this->assertTrue($distributorIds->contains($this->havin->id));
+        $this->assertTrue($distributorIds->contains($this->bargain->id));
+        $this->assertTrue($distributorIds->contains($this->laballoons->id));
+
+        // The havinaparty member carries null price (login-gated) and stock=54.
+        $havinUrl = $urls->firstWhere('distributor_id', $this->havin->id);
+        $this->assertNull($havinUrl->price);
+        $this->assertTrue($havinUrl->in_stock);
     }
 
     public function test_run_does_not_clobber_a_reviewed_proposal(): void

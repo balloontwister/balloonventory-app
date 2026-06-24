@@ -187,4 +187,62 @@ class DistributorCatalogPromoterTest extends TestCase
         $this->assertSame($first->id, $second->id);
         $this->assertSame($countAfterFirst, Sku::count());
     }
+
+    public function test_brand_flag_filters_proposals_in_command(): void
+    {
+        // Seed Sempertex (brand appears in evidence titles) and Kalisan (does not).
+        $this->seedSempertex();
+        $kalisanBrand = Brand::factory()->create(['name' => 'Kalisan', 'abbreviation' => 'KAL']);
+        $latex = Material::where('name', 'Latex')->firstOrFail();
+        $round = Shape::where('name', 'Round')->firstOrFail();
+        $size = Size::firstOrCreate(['name' => '11-inch']);
+        $balloonSizeK = BalloonSize::factory()->create([
+            'brand_id' => $kalisanBrand->id,
+            'material_id' => $latex->id,
+            'size_id' => $size->id,
+            'shape_id' => $round->id,
+            'name' => '12-inch (K)',
+        ]);
+        $textureK = Texture::factory()->create(['name' => 'Macaron (K)', 'brand_id' => $kalisanBrand->id]);
+        $colorK = Color::factory()->create([
+            'name' => 'Macaron Lilac',
+            'brand_id' => $kalisanBrand->id,
+            'color_family_id' => ColorFamily::firstOrFail()->id,
+            'texture_id' => $textureK->id,
+        ]);
+
+        // Sempertex proposal — should be promoted with --brand=sempertex.
+        $this->proposal([
+            'upc' => '00030625530125',
+            'proposed_name' => '11-inch Sempertex Fashion Red 100 count',
+            'evidence' => [
+                ['distributor_id' => Distributor::factory()->shopify()->create()->id,
+                    'url' => 'https://example.com/p/1', 'raw_upc' => '030625530125', 'title' => 'Sempertex Fashion Red 11 inch'],
+            ],
+        ]);
+
+        // Kalisan proposal — should be skipped when filtering for Sempertex.
+        $this->proposal([
+            'upc' => '00869329686430',
+            'proposed_name' => '12-inch Kalisan Macaron Lilac 50ct',
+            'evidence' => [
+                ['distributor_id' => Distributor::factory()->shopify()->create()->id,
+                    'url' => 'https://example.com/p/2', 'raw_upc' => '869329686430', 'title' => 'Kalisan Macaron Lilac 12 inch'],
+            ],
+        ]);
+
+        // Run with --brand=sempertex — only the Sempertex proposal should promote.
+        $this->artisan('catalog:promote-distributor-proposals', [
+            '--execute' => true,
+            '--brand' => 'sempertex',
+        ])->assertSuccessful();
+
+        $this->assertSame(1, Sku::count());
+
+        $sempertexProposal = DistributorCatalogProposal::where('upc', '00030625530125')->first();
+        $this->assertSame(DistributorCatalogProposal::STATUS_AUTO_APPROVED, $sempertexProposal->status);
+
+        $kalisanProposal = DistributorCatalogProposal::where('upc', '00869329686430')->first();
+        $this->assertSame(DistributorCatalogProposal::STATUS_PENDING, $kalisanProposal->status);
+    }
 }

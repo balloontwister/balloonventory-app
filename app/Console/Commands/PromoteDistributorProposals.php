@@ -9,23 +9,44 @@ use Illuminate\Console\Command;
 class PromoteDistributorProposals extends Command
 {
     protected $signature = 'catalog:promote-distributor-proposals
-                            {--execute : Create catalog SKUs (omit for dry-run)}';
+                            {--execute : Create catalog SKUs (omit for dry-run)}
+                            {--brand= : Only promote proposals for this brand (case-insensitive match against evidence titles)}';
 
     protected $description = 'Auto-create catalog SKUs from high-confidence distributor proposals.';
 
     public function handle(DistributorCatalogPromoter $promoter): int
     {
         $dryRun = ! $this->option('execute');
+        $brand = $this->option('brand');
 
         // Auto-create targets high-confidence pending proposals; human-approved
         // proposals are promoted regardless of confidence.
-        $proposals = DistributorCatalogProposal::query()
+        $query = DistributorCatalogProposal::query()
             ->whereNull('resulting_sku_id')
             ->where(function ($query) {
                 $query->where(fn ($q) => $q->where('status', DistributorCatalogProposal::STATUS_PENDING)->where('confidence', 'high'))
                     ->orWhere('status', DistributorCatalogProposal::STATUS_APPROVED);
-            })
-            ->get();
+            });
+
+        $proposals = $query->get();
+
+        // ── Brand gate (optional) ──────────────────────────────────────
+        if ($brand !== null) {
+            $brandLower = strtolower($brand);
+
+            $proposals = $proposals->filter(function (DistributorCatalogProposal $proposal) use ($brandLower): bool {
+                $text = collect($proposal->evidence ?? [])
+                    ->pluck('title')
+                    ->push($proposal->proposed_name)
+                    ->filter()
+                    ->implode(' ');
+
+                return str_contains(strtolower($text), $brandLower);
+            });
+
+            $this->info("Brand filter: \"{$brand}\" — {$proposals->count()} proposals matched.");
+            $this->newLine();
+        }
 
         $created = 0;
         $leftPending = 0;

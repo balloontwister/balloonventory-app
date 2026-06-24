@@ -41,6 +41,10 @@ trait InspectsHttpResponses
     /**
      * Detect an interstitial bot-challenge (typically Cloudflare) returned in
      * place of the real payload — often a 200 or 503 whose body is HTML.
+     *
+     * Only reads the first 8 KB of the body: challenge markers appear in the
+     * <head>, and loading 1 MB+ product pages into memory here doubles peak
+     * usage (the caller will read the full body for parsing right after).
      */
     protected function looksLikeChallenge(Response $response): bool
     {
@@ -49,19 +53,19 @@ trait InspectsHttpResponses
         }
 
         $contentType = strtolower((string) $response->header('Content-Type'));
-        $body = ltrim($response->body());
-        $lowerBody = strtolower($body);
+        $prefix = ltrim(substr($response->body(), 0, 8192));
+        $lowerPrefix = strtolower($prefix);
 
         $isHtml = str_contains($contentType, 'text/html')
-            || str_starts_with($lowerBody, '<!doctype html')
-            || str_starts_with($lowerBody, '<html');
+            || str_starts_with($lowerPrefix, '<!doctype html')
+            || str_starts_with($lowerPrefix, '<html');
 
         if (! $isHtml) {
             return false;
         }
 
         foreach (['just a moment', 'cf-browser-verification', 'attention required', 'cf_chl', 'enable javascript and cookies'] as $marker) {
-            if (str_contains($lowerBody, $marker)) {
+            if (str_contains($lowerPrefix, $marker)) {
                 return true;
             }
         }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorProduct;
+use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
 use App\Support\Gtin;
 use App\Support\ProductText;
@@ -82,28 +83,37 @@ class DistributorClusterEngine
     }
 
     /**
-     * Read all staged products, cluster them, and (when executing) upsert a
-     * catalog proposal for every cluster whose UPC isn't already in the catalog.
+     * Read all staged products, cluster them, and (when executing) either attach
+     * distributor URLs to existing catalog SKUs or create proposals for new ones.
      *
-     * @return array{clusters: int, matched_existing: int, proposals: int, unclustered: int}
+     * @return array{clusters: int, matched_existing: int, urls_attached: int, proposals: int, unclustered: int}
      */
     public function run(bool $execute): array
     {
         $staged = DistributorProduct::query()->get();
         $clusters = $this->buildClusters($staged);
-        $existingUpcs = $this->existingCatalogUpcs();
+        $upcToSkuId = $this->existingCatalogUpcMap();
 
         $matchedExisting = 0;
+        $urlsAttached = 0;
         $proposals = 0;
         $clusteredMembers = 0;
 
         foreach ($clusters as $cluster) {
             $clusteredMembers += count($cluster['members']);
 
-            if ($existingUpcs->has($cluster['upc'])) {
+            $skuId = $upcToSkuId->get($cluster['upc']);
+
+            if ($skuId !== null) {
                 $matchedExisting++;
 
-                continue; // already a catalog product — not a new-product proposal
+                // Attach distributor purchase URLs so the Reorder page shows
+                // links for products we already catalog.
+                if ($execute) {
+                    $urlsAttached += $this->attachUrls($skuId, $cluster['members']);
+                }
+
+                continue;
             }
 
             $proposals++;
@@ -116,6 +126,7 @@ class DistributorClusterEngine
         return [
             'clusters' => $clusters->count(),
             'matched_existing' => $matchedExisting,
+            'urls_attached' => $urlsAttached,
             'proposals' => $proposals,
             'unclustered' => $staged->count() - $clusteredMembers,
         ];
@@ -225,24 +236,70 @@ class DistributorClusterEngine
     }
 
     /**
-     * Canonical GTIN-14s already represented in the catalog, so the engine only
-     * proposes genuinely new products. Grouped where() keeps the SoftDeletes
-     * scope from being short-circuited by OR precedence.
+     * Canonical GTIN-14 → sku_id for every barcoded SKU already in the catalog.
+     * Grouped where() keeps the SoftDeletes scope from being short-circuited by
+     * OR precedence. When the same canonical UPC maps to multiple SKUs (rare —
+     * duplicate barcode), the first one wins for URL attachment.
      */
-    private function existingCatalogUpcs(): Collection
+    private function existingCatalogUpcMap(): Collection
     {
-        $set = collect();
+        $map = collect();
 
         Sku::where(fn ($query) => $query->whereNotNull('upc')->orWhereNotNull('ean'))
-            ->get(['upc', 'ean'])
-            ->each(function (Sku $sku) use ($set) {
+            ->get(['id', 'upc', 'ean'])
+            ->each(function (Sku $sku) use ($map) {
                 foreach ([$sku->upc, $sku->ean] as $code) {
                     if ($code && ($canonical = Gtin::canonicalize($code)) !== null) {
-                        $set->put($canonical, true);
+                        $map->put($canonical, $sku->id);
                     }
                 }
             });
 
-        return $set;
+        return $map;
+    }
+
+    /**
+     * Upsert distributor_sku_urls rows for every member of a cluster that
+     * matched an existing catalog SKU — so the Reorder page shows purchase links.
+     *
+     * @param  array<int, array<string, mixed>>  $members
+     * @return int Number of URL rows upserted
+     */
+    private function attachUrls(string $skuId, array $members): int
+    {
+        $rows = collect($members)
+            ->filter(fn (array $m) => ! empty($m['distributor_id']) && ! empty($m['url']))
+            ->groupBy('distributor_id')
+            ->map(fn ($group) => $group->first())
+            ->map(fn (array $m) => [
+                'distributor_id' => $m['distributor_id'],
+                'sku_id' => $skuId,
+                'url' => $m['url'],
+                'price' => $m['price'] ?? null,
+                'currency' => 'USD',
+                'in_stock' => $this->memberInStock($m),
+                'last_checked_at' => now(),
+            ])
+            ->values()
+            ->all();
+
+        if ($rows !== []) {
+            DistributorSkuUrl::upsert(
+                $rows,
+                ['distributor_id', 'sku_id'],
+                ['url', 'price', 'currency', 'in_stock', 'last_checked_at'],
+            );
+        }
+
+        return count($rows);
+    }
+
+    private function memberInStock(array $member): ?bool
+    {
+        if (isset($member['stock']) && $member['stock'] !== null) {
+            return $member['stock'] > 0;
+        }
+
+        return $member['in_stock'] ?? null;
     }
 }

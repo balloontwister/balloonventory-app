@@ -19,14 +19,15 @@ class ClusterDistributorProducts extends Command
         $stats = $engine->run(! $dryRun);
 
         $this->newLine();
-        $this->line("  Clusters:          {$stats['clusters']}");
-        $this->line("  Already in catalog: {$stats['matched_existing']}");
+        $this->line("  Clusters:             {$stats['clusters']}");
+        $this->line("  Already in catalog:   {$stats['matched_existing']}");
+        $this->line("    ↳ URLs attached:    {$stats['urls_attached']}");
         $this->line("  New-product proposals: {$stats['proposals']}");
         $this->line("  Unclustered listings:  {$stats['unclustered']}");
 
         $this->newLine();
         $mode = $dryRun ? '<comment>[DRY RUN]</comment>' : '<info>[EXECUTED]</info>';
-        $this->line("{$mode} ".($dryRun ? 'Run with --execute to write proposals.' : 'Proposals written.'));
+        $this->line("{$mode} ".($dryRun ? 'Run with --execute to write proposals and attach URLs.' : 'Proposals and URLs would be written.'));
 
         return Command::SUCCESS;
     }

@@ -61,9 +61,15 @@ class BigCommerceProductPageParser
 
     private function extractUpc(array $bc, string $sku): ?string
     {
+        // BCData.upc is often a BigCommerce product ID masquerading as a UPC
+        // (e.g. "7144443643" — 10 digits, not a valid GTIN). Only accept
+        // explicit values that are genuine GTINs.
         $explicit = $bc['upc'] ?? null;
         if (! empty($explicit)) {
-            return Gtin::digitsOnly((string) $explicit);
+            $digits = Gtin::digitsOnly((string) $explicit);
+            if ($digits !== '' && Gtin::toGtinIfValid($digits) !== null) {
+                return $digits;
+            }
         }
 
         // SKU-as-barcode: keep the original digit form, but only when the SKU

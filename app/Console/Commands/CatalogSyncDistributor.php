@@ -65,6 +65,23 @@ class CatalogSyncDistributor extends Command
             $totalFetched += $fetched;
             $this->line("  Fetched: {$fetched} products");
 
+            // ── Fetch diagnostics ─────────────────────────────────────
+            $report = $adapter->lastFetchReport();
+
+            if ($report->usedFallback) {
+                $this->warn('  ⚠ Richer source unavailable — used the sitemap fallback (URLs only: no barcodes/price/stock, so far fewer matches).');
+            }
+
+            if ($report->stoppedEarly) {
+                $detail = "{$report->lastFailureReason} (HTTP {$report->lastFailureStatus})";
+
+                if ($report->looksBlocked()) {
+                    $this->error("  ⚠ Looks blocked/rate-limited: {$detail}. Stopped after {$report->pagesFetched} page(s) — results are PARTIAL; last_synced_at will NOT be updated. Back off and retry later.");
+                } else {
+                    $this->warn("  ⚠ Fetch stopped early: {$detail} after {$report->pagesFetched} page(s) — results may be partial.");
+                }
+            }
+
             if ($fetched === 0) {
                 continue;
             }
@@ -96,7 +113,12 @@ class CatalogSyncDistributor extends Command
 
             // ── Execute ────────────────────────────────────────────────
             if (! $dryRun) {
-                DB::transaction(function () use ($distributor, $matched, $gaps) {
+                // A truncated fetch (block/rate-limit) still upserts what we got
+                // — upsert never removes existing URLs — but last_synced_at must
+                // only advance on a complete pass so it can't mask a bad sync.
+                $fetchWasComplete = ! $report->stoppedEarly;
+
+                DB::transaction(function () use ($distributor, $matched, $gaps, $fetchWasComplete) {
                     // Upsert matched URLs
                     if ($matched->isNotEmpty()) {
                         DistributorSkuUrl::upsert(
@@ -140,11 +162,13 @@ class CatalogSyncDistributor extends Command
                         }
                     }
 
-                    // Update last synced timestamp
-                    $distributor->update(['last_synced_at' => now()]);
+                    // Only mark a full, clean pass as "synced".
+                    if ($fetchWasComplete) {
+                        $distributor->update(['last_synced_at' => now()]);
+                    }
                 });
 
-                $this->info('  ✓ Synced.');
+                $this->info($fetchWasComplete ? '  ✓ Synced.' : '  ✓ Wrote partial results (not marked fully synced).');
             }
         }
 

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateBusinessRequest;
 use App\Models\Business;
+use App\Models\BusinessDistributor;
 use App\Models\BusinessInvitation;
+use App\Models\Distributor;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Services\ImageAttachmentService;
@@ -90,6 +92,25 @@ class SettingsController extends Controller
                 ->all();
         }
 
+        $preferredDistributorIds = BusinessDistributor::withoutGlobalScope(BusinessScope::class)
+            ->where('business_id', $business->id)
+            ->where('is_enabled', true)
+            ->pluck('distributor_id')
+            ->flip();
+
+        $distributors = Distributor::active()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (Distributor $d) => [
+                'id' => $d->id,
+                'name' => $d->name,
+                'slug' => $d->slug,
+                'sort_order' => $d->sort_order,
+                'enabled' => $preferredDistributorIds->has($d->id),
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Settings/Businesses', [
             'business' => [
                 'id' => $business->id,
@@ -107,6 +128,7 @@ class SettingsController extends Controller
                 'website_url_2' => $business->website_url_2,
                 'contact_email' => $business->contact_email,
             ],
+            'distributors' => $distributors,
             'countries' => Countries::all(),
             'members' => $members,
             'pendingInvitations' => $pendingInvitations,
@@ -161,6 +183,46 @@ class SettingsController extends Controller
         ]);
 
         return back()->with('success', __('flash.settings.business_name_updated'));
+    }
+
+    public function updateDistributors(Request $request): RedirectResponse
+    {
+        $business = Business::findOrFail(BusinessContext::currentId());
+
+        Gate::authorize('business.edit_settings', $business);
+
+        $validated = $request->validate([
+            'distributor_ids' => ['nullable', 'array'],
+            'distributor_ids.*' => ['string', 'exists:distributors,id'],
+        ]);
+
+        $ids = $validated['distributor_ids'] ?? [];
+
+        // Disable everything not selected. This is a query-builder mass update,
+        // so it carries a proper WHERE.
+        BusinessDistributor::withoutGlobalScope(BusinessScope::class)
+            ->where('business_id', $business->id)
+            ->whereNotIn('distributor_id', $ids)
+            ->update(['is_enabled' => false]);
+
+        // Enable (or insert) the selected ones via upsert. We must NOT use an
+        // instance save()/updateOrCreate() here: business_distributors has a
+        // composite primary key and the model declares $primaryKey = null, so a
+        // dirty instance update emits an UPDATE with no WHERE and clobbers every
+        // business's preferences. upsert() keys on the composite columns.
+        if ($ids !== []) {
+            BusinessDistributor::upsert(
+                collect($ids)->map(fn (string $distributorId) => [
+                    'business_id' => $business->id,
+                    'distributor_id' => $distributorId,
+                    'is_enabled' => true,
+                ])->all(),
+                ['business_id', 'distributor_id'],
+                ['is_enabled'],
+            );
+        }
+
+        return back()->with('success', __('flash.settings.distributors_updated'));
     }
 
     private function uniqueSlug(string $name, string $excludeId): string

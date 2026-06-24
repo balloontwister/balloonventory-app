@@ -109,4 +109,26 @@ class GtinTest extends TestCase
         $this->assertNull(Gtin::expandUpcE('12345'));
         $this->assertNull(Gtin::expandUpcE('012345678901'));
     }
+
+    // ── toGtinIfValid() ──────────────────────────────────────────────────────────
+
+    public function test_to_gtin_if_valid_recognizes_a_real_barcode(): void
+    {
+        // A genuine Kalisan EAN-13 (Larocks lists it as the SKU).
+        $this->assertSame('08693296864306', Gtin::toGtinIfValid('8693296864306'));
+    }
+
+    public function test_to_gtin_if_valid_rejects_a_store_product_id(): void
+    {
+        // 10-digit BigCommerce product ids are not a GTIN length.
+        $this->assertNull(Gtin::toGtinIfValid('9999103055'));
+        $this->assertNull(Gtin::toGtinIfValid('7144443643'));
+        $this->assertNull(Gtin::toGtinIfValid('53012'));
+    }
+
+    public function test_to_gtin_if_valid_rejects_a_bad_check_digit(): void
+    {
+        // Right length (13), wrong check digit.
+        $this->assertNull(Gtin::toGtinIfValid('8693296864300'));
+    }
 }

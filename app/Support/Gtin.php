@@ -127,4 +127,18 @@ class Gtin
     {
         return (string) preg_replace('/\D+/', '', $value);
     }
+
+    /**
+     * If the input's digits form a valid GTIN (a recognized length AND a
+     * matching check digit), return its canonical GTIN-14; otherwise null.
+     *
+     * Used to detect when a distributor's SKU is itself a barcode — e.g. Larocks
+     * lists Kalisan products with the EAN-13 as the SKU — so it can be promoted
+     * to the UPC field. A random 10-digit store product id fails the length
+     * test and returns null.
+     */
+    public static function toGtinIfValid(string $value): ?string
+    {
+        return self::isValidCheckDigit($value) ? self::canonicalize($value) : null;
+    }
 }

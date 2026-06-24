@@ -18,6 +18,7 @@ use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
@@ -205,5 +206,32 @@ class NotificationTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(1, $other->fresh()->unreadNotifications()->count());
+    }
+
+    public function test_user_can_mark_all_notifications_read(): void
+    {
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Manager'));
+        $this->assertSame(2, $this->owner->unreadNotifications()->count());
+
+        $this->actingAs($this->owner)
+            ->post(route('notifications.read-all'))
+            ->assertRedirect();
+
+        $this->assertSame(0, $this->owner->fresh()->unreadNotifications()->count());
+    }
+
+    public function test_notifications_are_shared_to_every_page(): void
+    {
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
+
+        $this->actingAs($this->owner)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('notifications.unreadCount', 1)
+                ->has('notifications.recent', 1)
+                ->where('notifications.recent.0.type', 'business_access_granted')
+                ->where('notifications.recent.0.read_at', null)
+            );
     }
 }

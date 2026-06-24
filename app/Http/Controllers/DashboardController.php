@@ -47,7 +47,6 @@ class DashboardController extends Controller
             'recentActivity' => $can['viewCounts'] ? $this->buildRecentActivity() : [],
             'nudges' => $this->buildNudges($user, $business),
             'pendingInvitations' => $this->buildPendingInvitations($user),
-            'notifications' => $this->buildNotifications($user),
             'can' => $can,
         ]);
     }
@@ -199,27 +198,6 @@ class DashboardController extends Controller
                 'role_label' => $this->roleLabel($inv->role),
             ])
             ->values()
-            ->all();
-    }
-
-    /**
-     * Unified, user-level notice feed (all businesses) from the notifications table.
-     *
-     * @return list<array{id: string, type: ?string, business_id: ?string, business_name: ?string, role_label: ?string, actor_name: ?string, created_at: mixed}>
-     */
-    private function buildNotifications(mixed $user): array
-    {
-        return $user->unreadNotifications()
-            ->get()
-            ->map(fn ($notification) => [
-                'id' => $notification->id,
-                'type' => $notification->data['type'] ?? null,
-                'business_id' => $notification->data['business_id'] ?? null,
-                'business_name' => $notification->data['business_name'] ?? null,
-                'role_label' => $notification->data['role_label'] ?? null,
-                'actor_name' => $notification->data['actor_name'] ?? null,
-                'created_at' => $notification->created_at,
-            ])
             ->all();
     }
 

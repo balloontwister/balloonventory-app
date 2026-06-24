@@ -79,6 +79,9 @@ return [
     ],
 
     'notifications' => [
+        'title' => 'Notifications',
+        'mark_all_read' => 'Mark all read',
+        'empty' => 'You\'re all caught up.',
         'business_access_granted' => 'You\'re now a :role at :business.',
         'invitation_accepted' => ':name accepted your invitation to join :business.',
         'member_left' => ':name left :business.',

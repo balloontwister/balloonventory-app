@@ -1,6 +1,7 @@
 <script setup>
 import { useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { notificationMessageKey, notificationMessageParams } from '@/Composables/useNotifications';
 
 const props = defineProps({
     notification: { type: Object, required: true },
@@ -8,23 +9,8 @@ const props = defineProps({
 
 const page = usePage();
 
-const MESSAGE_KEYS = {
-    business_access_granted: 'dashboard.notifications.business_access_granted',
-    invitation_accepted: 'dashboard.notifications.invitation_accepted',
-    member_left: 'dashboard.notifications.member_left',
-    member_role_changed: 'dashboard.notifications.member_role_changed',
-    site_admin_granted: 'dashboard.notifications.site_admin_granted',
-    site_admin_revoked: 'dashboard.notifications.site_admin_revoked',
-    account_frozen: 'dashboard.notifications.account_frozen',
-    account_thawed: 'dashboard.notifications.account_thawed',
-};
-
-const messageKey = computed(() => MESSAGE_KEYS[props.notification.type] ?? null);
-const messageParams = computed(() => ({
-    role: props.notification.role_label ?? '',
-    business: props.notification.business_name ?? '',
-    name: props.notification.actor_name ?? '',
-}));
+const messageKey = computed(() => notificationMessageKey(props.notification));
+const messageParams = computed(() => notificationMessageParams(props.notification));
 
 // Offer "Switch" whenever the notice is about a business other than the active one.
 const canSwitch = computed(

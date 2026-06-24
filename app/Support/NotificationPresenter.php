@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\User;
+use Illuminate\Notifications\DatabaseNotification;
+
+/**
+ * Maps stored notifications to the frontend item shape. Single source of the
+ * shape for both the shared `notifications` prop (bell + dropdown) and the
+ * dashboard / notifications page.
+ */
+class NotificationPresenter
+{
+    /**
+     * @return array{id: string, type: ?string, business_id: ?string, business_name: ?string, role_label: ?string, actor_name: ?string, created_at: mixed, read_at: mixed}
+     */
+    public static function present(DatabaseNotification $notification): array
+    {
+        $data = $notification->data;
+
+        return [
+            'id' => $notification->id,
+            'type' => $data['type'] ?? null,
+            'business_id' => $data['business_id'] ?? null,
+            'business_name' => $data['business_name'] ?? null,
+            'role_label' => $data['role_label'] ?? null,
+            'actor_name' => $data['actor_name'] ?? null,
+            'created_at' => $notification->created_at,
+            'read_at' => $notification->read_at,
+        ];
+    }
+
+    /**
+     * The latest notifications (read and unread), newest first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function recent(User $user, int $limit = 10): array
+    {
+        return $user->notifications()
+            ->limit($limit)
+            ->get()
+            ->map(fn (DatabaseNotification $n) => self::present($n))
+            ->all();
+    }
+}

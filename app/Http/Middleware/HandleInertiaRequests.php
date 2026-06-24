@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
@@ -40,6 +41,12 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'notifications' => fn () => ($user = $request->user())
+                ? [
+                    'unreadCount' => $user->unreadNotifications()->count(),
+                    'recent' => NotificationPresenter::recent($user, 10),
+                ]
+                : ['unreadCount' => 0, 'recent' => []],
             ...$this->businessProps($request),
         ];
     }

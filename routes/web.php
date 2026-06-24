@@ -144,7 +144,8 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::post('/invitations/accept-in-app', [InvitationController::class, 'acceptInApp'])->name('invitations.accept-in-app');
     Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
 
-    // ─── Notifications (unified dashboard notice feed) ───────────────────────────
+    // ─── Notifications (unified notice feed) ─────────────────────────────────────
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // ── Lists & Jobs hub ──────────────────────────────────────────────────────

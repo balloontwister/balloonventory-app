@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import AdminMenu from '@/Components/AdminMenu.vue';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
+import NotificationBell from '@/Components/NotificationBell.vue';
 import Toaster from '@/Components/Toaster.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 import logoLight from '../../images/balloonventory-logo-light.png';
@@ -613,6 +614,7 @@ const topNavItems = computed(() =>
                         <div class="min-w-0 flex-1">
                             <slot name="header" />
                         </div>
+                        <NotificationBell />
                         <AdminMenu v-if="isSuperAdmin" />
                         <Link
                             :href="route('account.index')"
@@ -661,6 +663,7 @@ const topNavItems = computed(() =>
                     <div class="min-w-0 flex-1">
                         <BusinessSwitcher />
                     </div>
+                    <NotificationBell compact />
                     <AdminMenu v-if="isSuperAdmin" compact />
                     <Link
                         :href="route('account.index')"

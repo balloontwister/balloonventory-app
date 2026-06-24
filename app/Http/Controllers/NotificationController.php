@@ -20,4 +20,14 @@ class NotificationController extends Controller
 
         return back();
     }
+
+    /**
+     * POST /notifications/read-all — mark every unread notification as read.
+     */
+    public function readAll(Request $request): RedirectResponse
+    {
+        $request->user()->unreadNotifications->markAsRead();
+
+        return back();
+    }
 }

@@ -83,6 +83,8 @@ return [
         'invitation_accepted' => ':name aceptó tu invitación para unirse a :business.',
         'member_left' => ':name dejó :business.',
         'member_role_changed' => 'Tu rol en :business ahora es :role.',
+        'site_admin_granted' => 'Se te ha otorgado acceso de Administrador del Sitio.',
+        'site_admin_revoked' => 'Se ha eliminado tu acceso de Administrador del Sitio.',
         'switch' => 'Cambiar a :business',
         'dismiss' => 'Descartar',
     ],

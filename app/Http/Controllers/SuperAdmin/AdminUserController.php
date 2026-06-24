@@ -13,6 +13,8 @@ use App\Models\Membership;
 use App\Models\SkuFeedback;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\SiteAdminGranted;
+use App\Notifications\SiteAdminRevoked;
 use App\Scopes\BusinessScope;
 use App\Support\Countries;
 use Illuminate\Http\RedirectResponse;
@@ -280,6 +282,8 @@ class AdminUserController extends Controller
         $user->admin_level = AdminLevel::SiteAdmin;
         $user->save();
 
+        $user->notify(new SiteAdminGranted);
+
         return back()->with('success', "{$user->name} has been promoted to Site Admin.");
     }
 
@@ -291,6 +295,8 @@ class AdminUserController extends Controller
 
         $user->admin_level = null;
         $user->save();
+
+        $user->notify(new SiteAdminRevoked);
 
         return back()->with('success', "Site Admin access removed from {$user->name}.");
     }

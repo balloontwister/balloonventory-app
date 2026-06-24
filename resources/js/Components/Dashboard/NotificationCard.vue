@@ -13,6 +13,8 @@ const MESSAGE_KEYS = {
     invitation_accepted: 'dashboard.notifications.invitation_accepted',
     member_left: 'dashboard.notifications.member_left',
     member_role_changed: 'dashboard.notifications.member_role_changed',
+    site_admin_granted: 'dashboard.notifications.site_admin_granted',
+    site_admin_revoked: 'dashboard.notifications.site_admin_revoked',
 };
 
 const messageKey = computed(() => MESSAGE_KEYS[props.notification.type] ?? null);

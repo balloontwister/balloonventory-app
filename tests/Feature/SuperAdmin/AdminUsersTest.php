@@ -12,6 +12,8 @@ use App\Models\SkuFeedback;
 use App\Models\StockLevel;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\SiteAdminGranted;
+use App\Notifications\SiteAdminRevoked;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -204,6 +206,8 @@ class AdminUsersTest extends TestCase
 
     public function test_super_admin_can_promote_regular_user_to_site_admin(): void
     {
+        Notification::fake();
+
         $response = $this->actingAs($this->superAdmin)
             ->post(route('admin.users.promote', $this->regularUser));
 
@@ -211,6 +215,8 @@ class AdminUsersTest extends TestCase
 
         $this->regularUser->refresh();
         $this->assertSame(AdminLevel::SiteAdmin, $this->regularUser->admin_level);
+
+        Notification::assertSentTo($this->regularUser, SiteAdminGranted::class);
     }
 
     public function test_site_admin_cannot_promote_users(): void
@@ -263,11 +269,15 @@ class AdminUsersTest extends TestCase
 
     public function test_super_admin_can_demote_site_admin(): void
     {
+        Notification::fake();
+
         $response = $this->actingAs($this->superAdmin)
             ->delete(route('admin.users.demote', $this->siteAdmin));
 
         $response->assertRedirect();
         $this->assertNull($this->siteAdmin->fresh()->admin_level);
+
+        Notification::assertSentTo($this->siteAdmin, SiteAdminRevoked::class);
     }
 
     public function test_site_admin_cannot_demote_users(): void

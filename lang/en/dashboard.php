@@ -83,6 +83,8 @@ return [
         'invitation_accepted' => ':name accepted your invitation to join :business.',
         'member_left' => ':name left :business.',
         'member_role_changed' => 'Your role at :business is now :role.',
+        'site_admin_granted' => 'You\'ve been granted Site Admin access.',
+        'site_admin_revoked' => 'Your Site Admin access has been removed.',
         'switch' => 'Switch to :business',
         'dismiss' => 'Dismiss',
     ],

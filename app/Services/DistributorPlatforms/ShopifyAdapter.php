@@ -4,44 +4,72 @@ namespace App\Services\DistributorPlatforms;
 
 use App\Contracts\DistributorPlatformAdapter;
 use App\Models\Distributor;
+use App\Services\DistributorPlatforms\Concerns\InspectsHttpResponses;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ShopifyAdapter implements DistributorPlatformAdapter
 {
+    use InspectsHttpResponses;
+
     private const PER_PAGE = 250;
 
     private const TIMEOUT = 30;
 
     private const USER_AGENT = 'Balloonventory/1.0 (+https://balloonventory.com)';
 
-    private const DELAY_MS = 500_000; // 500ms between requests to be a good citizen
+    private const DEFAULT_DELAY_MS = 500; // between requests to be a good citizen
+
+    private const DEFAULT_MAX_RETRIES = 3;
+
+    private ?FetchReport $report = null;
+
+    public function lastFetchReport(): FetchReport
+    {
+        return $this->report ??= new FetchReport;
+    }
 
     public function fetchProducts(Distributor $distributor): array
     {
+        $this->report = new FetchReport;
         $config = $distributor->config ?? [];
         $collectionHandle = $config['collection_handle'] ?? 'all';
         $hasJsonApi = $config['has_json_api'] ?? true;
 
         if ($hasJsonApi) {
-            $products = $this->fetchFromJsonApi($distributor, $collectionHandle);
+            $products = $this->fetchFromJsonApi($distributor, $collectionHandle, $config);
 
             // If the JSON API returned products, use them. Otherwise fall back
-            // to the sitemap (rate limiting, API disabled, etc.).
+            // to the sitemap (rate limiting, API disabled, etc.) — but flag it,
+            // since the sitemap has no barcodes/price/stock and matches far worse.
             if ($products !== []) {
                 return $products;
             }
+
+            $this->report->usedFallback = true;
+            Log::warning('Distributor JSON API yielded nothing; using sitemap fallback', [
+                'distributor' => $distributor->slug,
+                'platform' => 'shopify',
+                'last_failure_reason' => $this->report->lastFailureReason,
+            ]);
         }
 
-        return $this->fetchFromSitemap($distributor);
+        return $this->fetchFromSitemap($distributor, $config);
     }
 
     /**
      * Fetch products from Shopify's public collection JSON endpoint.
      * Paginated — follows ?page=N until an empty page is returned.
+     *
+     * @param  array<string, mixed>  $config
      */
-    private function fetchFromJsonApi(Distributor $distributor, string $collectionHandle): array
+    private function fetchFromJsonApi(Distributor $distributor, string $collectionHandle, array $config): array
     {
+        $delayMs = $this->configInt($config, 'request_delay_ms', self::DEFAULT_DELAY_MS);
+        $jitterMs = $this->configInt($config, 'request_jitter_ms', 0);
+        $maxRetries = $this->configInt($config, 'max_retries', self::DEFAULT_MAX_RETRIES);
+
         $products = [];
         $page = 1;
         $retries = 0;
@@ -53,24 +81,33 @@ class ShopifyAdapter implements DistributorPlatformAdapter
                 .'?limit='.self::PER_PAGE
                 .'&page='.$page;
 
-            $this->delay();
+            $this->throttle($delayMs, $jitterMs);
             $response = Http::timeout(self::TIMEOUT)
                 ->withUserAgent(self::USER_AGENT)
                 ->get($url);
 
-            // Back off on rate limiting — Shopify returns 429
-            if ($response->status() === 429 || $response->status() === 403) {
+            $reason = $this->classifyResponse($response);
+
+            // Back off and retry on rate-limit / block / challenge.
+            if ($this->isRetryable($reason)) {
                 $retries++;
-                if ($retries > 3) {
+                if ($retries > $maxRetries) {
+                    $this->report->recordFailure($response->status(), $reason);
+                    $this->logStop($distributor, $url, $response->status(), $reason);
+
                     break; // Give up, fall back to sitemap
                 }
-                sleep($retries * 2); // 2s, 4s, 6s
+                $this->report->retriesUsed++;
+                sleep($this->retryDelaySeconds($response, $retries, 2));
                 $batch = []; // Reset so the loop condition doesn't break on stale data
 
                 continue;
             }
 
-            if (! $response->successful()) {
+            if ($reason !== null) {
+                $this->report->recordFailure($response->status(), $reason);
+                $this->logStop($distributor, $url, $response->status(), $reason);
+
                 break;
             }
 
@@ -78,7 +115,7 @@ class ShopifyAdapter implements DistributorPlatformAdapter
             $batch = $json['products'] ?? [];
 
             if ($batch === []) {
-                break;
+                break; // natural end
             }
 
             foreach ($batch as $product) {
@@ -89,6 +126,7 @@ class ShopifyAdapter implements DistributorPlatformAdapter
                 }
             }
 
+            $this->report->pagesFetched = $page;
             $page++;
         } while (count($batch) === self::PER_PAGE);
 
@@ -99,22 +137,35 @@ class ShopifyAdapter implements DistributorPlatformAdapter
      * Fallback: fetch product URLs from Shopify's sitemap XML.
      * Returns less data (no barcode/price/stock) but works when JSON API is restricted.
      */
-    private function fetchFromSitemap(Distributor $distributor): array
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function fetchFromSitemap(Distributor $distributor, array $config = []): array
     {
         $products = [];
+        $delayMs = $this->configInt($config, 'request_delay_ms', self::DEFAULT_DELAY_MS);
+        $jitterMs = $this->configInt($config, 'request_jitter_ms', 0);
+        $maxRetries = $this->configInt($config, 'max_retries', self::DEFAULT_MAX_RETRIES);
 
         $sitemapUrl = $distributor->sitemap_url
             ?: rtrim($distributor->base_url, '/').'/sitemap.xml';
 
-        $response = $this->httpGetWithRetry($sitemapUrl);
+        $response = $this->httpGetWithRetry($sitemapUrl, $maxRetries);
+        $reason = $this->classifyResponse($response);
 
-        if (! $response->successful()) {
+        if ($reason !== null) {
+            $this->report->recordFailure($response->status(), $reason);
+            $this->logStop($distributor, $sitemapUrl, $response->status(), $reason);
+
             return $products;
         }
 
         $xml = simplexml_load_string($response->body());
 
         if ($xml === false) {
+            $this->report->recordFailure($response->status(), 'unparseable');
+            $this->logStop($distributor, $sitemapUrl, $response->status(), 'unparseable');
+
             return $products;
         }
 
@@ -129,12 +180,13 @@ class ShopifyAdapter implements DistributorPlatformAdapter
             }
 
             foreach ($productSitemaps as $sitemapLoc) {
-                $this->delay();
-                $batch = $this->parseProductSitemap($sitemapLoc);
+                $this->throttle($delayMs, $jitterMs);
+                $batch = $this->parseProductSitemap($sitemapLoc, $maxRetries);
                 array_push($products, ...$batch);
             }
         } elseif ($xml->getName() === 'urlset') {
             $products = $this->parseProductUrls($xml);
+            $this->report->pagesFetched = 1;
         }
 
         return $products;
@@ -145,11 +197,11 @@ class ShopifyAdapter implements DistributorPlatformAdapter
      *
      * @return array<int, array<string, mixed>>
      */
-    private function parseProductSitemap(string $url): array
+    private function parseProductSitemap(string $url, int $maxRetries): array
     {
-        $response = $this->httpGetWithRetry($url);
+        $response = $this->httpGetWithRetry($url, $maxRetries);
 
-        if (! $response->successful()) {
+        if ($this->classifyResponse($response) !== null) {
             return [];
         }
 
@@ -158,6 +210,8 @@ class ShopifyAdapter implements DistributorPlatformAdapter
         if ($xml === false || $xml->getName() !== 'urlset') {
             return [];
         }
+
+        $this->report->pagesFetched++;
 
         return $this->parseProductUrls($xml);
     }
@@ -262,33 +316,40 @@ class ShopifyAdapter implements DistributorPlatformAdapter
     }
 
     /**
-     * HTTP GET with retry + backoff for rate-limited endpoints (Shopify returns 429).
+     * HTTP GET that retries on rate-limit / block / challenge responses with a
+     * Retry-After-aware back-off.
      */
-    private function httpGetWithRetry(string $url, int $maxRetries = 3): Response
+    private function httpGetWithRetry(string $url, int $maxRetries): Response
     {
         $attempts = 0;
 
         do {
-            if ($attempts > 0) {
-                sleep($attempts * 5); // 5s, 10s, 15s backoff
-            }
-
             $response = Http::timeout(self::TIMEOUT)
                 ->withUserAgent(self::USER_AGENT)
                 ->get($url);
 
-            if ($response->status() !== 429 && $response->status() !== 403) {
+            if (! $this->isRetryable($this->classifyResponse($response))) {
                 return $response;
             }
 
             $attempts++;
+            if ($attempts <= $maxRetries) {
+                $this->lastFetchReport()->retriesUsed++;
+                sleep($this->retryDelaySeconds($response, $attempts, 5));
+            }
         } while ($attempts <= $maxRetries);
 
         return $response;
     }
 
-    private function delay(): void
+    private function logStop(Distributor $distributor, string $url, int $status, string $reason): void
     {
-        usleep(self::DELAY_MS);
+        Log::warning('Distributor fetch stopped early', [
+            'distributor' => $distributor->slug,
+            'platform' => 'shopify',
+            'url' => $url,
+            'status' => $status,
+            'reason' => $reason,
+        ]);
     }
 }

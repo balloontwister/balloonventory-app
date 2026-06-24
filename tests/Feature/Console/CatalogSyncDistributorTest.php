@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console;
 
 use App\Models\Distributor;
+use App\Models\DistributorCatalogGap;
 use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
 use Database\Seeders\BrandSeeder;
@@ -113,6 +114,84 @@ class CatalogSyncDistributorTest extends TestCase
         ])->assertSuccessful();
 
         $this->assertSame(1, DistributorSkuUrl::where('distributor_id', $distributor->id)->count());
+    }
+
+    public function test_reports_block_and_does_not_mark_synced(): void
+    {
+        // max_retries:0 keeps the test from sleeping through real back-offs.
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://bc-block.com',
+            'config' => ['request_delay_ms' => 0, 'max_retries' => 0],
+        ]);
+
+        // Page 1 returns a product, page 2 is a 403 block — a truncated fetch.
+        Http::fake([
+            'bc-block.com/xmlsitemap.php?type=products&page=1' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://bc-block.com/some-balloon-10-count/</loc></url></urlset>',
+                200,
+                ['Content-Type' => 'application/xml'],
+            ),
+            'bc-block.com/xmlsitemap.php?type=products&page=2' => Http::response('Forbidden', 403),
+        ]);
+
+        $this->artisan('catalog:sync-distributor', [
+            'distributor' => $distributor->slug,
+            '--execute' => true,
+        ])
+            ->expectsOutputToContain('Looks blocked')
+            ->assertSuccessful();
+
+        // Partial data is still written (the one product became a gap)...
+        $this->assertGreaterThan(0, DistributorCatalogGap::where('distributor_id', $distributor->id)->count());
+        // ...but the distributor is NOT marked as fully synced.
+        $this->assertNull($distributor->fresh()->last_synced_at);
+    }
+
+    public function test_detects_cloudflare_challenge(): void
+    {
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://bc-cf.com',
+            'config' => ['request_delay_ms' => 0, 'max_retries' => 0],
+        ]);
+
+        // A 200 whose body is a Cloudflare interstitial, not the sitemap XML.
+        Http::fake([
+            'bc-cf.com/*' => Http::response(
+                '<!DOCTYPE html><html><head><title>Just a moment...</title></head><body>Enable JavaScript and cookies to continue</body></html>',
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+        ]);
+
+        $this->artisan('catalog:sync-distributor', [
+            'distributor' => $distributor->slug,
+        ])
+            ->expectsOutputToContain('challenge')
+            ->assertSuccessful();
+    }
+
+    public function test_shopify_json_empty_falls_back_to_sitemap(): void
+    {
+        $distributor = Distributor::factory()->shopify()->create([
+            'base_url' => 'https://fake-shopify2.com',
+            'config' => ['collection_handle' => 'all', 'has_json_api' => true, 'request_delay_ms' => 0],
+        ]);
+
+        Http::fake([
+            // JSON API responds but with no products → triggers the fallback.
+            'fake-shopify2.com/collections/*' => Http::response(['products' => []], 200),
+            'fake-shopify2.com/sitemap.xml' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://fake-shopify2.com/products/red-balloon-12345</loc></url></urlset>',
+                200,
+                ['Content-Type' => 'application/xml'],
+            ),
+        ]);
+
+        $this->artisan('catalog:sync-distributor', [
+            'distributor' => $distributor->slug,
+        ])
+            ->expectsOutputToContain('sitemap fallback')
+            ->assertSuccessful();
     }
 
     public function test_invalid_distributor_slug(): void

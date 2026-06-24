@@ -26,6 +26,7 @@ use App\Http\Controllers\SuperAdmin\CatalogColorController;
 use App\Http\Controllers\SuperAdmin\CatalogController;
 use App\Http\Controllers\SuperAdmin\CatalogReferenceController;
 use App\Http\Controllers\SuperAdmin\ComingSoonController;
+use App\Http\Controllers\SuperAdmin\DistributorController;
 use App\Http\Controllers\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\SuperAdmin\LoginLogController;
 use App\Http\Controllers\SuperAdmin\SkuFeedbackController;
@@ -133,6 +134,8 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::get('/settings/businesses', [SettingsController::class, 'businesses'])->name('settings.businesses');
     Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
     Route::post('/settings/businesses/logo', [SettingsController::class, 'updateBusinessLogo'])->name('settings.businesses.logo.update');
+    Route::post('/settings/distributors', [SettingsController::class, 'updateDistributors'])->name('settings.distributors.update');
+
     // ─── Membership management (invite, role change, remove, revoke invite) ──────
     Route::post('/memberships/invite', [MembershipController::class, 'invite'])->name('memberships.invite');
     Route::patch('/memberships/{membership}/role', [MembershipController::class, 'updateRole'])->name('memberships.update-role');
@@ -209,6 +212,15 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::post('/admin/catalog/reference/{table}', [CatalogReferenceController::class, 'store'])->name('admin.catalog.reference.store');
     Route::patch('/admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'update'])->name('admin.catalog.reference.update');
     Route::delete('/admin/catalog/reference/{table}/{item}', [CatalogReferenceController::class, 'destroy'])->name('admin.catalog.reference.destroy');
+
+    // ── Distributors ───────────────────────────────────────────────────────
+    Route::get('/admin/distributors', [DistributorController::class, 'index'])->name('admin.distributors.index');
+    Route::get('/admin/distributors/create', [DistributorController::class, 'create'])->name('admin.distributors.create');
+    Route::post('/admin/distributors', [DistributorController::class, 'store'])->name('admin.distributors.store');
+    Route::get('/admin/distributors/{distributor}', [DistributorController::class, 'show'])->name('admin.distributors.show');
+    Route::get('/admin/distributors/{distributor}/edit', [DistributorController::class, 'edit'])->name('admin.distributors.edit');
+    Route::patch('/admin/distributors/{distributor}', [DistributorController::class, 'update'])->name('admin.distributors.update');
+    Route::delete('/admin/distributors/{distributor}', [DistributorController::class, 'destroy'])->name('admin.distributors.destroy');
 
     // ── Email templates ───────────────────────────────────────────────────────
     Route::get('/admin/email-templates', [EmailTemplateController::class, 'index'])->name('admin.email-templates.index');

@@ -17,6 +17,7 @@ const props = defineProps({
     countries: { type: Object, default: () => ({}) },
     members: { type: Array, default: () => [] },
     pendingInvitations: { type: Array, default: () => [] },
+    distributors: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -130,6 +131,23 @@ const logoForm = useForm({ logo: null, logo_clear: false });
 const submitLogo = () =>
     logoForm.post(route('settings.businesses.logo.update'), {
         forceFormData: true,
+    });
+
+const distributorForm = useForm({
+    distributor_ids: props.distributors.filter((d) => d.enabled).map((d) => d.id),
+});
+function toggleDistributor(id, checked) {
+    const set = new Set(distributorForm.distributor_ids);
+    if (checked) {
+        set.add(id);
+    } else {
+        set.delete(id);
+    }
+    distributorForm.distributor_ids = [...set];
+}
+const submitDistributors = () =>
+    distributorForm.post(route('settings.distributors.update'), {
+        preserveScroll: true,
     });
 </script>
 
@@ -621,6 +639,56 @@ const submitLogo = () =>
                             {{ $t('settings.team.invite_submit') }}
                         </button>
                     </form>
+                </div>
+            </div>
+
+            <!-- ── Preferred distributors ────────────────────────────────── -->
+            <div
+                v-if="canEditSettings"
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('settings.distributors.heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('settings.distributors.subheading') }}
+                </p>
+
+                <p
+                    v-if="!distributors.length"
+                    class="mt-4 font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('settings.distributors.empty') }}
+                </p>
+
+                <div v-else class="mt-5 flex flex-col gap-3">
+                    <label
+                        v-for="distributor in distributors"
+                        :key="distributor.id"
+                        class="flex cursor-pointer items-center gap-3"
+                    >
+                        <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                            :checked="distributorForm.distributor_ids.includes(distributor.id)"
+                            @change="(e) => toggleDistributor(distributor.id, e.target.checked)"
+                        />
+                        <span class="font-sans text-[14px] text-ink-primary">
+                            {{ distributor.name }}
+                        </span>
+                    </label>
+
+                    <div class="mt-2">
+                        <AppButton
+                            variant="primary"
+                            :disabled="distributorForm.processing"
+                            @click="submitDistributors"
+                        >
+                            {{ $t('settings.distributors.save') }}
+                        </AppButton>
+                    </div>
                 </div>
             </div>
 

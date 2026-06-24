@@ -88,4 +88,11 @@ return [
         'owner_promote_body' => ':person will be able to see and edit every part of the business, including removing you.',
         'owner_promote_confirm' => 'Yes, make owner',
     ],
+
+    'distributors' => [
+        'heading' => 'Preferred distributors',
+        'subheading' => 'Choose which distributors to show purchase links for on the Reorder page.',
+        'empty' => 'No distributors are available yet.',
+        'save' => 'Save distributors',
+    ],
 ];

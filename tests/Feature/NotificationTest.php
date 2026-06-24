@@ -234,4 +234,33 @@ class NotificationTest extends TestCase
                 ->where('notifications.recent.0.read_at', null)
             );
     }
+
+    public function test_index_page_lists_all_notifications(): void
+    {
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Manager'));
+
+        $this->actingAs($this->owner)
+            ->get(route('notifications.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Notifications/Index')
+                ->where('filter', 'all')
+                ->where('unreadCount', 2)
+                ->has('notifications.data', 2)
+            );
+    }
+
+    public function test_index_page_unread_filter_excludes_read_notifications(): void
+    {
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Artist'));
+        $this->owner->notify(new BusinessAccessGranted($this->business->id, $this->business->name, 'Manager'));
+        $this->owner->notifications()->latest()->first()->markAsRead();
+
+        $this->actingAs($this->owner)
+            ->get(route('notifications.index', ['filter' => 'unread']))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('filter', 'unread')
+                ->has('notifications.data', 1)
+            );
+    }
 }

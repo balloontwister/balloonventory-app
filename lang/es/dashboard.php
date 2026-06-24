@@ -81,6 +81,9 @@ return [
     'notifications' => [
         'title' => 'Notificaciones',
         'mark_all_read' => 'Marcar todo como leído',
+        'view_all' => 'Ver todas',
+        'filter_all' => 'Todas',
+        'filter_unread' => 'No leídas',
         'empty' => 'Estás al día.',
         'business_access_granted' => 'Ahora eres :role en :business.',
         'invitation_accepted' => ':name aceptó tu invitación para unirse a :business.',

@@ -81,6 +81,9 @@ return [
     'notifications' => [
         'title' => 'Notifications',
         'mark_all_read' => 'Mark all read',
+        'view_all' => 'View all',
+        'filter_all' => 'All',
+        'filter_unread' => 'Unread',
         'empty' => 'You\'re all caught up.',
         'business_access_granted' => 'You\'re now a :role at :business.',
         'invitation_accepted' => ':name accepted your invitation to join :business.',

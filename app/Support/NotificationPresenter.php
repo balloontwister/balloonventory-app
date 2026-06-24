@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Notifications\DatabaseNotification;
 
 /**
@@ -43,5 +44,18 @@ class NotificationPresenter
             ->get()
             ->map(fn (DatabaseNotification $n) => self::present($n))
             ->all();
+    }
+
+    /**
+     * A page of notifications for the notification center, newest first.
+     * Pass $filter = 'unread' to limit to unread.
+     */
+    public static function paginated(User $user, ?string $filter = null, int $perPage = 20): LengthAwarePaginator
+    {
+        $query = $filter === 'unread' ? $user->unreadNotifications() : $user->notifications();
+
+        return $query->paginate($perPage)
+            ->withQueryString()
+            ->through(fn (DatabaseNotification $n) => self::present($n));
     }
 }

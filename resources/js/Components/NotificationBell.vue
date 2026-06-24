@@ -1,5 +1,5 @@
 <script setup>
-import { router, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
     notificationMessageKey,
@@ -162,6 +162,14 @@ onUnmounted(() => {
                             </span>
                         </button>
                     </div>
+
+                    <Link
+                        :href="route('notifications.index')"
+                        class="block border-t border-border px-4 py-2.5 text-center font-sans text-[13px] font-medium text-accent transition hover:bg-background"
+                        @click="close"
+                    >
+                        {{ $t('dashboard.notifications.view_all') }}
+                    </Link>
                 </div>
             </template>
         </Teleport>

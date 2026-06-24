@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
     Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
 
     // ─── Notifications (unified notice feed) ─────────────────────────────────────
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 

@@ -85,6 +85,8 @@ return [
         'member_role_changed' => 'Tu rol en :business ahora es :role.',
         'site_admin_granted' => 'Se te ha otorgado acceso de Administrador del Sitio.',
         'site_admin_revoked' => 'Se ha eliminado tu acceso de Administrador del Sitio.',
+        'account_frozen' => 'Tu cuenta ha sido congelada. El acceso es limitado hasta que se restablezca.',
+        'account_thawed' => 'Tu cuenta ha sido restablecida. El acceso completo está de vuelta.',
         'switch' => 'Cambiar a :business',
         'dismiss' => 'Descartar',
     ],

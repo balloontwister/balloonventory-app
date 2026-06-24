@@ -13,6 +13,8 @@ use App\Models\Membership;
 use App\Models\SkuFeedback;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\AccountFrozen;
+use App\Notifications\AccountThawed;
 use App\Notifications\SiteAdminGranted;
 use App\Notifications\SiteAdminRevoked;
 use App\Scopes\BusinessScope;
@@ -314,6 +316,8 @@ class AdminUserController extends Controller
         $user->frozen_at = now();
         $user->save();
 
+        $user->notify(new AccountFrozen);
+
         return back()->with('success', __('flash.users.frozen', ['name' => $user->name]));
     }
 
@@ -321,6 +325,8 @@ class AdminUserController extends Controller
     {
         $user->frozen_at = null;
         $user->save();
+
+        $user->notify(new AccountThawed);
 
         return back()->with('success', __('flash.users.thawed', ['name' => $user->name]));
     }

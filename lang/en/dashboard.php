@@ -85,6 +85,8 @@ return [
         'member_role_changed' => 'Your role at :business is now :role.',
         'site_admin_granted' => 'You\'ve been granted Site Admin access.',
         'site_admin_revoked' => 'Your Site Admin access has been removed.',
+        'account_frozen' => 'Your account has been frozen. Access is limited until it\'s restored.',
+        'account_thawed' => 'Your account has been restored. Full access is back.',
         'switch' => 'Switch to :business',
         'dismiss' => 'Dismiss',
     ],

@@ -12,6 +12,8 @@ use App\Models\SkuFeedback;
 use App\Models\StockLevel;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Notifications\AccountFrozen;
+use App\Notifications\AccountThawed;
 use App\Notifications\SiteAdminGranted;
 use App\Notifications\SiteAdminRevoked;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -502,15 +504,19 @@ class AdminUsersTest extends TestCase
 
     public function test_super_admin_can_freeze_and_thaw_a_user(): void
     {
+        Notification::fake();
+
         $this->actingAs($this->superAdmin)
             ->post(route('admin.users.freeze', $this->regularUser))
             ->assertSessionHas('success');
         $this->assertNotNull($this->regularUser->fresh()->frozen_at);
+        Notification::assertSentTo($this->regularUser, AccountFrozen::class);
 
         $this->actingAs($this->superAdmin)
             ->delete(route('admin.users.thaw', $this->regularUser))
             ->assertSessionHas('success');
         $this->assertNull($this->regularUser->fresh()->frozen_at);
+        Notification::assertSentTo($this->regularUser, AccountThawed::class);
     }
 
     public function test_site_admin_can_freeze_a_regular_user(): void

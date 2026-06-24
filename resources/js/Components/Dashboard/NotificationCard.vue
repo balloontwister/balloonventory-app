@@ -15,6 +15,8 @@ const MESSAGE_KEYS = {
     member_role_changed: 'dashboard.notifications.member_role_changed',
     site_admin_granted: 'dashboard.notifications.site_admin_granted',
     site_admin_revoked: 'dashboard.notifications.site_admin_revoked',
+    account_frozen: 'dashboard.notifications.account_frozen',
+    account_thawed: 'dashboard.notifications.account_thawed',
 };
 
 const messageKey = computed(() => MESSAGE_KEYS[props.notification.type] ?? null);

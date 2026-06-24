@@ -180,6 +180,18 @@ Always wrap in try/catch. A missing or inactive template should never crash the 
 
 All templates must be documented here before the code is written. If a template isn't in this list, it doesn't get built.
 
+### Base variables (available to every template)
+
+These resolve from the recipient and app config, so they exist in every send context and are inherited by every template below. They live in `EmailTemplateRegistry::BASE_VARIABLES` — define once, not per template.
+
+| Token | Resolves to |
+|---|---|
+| `{{user_name}}` | The recipient's display name |
+
+> Context-specific tokens (business, role, inviter, etc.) are listed per template and only resolve where that trigger actually carries the data. See the roadmap at the end of this file for the planned unified resolver.
+
+---
+
 ### `welcome`
 
 | Property | Value |
@@ -218,6 +230,130 @@ All templates must be documented here before the code is written. If a template 
 | `{{app_url}}` | The application URL |
 
 **Trigger location:** TBD — subscription management controller.
+
+---
+
+### `business_invitation`
+
+| Property | Value |
+|---|---|
+| Label | Business Invitation |
+| Trigger | An existing user is invited to join a business |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{inviter_name}}` | Name of the person who sent the invitation |
+| `{{business_name}}` | Name of the business they are invited to |
+| `{{role_label}}` | The role they are invited as (Owner, Manager, Artist, Guest Artist) |
+| `{{accept_url}}` | Magic link the invitee clicks to accept and join |
+
+**Trigger location:** `MembershipController::invite`.
+
+---
+
+### `invitation_accepted`
+
+| Property | Value |
+|---|---|
+| Label | Invitation Accepted |
+| Trigger | An invited user accepts and joins — sent to the business owner |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{actor_name}}` | Name of the user who accepted and joined |
+| `{{business_name}}` | Name of the business |
+| `{{app_url}}` | The application URL |
+
+**Trigger location:** `InvitationController::acceptInvitation`, via the `InvitationAccepted` notification (mail channel).
+
+---
+
+### `member_left_business`
+
+| Property | Value |
+|---|---|
+| Label | Member Left Business |
+| Trigger | A member removes themselves — sent to every owner |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{actor_name}}` | Name of the member who left |
+| `{{business_name}}` | Name of the business |
+| `{{app_url}}` | The application URL |
+
+**Trigger location:** `MembershipController::leave`, via the `MemberLeftBusiness` notification (mail channel).
+
+---
+
+### `member_role_changed`
+
+| Property | Value |
+|---|---|
+| Label | Member Role Changed |
+| Trigger | An owner changes a member's role — sent to that member |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{role_label}}` | The new role label (Owner, Manager, Artist, Guest) |
+| `{{business_name}}` | Name of the business |
+| `{{app_url}}` | The application URL |
+
+**Trigger location:** `MembershipController::updateRole`, via the `MemberRoleChanged` notification (mail channel).
+
+---
+
+### `member_removed`
+
+| Property | Value |
+|---|---|
+| Label | Member Removed |
+| Trigger | An owner removes a member — sent to that member (email only) |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{business_name}}` | Name of the business they were removed from |
+| `{{app_url}}` | The application URL |
+
+**Trigger location:** `MembershipController::destroy`, via the `MemberRemoved` notification (mail channel).
+
+---
+
+### `password_changed_by_admin`
+
+| Property | Value |
+|---|---|
+| Label | Password Changed by Admin |
+| Trigger | An administrator sets a new password and chooses to notify the user |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{app_url}}` | The application URL |
+
+**Trigger location:** `AdminUserController::setPassword`.
 
 ---
 
@@ -325,6 +461,94 @@ These are developer-owned, not editable via the super-admin UI. They are Blade-o
 | `App\Mail\EmailVerificationCode` | `mail.verification-code` | Registration and resend on verify page | No |
 | `App\Mail\SupportRequestMail` | `mail.support-request` | User submits in-app contact form → sent TO `support@` | No |
 | `App\Mail\SupportReplyMail` | `mail.support-reply` | Admin replies to a ticket from super-admin dashboard → sent TO user | No |
+
+---
+
+## Roadmap: unified merge-tag resolver
+
+> Status as of 2026-06-23: **Step 1 done.** Steps 2–3 are planned but not built. This section is
+> the full spec so the work can be picked up cold after any delay. Until it's done, the caveats
+> below are live.
+
+### Why this exists — the principle
+
+A merge tag can only render if its **data exists at send time**. That's why tags are layered, not
+one flat global list:
+
+- **Base tags** (`user_name`, …) resolve from the recipient + app config, which always exist →
+  available to every email, including freeform.
+- **Context tags** (`business_name`, `role_label`, `inviter_name`, `accept_url`, …) only exist for
+  a specific trigger. The welcome email has no business; a freeform blast goes to a user who may be
+  in zero or many businesses. Offering those tokens where the data doesn't exist would render blank
+  or wrong — so they stay scoped to the templates whose trigger carries that data.
+
+You cannot make context tags "available everywhere." What you *can* (and should) centralize is the
+**base set** and the **resolver**.
+
+### What's done (Step 1)
+
+`EmailTemplateRegistry` now has a `BASE_VARIABLES` layer inherited by every registered template,
+and all eight active templates are registered (previously only `welcome` /
+`subscription_upgrade` were, so the others showed an empty variable sidebar and could not be
+re-activated after an edit). `EmailTemplateRegistryTest` guards that shipped template copy only
+uses registered tokens, so this class of drift fails CI.
+
+### Known limitations still open (the reason for Steps 2–3)
+
+1. **Two sources of truth.** The registry only *documents* tokens (sidebar + activation whitelist).
+   The actual values are still passed by hand at each call site (`TemplatedMailable::forKey(key,
+   [...])` in controllers/notifications). The two can drift; keeping them in sync is manual.
+2. **Freeform emails support no tags at all.** `AdminUserMessageMail` renders the admin's body
+   verbatim (`white-space:pre-wrap`), so `{{user_name}}` typed into a freeform email is sent
+   literally. There is no interpolation on that path.
+
+### Step 2 — single resolver (collapse the two sources of truth)
+
+**Goal:** the registry becomes the one place that both *documents* a token and *produces* its
+value, so a call site can't pass a variable the registry doesn't know.
+
+Sketch:
+- Introduce a `MailContext` value object carrying the resolvable entities: the recipient `User`
+  (always) and optional `Business` / `Membership` / inviter / token.
+- Give each `BASE_VARIABLES` and template-variable entry a **resolver** (a closure or a typed
+  method) that derives its value from a `MailContext` — e.g. `user_name => fn (MailContext $c) =>
+  $c->recipient->name`. Samples stay for previews.
+- Add `EmailTemplateRegistry::resolve(string $key, MailContext $c): array` that runs the base +
+  template resolvers and returns the `['token' => value]` array.
+- Change call sites from `TemplatedMailable::forKey('member_left_business', ['user_name' => …,
+  'business_name' => …, …])` to `TemplatedMailable::forContext('member_left_business', $context)`,
+  where `forContext` internally calls `EmailTemplateRegistry::resolve()`. The notification classes
+  in `app/Notifications/*` and `MembershipController` / `AdminUserController` are the call sites to
+  migrate.
+- **Acceptance:** a test asserts that for every active template, `resolve()` returns exactly the
+  registered token set (no missing, no extra). This makes the Step-1 drift guard structural rather
+  than copy-based, and makes "code passes a tag the editor doesn't list" impossible.
+
+### Step 3 — freeform emails through the same engine
+
+**Goal:** the admin freeform composer (`AdminUserEmailController` / `AdminUserMessageMail`) supports
+at least the base tags, using the same interpolation + registry.
+
+Sketch:
+- Route the freeform body through the same `{{token}}` interpolation `TemplatedMailable` uses
+  (extract the `interpolate`/`interpolateHtml` logic so both share it), resolving against a
+  `MailContext` built from the chosen recipient → base tags work (`{{user_name}}`).
+- Surface the **base variable reference** in the freeform composer UI, same sidebar component the
+  template editor uses.
+- Optional follow-on: if the composer is scoped to a single business's members, build the
+  `MailContext` with that business so the business/role context tags light up too. If recipients
+  span businesses, keep it to base tags only.
+- **Acceptance:** sending a freeform email containing `{{user_name}}` substitutes the recipient's
+  name; an unknown token is surfaced to the admin (warn, consistent with the template editor) and
+  never sent literally.
+
+### Touchpoints summary
+
+`app/Support/EmailTemplateRegistry.php` (resolvers + `resolve()`), a new `MailContext` value object,
+`app/Mail/TemplatedMailable.php` (`forContext`, shared interpolation), `app/Notifications/*` and the
+membership/admin controllers (migrate call sites), `app/Mail/AdminUserMessageMail.php` +
+`AdminUserEmailController` (freeform interpolation), and the freeform composer Vue page (variable
+sidebar). Add the two acceptance tests above.
 
 ---
 

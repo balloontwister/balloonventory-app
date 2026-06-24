@@ -9,6 +9,7 @@ use App\Models\Distributor;
 use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Support\Gtin;
+use App\Support\ProductText;
 use Illuminate\Support\Collection;
 
 class DistributorMatcher
@@ -225,7 +226,7 @@ class DistributorMatcher
         // count parsed from the product name singles one out; otherwise refuse
         // to guess which variant the URL belongs to.
         if ($candidates->count() > 1) {
-            $count = $this->parsePackCount($name);
+            $count = ProductText::packCount($name);
 
             if ($count !== null) {
                 $byCount = $candidates->where('default_count_per_bag', $count)->values();
@@ -255,26 +256,5 @@ class DistributorMatcher
         }
 
         return (bool) preg_match('/(?<![a-z0-9])'.preg_quote($needle, '/').'/i', $haystack);
-    }
-
-    /**
-     * Parse a pack/bag count from a product name — "50ct", "50 per bag",
-     * "bag of 100", etc. Returns null when no count is present.
-     */
-    private function parsePackCount(string $name): ?int
-    {
-        if (preg_match('/(\d{1,4})\s*(?:ct|count|pcs|pc|pk)\b/i', $name, $matches)) {
-            return (int) $matches[1];
-        }
-
-        if (preg_match('/(\d{1,4})[\s-]*per[\s-]*(?:bag|pack)/i', $name, $matches)) {
-            return (int) $matches[1];
-        }
-
-        if (preg_match('/(?:bag|pack)\s*of\s*(\d{1,4})/i', $name, $matches)) {
-            return (int) $matches[1];
-        }
-
-        return null;
     }
 }

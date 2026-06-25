@@ -38,7 +38,16 @@ class Distributor extends Model
         'is_active',
         'sort_order',
         'last_synced_at',
+        'health_status',
+        'health_checked_at',
+        'health_detail',
     ];
+
+    public const HEALTH_HEALTHY = 'healthy';
+
+    public const HEALTH_DEGRADED = 'degraded';
+
+    public const HEALTH_BROKEN = 'broken';
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -46,6 +55,7 @@ class Distributor extends Model
         'shipping_minimum' => 'decimal:2',
         'free_shipping_threshold' => 'decimal:2',
         'last_synced_at' => 'datetime',
+        'health_checked_at' => 'datetime',
     ];
 
     protected $hidden = [

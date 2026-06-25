@@ -134,11 +134,30 @@ class DistributorProductIngestor
             'missing_required' => $extraction['missing_required'],
         ];
 
+        // Drift guard: if the recipe didn't match this page (e.g. the site changed
+        // its template) but we already hold good attributes for this product, keep
+        // the good data rather than overwriting it with an empty extraction.
+        if ($execute && ! ($parsed['extraction']['ok'] ?? false) && $this->hasStagedAttributes($distributor->id, $externalId)) {
+            return $parsed;
+        }
+
         if ($execute) {
             $this->upsertPage($distributor->id, $externalId, $url, $parsed);
         }
 
         return $parsed;
+    }
+
+    /**
+     * Does a staged row for this product already hold a non-empty attribute table?
+     */
+    private function hasStagedAttributes(string $distributorId, string $externalId): bool
+    {
+        $existing = DistributorProduct::where('distributor_id', $distributorId)
+            ->where('external_id', $externalId)
+            ->first(['raw_data']);
+
+        return ! empty($existing?->raw_data['attributes'] ?? []);
     }
 
     /**

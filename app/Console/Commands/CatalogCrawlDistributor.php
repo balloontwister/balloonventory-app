@@ -8,6 +8,7 @@ use App\Services\DistributorPlatforms\Concerns\InspectsHttpResponses;
 use App\Services\DistributorPlatforms\FetchReport;
 use App\Services\DistributorPlatforms\PlatformFactory;
 use App\Services\DistributorProductIngestor;
+use App\Services\Distributors\DistributorHealthEvaluator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -27,7 +28,7 @@ class CatalogCrawlDistributor extends Command
 
     private const USER_AGENT = 'Balloonventory/1.0 (+https://balloonventory.com)';
 
-    public function handle(DistributorProductIngestor $ingestor, PlatformFactory $platformFactory): int
+    public function handle(DistributorProductIngestor $ingestor, PlatformFactory $platformFactory, DistributorHealthEvaluator $healthEvaluator): int
     {
         $slug = $this->argument('slug');
         $execute = (bool) $this->option('execute');
@@ -106,6 +107,9 @@ class CatalogCrawlDistributor extends Command
         $staged = 0;
         $failed = 0;
         $skipped = 0;
+        $extractionOk = 0;   // pages whose attribute table parsed against the recipe
+        $pagesParsed = 0;    // pages we successfully fetched + read product data from
+        $extractionBroke = false;
 
         // ── Step 3: Crawl product pages ────────────────────────────────
         foreach ($sitemapProducts as $product) {
@@ -154,6 +158,10 @@ class CatalogCrawlDistributor extends Command
 
             if ($parsed !== null) {
                 $staged++;
+                $pagesParsed++;
+                if ($parsed['extraction']['ok'] ?? false) {
+                    $extractionOk++;
+                }
             } else {
                 $failed++;
                 Log::warning('BigCommerce crawl: failed to fetch/parse product page', [
@@ -162,10 +170,29 @@ class CatalogCrawlDistributor extends Command
                 ]);
             }
 
+            // Drift guard: once we have a sample, if almost nothing is extracting
+            // the site template has likely changed — stop rather than churn the
+            // rest of the crawl writing garbage (the no-clobber guard in the
+            // ingestor already protects existing good rows).
+            if ($pagesParsed >= DistributorHealthEvaluator::MIN_SAMPLE
+                && ($extractionOk / $pagesParsed) < 0.2) {
+                $extractionBroke = true;
+                break;
+            }
+
             // Progress dot every 10 products so long runs don't look frozen.
             if ($queued % 10 === 0) {
                 $this->output->write('.');
             }
+        }
+
+        // ── Extraction health (drift detection) ────────────────────────
+        if ($execute && ($health = $healthEvaluator->evaluate($extractionOk, $pagesParsed)) !== null) {
+            $distributor->update([
+                'health_status' => $health['status'],
+                'health_checked_at' => now(),
+                'health_detail' => $health['detail'],
+            ]);
         }
 
         // ── Step 4: Mark complete ──────────────────────────────────────
@@ -189,6 +216,13 @@ class CatalogCrawlDistributor extends Command
         $this->line("  Queued:        {$queued}");
         $this->line("  Staged:        {$staged}");
         $this->line("  Failed:        {$failed}");
+
+        if ($execute && $pagesParsed > 0) {
+            $this->line("  Extracted OK:  {$extractionOk}/{$pagesParsed}".($distributor->health_status ? "  [health: {$distributor->health_status}]" : ''));
+            if ($extractionBroke) {
+                $this->error('  ⚠ Stopped early — extraction looks broken (site template may have changed). Re-check the recipe with Probe.');
+            }
+        }
 
         $this->newLine();
         $mode = $execute

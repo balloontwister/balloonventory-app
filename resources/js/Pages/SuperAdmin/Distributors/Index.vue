@@ -18,6 +18,14 @@ function confirmDelete(distributor) {
 function platformLabel(type) {
     return type === 'shopify' ? 'Shopify' : type === 'bigcommerce' ? 'BigCommerce' : type;
 }
+
+function healthClass(status) {
+    return {
+        healthy: 'bg-success-soft text-success',
+        degraded: 'bg-warning-soft text-warning',
+        broken: 'bg-danger-soft text-danger',
+    }[status] ?? 'bg-background text-ink-tertiary';
+}
 </script>
 
 <template>
@@ -64,6 +72,9 @@ function platformLabel(type) {
                                 Active
                             </th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-secondary">
+                                Health
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-secondary">
                                 Last Synced
                             </th>
                             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-ink-secondary">
@@ -98,6 +109,17 @@ function platformLabel(type) {
                                     :class="d.is_active ? 'bg-green-500' : 'bg-gray-300'"
                                 />
                             </td>
+                            <td class="whitespace-nowrap px-4 py-3">
+                                <span
+                                    v-if="d.health_status"
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize"
+                                    :class="healthClass(d.health_status)"
+                                    :title="d.health_detail"
+                                >
+                                    {{ d.health_status }}
+                                </span>
+                                <span v-else class="text-sm text-ink-tertiary">—</span>
+                            </td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-ink-secondary">
                                 {{ d.last_synced_at ? new Date(d.last_synced_at).toLocaleDateString() : '—' }}
                             </td>
@@ -121,7 +143,7 @@ function platformLabel(type) {
                             </td>
                         </tr>
                         <tr v-if="distributors.length === 0">
-                            <td colspan="7" class="px-4 py-8 text-center text-sm text-ink-tertiary">
+                            <td colspan="8" class="px-4 py-8 text-center text-sm text-ink-tertiary">
                                 No distributors yet.
                                 <Link :href="route('admin.distributors.create')" class="text-accent hover:underline">
                                     Add one

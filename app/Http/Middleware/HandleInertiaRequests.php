@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Business;
+use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
@@ -50,6 +51,9 @@ class HandleInertiaRequests extends Middleware
                 : ['unreadCount' => 0, 'recent' => []],
             'pendingProposalsCount' => fn () => ($request->user()?->isSuperAdmin())
                 ? DistributorCatalogProposal::pending()->count()
+                : 0,
+            'brokenDistributorsCount' => fn () => ($request->user()?->isSuperAdmin())
+                ? Distributor::where('health_status', Distributor::HEALTH_BROKEN)->count()
                 : 0,
             ...$this->businessProps($request),
         ];

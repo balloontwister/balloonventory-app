@@ -31,7 +31,7 @@ class CatalogReferenceController extends Controller
         // Brand+material+shape-specific size instances (e.g. "Sempertex R-12").
         // All four FKs are NOT NULL in the schema — required by validation below.
         'balloon-sizes' => [BalloonSize::class, ['name', 'size_id', 'shape_id', 'brand_id', 'material_id', 'sort_order', 'description'], ['single', 'cluster']],
-        'shapes' => [Shape::class,        ['name', 'sort_order', 'description'],                  ['image']],
+        'shapes' => [Shape::class,        ['name', 'material_id', 'sort_order', 'description'],   ['image']],
         'textures' => [Texture::class,      ['name', 'material_id', 'brand_id', 'texture_family_id', 'sort_order', 'description'], ['image']],
         'color-families' => [ColorFamily::class,  ['name', 'fallback_color_hex', 'sort_order', 'description'], ['single', 'cluster']],
         'themes' => [Theme::class,        ['name', 'sort_order', 'description'],                  []],
@@ -45,7 +45,7 @@ class CatalogReferenceController extends Controller
         return Inertia::render('SuperAdmin/Catalog/Reference', [
             'sizes' => $this->withImages($this->translated(Size::orderBy('sort_order')->orderBy('name')->get()), ['single', 'cluster']),
             'balloonSizes' => $this->withImages(BalloonSize::with('size:id,name', 'shape:id,name', 'brand:id,name', 'material:id,name')->orderBy('sort_order')->orderBy('name')->get(), ['single', 'cluster']),
-            'shapes' => $this->withImages($this->translated(Shape::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
+            'shapes' => $this->withImages($this->translated(Shape::with('material:id,name')->withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
             'textures' => $this->withImages($this->translated(Texture::with('textureFamily:id,name', 'material:id,name', 'brand:id,name')->withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['image']),
             'colorFamilies' => $this->withImages($this->translated(ColorFamily::withTranslations()->orderBy('sort_order')->orderBy('name')->get()), ['single', 'cluster']),
             'themes' => $this->translated(Theme::withTranslations()->orderBy('sort_order')->orderBy('name')->get()),

@@ -70,6 +70,7 @@ const addForm = useForm({
     brand_id: '',
     fallback_color_hex: '',
     sort_order: '',
+    description: '',
     single_image: null,
     cluster_image: null,
     image: null,
@@ -101,6 +102,7 @@ const editForm = useForm({
     brand_id: '',
     fallback_color_hex: '',
     sort_order: '',
+    description: '',
     single_image: null,
     single_image_clear: false,
     cluster_image: null,
@@ -122,6 +124,7 @@ function startEdit(item) {
     editForm.brand_id = item.brand_id ?? '';
     editForm.fallback_color_hex = item.fallback_color_hex ?? '';
     editForm.sort_order = item.sort_order ?? '';
+    editForm.description = item.description ?? '';
     editForm.single_image = null;
     editForm.single_image_clear = false;
     editForm.cluster_image = null;
@@ -476,6 +479,51 @@ const selectClass =
                     </p>
                 </div>
 
+                <div v-if="activeTab === 'shapes'" class="w-44">
+                    <label
+                        class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('catalog.reference.material_label') }}
+                    </label>
+                    <select v-model="addForm.material_id" :class="selectClass">
+                        <option value="">
+                            {{ $t('catalog.reference.none_option') }}
+                        </option>
+                        <option
+                            v-for="m in materials"
+                            :key="m.id"
+                            :value="m.id"
+                        >
+                            {{ m.name }}
+                        </option>
+                    </select>
+                    <p
+                        v-if="addForm.errors.material_id"
+                        class="mt-1 font-sans text-[13px] text-danger"
+                    >
+                        {{ addForm.errors.material_id }}
+                    </p>
+                </div>
+
+                <div v-if="activeTab === 'shapes'" class="w-80">
+                    <label
+                        class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('catalog.reference.description_label') }}
+                    </label>
+                    <textarea
+                        v-model="addForm.description"
+                        rows="2"
+                        :class="selectClass"
+                    />
+                    <p
+                        v-if="addForm.errors.description"
+                        class="mt-1 font-sans text-[13px] text-danger"
+                    >
+                        {{ addForm.errors.description }}
+                    </p>
+                </div>
+
                 <div
                     v-if="activeTab === 'color-families'"
                     class="flex items-end gap-2"
@@ -600,6 +648,18 @@ const selectClass =
                             {{ $t('catalog.reference.col_brand') }}
                         </th>
                         <th
+                            v-if="activeTab === 'shapes'"
+                            class="px-4 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.reference.col_material') }}
+                        </th>
+                        <th
+                            v-if="activeTab === 'shapes'"
+                            class="px-4 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.reference.col_description') }}
+                        </th>
+                        <th
                             v-if="activeTab === 'color-families'"
                             class="px-4 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
@@ -695,6 +755,18 @@ const selectClass =
                                 class="px-4 py-3 font-sans text-[13px] text-ink-secondary"
                             >
                                 {{ item.brand?.name ?? '—' }}
+                            </td>
+                            <td
+                                v-if="activeTab === 'shapes'"
+                                class="px-4 py-3 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{ item.material?.name ?? '—' }}
+                            </td>
+                            <td
+                                v-if="activeTab === 'shapes'"
+                                class="max-w-[200px] truncate px-4 py-3 font-sans text-[13px] text-ink-secondary"
+                            >
+                                {{ item.description ?? '—' }}
                             </td>
                             <td
                                 v-if="activeTab === 'color-families'"
@@ -1085,6 +1157,70 @@ const selectClass =
                                             class="mt-1 font-sans text-[13px] text-danger"
                                         >
                                             {{ editForm.errors.brand_id }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        v-if="activeTab === 'shapes'"
+                                        class="w-44"
+                                    >
+                                        <label
+                                            class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'catalog.reference.material_label',
+                                                )
+                                            }}
+                                        </label>
+                                        <select
+                                            v-model="editForm.material_id"
+                                            :class="selectClass"
+                                        >
+                                            <option value="">
+                                                {{
+                                                    $t(
+                                                        'catalog.reference.none_option',
+                                                    )
+                                                }}
+                                            </option>
+                                            <option
+                                                v-for="m in materials"
+                                                :key="m.id"
+                                                :value="m.id"
+                                            >
+                                                {{ m.name }}
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="editForm.errors.material_id"
+                                            class="mt-1 font-sans text-[13px] text-danger"
+                                        >
+                                            {{ editForm.errors.material_id }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        v-if="activeTab === 'shapes'"
+                                        class="w-80"
+                                    >
+                                        <label
+                                            class="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'catalog.reference.description_label',
+                                                )
+                                            }}
+                                        </label>
+                                        <textarea
+                                            v-model="editForm.description"
+                                            rows="2"
+                                            :class="selectClass"
+                                        />
+                                        <p
+                                            v-if="editForm.errors.description"
+                                            class="mt-1 font-sans text-[13px] text-danger"
+                                        >
+                                            {{ editForm.errors.description }}
                                         </p>
                                     </div>
                                     <div

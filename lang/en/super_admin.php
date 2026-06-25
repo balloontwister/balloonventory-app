@@ -255,6 +255,11 @@ return [
 
                 'suggested' => 'Suggested:',
                 'alt_candidates' => 'Other possible matches — click to choose in Edit',
+                'gaps_heading' => 'Missing reference data ({count}) — add to unlock more proposals',
+                'gaps_hint' => 'The distributor named these, but they don\'t exist in our catalog yet. Add them (brand first), then re-cluster to auto-resolve the affected proposals.',
+                'gaps_brands' => 'Brands',
+                'gaps_sizes' => 'Balloon sizes',
+                'gaps_colors' => 'Colors',
                 'action_approve' => 'Approve',
                 'action_reject' => 'Reject',
                 'reject_confirm' => 'Reject this proposal? It will be marked rejected and excluded from future auto-creation.',

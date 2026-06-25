@@ -183,9 +183,9 @@ class DistributorCatalogPromoter
             return $this->matcher->match([]);
         }
 
-        $aliases = Distributor::find($member['distributor_id'])?->config['attribute_aliases'] ?? [];
+        $config = Distributor::find($member['distributor_id'])?->config ?? [];
 
-        return $this->matcher->match($member['attributes'], $aliases);
+        return $this->matcher->match($member['attributes'], $config);
     }
 
     /**

@@ -55,11 +55,25 @@ class DistributorAttributeMatcherTest extends TestCase
 
         $result = $this->matcher->match(
             ['Brand' => ['Kalisan'], 'Color' => ['Standard Clear']],
-            ['color' => ['Standard Clear' => 'Clear Transparent']],
+            ['attribute_aliases' => ['color' => ['Standard Clear' => 'Clear Transparent']]],
         );
 
         $this->assertSame($color->id, $result['color']['model']->id);
         $this->assertSame('exact', $result['color']['quality']);
+    }
+
+    public function test_label_map_lets_a_distributor_use_different_field_names(): void
+    {
+        $size = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '260K']);
+
+        // This distributor's page labels brand "Manufacturer" and size "Style".
+        $result = $this->matcher->match(
+            ['Manufacturer' => ['Kalisan'], 'Style' => ['260']],
+            ['extraction' => ['label_map' => ['brand' => 'Manufacturer', 'size' => 'Style']]],
+        );
+
+        $this->assertSame($this->kalisan->id, $result['brand']['model']->id);
+        $this->assertSame($size->id, $result['balloon_size']['model']->id);
     }
 
     public function test_ambiguous_size_returns_candidates_and_fuzzy_quality(): void

@@ -35,6 +35,7 @@ class DistributorProposalController extends Controller
             'proposals' => $this->service->paginate($filters),
             'filters' => $filters,
             'references' => $this->service->referenceOptions(),
+            'gaps' => $this->service->referenceGaps(),
             'pendingCount' => DistributorCatalogProposal::pending()->count(),
         ]);
     }

@@ -36,17 +36,33 @@ class DistributorAttributeMatcher
 {
     private const MAX_CANDIDATES = 3;
 
+    /**
+     * Which distributor table label feeds each canonical attribute. A distributor
+     * whose page uses different wording (e.g. "Manufacturer" / "Pack") overrides
+     * these per key via config `extraction.label_map`, so the matcher itself stays
+     * store-agnostic.
+     */
+    private const DEFAULT_LABELS = [
+        'brand' => 'Brand',
+        'size' => 'Size',
+        'color' => 'Color',
+        'count' => 'Quantity',
+    ];
+
     /** @var array{brands: Collection, balloonSizes: Collection, colors: Collection}|null */
     private ?array $data = null;
 
     /**
      * @param  array<string, array<int, string>>  $attributes  label → value(s) from the distributor table
-     * @param  array<string, mixed>  $aliases  distributor config `attribute_aliases`
+     * @param  array<string, mixed>  $config  the distributor's config (`attribute_aliases`, `extraction.label_map`)
      * @return array{brand: AttributeMatch, balloon_size: AttributeMatch, color: AttributeMatch, count: int|null}
      */
-    public function match(array $attributes, array $aliases = []): array
+    public function match(array $attributes, array $config = []): array
     {
-        $brand = $this->matchBrand($this->value($attributes, 'Brand'), $aliases);
+        $aliases = $config['attribute_aliases'] ?? [];
+        $labels = array_merge(self::DEFAULT_LABELS, $config['extraction']['label_map'] ?? []);
+
+        $brand = $this->matchBrand($this->value($attributes, $labels['brand']), $aliases);
 
         // Size and colour are brand-scoped, so without a brand there's nothing to
         // match them against.
@@ -55,12 +71,12 @@ class DistributorAttributeMatcher
         return [
             'brand' => $brand,
             'balloon_size' => $brandModel instanceof Brand
-                ? $this->matchSize($this->value($attributes, 'Size'), $brandModel)
+                ? $this->matchSize($this->value($attributes, $labels['size']), $brandModel)
                 : $this->none(),
             'color' => $brandModel instanceof Brand
-                ? $this->matchColor($this->value($attributes, 'Color'), $brandModel, $aliases)
+                ? $this->matchColor($this->value($attributes, $labels['color']), $brandModel, $aliases)
                 : $this->none(),
-            'count' => $this->parseCount($this->value($attributes, 'Quantity')),
+            'count' => $this->parseCount($this->value($attributes, $labels['count'])),
         ];
     }
 

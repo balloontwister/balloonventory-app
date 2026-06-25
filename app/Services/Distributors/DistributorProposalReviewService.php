@@ -93,6 +93,88 @@ class DistributorProposalReviewService
     }
 
     /**
+     * The reference rows the matcher couldn't resolve across all pending
+     * proposals — the actionable "add these to the catalog" list. A present-but-
+     * unmatched Brand is a missing brand; an unmatched Size/Colour under a matched
+     * brand is a missing size/colour for that brand. Sorted by how many products
+     * each gap blocks, so the highest-impact additions come first.
+     *
+     * @return array{brands: array<int, array{value: string, count: int}>, sizes: array<int, array{value: string, brand: string, count: int}>, colors: array<int, array{value: string, brand: string, count: int}>}
+     */
+    public function referenceGaps(): array
+    {
+        $proposals = DistributorCatalogProposal::pending()->get(['id', 'evidence']);
+
+        $distributorIds = $proposals
+            ->flatMap(fn (DistributorCatalogProposal $p) => collect($p->evidence ?? [])->pluck('distributor_id'))
+            ->filter()->unique();
+        $configs = Distributor::whereIn('id', $distributorIds)->get(['id', 'config'])->keyBy('id');
+
+        $brands = [];
+        $sizes = [];
+        $colors = [];
+
+        foreach ($proposals as $proposal) {
+            $member = collect($proposal->evidence ?? [])->first(fn (array $m) => ! empty($m['attributes']));
+
+            if ($member === null) {
+                continue;
+            }
+
+            $match = $this->matcher->match($member['attributes'], $configs->get($member['distributor_id'])?->config ?? []);
+
+            if ($match['brand']['model'] === null) {
+                if ($match['brand']['value'] !== null) {
+                    $brands[$match['brand']['value']] = ($brands[$match['brand']['value']] ?? 0) + 1;
+                }
+
+                // Without a brand, size/colour gaps aren't meaningful (they're
+                // brand-scoped) — the missing brand is the thing to add first.
+                continue;
+            }
+
+            $brandName = $match['brand']['model']->name;
+            $this->tallyGap($sizes, $match['balloon_size'], $brandName);
+            $this->tallyGap($colors, $match['color'], $brandName);
+        }
+
+        return [
+            'brands' => $this->sortGaps(array_map(fn ($value, $count) => ['value' => $value, 'count' => $count], array_keys($brands), $brands)),
+            'sizes' => $this->sortGaps(array_values($sizes)),
+            'colors' => $this->sortGaps(array_values($colors)),
+        ];
+    }
+
+    /**
+     * @param  array<string, array{value: string, brand: string, count: int}>  $bucket
+     * @param  array{model: ?Model, value: ?string}  $match
+     */
+    private function tallyGap(array &$bucket, array $match, string $brandName): void
+    {
+        if ($match['model'] !== null || $match['value'] === null) {
+            return;
+        }
+
+        $key = $brandName.'|'.$match['value'];
+        $bucket[$key] = [
+            'value' => $match['value'],
+            'brand' => $brandName,
+            'count' => ($bucket[$key]['count'] ?? 0) + 1,
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $gaps
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortGaps(array $gaps): array
+    {
+        usort($gaps, fn ($a, $b) => $b['count'] <=> $a['count']);
+
+        return $gaps;
+    }
+
+    /**
      * Approve a proposal and attempt to materialise it into a Sku. The proposal
      * is stamped approved regardless; the returned result says whether a Sku was
      * created or the admin still needs to map attributes.
@@ -226,8 +308,8 @@ class DistributorProposalReviewService
             return ['available' => false];
         }
 
-        $aliases = $distributors->get($member['distributor_id'])?->config['attribute_aliases'] ?? [];
-        $match = $this->matcher->match($member['attributes'], $aliases);
+        $config = $distributors->get($member['distributor_id'])?->config ?? [];
+        $match = $this->matcher->match($member['attributes'], $config);
 
         return [
             'available' => true,

@@ -49,6 +49,23 @@ class DistributorAttributeMatcher
         'color' => 'Color',
         'count' => 'Quantity',
         'packaging' => 'Package Type',
+        'shape' => 'Balloon Type / Shape',
+    ];
+
+    /**
+     * Shape word (lower-cased) → the prefix some brands put in front of a size's
+     * number, e.g. Sempertex names its round 24-inch "R-24", its 14-inch heart
+     * "C-14", and its link balloons "LOL-12". Used by {@see matchSize} to bridge a
+     * distributor's bare "24 inch" + "Round" to those shape-prefixed size names.
+     * A distributor whose catalogued brand uses a different scheme overrides this
+     * via config `size_shape_prefixes`.
+     */
+    private const DEFAULT_SHAPE_PREFIXES = [
+        'round' => 'R',
+        'heart' => 'C',
+        'link' => 'LOL',
+        'link-o-loon' => 'LOL',
+        'lol' => 'LOL',
     ];
 
     /** @var array{brands: Collection, balloonSizes: Collection, colors: Collection, packagingTypes: Collection}|null */
@@ -71,10 +88,17 @@ class DistributorAttributeMatcher
         // independently of the brand.
         $brandModel = $brand['model'];
 
+        $sizeValue = $this->value($attributes, $labels['size']);
+        $shapePrefix = $this->resolveShapePrefix(
+            $this->valuesFor($attributes, $labels['shape']),
+            $sizeValue,
+            $config,
+        );
+
         return [
             'brand' => $brand,
             'balloon_size' => $brandModel instanceof Brand
-                ? $this->matchSize($this->value($attributes, $labels['size']), $brandModel)
+                ? $this->matchSize($sizeValue, $brandModel, $shapePrefix)
                 : $this->none(),
             'color' => $brandModel instanceof Brand
                 ? $this->matchColor($this->value($attributes, $labels['color']), $brandModel, $aliases)
@@ -128,7 +152,7 @@ class DistributorAttributeMatcher
     /**
      * @return AttributeMatch
      */
-    private function matchSize(?string $value, Brand $brand): array
+    private function matchSize(?string $value, Brand $brand, ?string $shapePrefix = null): array
     {
         if ($value === null) {
             return $this->none();
@@ -136,24 +160,107 @@ class DistributorAttributeMatcher
 
         $sizes = $this->data()['balloonSizes']->get($brand->id, collect());
 
-        // "350 / 360" style combined values: try each part's core key in turn.
+        // Tier 1 — core-key equality. "350 / 360" style combined values: try each
+        // part's core key in turn.
         foreach ($this->splitValue($value) as $part) {
             $key = $this->sizeKey($part);
             $matches = $sizes->filter(fn (BalloonSize $bs) => $this->sizeKey($bs->name) === $key)->values();
 
             if ($matches->isNotEmpty()) {
-                return [
-                    'model' => $matches->first(),
-                    'value' => $part,
-                    // A single brand size for that core key is unambiguous; several
-                    // (e.g. round vs heart at the same inch) need a human pick.
-                    'quality' => $matches->count() === 1 ? 'exact' : 'fuzzy',
-                    'candidates' => $this->candidates($matches),
-                ];
+                return $this->sizeMatch($matches, $part, $value);
+            }
+        }
+
+        // Tier 2 — shape-prefixed names. Some brands name a size by its shape and
+        // number ("R-24", "C-14", "LOL-12") which Tier 1 can't reach from the
+        // distributor's bare "24 inch". With the shape resolved to a prefix, look
+        // for "{prefix}-{number}". The shape disambiguates what a bare number can't
+        // (11-inch round vs heart vs link all share the number).
+        if ($shapePrefix !== null) {
+            $prefix = strtolower($shapePrefix);
+
+            foreach ($this->splitValue($value) as $part) {
+                if (! preg_match('/\d+/', $part, $m)) {
+                    continue;
+                }
+
+                $target = $prefix.'-'.$m[0];
+                $matches = $sizes->filter(fn (BalloonSize $bs) => $this->prefixedSizeName($bs->name) === $target)->values();
+
+                if ($matches->isNotEmpty()) {
+                    return $this->sizeMatch($matches, $part, $value);
+                }
             }
         }
 
         return $this->none($value);
+    }
+
+    /**
+     * @param  Collection<int, BalloonSize>  $matches
+     * @return AttributeMatch
+     */
+    private function sizeMatch(Collection $matches, string $part, string $value): array
+    {
+        return [
+            'model' => $matches->first(),
+            'value' => $part,
+            // A single brand size for that key is unambiguous; several (e.g. round
+            // vs heart at the same inch) need a human pick.
+            'quality' => $matches->count() === 1 ? 'exact' : 'fuzzy',
+            'candidates' => $this->candidates($matches),
+        ];
+    }
+
+    /**
+     * Resolve the shape a distributor reports to a size-name prefix. Reads the
+     * structured shape field first, then falls back to a shape word embedded in
+     * the size value itself ("660 LOL" carries no shape field but names the link
+     * line). Returns null when no known shape word is present.
+     *
+     * @param  array<int, string>  $shapeValues
+     * @param  array<string, mixed>  $config
+     */
+    private function resolveShapePrefix(array $shapeValues, ?string $sizeValue, array $config): ?string
+    {
+        /** @var array<string, string> $map */
+        $map = array_change_key_case(
+            $config['size_shape_prefixes'] ?? self::DEFAULT_SHAPE_PREFIXES,
+            CASE_LOWER,
+        );
+
+        foreach ($shapeValues as $shape) {
+            $key = strtolower(trim($shape));
+
+            if (isset($map[$key])) {
+                return $map[$key];
+            }
+        }
+
+        if ($sizeValue !== null) {
+            $haystack = strtolower($sizeValue);
+
+            foreach ($map as $word => $prefix) {
+                if (preg_match('/\b'.preg_quote($word, '/').'\b/', $haystack)) {
+                    return $prefix;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A size name reduced to its bare "{prefix}-{number}" form for shape-prefix
+     * matching: lower-cased, parentheticals ("C-14 (S)" → "c-14") and whitespace
+     * removed.
+     */
+    private function prefixedSizeName(string $name): string
+    {
+        $s = strtolower(trim($name));
+        $s = preg_replace('/\(.*?\)/', '', $s) ?? $s;
+
+        return preg_replace('/\s+/', '', $s) ?? $s;
     }
 
     /**
@@ -293,6 +400,24 @@ class DistributorAttributeMatcher
         }
 
         return null;
+    }
+
+    /**
+     * All values for a label (the shape field carries several, e.g.
+     * ["Solid Color", "Round"]), case-insensitive on the label.
+     *
+     * @param  array<string, array<int, string>>  $attributes
+     * @return array<int, string>
+     */
+    private function valuesFor(array $attributes, string $label): array
+    {
+        foreach ($attributes as $key => $values) {
+            if (strcasecmp($key, $label) === 0) {
+                return array_values($values);
+            }
+        }
+
+        return [];
     }
 
     /**

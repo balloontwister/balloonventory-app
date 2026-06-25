@@ -2,12 +2,18 @@
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
+// Clear the fixed banner (h-9) when impersonating spills onto a guest page.
+const isImpersonating = computed(() => !!page.props.impersonating);
 </script>
 
 <template>
     <div
         class="relative flex min-h-screen flex-col items-center bg-background px-4 py-16 sm:justify-center sm:py-0"
+        :class="{ 'pt-12': isImpersonating }"
     >
         <ImpersonationBanner />
         <div class="absolute right-4 top-4 z-50">

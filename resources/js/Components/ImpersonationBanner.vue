@@ -15,7 +15,7 @@ function exit() {
     <Teleport to="body">
         <div
             v-if="impersonating"
-            class="fixed inset-x-0 top-0 z-[100] flex items-center justify-center gap-3 border-b border-amber-600 bg-amber-500 px-4 py-2 text-amber-950 shadow-md"
+            class="fixed inset-x-0 top-0 z-[100] flex h-9 items-center justify-center gap-3 border-b border-amber-600 bg-amber-500 px-4 text-amber-950 shadow-md"
             role="status"
         >
             <svg

@@ -17,11 +17,17 @@ class BrandSeeder extends Seeder
         $brands = [
             ['name' => 'Qualatex',    'abbreviation' => 'QTX', 'sort_order' => 10],
             ['name' => 'Sempertex',   'abbreviation' => 'STX', 'sort_order' => 20],
+            ['name' => 'Gemar',       'abbreviation' => 'GEM', 'sort_order' => 25],
             ['name' => 'Betallic',    'abbreviation' => 'BET', 'sort_order' => 30],
             ['name' => 'Kalisan',     'abbreviation' => 'KAL', 'sort_order' => 40],
             ['name' => 'TufTex',      'abbreviation' => 'TTX', 'sort_order' => 50],
+            ['name' => 'Anagram',     'abbreviation' => 'ANA', 'sort_order' => 55],
             ['name' => 'Decomex',     'abbreviation' => 'DCX', 'sort_order' => 60],
+            ['name' => 'Elitex',      'abbreviation' => 'ELX', 'sort_order' => 65],
+            ['name' => 'Cattex',      'abbreviation' => 'CTX', 'sort_order' => 70],
             ['name' => 'Funsational', 'abbreviation' => 'FSN', 'sort_order' => 70],
+            ['name' => 'Britetex',    'abbreviation' => 'BTX', 'sort_order' => 115],
+            ['name' => 'Decochamp',   'abbreviation' => 'DCH', 'sort_order' => 110],
         ];
 
         foreach ($brands as $data) {

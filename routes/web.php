@@ -224,6 +224,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::get('/admin/distributors/proposals', [DistributorProposalController::class, 'index'])->name('admin.distributors.proposals.index');
     Route::post('/admin/distributors/proposals/{proposal}/approve', [DistributorProposalController::class, 'approve'])->name('admin.distributors.proposals.approve');
     Route::post('/admin/distributors/proposals/{proposal}/reject', [DistributorProposalController::class, 'reject'])->name('admin.distributors.proposals.reject');
+    Route::post('/admin/distributors/proposals/{proposal}/map-to-existing', [DistributorProposalController::class, 'mapToExisting'])->name('admin.distributors.proposals.map-to-existing');
     Route::patch('/admin/distributors/proposals/{proposal}', [DistributorProposalController::class, 'update'])->name('admin.distributors.proposals.update');
 
     Route::post('/admin/distributors/{distributor}/sync', [DistributorController::class, 'sync'])->name('admin.distributors.sync');

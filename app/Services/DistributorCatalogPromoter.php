@@ -230,7 +230,7 @@ class DistributorCatalogPromoter
         ])->filter(fn ($value) => $value === null)->keys()->all();
     }
 
-    private function attachDistributorUrls(Sku $sku, DistributorCatalogProposal $proposal): void
+    public function attachDistributorUrls(Sku $sku, DistributorCatalogProposal $proposal): void
     {
         $rows = collect($proposal->evidence ?? [])
             ->filter(fn (array $m) => ! empty($m['distributor_id']) && ! empty($m['url']))

@@ -110,6 +110,23 @@ function submitEdit() {
     );
 }
 
+// Map this proposal to the existing barcode-less SKU instead of creating a
+// duplicate — backfills the barcode onto it and resolves the proposal.
+function mapToExisting() {
+    const exact = editCatalogMatch.value?.exact;
+    if (!editingProposal.value || !exact) return;
+    editProcessing.value = true;
+    router.post(
+        route('admin.distributors.proposals.map-to-existing', editingProposal.value.id),
+        { sku_id: exact.id },
+        {
+            preserveScroll: true,
+            onSuccess: () => closeEdit(),
+            onError: () => { editProcessing.value = false; },
+        },
+    );
+}
+
 // Sizes + colors scoped to the selected brand in the edit modal.
 const filteredSizes = computed(() => {
     if (!editForm.value.proposed_brand_id) return props.references.balloonSizes;
@@ -725,12 +742,19 @@ function formatPrice(price) {
                                 <p class="font-sans text-[12px] font-medium text-ink-primary">
                                     {{ $t('super_admin.dashboard.distributors.proposals.creates_new') }}
                                 </p>
-                                <p
-                                    v-if="editCatalogMatch && editCatalogMatch.exact && !editCatalogMatch.exact.has_barcode"
-                                    class="mt-1 font-sans text-[12px] text-warning"
-                                >
-                                    {{ $t('super_admin.dashboard.distributors.proposals.maybe_exists_detail', { name: editCatalogMatch.exact.name }) }}
-                                </p>
+                                <template v-if="editCatalogMatch && editCatalogMatch.exact && !editCatalogMatch.exact.has_barcode">
+                                    <p class="mt-1 font-sans text-[12px] text-warning">
+                                        {{ $t('super_admin.dashboard.distributors.proposals.maybe_exists_detail', { name: editCatalogMatch.exact.name }) }}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="mt-2 rounded-md border border-warning px-3 py-1.5 font-sans text-[12px] font-semibold text-warning transition hover:bg-warning-soft disabled:opacity-50"
+                                        :disabled="editProcessing"
+                                        @click="mapToExisting"
+                                    >
+                                        {{ $t('super_admin.dashboard.distributors.proposals.map_to_existing') }}
+                                    </button>
+                                </template>
                                 <p
                                     v-if="editCatalogMatch && editCatalogMatch.siblings.length"
                                     class="mt-1 font-sans text-[12px] text-ink-secondary"

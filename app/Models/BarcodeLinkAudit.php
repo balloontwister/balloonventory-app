@@ -28,6 +28,7 @@ class BarcodeLinkAudit extends Model
         'sku_name',
         'barcode',
         'field',
+        'source',
         'created_at',
         'reverted_at',
         'reverted_by_user_id',

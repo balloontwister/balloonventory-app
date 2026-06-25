@@ -8,10 +8,13 @@ use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\Sku;
+use App\Services\BarcodeLinker;
 use App\Services\DistributorCatalogPromoter;
+use App\Support\Gtin;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Backs the distributor proposal review queue.
@@ -31,6 +34,7 @@ class DistributorProposalReviewService
         private DistributorCatalogPromoter $promoter,
         private DistributorAttributeMatcher $matcher,
         private IdenticalSkuFinder $identicalFinder,
+        private BarcodeLinker $barcodeLinker,
     ) {}
 
     /**
@@ -191,6 +195,51 @@ class DistributorProposalReviewService
         // promoteForReview reads the (now approved) proposal; the promoter keeps
         // the approved status when it creates the Sku.
         return $this->promoter->promoteForReview($proposal->refresh());
+    }
+
+    /**
+     * Map a proposal to an existing catalog SKU instead of creating a new one:
+     * backfill the distributor's barcode onto that SKU (audited, as an admin
+     * action on the shared catalog — null business), attach the distributor
+     * purchase URLs, and resolve the proposal to it. Used when we already carry
+     * the product but the existing SKU had no barcode (so it wasn't matched at
+     * cluster time and surfaced as a proposal).
+     */
+    public function mapToExisting(DistributorCatalogProposal $proposal, Sku $target, string $reviewerId): void
+    {
+        $barcode = $this->distributorBarcode($proposal);
+
+        if ($barcode === null) {
+            throw ValidationException::withMessages([
+                'barcode' => __('flash.distributor_proposals.map_no_barcode'),
+            ]);
+        }
+
+        $this->barcodeLinker->link($target, $barcode, null, $reviewerId, BarcodeLinker::SOURCE_ADMIN);
+        $this->promoter->attachDistributorUrls($target, $proposal);
+
+        $proposal->forceFill([
+            'status' => DistributorCatalogProposal::STATUS_APPROVED,
+            'resulting_sku_id' => $target->id,
+            'reviewed_by' => $reviewerId,
+            'reviewed_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * The distributor's original reported barcode (12-digit UPC-A / 13-digit
+     * EAN-13), not the padded canonical GTIN-14 stored on the proposal — so it
+     * lands in the right column when backfilled.
+     */
+    private function distributorBarcode(DistributorCatalogProposal $proposal): ?string
+    {
+        foreach ($proposal->evidence ?? [] as $member) {
+            if (! empty($member['raw_upc'])) {
+                return Gtin::digitsOnly($member['raw_upc']);
+            }
+        }
+
+        return null;
     }
 
     public function reject(DistributorCatalogProposal $proposal, string $reviewerId): void

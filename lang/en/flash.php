@@ -51,6 +51,8 @@ return [
         'updated' => 'Proposal updated.',
         'rejected' => 'Proposal rejected.',
         'reject_blocked_has_sku' => 'This proposal already created a catalog SKU — remove that SKU from the catalog instead of rejecting here.',
+        'mapped' => 'Mapped to the existing catalog SKU — barcode backfilled and distributor links attached.',
+        'map_no_barcode' => 'This proposal has no distributor barcode to backfill.',
     ],
 
     'support' => [

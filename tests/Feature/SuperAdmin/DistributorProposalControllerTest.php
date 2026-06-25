@@ -3,6 +3,7 @@
 namespace Tests\Feature\SuperAdmin;
 
 use App\Models\BalloonSize;
+use App\Models\BarcodeLinkAudit;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Distributor;
@@ -264,6 +265,60 @@ class DistributorProposalControllerTest extends TestCase
         $proposal->refresh();
         $this->assertSame(DistributorCatalogProposal::STATUS_REJECTED, $proposal->status);
         $this->assertSame($this->admin->id, $proposal->reviewed_by);
+    }
+
+    public function test_map_to_existing_backfills_barcode_and_resolves_the_proposal(): void
+    {
+        // We already carry the product, but the existing SKU has no barcode.
+        $existing = Sku::factory()->create(['upc' => null, 'ean' => null]);
+        $distributor = Distributor::factory()->bigcommerce()->create();
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'raw_upc' => '8693296838147',           // 13-digit EAN-13
+                'url' => 'https://larocks.com/p/1',
+                'price' => 6.40,
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.map-to-existing', $proposal->id), ['sku_id' => $existing->id])
+            ->assertSessionHas('success');
+
+        $existing->refresh();
+        $this->assertSame('8693296838147', $existing->ean);
+
+        // Audited as an admin action on the shared catalog (null business).
+        $audit = BarcodeLinkAudit::where('sku_id', $existing->id)->sole();
+        $this->assertSame('admin', $audit->source);
+        $this->assertNull($audit->business_id);
+        $this->assertSame($this->admin->id, $audit->user_id);
+
+        // Distributor link attached + proposal resolved to the existing SKU.
+        $this->assertDatabaseHas('distributor_sku_urls', [
+            'distributor_id' => $distributor->id, 'sku_id' => $existing->id,
+        ]);
+        $proposal->refresh();
+        $this->assertSame(DistributorCatalogProposal::STATUS_APPROVED, $proposal->status);
+        $this->assertSame($existing->id, $proposal->resulting_sku_id);
+    }
+
+    public function test_map_to_existing_refuses_a_barcode_already_on_another_sku(): void
+    {
+        Sku::factory()->create(['ean' => '8693296838147']); // barcode taken
+        $target = Sku::factory()->create(['upc' => null, 'ean' => null]);
+        $distributor = Distributor::factory()->bigcommerce()->create();
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [['distributor_id' => $distributor->id, 'raw_upc' => '8693296838147', 'url' => 'https://x/p']],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.map-to-existing', $proposal->id), ['sku_id' => $target->id])
+            ->assertSessionHas('warning');
+
+        $this->assertNull($target->refresh()->ean);
+        $this->assertSame(DistributorCatalogProposal::STATUS_PENDING, $proposal->refresh()->status);
     }
 
     public function test_reject_is_blocked_when_proposal_already_has_a_sku(): void

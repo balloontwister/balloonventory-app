@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
+use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
@@ -23,7 +24,10 @@ use Illuminate\Support\Facades\DB;
  */
 class DistributorCatalogPromoter
 {
-    public function __construct(private CatalogAttributeResolver $resolver) {}
+    public function __construct(
+        private CatalogAttributeResolver $resolver,
+        private Distributors\DistributorAttributeMatcher $matcher,
+    ) {}
 
     /**
      * True when the proposal can be safely auto-created right now (no writes).
@@ -136,9 +140,20 @@ class DistributorCatalogPromoter
 
         $resolved = $this->resolver->resolve($text);
 
+        // The distributor's structured attribute table beats anything inferred
+        // from the title — a clean "Brand: Kalisan / Size: 260 / Color: Clear"
+        // resolves where prose-matching fails.
+        $structured = $this->structuredMatch($proposal);
+
+        foreach (['brand' => 'brand', 'balloonSize' => 'balloon_size', 'color' => 'color'] as $key => $matchKey) {
+            if ($structured[$matchKey]['model'] !== null) {
+                $resolved[$key] = $structured[$matchKey]['model'];
+            }
+        }
+
         // A human review (Edit modal) can pin any attribute to an explicit
-        // reference row. Manual mappings always win over the text resolution so
-        // an admin can rescue a proposal the resolver couldn't auto-map.
+        // reference row. Manual mappings always win over both the structured and
+        // text resolution so an admin can rescue a proposal nothing else mapped.
         if ($proposal->proposed_brand_id !== null) {
             $resolved['brand'] = Brand::find($proposal->proposed_brand_id);
         }
@@ -152,6 +167,25 @@ class DistributorCatalogPromoter
         }
 
         return $resolved;
+    }
+
+    /**
+     * Run the structured attribute matcher over the proposal's evidence (the
+     * distributor's own attribute table), using that distributor's alias map.
+     *
+     * @return array{brand: array<string, mixed>, balloon_size: array<string, mixed>, color: array<string, mixed>, count: int|null}
+     */
+    private function structuredMatch(DistributorCatalogProposal $proposal): array
+    {
+        $member = collect($proposal->evidence ?? [])->first(fn (array $m) => ! empty($m['attributes']));
+
+        if ($member === null) {
+            return $this->matcher->match([]);
+        }
+
+        $aliases = Distributor::find($member['distributor_id'])?->config['attribute_aliases'] ?? [];
+
+        return $this->matcher->match($member['attributes'], $aliases);
     }
 
     /**

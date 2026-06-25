@@ -72,11 +72,14 @@ const editProcessing = ref(false);
 
 function openEdit(proposal) {
     editingProposal.value = proposal;
+    const guess = proposal.guess?.available ? proposal.guess : null;
+    // Start from the manual mapping if one exists, otherwise from the matcher's
+    // guess, so the admin confirms rather than fills from scratch.
     editForm.value = {
-        proposed_brand_id: proposal.proposed_brand_id ?? null,
-        proposed_balloon_size_id: proposal.proposed_balloon_size_id ?? null,
-        proposed_color_id: proposal.proposed_color_id ?? null,
-        proposed_count: proposal.proposed_count ?? null,
+        proposed_brand_id: proposal.proposed_brand_id ?? guess?.brand?.selected?.id ?? null,
+        proposed_balloon_size_id: proposal.proposed_balloon_size_id ?? guess?.balloon_size?.selected?.id ?? null,
+        proposed_color_id: proposal.proposed_color_id ?? guess?.color?.selected?.id ?? null,
+        proposed_count: proposal.proposed_count ?? guess?.count ?? null,
         proposed_warehouse_sku: proposal.proposed_warehouse_sku ?? '',
     };
 }
@@ -115,11 +118,23 @@ const filteredColors = computed(() => {
     );
 });
 
+// When the brand changes, drop any size/colour that no longer belongs to it —
+// but keep ones that are still valid (so a pre-filled guess survives opening).
 watch(
     () => editForm.value.proposed_brand_id,
     () => {
-        editForm.value.proposed_balloon_size_id = null;
-        editForm.value.proposed_color_id = null;
+        if (
+            editForm.value.proposed_balloon_size_id &&
+            !filteredSizes.value.some((s) => s.id === editForm.value.proposed_balloon_size_id)
+        ) {
+            editForm.value.proposed_balloon_size_id = null;
+        }
+        if (
+            editForm.value.proposed_color_id &&
+            !filteredColors.value.some((c) => c.id === editForm.value.proposed_color_id)
+        ) {
+            editForm.value.proposed_color_id = null;
+        }
     },
 );
 
@@ -137,6 +152,49 @@ function reject(proposal) {
     router.post(route('admin.distributors.proposals.reject', proposal.id), {}, {
         preserveScroll: true,
     });
+}
+
+// ── Mapping display (manual edit, else the matcher's guess) ────────────────────
+const MANUAL_FIELD = {
+    brand: 'brand_name',
+    balloon_size: 'balloon_size_name',
+    color: 'color_name',
+};
+
+function guessAttr(item, attr) {
+    return item.guess?.available ? item.guess[attr] : null;
+}
+
+function manualName(item, attr) {
+    return item[MANUAL_FIELD[attr]] ?? null;
+}
+
+function mappedName(item, attr) {
+    return manualName(item, attr) ?? guessAttr(item, attr)?.selected?.name ?? null;
+}
+
+// 'manual' | 'exact' | 'fuzzy' | 'none' — drives the quality dot colour.
+function mappedSource(item, attr) {
+    if (manualName(item, attr)) return 'manual';
+    const g = guessAttr(item, attr);
+    return g?.selected ? g.quality : 'none';
+}
+
+function dotClass(source) {
+    return {
+        manual: 'bg-accent',
+        exact: 'bg-success',
+        fuzzy: 'bg-warning',
+    }[source] ?? 'bg-border-strong';
+}
+
+function altCount(item, attr) {
+    const g = guessAttr(item, attr);
+    return g?.candidates ? Math.max(0, g.candidates.length - 1) : 0;
+}
+
+function displayCount(item) {
+    return item.proposed_count ?? guessAttr(item, 'count') ?? null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -312,21 +370,41 @@ function formatPrice(price) {
                                         {{ item.proposed_name ?? '—' }}
                                     </td>
 
-                                    <!-- Brand -->
-                                    <td class="whitespace-nowrap px-4 py-3 text-ink-secondary">
-                                        {{ item.brand_name ?? $t('super_admin.dashboard.distributors.proposals.unknown_brand') }}
-                                        <span
-                                            v-if="item.balloon_size_name"
-                                            class="block text-[11px] text-ink-tertiary"
-                                        >
-                                            {{ item.balloon_size_name }}
-                                            <span v-if="item.color_name"> · {{ item.color_name }}</span>
-                                        </span>
+                                    <!-- Mapping (manual edit, else matcher guess) -->
+                                    <td class="px-4 py-3 align-top">
+                                        <div class="space-y-1">
+                                            <div
+                                                v-for="attr in ['brand', 'balloon_size', 'color']"
+                                                :key="attr"
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                                                    :class="dotClass(mappedSource(item, attr))"
+                                                    :title="mappedSource(item, attr)"
+                                                />
+                                                <span
+                                                    class="text-[12px]"
+                                                    :class="mappedName(item, attr) ? 'text-ink-primary' : 'text-ink-tertiary'"
+                                                >
+                                                    {{ mappedName(item, attr) ?? '—' }}
+                                                </span>
+                                                <button
+                                                    v-if="altCount(item, attr) > 0"
+                                                    type="button"
+                                                    class="text-[10px] text-accent hover:underline"
+                                                    :title="$t('super_admin.dashboard.distributors.proposals.alt_candidates')"
+                                                    @click="openEdit(item)"
+                                                >
+                                                    +{{ altCount(item, attr) }}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </td>
 
                                     <!-- Count -->
                                     <td class="whitespace-nowrap px-4 py-3 text-ink-secondary">
-                                        {{ item.proposed_count ?? '—' }}
+                                        {{ displayCount(item) ?? '—' }}
                                     </td>
 
                                     <!-- Confidence badge -->
@@ -555,6 +633,24 @@ function formatPrice(price) {
                                         {{ brand.name }}
                                     </option>
                                 </select>
+                                <div
+                                    v-if="editingProposal.guess?.brand?.candidates?.length"
+                                    class="mt-1.5 flex flex-wrap items-center gap-1"
+                                >
+                                    <span class="text-[11px] text-ink-tertiary">
+                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
+                                    </span>
+                                    <button
+                                        v-for="c in editingProposal.guess.brand.candidates"
+                                        :key="c.id"
+                                        type="button"
+                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
+                                        :class="editForm.proposed_brand_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
+                                        @click="editForm.proposed_brand_id = c.id"
+                                    >
+                                        {{ c.name }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Balloon size -->
@@ -577,6 +673,24 @@ function formatPrice(price) {
                                         {{ size.name }}
                                     </option>
                                 </select>
+                                <div
+                                    v-if="editingProposal.guess?.balloon_size?.candidates?.length"
+                                    class="mt-1.5 flex flex-wrap items-center gap-1"
+                                >
+                                    <span class="text-[11px] text-ink-tertiary">
+                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
+                                    </span>
+                                    <button
+                                        v-for="c in editingProposal.guess.balloon_size.candidates"
+                                        :key="c.id"
+                                        type="button"
+                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
+                                        :class="editForm.proposed_balloon_size_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
+                                        @click="editForm.proposed_balloon_size_id = c.id"
+                                    >
+                                        {{ c.name }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Color -->
@@ -599,6 +713,24 @@ function formatPrice(price) {
                                         {{ color.name }}
                                     </option>
                                 </select>
+                                <div
+                                    v-if="editingProposal.guess?.color?.candidates?.length"
+                                    class="mt-1.5 flex flex-wrap items-center gap-1"
+                                >
+                                    <span class="text-[11px] text-ink-tertiary">
+                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
+                                    </span>
+                                    <button
+                                        v-for="c in editingProposal.guess.color.candidates"
+                                        :key="c.id"
+                                        type="button"
+                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
+                                        :class="editForm.proposed_color_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
+                                        @click="editForm.proposed_color_id = c.id"
+                                    >
+                                        {{ c.name }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Count + warehouse SKU -->

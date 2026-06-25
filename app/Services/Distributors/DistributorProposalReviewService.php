@@ -10,6 +10,7 @@ use App\Models\DistributorCatalogProposal;
 use App\Models\Sku;
 use App\Services\DistributorCatalogPromoter;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
@@ -26,7 +27,10 @@ use Illuminate\Support\Collection;
  */
 class DistributorProposalReviewService
 {
-    public function __construct(private DistributorCatalogPromoter $promoter) {}
+    public function __construct(
+        private DistributorCatalogPromoter $promoter,
+        private DistributorAttributeMatcher $matcher,
+    ) {}
 
     /**
      * Paginated, hydrated proposals for the review queue.
@@ -157,7 +161,7 @@ class DistributorProposalReviewService
             'skus' => Sku::whereIn('id', $proposals->pluck('resulting_sku_id')->filter()->unique())
                 ->get(['id', 'name'])->keyBy('id'),
             'distributors' => Distributor::whereIn('id', $distributorIds)
-                ->get(['id', 'name'])->keyBy('id'),
+                ->get(['id', 'name', 'config'])->keyBy('id'),
         ];
     }
 
@@ -201,7 +205,51 @@ class DistributorProposalReviewService
             'resulting_sku_name' => $references['skus']->get($proposal->resulting_sku_id)?->name,
             'reviewed_at' => $proposal->reviewed_at,
             'distributor_count' => $evidence->pluck('distributor_id')->filter()->unique()->count(),
+            'guess' => $this->guessFor($proposal, $references['distributors']),
             'evidence' => $evidence,
+        ];
+    }
+
+    /**
+     * The matcher's read of the distributor's structured attribute table —
+     * the suggested brand/size/colour/count plus alternates — so the reviewer
+     * sees what we'd map this to (and what's still ambiguous) without approving.
+     *
+     * @param  Collection<string, Distributor>  $distributors
+     * @return array<string, mixed>
+     */
+    private function guessFor(DistributorCatalogProposal $proposal, Collection $distributors): array
+    {
+        $member = collect($proposal->evidence ?? [])->first(fn (array $m) => ! empty($m['attributes']));
+
+        if ($member === null) {
+            return ['available' => false];
+        }
+
+        $aliases = $distributors->get($member['distributor_id'])?->config['attribute_aliases'] ?? [];
+        $match = $this->matcher->match($member['attributes'], $aliases);
+
+        return [
+            'available' => true,
+            'brand' => $this->presentMatch($match['brand']),
+            'balloon_size' => $this->presentMatch($match['balloon_size']),
+            'color' => $this->presentMatch($match['color']),
+            'count' => $match['count'],
+        ];
+    }
+
+    /**
+     * @param  array{model: ?Model, quality: string, candidates: array<int, array{id: string, name: string, quality: string}>}  $match
+     * @return array<string, mixed>
+     */
+    private function presentMatch(array $match): array
+    {
+        return [
+            'selected' => $match['model'] !== null
+                ? ['id' => $match['model']->id, 'name' => $match['model']->name]
+                : null,
+            'quality' => $match['quality'],
+            'candidates' => $match['candidates'],
         ];
     }
 

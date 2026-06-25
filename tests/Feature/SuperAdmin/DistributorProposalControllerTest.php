@@ -83,6 +83,70 @@ class DistributorProposalControllerTest extends TestCase
         $this->assertDatabaseHas('skus', ['id' => $proposal->resulting_sku_id]);
     }
 
+    public function test_approve_uses_structured_attributes_to_create_a_sku(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $size = BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        $color = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'config' => ['attribute_aliases' => ['color' => ['Standard Clear' => 'Clear Transparent']]],
+        ]);
+
+        // A proposal with a barren title (so the title resolver can't help) but a
+        // rich structured attribute table from the distributor's page.
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'proposed_name' => 'Mystery 12345',
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => 'Mystery 12345',
+                'attributes' => [
+                    'Brand' => ['Kalisan'],
+                    'Size' => ['260'],
+                    'Color' => ['Standard Clear'],
+                    'Quantity' => ['100 ct'],
+                ],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id))
+            ->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertNotNull($proposal->resulting_sku_id);
+        $this->assertDatabaseHas('skus', [
+            'id' => $proposal->resulting_sku_id,
+            'brand_id' => $brand->id,
+            'balloon_size_id' => $size->id,
+            'color_id' => $color->id,
+        ]);
+    }
+
+    public function test_index_exposes_the_matcher_guess_for_review(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+        $distributor = Distributor::factory()->bigcommerce()->create();
+
+        DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => 'whatever',
+                'attributes' => ['Brand' => ['Kalisan'], 'Size' => ['260'], 'Color' => ['Clear'], 'Quantity' => ['100 ct']],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('proposals.data.0.guess.available', true)
+                ->where('proposals.data.0.guess.brand.selected.name', 'Kalisan')
+                ->where('proposals.data.0.guess.balloon_size.selected.name', '260K')
+                ->where('proposals.data.0.guess.color.selected.name', 'Clear Transparent')
+                ->where('proposals.data.0.guess.count', 100));
+    }
+
     public function test_approve_without_resolvable_attributes_warns_and_creates_no_sku(): void
     {
         $proposal = DistributorCatalogProposal::factory()->create([

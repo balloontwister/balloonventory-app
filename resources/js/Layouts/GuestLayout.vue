@@ -1,5 +1,6 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import { Link } from '@inertiajs/vue3';
 </script>
@@ -8,6 +9,7 @@ import { Link } from '@inertiajs/vue3';
     <div
         class="relative flex min-h-screen flex-col items-center bg-background px-4 py-16 sm:justify-center sm:py-0"
     >
+        <ImpersonationBanner />
         <div class="absolute right-4 top-4 z-50">
             <LocaleSwitcher
                 button-class="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"

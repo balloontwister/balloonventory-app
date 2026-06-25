@@ -124,4 +124,14 @@ return [
     'business' => [
         'switched' => 'Cambiado a :name.',
     ],
+
+    'impersonation' => [
+        'started' => 'Ahora estás viendo la aplicación como :name.',
+        'stopped' => 'Has vuelto a tu cuenta de administrador.',
+    ],
+
+    'magic_login' => [
+        'invalid' => 'Este enlace de acceso no es válido, ha expirado o ya se ha utilizado.',
+        'signed_in' => 'Has iniciado sesión.',
+    ],
 ];

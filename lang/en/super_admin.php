@@ -380,6 +380,17 @@ return [
         'delete_confirm' => 'Delete :name? Their account will be removed (this can be undone by support).',
         'confirm_yes' => 'Confirm',
         'confirm_cancel' => 'Cancel',
+        'impersonate_button' => 'Switch to user',
+        'impersonate_confirm' => 'Log in as :name? You’ll see the app exactly as they do, with a banner to return to your admin account.',
+        'magic_login_button' => 'Copy magic login link',
+        'magic_login_title' => 'Magic login link for :name',
+        'magic_login_help' => 'A single-use link that signs the holder straight into :name’s account — no password needed. Send it to the user, or open it yourself.',
+        'magic_login_expiry' => 'Expires in :minutes minutes · single use',
+        'magic_login_copy' => 'Copy link',
+        'magic_login_copied' => 'Login link copied to clipboard',
+        'magic_login_note' => 'Opening this link logs in as the user without a return banner. Use “Switch to user” if you want a one-click way back to your admin account.',
+        'magic_login_failed' => 'Could not generate a login link. Please try again.',
+        'magic_login_close' => 'Done',
     ],
 
     'backups' => [

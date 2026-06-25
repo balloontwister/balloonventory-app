@@ -31,6 +31,9 @@ class EnsureAccountActive
         'settings.preferences.update',
         'locale.switch',
         'logout',
+        // Always let an admin exit an impersonation session, even if the
+        // impersonated account happens to be frozen.
+        'impersonate.stop',
     ];
 
     /**

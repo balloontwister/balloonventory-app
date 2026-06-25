@@ -6,8 +6,10 @@ use App\Models\Business;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\Membership;
+use App\Models\User;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use App\Support\Impersonation;
 use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -34,6 +36,7 @@ class HandleInertiaRequests extends Middleware
                 'isFrozen' => $request->user()?->isFrozen() ?? false,
                 'avatarUrl' => $this->avatarUrl($request),
             ],
+            'impersonating' => fn () => $this->impersonationProps($request),
             'locale' => fn () => app()->getLocale(),
             'supportedLocales' => fn () => collect(config('app.supported_locales'))
                 ->map(fn ($label, $code) => ['code' => $code, 'label' => $label])
@@ -56,6 +59,26 @@ class HandleInertiaRequests extends Middleware
                 ? Distributor::where('health_status', Distributor::HEALTH_BROKEN)->count()
                 : 0,
             ...$this->businessProps($request),
+        ];
+    }
+
+    /**
+     * When an admin is impersonating a user, expose enough for the persistent
+     * "you are viewing X" banner; otherwise null.
+     *
+     * @return array{userName: string, adminName: ?string}|null
+     */
+    private function impersonationProps(Request $request): ?array
+    {
+        $impersonatorId = $request->session()->get(Impersonation::SESSION_KEY);
+
+        if (! $impersonatorId || ! $request->user()) {
+            return null;
+        }
+
+        return [
+            'userName' => $request->user()->name,
+            'adminName' => User::find($impersonatorId)?->name,
         ];
     }
 

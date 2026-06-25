@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BinController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\JobsController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\SuperAdmin\DistributorController;
 use App\Http\Controllers\SuperAdmin\DistributorProposalController;
 use App\Http\Controllers\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\SuperAdmin\LoginLogController;
+use App\Http\Controllers\SuperAdmin\MagicLoginLinkController;
 use App\Http\Controllers\SuperAdmin\SkuFeedbackController;
 use App\Http\Controllers\SuperAdmin\SupportTicketController;
 use App\Http\Controllers\SuperAdminController;
@@ -68,6 +70,16 @@ Route::middleware('auth')->post('/business/{business}/switch', [BusinessControll
 // ─── Invitation magic link (auth optional — logs in the invitee) ──────────────
 Route::get('/invitations/{token}/accept', [InvitationController::class, 'accept'])
     ->name('invitations.accept');
+
+// ─── Admin magic login link (public landing — click-to-confirm, then logs in) ──
+Route::get('/magic-login/{token}', [MagicLoginLinkController::class, 'show'])
+    ->name('magic-login.show');
+Route::post('/magic-login/{token}', [MagicLoginLinkController::class, 'consume'])
+    ->name('magic-login.consume');
+
+// ─── End impersonation (any authenticated user — the target may not be admin) ──
+Route::middleware('auth')->post('/impersonate/stop', [ImpersonationController::class, 'stop'])
+    ->name('impersonate.stop');
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -182,6 +194,8 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::delete('/admin/users/{user}/freeze', [AdminUserController::class, 'thaw'])->name('admin.users.thaw');
     Route::post('/admin/users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])->name('admin.users.password-reset');
     Route::post('/admin/users/{user}/password', [AdminUserController::class, 'setPassword'])->name('admin.users.set-password');
+    Route::post('/admin/users/{user}/impersonate', [ImpersonationController::class, 'start'])->name('admin.users.impersonate');
+    Route::post('/admin/users/{user}/magic-login', [MagicLoginLinkController::class, 'store'])->name('admin.users.magic-login');
     Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
 
     // ── Catalog ──────────────────────────────────────────────────────────────

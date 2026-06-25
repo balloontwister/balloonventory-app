@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\LoginEvent;
+use App\Support\Impersonation;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -18,6 +19,12 @@ class LoginHistorySubscriber
 {
     public function handleLogin(Login $event): void
     {
+        // An admin switching into/out of impersonation isn't the user genuinely
+        // signing in — don't pollute their login history with it.
+        if (Impersonation::isTransitioning()) {
+            return;
+        }
+
         LoginEvent::create([
             'user_id' => $event->user?->getAuthIdentifier(),
             'email' => $event->user?->email,

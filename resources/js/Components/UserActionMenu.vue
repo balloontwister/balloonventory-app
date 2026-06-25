@@ -73,6 +73,9 @@ const menu = computed(() => {
         thaw: !deleted && frozen,
         reset: !deleted,
         setPassword: !deleted && !isSelf && !u.admin_level,
+        // Log-in-as tools: never for admins (escalation), self, or deleted users.
+        impersonate: !deleted && !isSelf && !u.admin_level,
+        magicLink: !deleted && !isSelf && !u.admin_level,
         copy: true,
         delete: isSuperAdmin && !u.admin_level && !isSelf && !deleted,
     };
@@ -90,7 +93,13 @@ function promote() {
 
 function demote() {
     closeMenu();
-    if (!window.confirm(trans('super_admin.users.demote_confirm', { name: props.user.name }))) {
+    if (
+        !window.confirm(
+            trans('super_admin.users.demote_confirm', {
+                name: props.user.name,
+            }),
+        )
+    ) {
         return;
     }
     router.delete(route('admin.users.demote', props.user.id), {
@@ -101,7 +110,13 @@ function demote() {
 
 function freeze() {
     closeMenu();
-    if (!window.confirm(trans('super_admin.users.freeze_confirm', { name: props.user.name }))) {
+    if (
+        !window.confirm(
+            trans('super_admin.users.freeze_confirm', {
+                name: props.user.name,
+            }),
+        )
+    ) {
         return;
     }
     router.post(
@@ -140,13 +155,73 @@ async function copyEmail() {
 
 function destroyUser() {
     closeMenu();
-    if (!window.confirm(trans('super_admin.users.delete_confirm', { name: props.user.name }))) {
+    if (
+        !window.confirm(
+            trans('super_admin.users.delete_confirm', {
+                name: props.user.name,
+            }),
+        )
+    ) {
         return;
     }
     router.delete(route('admin.users.destroy', props.user.id), {
         preserveScroll: true,
         preserveState: true,
     });
+}
+
+// ── Switch to user (impersonation) ────────────────────────────────────────────
+function impersonate() {
+    closeMenu();
+    if (
+        !window.confirm(
+            trans('super_admin.users.impersonate_confirm', {
+                name: props.user.name,
+            }),
+        )
+    ) {
+        return;
+    }
+    // Full visit — the server logs us in as the user and redirects to their dashboard.
+    router.post(route('admin.users.impersonate', props.user.id));
+}
+
+// ── Magic login link ──────────────────────────────────────────────────────────
+const showMagicModal = ref(false);
+const magicUrl = ref('');
+const magicExpiryMinutes = ref(0);
+const magicLoading = ref(false);
+
+async function generateMagicLink() {
+    closeMenu();
+    magicLoading.value = true;
+    try {
+        const { data } = await window.axios.post(
+            route('admin.users.magic-login', props.user.id),
+        );
+        magicUrl.value = data.url;
+        magicExpiryMinutes.value = data.expires_in_minutes;
+        showMagicModal.value = true;
+    } catch {
+        pushToast(trans('super_admin.users.magic_login_failed'), 'error');
+    } finally {
+        magicLoading.value = false;
+    }
+}
+
+function closeMagicModal() {
+    showMagicModal.value = false;
+    magicUrl.value = '';
+}
+
+async function copyMagicLink() {
+    if (!magicUrl.value) return;
+    try {
+        await navigator.clipboard.writeText(magicUrl.value);
+        pushToast(trans('super_admin.users.magic_login_copied'), 'info');
+    } catch {
+        /* clipboard unavailable — the link is still selectable in the field */
+    }
 }
 
 // ── Set password modal ────────────────────────────────────────────────────────
@@ -258,7 +333,9 @@ function submitPassword() {
                     {{ $t('super_admin.users.view_details') }}
                 </Link>
                 <Link
-                    :href="route('admin.email-templates.index', { user: user.id })"
+                    :href="
+                        route('admin.email-templates.index', { user: user.id })
+                    "
                     class="block w-full px-4 py-2 text-left font-sans text-[13px] font-medium text-ink-primary transition hover:bg-background"
                     :class="{ 'border-b border-border': !showViewDetails }"
                     @click="closeMenu"
@@ -267,6 +344,27 @@ function submitPassword() {
                 </Link>
                 <!-- Separator after email_user when view_details is shown -->
                 <div v-if="showViewDetails" class="border-b border-border" />
+                <button
+                    v-if="menu.impersonate"
+                    type="button"
+                    class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background"
+                    @click="impersonate"
+                >
+                    {{ $t('super_admin.users.impersonate_button') }}
+                </button>
+                <button
+                    v-if="menu.magicLink"
+                    type="button"
+                    class="block w-full px-4 py-2 text-left font-sans text-[13px] text-ink-primary transition hover:bg-background disabled:opacity-50"
+                    :disabled="magicLoading"
+                    @click="generateMagicLink"
+                >
+                    {{ $t('super_admin.users.magic_login_button') }}
+                </button>
+                <div
+                    v-if="menu.impersonate || menu.magicLink"
+                    class="border-b border-border"
+                />
                 <button
                     v-if="menu.promote"
                     type="button"
@@ -339,7 +437,11 @@ function submitPassword() {
     <Modal :show="showPasswordModal" max-width="md" @close="closePasswordModal">
         <div class="p-6">
             <h2 class="font-display text-[18px] font-semibold text-ink-primary">
-                {{ $t('super_admin.users.set_password_title', { name: user.name }) }}
+                {{
+                    $t('super_admin.users.set_password_title', {
+                        name: user.name,
+                    })
+                }}
             </h2>
             <p class="mt-1 font-sans text-[13px] text-ink-secondary">
                 {{ $t('super_admin.users.set_password_help') }}
@@ -362,7 +464,10 @@ function submitPassword() {
                                 :type="showPassword ? 'text' : 'password'"
                                 autocomplete="new-password"
                                 class="w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                :class="{ 'border-danger focus:border-danger focus:ring-danger/20': pwForm.errors.password }"
+                                :class="{
+                                    'focus:ring-danger/20 border-danger focus:border-danger':
+                                        pwForm.errors.password,
+                                }"
                             />
                         </div>
                         <button
@@ -437,7 +542,9 @@ function submitPassword() {
                 </div>
 
                 <!-- Notify checkbox -->
-                <div class="rounded-md border border-border bg-background px-4 py-3">
+                <div
+                    class="rounded-md border border-border bg-background px-4 py-3"
+                >
                     <label class="flex cursor-pointer items-start gap-3">
                         <input
                             v-model="pwForm.notify"
@@ -445,18 +552,30 @@ function submitPassword() {
                             class="mt-0.5 rounded border-border-strong text-accent focus:ring-accent-soft"
                         />
                         <div>
-                            <span class="font-sans text-[13px] font-medium text-ink-primary">
-                                {{ $t('super_admin.users.set_password_notify') }}
+                            <span
+                                class="font-sans text-[13px] font-medium text-ink-primary"
+                            >
+                                {{
+                                    $t('super_admin.users.set_password_notify')
+                                }}
                             </span>
-                            <p class="mt-0.5 font-sans text-[12px] text-ink-secondary">
-                                {{ $t('super_admin.users.set_password_notify_hint') }}
+                            <p
+                                class="mt-0.5 font-sans text-[12px] text-ink-secondary"
+                            >
+                                {{
+                                    $t(
+                                        'super_admin.users.set_password_notify_hint',
+                                    )
+                                }}
                             </p>
                         </div>
                     </label>
                 </div>
 
                 <!-- Sign out everywhere checkbox -->
-                <div class="rounded-md border border-border bg-background px-4 py-3">
+                <div
+                    class="rounded-md border border-border bg-background px-4 py-3"
+                >
                     <label class="flex cursor-pointer items-start gap-3">
                         <input
                             v-model="pwForm.logout_sessions"
@@ -464,11 +583,21 @@ function submitPassword() {
                             class="mt-0.5 rounded border-border-strong text-accent focus:ring-accent-soft"
                         />
                         <div>
-                            <span class="font-sans text-[13px] font-medium text-ink-primary">
-                                {{ $t('super_admin.users.set_password_logout') }}
+                            <span
+                                class="font-sans text-[13px] font-medium text-ink-primary"
+                            >
+                                {{
+                                    $t('super_admin.users.set_password_logout')
+                                }}
                             </span>
-                            <p class="mt-0.5 font-sans text-[12px] text-ink-secondary">
-                                {{ $t('super_admin.users.set_password_logout_hint') }}
+                            <p
+                                class="mt-0.5 font-sans text-[12px] text-ink-secondary"
+                            >
+                                {{
+                                    $t(
+                                        'super_admin.users.set_password_logout_hint',
+                                    )
+                                }}
                             </p>
                         </div>
                     </label>
@@ -491,6 +620,83 @@ function submitPassword() {
                     @click="submitPassword"
                 >
                     {{ $t('super_admin.users.set_password_submit') }}
+                </button>
+            </div>
+        </div>
+    </Modal>
+
+    <!-- Magic login link modal -->
+    <Modal :show="showMagicModal" max-width="md" @close="closeMagicModal">
+        <div class="p-6">
+            <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                {{
+                    $t('super_admin.users.magic_login_title', {
+                        name: user.name,
+                    })
+                }}
+            </h2>
+            <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                {{
+                    $t('super_admin.users.magic_login_help', {
+                        name: user.name,
+                    })
+                }}
+            </p>
+
+            <div class="mt-5">
+                <div class="flex gap-2">
+                    <input
+                        :value="magicUrl"
+                        type="text"
+                        readonly
+                        class="w-full rounded-md border border-border-strong bg-background px-3 py-2 font-mono text-[12px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        @focus="$event.target.select()"
+                    />
+                    <button
+                        type="button"
+                        class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[13px] text-ink-secondary transition hover:bg-background"
+                        @click="copyMagicLink"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4"
+                        >
+                            <path
+                                d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z"
+                            />
+                            <path
+                                d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z"
+                            />
+                        </svg>
+                        {{ $t('super_admin.users.magic_login_copy') }}
+                    </button>
+                </div>
+                <p class="mt-2 font-sans text-[12px] text-ink-tertiary">
+                    {{
+                        $t('super_admin.users.magic_login_expiry', {
+                            minutes: magicExpiryMinutes,
+                        })
+                    }}
+                </p>
+            </div>
+
+            <div
+                class="mt-4 rounded-md border border-border bg-background px-4 py-3"
+            >
+                <p class="font-sans text-[12px] text-ink-secondary">
+                    {{ $t('super_admin.users.magic_login_note') }}
+                </p>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button
+                    type="button"
+                    class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-medium text-white transition hover:bg-accent-hover"
+                    @click="closeMagicModal"
+                >
+                    {{ $t('super_admin.users.magic_login_close') }}
                 </button>
             </div>
         </div>

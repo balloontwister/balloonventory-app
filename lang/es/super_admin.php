@@ -293,6 +293,17 @@ return [
         'delete_confirm' => '¿Eliminar a :name? Su cuenta será eliminada (soporte puede deshacerlo).',
         'confirm_yes' => 'Confirmar',
         'confirm_cancel' => 'Cancelar',
+        'impersonate_button' => 'Acceder como usuario',
+        'impersonate_confirm' => '¿Iniciar sesión como :name? Verás la aplicación tal como la ve esa persona, con un aviso para volver a tu cuenta de administrador.',
+        'magic_login_button' => 'Copiar enlace de acceso',
+        'magic_login_title' => 'Enlace de acceso para :name',
+        'magic_login_help' => 'Un enlace de un solo uso que inicia sesión directamente en la cuenta de :name, sin contraseña. Envíalo al usuario o ábrelo tú.',
+        'magic_login_expiry' => 'Expira en :minutes minutos · un solo uso',
+        'magic_login_copy' => 'Copiar enlace',
+        'magic_login_copied' => 'Enlace de acceso copiado al portapapeles',
+        'magic_login_note' => 'Al abrir este enlace se inicia sesión como el usuario sin aviso de regreso. Usa «Acceder como usuario» si quieres volver a tu cuenta de administrador con un clic.',
+        'magic_login_failed' => 'No se pudo generar el enlace de acceso. Inténtalo de nuevo.',
+        'magic_login_close' => 'Listo',
     ],
 
     'backups' => [

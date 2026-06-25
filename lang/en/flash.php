@@ -144,4 +144,14 @@ return [
     'business' => [
         'switched' => 'Switched to :name.',
     ],
+
+    'impersonation' => [
+        'started' => 'You are now viewing the app as :name.',
+        'stopped' => 'Returned to your admin account.',
+    ],
+
+    'magic_login' => [
+        'invalid' => 'This login link is invalid, has expired, or has already been used.',
+        'signed_in' => 'You are signed in.',
+    ],
 ];

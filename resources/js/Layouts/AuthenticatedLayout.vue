@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import AdminMenu from '@/Components/AdminMenu.vue';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import Toaster from '@/Components/Toaster.vue';
 import { useBusiness } from '@/Composables/useBusiness';
@@ -86,6 +87,9 @@ const topNavItems = computed(() =>
 
         <!-- App-wide toast stack (teleports to body) -->
         <Toaster />
+
+        <!-- Persistent "viewing as user" banner while impersonating -->
+        <ImpersonationBanner />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
         <div v-if="isDesktop" class="hidden min-h-screen pt-0.5 lg:flex">
@@ -313,7 +317,9 @@ const topNavItems = computed(() =>
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            {{ $t('super_admin.dashboard.nav.support_tickets') }}
+                            {{
+                                $t('super_admin.dashboard.nav.support_tickets')
+                            }}
                         </Link>
 
                         <Link
@@ -500,7 +506,11 @@ const topNavItems = computed(() =>
                                         clip-rule="evenodd"
                                     />
                                 </svg>
-                                {{ $t('super_admin.dashboard.nav.subscriptions') }}
+                                {{
+                                    $t(
+                                        'super_admin.dashboard.nav.subscriptions',
+                                    )
+                                }}
                             </Link>
 
                             <Link

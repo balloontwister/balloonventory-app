@@ -150,15 +150,16 @@ class DistributorClusterEngine
     }
 
     /**
-     * Solid latex is the only type we materialise into the catalog today. A null
-     * type (e.g. a platform whose pages we don't yet read a structured table from,
-     * like the Shopify bulk feed) keeps the legacy "propose it" behaviour so we
-     * don't silently drop those; a known non-latex type is parked.
+     * Solid latex is the only type we materialise into the catalog today. Every
+     * other type — and anything we couldn't classify (null: e.g. a fetch failure,
+     * or a platform whose pages we don't yet read a structured table from) — is
+     * parked in staging rather than proposed, so the queue is strictly the
+     * products we can actually add. Nothing is lost; parked items keep their
+     * attributes and surface in the deferred-by-type counts.
      */
     private function isProposalEligible(?string $productType): bool
     {
-        return $productType === null
-            || $productType === DistributorProductClassifier::SOLID_LATEX;
+        return $productType === DistributorProductClassifier::SOLID_LATEX;
     }
 
     /**

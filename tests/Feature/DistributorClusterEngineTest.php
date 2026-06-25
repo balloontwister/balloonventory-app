@@ -44,15 +44,18 @@ class DistributorClusterEngineTest extends TestCase
         $this->stage($this->havin, [
             'external_id' => 'h-1', 'raw_sku' => '53012', 'normalized_sku' => '53012',
             'upc' => null, 'price' => null, 'title' => '11"S Red Fashion (100 count)', 'stock' => 54,
+            'product_type' => 'solid_latex',
         ]);
         // BargainBalloons + LA Balloons: same product, same UPC, decorated SKUs.
         $this->stage($this->bargain, [
             'external_id' => 'b-1', 'raw_sku' => 'BL-53012', 'normalized_sku' => '53012',
             'upc' => '030625530125', 'price' => 13.97, 'title' => '11 inch Latex Balloons 100 Per Bag Fashion Red Betallatex',
+            'product_type' => 'solid_latex',
         ]);
         $this->stage($this->laballoons, [
             'external_id' => 'l-1', 'raw_sku' => '53012-B', 'normalized_sku' => '53012',
             'upc' => '030625530125', 'price' => 21.69, 'title' => '11 inch Sempertex Fashion Red Latex Balloons',
+            'product_type' => 'solid_latex',
         ]);
     }
 

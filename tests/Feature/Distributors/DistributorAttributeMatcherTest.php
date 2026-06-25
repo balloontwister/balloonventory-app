@@ -127,6 +127,75 @@ class DistributorAttributeMatcherTest extends TestCase
         $this->assertSame('Retail', $retail['packaging']['model']->name);
     }
 
+    public function test_shape_prefixed_size_matches_via_structured_shape(): void
+    {
+        // Sempertex names sizes "{shape-prefix}-{number}". The distributor sends a
+        // bare "24 inch" plus a structured shape, which Tier 1 can't bridge.
+        $round = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'R-24']);
+        $heart = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'C-14 (S)']);
+
+        $r24 = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['24 inch'],
+            'Balloon Type / Shape' => ['Solid Color', 'Round'],
+        ]);
+        $this->assertSame($round->id, $r24['balloon_size']['model']->id);
+        $this->assertSame('exact', $r24['balloon_size']['quality']);
+
+        $c14 = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['14 inch'],
+            'Balloon Type / Shape' => ['Solid Color', 'Heart'],
+        ]);
+        $this->assertSame($heart->id, $c14['balloon_size']['model']->id);
+    }
+
+    public function test_shape_disambiguates_a_shared_size_number(): void
+    {
+        // Both share the number 12; only the shape tells round from link.
+        $round = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'R-12']);
+        $link = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'LOL-12']);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['12 inch'],
+            'Balloon Type / Shape' => ['Solid Color', 'Link'],
+        ]);
+
+        $this->assertSame($link->id, $result['balloon_size']['model']->id);
+        $this->assertNotSame($round->id, $result['balloon_size']['model']->id);
+    }
+
+    public function test_shape_prefix_falls_back_to_a_word_in_the_size_value(): void
+    {
+        // "660 LOL" has no shape field, but the size value itself names the line.
+        $lol = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'LOL-660']);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['660 LOL'],
+            'Balloon Type / Shape' => ['Entertainer', 'Solid Color'],
+        ]);
+
+        $this->assertSame($lol->id, $result['balloon_size']['model']->id);
+    }
+
+    public function test_config_overrides_the_shape_prefix_map(): void
+    {
+        $size = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'B-18']);
+
+        $result = $this->matcher->match(
+            [
+                'Brand' => ['Kalisan'],
+                'Size' => ['18 inch'],
+                'Balloon Type / Shape' => ['Bubble'],
+            ],
+            ['size_shape_prefixes' => ['Bubble' => 'B']],
+        );
+
+        $this->assertSame($size->id, $result['balloon_size']['model']->id);
+    }
+
     public function test_unmatched_brand_yields_no_scoped_matches(): void
     {
         $result = $this->matcher->match(['Brand' => ['Nonexistent'], 'Size' => ['260'], 'Color' => ['Clear']]);

@@ -37,6 +37,7 @@ class DistributorCatalogProposal extends Model
         'proposed_brand_id',
         'proposed_balloon_size_id',
         'proposed_color_id',
+        'proposed_packaging_id',
         'proposed_count',
         'proposed_name',
         'proposed_warehouse_sku',

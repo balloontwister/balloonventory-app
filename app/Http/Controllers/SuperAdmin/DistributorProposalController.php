@@ -84,6 +84,7 @@ class DistributorProposalController extends Controller
             'proposed_brand_id' => ['nullable', 'string', 'exists:brands,id'],
             'proposed_balloon_size_id' => ['nullable', 'string', 'exists:balloon_sizes,id'],
             'proposed_color_id' => ['nullable', 'string', 'exists:colors,id'],
+            'proposed_packaging_id' => ['nullable', 'string', 'exists:packaging_types,id'],
             'proposed_count' => ['nullable', 'integer', 'min:1'],
             'proposed_warehouse_sku' => ['nullable', 'string', 'max:191'],
         ]);

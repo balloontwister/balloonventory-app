@@ -30,6 +30,8 @@ class DistributorController extends Controller
                 'sort_order' => $d->sort_order,
                 'last_synced_at' => $d->last_synced_at,
                 'sku_urls_count' => $d->sku_urls_count,
+                'health_status' => $d->health_status,
+                'health_detail' => $d->health_detail,
             ]);
 
         return Inertia::render('SuperAdmin/Distributors/Index', [

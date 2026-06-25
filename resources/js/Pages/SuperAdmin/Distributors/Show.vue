@@ -94,6 +94,23 @@ function sync() {
         </template>
 
         <div class="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+            <!-- Extraction health alert -->
+            <div
+                v-if="distributor.health_status === 'broken' || distributor.health_status === 'degraded'"
+                class="rounded-lg border px-4 py-3"
+                :class="distributor.health_status === 'broken' ? 'border-danger bg-danger-soft' : 'border-warning bg-warning-soft'"
+            >
+                <p
+                    class="text-sm font-semibold"
+                    :class="distributor.health_status === 'broken' ? 'text-danger' : 'text-warning'"
+                >
+                    Extraction {{ distributor.health_status }} — {{ distributor.health_detail }}
+                </p>
+                <p class="mt-0.5 text-[12px] text-ink-secondary">
+                    The site may have changed its page layout. Re-check the pattern with Test fetch below, then update the extraction recipe.
+                </p>
+            </div>
+
             <!-- Info card -->
             <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
                 <h2 class="text-lg font-semibold text-ink-primary mb-4">Details</h2>
@@ -125,6 +142,15 @@ function sync() {
                     <div>
                         <dt class="text-ink-tertiary">Last Synced</dt>
                         <dd class="text-ink-primary font-medium">{{ formatDate(distributor.last_synced_at) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-ink-tertiary">Extraction Health</dt>
+                        <dd class="text-ink-primary font-medium capitalize">
+                            {{ distributor.health_status ?? 'Not checked' }}
+                            <span v-if="distributor.health_checked_at" class="text-ink-tertiary font-normal lowercase">
+                                ({{ formatDate(distributor.health_checked_at) }})
+                            </span>
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-ink-tertiary">Sitemap URL</dt>

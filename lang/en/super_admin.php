@@ -219,6 +219,7 @@ return [
         'users_manage' => 'Manage admin users',
 
         'distributors' => [
+            'health_broken_hint' => 'distributor(s) whose page extraction looks broken',
             'proposals' => [
                 'meta_title' => 'Proposal review queue',
                 'heading' => 'Proposal review queue',

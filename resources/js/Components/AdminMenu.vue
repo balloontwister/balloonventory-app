@@ -12,6 +12,7 @@ const props = defineProps({
 const page = usePage();
 const isSuper = computed(() => page.props.auth?.isSuperAdmin ?? false);
 const pendingProposalsCount = computed(() => page.props.pendingProposalsCount ?? 0);
+const brokenDistributorsCount = computed(() => page.props.brokenDistributorsCount ?? 0);
 
 const LINKS = [
     { key: 'overview', route: 'admin.dashboard', match: 'admin.dashboard' },
@@ -136,6 +137,13 @@ onUnmounted(() => {
                             class="ml-2 rounded-full bg-accent px-1.5 py-0.5 font-sans text-[11px] font-semibold text-white"
                         >
                             {{ pendingProposalsCount }}
+                        </span>
+                        <span
+                            v-else-if="l.key === 'distributors' && brokenDistributorsCount > 0"
+                            class="ml-2 rounded-full bg-danger px-1.5 py-0.5 font-sans text-[11px] font-semibold text-white"
+                            :title="$t('super_admin.dashboard.distributors.health_broken_hint')"
+                        >
+                            {{ brokenDistributorsCount }}
                         </span>
                     </Link>
                 </div>

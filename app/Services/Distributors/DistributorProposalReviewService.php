@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
+use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Services\BarcodeLinker;
 use App\Services\DistributorCatalogPromoter;
@@ -94,6 +95,9 @@ class DistributorProposalReviewService
                 ->map(fn (BalloonSize $bs) => ['id' => $bs->id, 'name' => $bs->name, 'brand_id' => $bs->brand_id])->all(),
             'colors' => Color::orderBy('name')->get(['id', 'name', 'brand_id'])
                 ->map(fn (Color $c) => ['id' => $c->id, 'name' => $c->name, 'brand_id' => $c->brand_id])->all(),
+            // Packaging is global (not brand-scoped).
+            'packagingTypes' => PackagingType::orderBy('sort_order')->get(['id', 'name'])
+                ->map(fn (PackagingType $p) => ['id' => $p->id, 'name' => $p->name])->all(),
         ];
     }
 
@@ -264,6 +268,7 @@ class DistributorProposalReviewService
             'proposed_brand_id' => $attributes['proposed_brand_id'] ?? null,
             'proposed_balloon_size_id' => $attributes['proposed_balloon_size_id'] ?? null,
             'proposed_color_id' => $attributes['proposed_color_id'] ?? null,
+            'proposed_packaging_id' => $attributes['proposed_packaging_id'] ?? null,
             'proposed_count' => $attributes['proposed_count'] ?? null,
             'proposed_warehouse_sku' => $attributes['proposed_warehouse_sku'] ?? null,
             'reviewed_by' => $reviewerId,
@@ -289,6 +294,8 @@ class DistributorProposalReviewService
             'balloonSizes' => BalloonSize::whereIn('id', $proposals->pluck('proposed_balloon_size_id')->filter()->unique())
                 ->get(['id', 'name'])->keyBy('id'),
             'colors' => Color::whereIn('id', $proposals->pluck('proposed_color_id')->filter()->unique())
+                ->get(['id', 'name'])->keyBy('id'),
+            'packagingTypes' => PackagingType::whereIn('id', $proposals->pluck('proposed_packaging_id')->filter()->unique())
                 ->get(['id', 'name'])->keyBy('id'),
             'skus' => Sku::whereIn('id', $proposals->pluck('resulting_sku_id')->filter()->unique())
                 ->get(['id', 'name'])->keyBy('id'),
@@ -332,9 +339,11 @@ class DistributorProposalReviewService
             'proposed_brand_id' => $proposal->proposed_brand_id,
             'proposed_balloon_size_id' => $proposal->proposed_balloon_size_id,
             'proposed_color_id' => $proposal->proposed_color_id,
+            'proposed_packaging_id' => $proposal->proposed_packaging_id,
             'brand_name' => $references['brands']->get($proposal->proposed_brand_id)?->name,
             'balloon_size_name' => $references['balloonSizes']->get($proposal->proposed_balloon_size_id)?->name,
             'color_name' => $references['colors']->get($proposal->proposed_color_id)?->name,
+            'packaging_name' => $references['packagingTypes']->get($proposal->proposed_packaging_id)?->name,
             'resulting_sku_id' => $proposal->resulting_sku_id,
             'resulting_sku_name' => $references['skus']->get($proposal->resulting_sku_id)?->name,
             'reviewed_at' => $proposal->reviewed_at,
@@ -362,13 +371,14 @@ class DistributorProposalReviewService
         $brandId = $proposal->proposed_brand_id ?? data_get($guess, 'brand.selected.id');
         $sizeId = $proposal->proposed_balloon_size_id ?? data_get($guess, 'balloon_size.selected.id');
         $colorId = $proposal->proposed_color_id ?? data_get($guess, 'color.selected.id');
+        $packagingId = $proposal->proposed_packaging_id ?? data_get($guess, 'packaging.selected.id');
         $count = $proposal->proposed_count ?? ($guess['count'] ?? null);
 
         if ($brandId === null || $sizeId === null || $colorId === null) {
             return ['available' => false];
         }
 
-        $match = $this->identicalFinder->find($brandId, $sizeId, $colorId, false, $count);
+        $match = $this->identicalFinder->find($brandId, $sizeId, $colorId, false, $count, $packagingId);
         $exact = $match['exact'];
 
         return [

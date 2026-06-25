@@ -8,14 +8,16 @@ use Illuminate\Support\Collection;
 /**
  * Finds catalog SKUs that share a proposal's resolved identity, split into:
  *
- *  - `exact`    — same brand + size + colour + print state + pack count: the SAME
- *                 product. If it exists without a barcode, approving would create
- *                 a duplicate, so the review UI offers to map to it instead.
- *  - `siblings` — same brand + size + colour + print state but a DIFFERENT pack
- *                 count: the *identical product in other packaging* (a brand sells
- *                 the same balloon in 100/50/12-count for different markets). These
+ *  - `exact`    — same brand + size + colour + print state + pack count + packaging:
+ *                 the SAME product variant. If it exists without a barcode,
+ *                 approving would create a duplicate, so the review UI offers to
+ *                 map to it instead.
+ *  - `siblings` — same brand + size + colour + print state but differing in pack
+ *                 count and/or packaging: the *identical product in other
+ *                 packaging* (a brand sells the same balloon in 100/50/12-count
+ *                 and as Nozzle Up / Loose / Retail for different markets). These
  *                 are legitimately separate SKUs that should be linked via
- *                 {@see Sku::linkIdentical()} so the user can switch pack sizes.
+ *                 {@see Sku::linkIdentical()} so the user can switch between them.
  *
  * Print state (`is_printed`) is part of the identity: a printed "Happy Birthday"
  * and a solid balloon of the same brand/size/colour are different products and
@@ -26,7 +28,7 @@ class IdenticalSkuFinder
     /**
      * @return array{exact: ?Sku, siblings: Collection<int, Sku>}
      */
-    public function find(string $brandId, string $balloonSizeId, string $colorId, bool $isPrinted, ?int $count): array
+    public function find(string $brandId, string $balloonSizeId, string $colorId, bool $isPrinted, ?int $count, ?string $packagingId = null): array
     {
         $skus = Sku::query()
             ->where('brand_id', $brandId)
@@ -35,9 +37,11 @@ class IdenticalSkuFinder
             ->where('is_printed', $isPrinted)
             ->get();
 
+        $isExact = fn (Sku $sku) => $sku->default_count_per_bag === $count && $sku->packaging_id === $packagingId;
+
         return [
-            'exact' => $skus->first(fn (Sku $sku) => $sku->default_count_per_bag === $count),
-            'siblings' => $skus->filter(fn (Sku $sku) => $sku->default_count_per_bag !== $count)->values(),
+            'exact' => $skus->first($isExact),
+            'siblings' => $skus->reject($isExact)->values(),
         ];
     }
 }

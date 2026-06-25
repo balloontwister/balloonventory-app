@@ -157,6 +157,53 @@ class DistributorProposalControllerTest extends TestCase
         ]);
     }
 
+    public function test_manual_packaging_override_wins_on_approve(): void
+    {
+        $this->seed(PackagingTypeSeeder::class);
+        $nozzle = PackagingType::where('name', 'Nozzle Up')->sole();
+
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'config' => ['attribute_aliases' => ['packaging' => ['Loose Bag (Regular)' => 'Loose']]],
+        ]);
+
+        // Structured table says Loose, but the admin corrects it to Nozzle Up.
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id, 'title' => 'x',
+                'attributes' => [
+                    'Brand' => ['Kalisan'], 'Size' => ['260'], 'Color' => ['Clear'],
+                    'Quantity' => ['100 ct'], 'Package Type' => ['Loose Bag (Regular)'],
+                ],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), ['proposed_packaging_id' => $nozzle->id])
+            ->assertSessionHas('success');
+        $this->assertSame($nozzle->id, $proposal->refresh()->proposed_packaging_id);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('skus', [
+            'id' => $proposal->refresh()->resulting_sku_id,
+            'packaging_id' => $nozzle->id,
+        ]);
+    }
+
+    public function test_index_provides_packaging_reference_options(): void
+    {
+        $this->seed(PackagingTypeSeeder::class);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page->has('references.packagingTypes', 4));
+    }
+
     public function test_approve_links_new_sku_to_identical_pack_sizes_but_not_printed(): void
     {
         $brand = Brand::factory()->create(['name' => 'Kalisan']);

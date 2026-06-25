@@ -145,6 +145,7 @@ class DistributorCatalogPromoter
             $sku->color_id,
             (bool) $sku->is_printed,
             $sku->default_count_per_bag,
+            $sku->packaging_id,
         )['siblings'];
 
         foreach ($siblings as $sibling) {
@@ -194,10 +195,14 @@ class DistributorCatalogPromoter
             $resolved['color'] = Color::find($proposal->proposed_color_id);
         }
 
-        // Packaging (Nozzle Up / Loose / Retail …) comes only from the structured
-        // table — it's optional and never blocks creation (no title fallback, no
-        // manual column yet).
+        // Packaging (Nozzle Up / Loose / Retail …) is optional and never blocks
+        // creation. It comes from the structured table, but a manual mapping in
+        // the Edit modal wins like the other attributes.
         $resolved['packaging'] = $structured['packaging']['model'];
+
+        if ($proposal->proposed_packaging_id !== null) {
+            $resolved['packaging'] = PackagingType::find($proposal->proposed_packaging_id);
+        }
 
         return $resolved;
     }

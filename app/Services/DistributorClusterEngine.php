@@ -234,7 +234,8 @@ class DistributorClusterEngine
             || $proposal->reviewed_by !== null
             || $proposal->proposed_brand_id !== null
             || $proposal->proposed_balloon_size_id !== null
-            || $proposal->proposed_color_id !== null;
+            || $proposal->proposed_color_id !== null
+            || $proposal->proposed_packaging_id !== null;
     }
 
     /**

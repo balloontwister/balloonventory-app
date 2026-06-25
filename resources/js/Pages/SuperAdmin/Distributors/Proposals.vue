@@ -72,6 +72,7 @@ const editForm = ref({
     proposed_brand_id: null,
     proposed_balloon_size_id: null,
     proposed_color_id: null,
+    proposed_packaging_id: null,
     proposed_count: null,
     proposed_warehouse_sku: '',
 });
@@ -86,6 +87,7 @@ function openEdit(proposal) {
         proposed_brand_id: proposal.proposed_brand_id ?? guess?.brand?.selected?.id ?? null,
         proposed_balloon_size_id: proposal.proposed_balloon_size_id ?? guess?.balloon_size?.selected?.id ?? null,
         proposed_color_id: proposal.proposed_color_id ?? guess?.color?.selected?.id ?? null,
+        proposed_packaging_id: proposal.proposed_packaging_id ?? guess?.packaging?.selected?.id ?? null,
         proposed_count: proposal.proposed_count ?? guess?.count ?? null,
         proposed_warehouse_sku: proposal.proposed_warehouse_sku ?? '',
     };
@@ -183,6 +185,7 @@ const MANUAL_FIELD = {
     brand: 'brand_name',
     balloon_size: 'balloon_size_name',
     color: 'color_name',
+    packaging: 'packaging_name',
 };
 
 function guessAttr(item, attr) {
@@ -479,7 +482,7 @@ function formatPrice(price) {
                                     <td class="px-4 py-3 align-top">
                                         <div class="space-y-1">
                                             <div
-                                                v-for="attr in ['brand', 'balloon_size', 'color']"
+                                                v-for="attr in ['brand', 'balloon_size', 'color', 'packaging']"
                                                 :key="attr"
                                                 class="flex items-center gap-1.5"
                                             >
@@ -503,18 +506,6 @@ function formatPrice(price) {
                                                 >
                                                     +{{ altCount(item, attr) }}
                                                 </button>
-                                            </div>
-                                            <div
-                                                v-if="mappedName(item, 'packaging')"
-                                                class="flex items-center gap-1.5"
-                                            >
-                                                <span
-                                                    class="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                                                    :class="dotClass(mappedSource(item, 'packaging'))"
-                                                />
-                                                <span class="text-[11px] text-ink-secondary">
-                                                    {{ mappedName(item, 'packaging') }}
-                                                </span>
                                             </div>
                                             <div
                                                 v-if="siblingCount(item) || exactNoBarcode(item)"
@@ -892,6 +883,46 @@ function formatPrice(price) {
                                         class="rounded-full border px-2 py-0.5 text-[11px] transition"
                                         :class="editForm.proposed_color_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
                                         @click="editForm.proposed_color_id = c.id"
+                                    >
+                                        {{ c.name }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Packaging (global, not brand-scoped) -->
+                            <div>
+                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
+                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_packaging') }}
+                                </label>
+                                <select
+                                    v-model="editForm.proposed_packaging_id"
+                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                >
+                                    <option :value="null">
+                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_packaging_placeholder') }}
+                                    </option>
+                                    <option
+                                        v-for="pkg in references.packagingTypes"
+                                        :key="pkg.id"
+                                        :value="pkg.id"
+                                    >
+                                        {{ pkg.name }}
+                                    </option>
+                                </select>
+                                <div
+                                    v-if="editingProposal.guess?.packaging?.candidates?.length"
+                                    class="mt-1.5 flex flex-wrap items-center gap-1"
+                                >
+                                    <span class="text-[11px] text-ink-tertiary">
+                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
+                                    </span>
+                                    <button
+                                        v-for="c in editingProposal.guess.packaging.candidates"
+                                        :key="c.id"
+                                        type="button"
+                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
+                                        :class="editForm.proposed_packaging_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
+                                        @click="editForm.proposed_packaging_id = c.id"
                                     >
                                         {{ c.name }}
                                     </button>

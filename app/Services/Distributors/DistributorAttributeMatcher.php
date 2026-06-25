@@ -86,14 +86,35 @@ class DistributorAttributeMatcher
      */
     private function matchBrand(?string $value, array $aliases): array
     {
+        return $this->matchAliased($value, $this->data()['brands'], $aliases['brand'] ?? []);
+    }
+
+    /**
+     * Resolve a value that may be a slash-combined family ("Gray / Silver",
+     * "Yellow / Gold") by trying each part in turn, aliasing per part, and
+     * returning the first that resolves. When none do, the gap is reported
+     * against the original value so the admin sees what the distributor said.
+     *
+     * @param  Collection<string, Model>  $keyedByLowerName
+     * @param  array<string, mixed>  $aliasMap
+     * @return AttributeMatch
+     */
+    private function matchAliased(?string $value, Collection $keyedByLowerName, array $aliasMap): array
+    {
         if ($value === null) {
             return $this->none();
         }
 
-        [$value, $aliased] = $this->applyAlias($value, $aliases['brand'] ?? []);
-        $brands = $this->data()['brands'];
+        foreach ($this->splitValue($value) as $part) {
+            [$resolvedPart, $aliased] = $this->applyAlias($part, $aliasMap);
+            $match = $this->resolve($resolvedPart, $keyedByLowerName, $aliased);
 
-        return $this->resolve($value, $brands, $aliased);
+            if ($match['model'] !== null) {
+                return $match;
+            }
+        }
+
+        return $this->none($value);
     }
 
     /**
@@ -105,23 +126,26 @@ class DistributorAttributeMatcher
             return $this->none();
         }
 
-        $key = $this->sizeKey($value);
         $sizes = $this->data()['balloonSizes']->get($brand->id, collect());
 
-        $matches = $sizes->filter(fn (BalloonSize $bs) => $this->sizeKey($bs->name) === $key)->values();
+        // "350 / 360" style combined values: try each part's core key in turn.
+        foreach ($this->splitValue($value) as $part) {
+            $key = $this->sizeKey($part);
+            $matches = $sizes->filter(fn (BalloonSize $bs) => $this->sizeKey($bs->name) === $key)->values();
 
-        if ($matches->isEmpty()) {
-            return $this->none($value);
+            if ($matches->isNotEmpty()) {
+                return [
+                    'model' => $matches->first(),
+                    'value' => $part,
+                    // A single brand size for that core key is unambiguous; several
+                    // (e.g. round vs heart at the same inch) need a human pick.
+                    'quality' => $matches->count() === 1 ? 'exact' : 'fuzzy',
+                    'candidates' => $this->candidates($matches),
+                ];
+            }
         }
 
-        return [
-            'model' => $matches->first(),
-            'value' => $value,
-            // A single brand size for that core key is unambiguous; several
-            // (e.g. round vs heart at the same inch) need a human pick.
-            'quality' => $matches->count() === 1 ? 'exact' : 'fuzzy',
-            'candidates' => $this->candidates($matches),
-        ];
+        return $this->none($value);
     }
 
     /**
@@ -130,14 +154,7 @@ class DistributorAttributeMatcher
      */
     private function matchColor(?string $value, Brand $brand, array $aliases): array
     {
-        if ($value === null) {
-            return $this->none();
-        }
-
-        [$value, $aliased] = $this->applyAlias($value, $aliases['color'] ?? []);
-        $colors = $this->data()['colors']->get($brand->id, collect());
-
-        return $this->resolve($value, $colors, $aliased);
+        return $this->matchAliased($value, $this->data()['colors']->get($brand->id, collect()), $aliases['color'] ?? []);
     }
 
     /**
@@ -229,6 +246,22 @@ class DistributorAttributeMatcher
         }
 
         return $s;
+    }
+
+    /**
+     * Split a slash-combined value ("Gray / Silver", "350 / 360") into its parts;
+     * a plain value yields a single-element list.
+     *
+     * @return array<int, string>
+     */
+    private function splitValue(string $value): array
+    {
+        $parts = array_values(array_filter(
+            array_map('trim', preg_split('#\s*/\s*#', $value) ?: [$value]),
+            fn (string $p) => $p !== '',
+        ));
+
+        return $parts === [] ? [$value] : $parts;
     }
 
     private function parseCount(?string $value): ?int

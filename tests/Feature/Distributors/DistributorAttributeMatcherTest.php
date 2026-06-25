@@ -91,6 +91,21 @@ class DistributorAttributeMatcherTest extends TestCase
         $this->assertTrue($candidateIds->contains($heart->id));
     }
 
+    public function test_slash_combined_value_matches_on_a_part(): void
+    {
+        BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '360K']);
+        $silver = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Silver']);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['350 / 360'],          // we carry 360, not 350
+            'Color' => ['Gray / Silver'],     // we carry Silver, not Gray
+        ]);
+
+        $this->assertSame('360K', $result['balloon_size']['model']->name);
+        $this->assertSame($silver->id, $result['color']['model']->id);
+    }
+
     public function test_unmatched_brand_yields_no_scoped_matches(): void
     {
         $result = $this->matcher->match(['Brand' => ['Nonexistent'], 'Size' => ['260'], 'Color' => ['Clear']]);

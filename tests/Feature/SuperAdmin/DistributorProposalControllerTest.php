@@ -8,12 +8,14 @@ use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
+use App\Models\DistributorProduct;
 use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Models\User;
 use Database\Seeders\PackagingTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class DistributorProposalControllerTest extends TestCase
@@ -193,6 +195,55 @@ class DistributorProposalControllerTest extends TestCase
             'id' => $proposal->refresh()->resulting_sku_id,
             'packaging_id' => $nozzle->id,
         ]);
+    }
+
+    public function test_probe_maps_a_page_to_our_catalog_without_writing(): void
+    {
+        $this->seed(PackagingTypeSeeder::class);
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'config' => [
+                'extraction' => [
+                    'attribute_table' => ['header_class' => 'productView-table-header', 'value_class' => 'productView-table-data'],
+                    'required_labels' => ['Brand'],
+                    'min_rows' => 3,
+                ],
+            ],
+        ]);
+
+        Http::fake(['*' => Http::response($this->larocksProductHtml())]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.probe', $distributor->id), ['probe_url' => 'https://larocks.com/p/260k'])
+            ->assertInertia(fn ($page) => $page
+                ->component('SuperAdmin/Distributors/Show')
+                ->where('probe.fetched', true)
+                ->where('probe.extraction.ok', true)
+                ->where('probe.match.brand.matched', 'Kalisan')
+                ->where('probe.match.balloon_size.matched', '260K')
+                ->where('probe.match.color.matched', 'Clear Transparent')
+                ->where('probe.match.packaging.matched', 'Loose'));
+
+        // Read-only: nothing staged.
+        $this->assertSame(0, DistributorProduct::count());
+    }
+
+    private function larocksProductHtml(): string
+    {
+        return <<<'HTML'
+        <div class="productView-table">
+            <div class="productView-table-row"><div class="productView-table-header">Brand:</div><div class="productView-table-data">Kalisan</div></div>
+            <div class="productView-table-row"><div class="productView-table-header">Industry:</div><div class="productView-table-data">Balloons</div></div>
+            <div class="productView-table-row"><div class="productView-table-header">Balloon Material:</div><div class="productView-table-data">Latex</div></div>
+            <div class="productView-table-row"><div class="productView-table-header">Size:</div><div class="productView-table-data">260</div></div>
+            <div class="productView-table-row"><div class="productView-table-header">Color:</div><div class="productView-table-data">Clear</div></div>
+            <div class="productView-table-row"><div class="productView-table-header">Package Type:</div><div class="productView-table-data">Loose Bag (Regular)</div></div>
+            <div class="productView-table-row"><div class="productView-table-header">Quantity:</div><div class="productView-table-data">100 ct</div></div>
+        </div>
+        HTML;
     }
 
     public function test_index_provides_packaging_reference_options(): void

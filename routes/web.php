@@ -228,6 +228,7 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::patch('/admin/distributors/proposals/{proposal}', [DistributorProposalController::class, 'update'])->name('admin.distributors.proposals.update');
 
     Route::post('/admin/distributors/{distributor}/sync', [DistributorController::class, 'sync'])->name('admin.distributors.sync');
+    Route::post('/admin/distributors/{distributor}/probe', [DistributorController::class, 'probe'])->name('admin.distributors.probe');
     Route::get('/admin/distributors/{distributor}', [DistributorController::class, 'show'])->name('admin.distributors.show');
     Route::get('/admin/distributors/{distributor}/edit', [DistributorController::class, 'edit'])->name('admin.distributors.edit');
     Route::patch('/admin/distributors/{distributor}', [DistributorController::class, 'update'])->name('admin.distributors.update');

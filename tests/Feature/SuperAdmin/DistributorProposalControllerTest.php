@@ -8,8 +8,10 @@ use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
+use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Models\User;
+use Database\Seeders\PackagingTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -120,6 +122,38 @@ class DistributorProposalControllerTest extends TestCase
             'brand_id' => $brand->id,
             'balloon_size_id' => $size->id,
             'color_id' => $color->id,
+        ]);
+    }
+
+    public function test_approve_sets_packaging_from_the_structured_table(): void
+    {
+        $this->seed(PackagingTypeSeeder::class);
+        $nozzleUp = PackagingType::where('name', 'Nozzle Up')->sole();
+
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '160K']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'config' => ['attribute_aliases' => ['packaging' => ['Nozzle-Up' => 'Nozzle Up']]],
+        ]);
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id, 'title' => 'x',
+                'attributes' => [
+                    'Brand' => ['Kalisan'], 'Size' => ['160'], 'Color' => ['Clear'],
+                    'Quantity' => ['50 ct'], 'Package Type' => ['Q-Pak / Nozzle-Up'],
+                ],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('skus', [
+            'id' => $proposal->refresh()->resulting_sku_id,
+            'packaging_id' => $nozzleUp->id,
         ]);
     }
 

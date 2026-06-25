@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
             GemarColorSeeder::class,
             ElitexTextureSeeder::class,
             ElitexColorSeeder::class,
+            BritetexTextureSeeder::class,
+            BritetexColorSeeder::class,
             DistributorSeeder::class,
         ]);
     }

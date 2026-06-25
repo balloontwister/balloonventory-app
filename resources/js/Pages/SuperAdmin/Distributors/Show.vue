@@ -9,9 +9,35 @@ const props = defineProps({
     distributor: { type: Object, required: true },
     stagedTotal: { type: Number, default: 0 },
     stagedWithUpc: { type: Number, default: 0 },
+    probe: { type: Object, default: null },
 });
 
 const syncing = ref(false);
+
+// ── Probe (test-fetch one URL, see how it maps — no DB writes) ─────────────────
+const probeUrl = ref('');
+const probing = ref(false);
+
+function runProbe() {
+    if (!probeUrl.value) return;
+    probing.value = true;
+    router.post(
+        route('admin.distributors.probe', props.distributor.id),
+        { probe_url: probeUrl.value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => { probing.value = false; },
+        },
+    );
+}
+
+function qualityDot(quality) {
+    return {
+        exact: 'bg-success',
+        fuzzy: 'bg-warning',
+    }[quality] ?? 'bg-border-strong';
+}
 
 function platformLabel(type) {
     return type === 'shopify' ? 'Shopify' : type === 'bigcommerce' ? 'BigCommerce' : type;
@@ -125,6 +151,94 @@ function sync() {
                     >
                         {{ $t('super_admin.dashboard.distributors.proposals.review_proposals_link') }} →
                     </Link>
+                </div>
+            </div>
+
+            <!-- Probe (verify-before-crawl) -->
+            <div class="rounded-lg border border-border bg-surface p-6 shadow-pop">
+                <h2 class="text-lg font-semibold text-ink-primary">Test fetch (Probe)</h2>
+                <p class="mt-1 text-sm text-ink-tertiary">
+                    Fetch one product URL and see how this site's page maps to our catalog — nothing is saved.
+                    Use it to confirm the extraction recipe before crawling.
+                </p>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                        v-model="probeUrl"
+                        type="url"
+                        placeholder="https://…/a-product-page"
+                        class="w-96 max-w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                        @keyup.enter="runProbe"
+                    />
+                    <AppButton variant="secondary" size="sm" :disabled="probing || !probeUrl" @click="runProbe">
+                        {{ probing ? 'Fetching…' : 'Test fetch' }}
+                    </AppButton>
+                </div>
+
+                <!-- Result -->
+                <div v-if="probe" class="mt-4 border-t border-border pt-4">
+                    <p v-if="!probe.fetched" class="text-sm text-danger">
+                        Couldn't fetch the page{{ probe.http_status ? ` (HTTP ${probe.http_status})` : '' }}{{ probe.error ? `: ${probe.error}` : '' }}.
+                    </p>
+                    <template v-else>
+                        <div class="flex flex-wrap items-center gap-2 text-sm">
+                            <span
+                                class="rounded-full px-2 py-0.5 text-[12px] font-semibold"
+                                :class="probe.extraction.ok ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'"
+                            >
+                                {{ probe.extraction.ok ? 'Recipe matched' : 'Recipe did NOT match' }}
+                            </span>
+                            <span class="text-ink-tertiary">
+                                {{ probe.extraction.row_count }} attribute rows · type: {{ probe.product_type }}
+                            </span>
+                            <span v-if="probe.extraction.missing_required.length" class="text-warning">
+                                missing: {{ probe.extraction.missing_required.join(', ') }}
+                            </span>
+                        </div>
+                        <p v-if="probe.title" class="mt-2 text-sm text-ink-primary">{{ probe.title }}</p>
+                        <p class="text-[12px] text-ink-tertiary">
+                            sku: {{ probe.raw_sku ?? '—' }} · upc: {{ probe.upc ?? '—' }}
+                        </p>
+
+                        <div class="mt-4 grid gap-4 md:grid-cols-2">
+                            <!-- Matched attributes -->
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">Resolved to our catalog</p>
+                                <div class="mt-1 space-y-1">
+                                    <div
+                                        v-for="attr in ['brand', 'balloon_size', 'color', 'packaging']"
+                                        :key="attr"
+                                        class="flex items-center gap-1.5 text-sm"
+                                    >
+                                        <span class="h-1.5 w-1.5 flex-shrink-0 rounded-full" :class="qualityDot(probe.match[attr].quality)" />
+                                        <span class="capitalize text-ink-tertiary">{{ attr.replace('_', ' ') }}:</span>
+                                        <span :class="probe.match[attr].matched ? 'text-ink-primary' : 'text-ink-tertiary'">
+                                            {{ probe.match[attr].matched ?? '—' }}
+                                        </span>
+                                        <span v-if="probe.match[attr].value" class="text-[11px] text-ink-tertiary">
+                                            (“{{ probe.match[attr].value }}”)
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 text-sm">
+                                        <span class="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-border-strong" />
+                                        <span class="text-ink-tertiary">count:</span>
+                                        <span class="text-ink-primary">{{ probe.match.count ?? '—' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Raw distributor table -->
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">Distributor's attribute table</p>
+                                <dl class="mt-1 space-y-0.5 text-[12px]">
+                                    <div v-for="row in probe.attributes" :key="row.label" class="flex gap-2">
+                                        <dt class="min-w-[120px] text-ink-tertiary">{{ row.label }}</dt>
+                                        <dd class="text-ink-secondary">{{ row.value }}</dd>
+                                    </div>
+                                    <p v-if="!probe.attributes.length" class="text-ink-tertiary">No attribute table found on this page.</p>
+                                </dl>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
 

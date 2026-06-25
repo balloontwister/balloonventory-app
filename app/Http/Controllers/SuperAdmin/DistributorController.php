@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\RunDistributorSyncJob;
 use App\Models\Distributor;
 use App\Models\DistributorProduct;
+use App\Services\Distributors\DistributorProbe;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -38,19 +39,39 @@ class DistributorController extends Controller
 
     public function show(Distributor $distributor): Response
     {
+        return Inertia::render('SuperAdmin/Distributors/Show', $this->showProps($distributor));
+    }
+
+    /**
+     * Fetch one sample product URL and show how this distributor's page maps to
+     * our catalog (no DB writes) — the verify-before-crawl step when onboarding a
+     * brand. Re-renders the detail page with a `probe` result.
+     */
+    public function probe(Request $request, Distributor $distributor, DistributorProbe $probe): Response
+    {
+        $data = $request->validate([
+            'probe_url' => ['required', 'string', 'url', 'max:2048'],
+        ]);
+
+        return Inertia::render('SuperAdmin/Distributors/Show', $this->showProps($distributor) + [
+            'probe' => $probe->probe($distributor, $data['probe_url']),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function showProps(Distributor $distributor): array
+    {
         $distributor->loadCount(['skuUrls', 'catalogGaps']);
         $distributor->load(['catalogGaps' => fn ($q) => $q->latest()->limit(50)]);
 
-        $stagedTotal = DistributorProduct::where('distributor_id', $distributor->id)->count();
-        $stagedWithUpc = DistributorProduct::where('distributor_id', $distributor->id)
-            ->whereNotNull('upc')
-            ->count();
-
-        return Inertia::render('SuperAdmin/Distributors/Show', [
+        return [
             'distributor' => $distributor,
-            'stagedTotal' => $stagedTotal,
-            'stagedWithUpc' => $stagedWithUpc,
-        ]);
+            'stagedTotal' => DistributorProduct::where('distributor_id', $distributor->id)->count(),
+            'stagedWithUpc' => DistributorProduct::where('distributor_id', $distributor->id)
+                ->whereNotNull('upc')->count(),
+        ];
     }
 
     public function create(): Response

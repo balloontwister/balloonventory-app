@@ -5,6 +5,7 @@ namespace App\Services\Distributors;
 use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
+use App\Models\PackagingType;
 use App\Services\CatalogAttributeResolver;
 use App\Support\ProductText;
 use Illuminate\Database\Eloquent\Model;
@@ -47,15 +48,16 @@ class DistributorAttributeMatcher
         'size' => 'Size',
         'color' => 'Color',
         'count' => 'Quantity',
+        'packaging' => 'Package Type',
     ];
 
-    /** @var array{brands: Collection, balloonSizes: Collection, colors: Collection}|null */
+    /** @var array{brands: Collection, balloonSizes: Collection, colors: Collection, packagingTypes: Collection}|null */
     private ?array $data = null;
 
     /**
      * @param  array<string, array<int, string>>  $attributes  label → value(s) from the distributor table
      * @param  array<string, mixed>  $config  the distributor's config (`attribute_aliases`, `extraction.label_map`)
-     * @return array{brand: AttributeMatch, balloon_size: AttributeMatch, color: AttributeMatch, count: int|null}
+     * @return array{brand: AttributeMatch, balloon_size: AttributeMatch, color: AttributeMatch, packaging: AttributeMatch, count: int|null}
      */
     public function match(array $attributes, array $config = []): array
     {
@@ -65,7 +67,8 @@ class DistributorAttributeMatcher
         $brand = $this->matchBrand($this->value($attributes, $labels['brand']), $aliases);
 
         // Size and colour are brand-scoped, so without a brand there's nothing to
-        // match them against.
+        // match them against. Packaging is a global attribute, so it resolves
+        // independently of the brand.
         $brandModel = $brand['model'];
 
         return [
@@ -76,6 +79,11 @@ class DistributorAttributeMatcher
             'color' => $brandModel instanceof Brand
                 ? $this->matchColor($this->value($attributes, $labels['color']), $brandModel, $aliases)
                 : $this->none(),
+            'packaging' => $this->matchAliased(
+                $this->value($attributes, $labels['packaging']),
+                $this->data()['packagingTypes'],
+                $aliases['packaging'] ?? [],
+            ),
             'count' => $this->parseCount($this->value($attributes, $labels['count'])),
         ];
     }
@@ -296,7 +304,7 @@ class DistributorAttributeMatcher
     }
 
     /**
-     * @return array{brands: Collection, balloonSizes: Collection, colors: Collection}
+     * @return array{brands: Collection, balloonSizes: Collection, colors: Collection, packagingTypes: Collection}
      */
     private function data(): array
     {
@@ -306,6 +314,8 @@ class DistributorAttributeMatcher
             'colors' => Color::all()
                 ->groupBy('brand_id')
                 ->map(fn (Collection $group) => $group->keyBy(fn (Color $c) => strtolower($c->name))),
+            // Packaging types are global (not brand-scoped).
+            'packagingTypes' => PackagingType::all()->keyBy(fn (PackagingType $p) => strtolower($p->name)),
         ];
     }
 }

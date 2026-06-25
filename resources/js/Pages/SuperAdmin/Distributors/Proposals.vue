@@ -505,6 +505,18 @@ function formatPrice(price) {
                                                 </button>
                                             </div>
                                             <div
+                                                v-if="mappedName(item, 'packaging')"
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                                                    :class="dotClass(mappedSource(item, 'packaging'))"
+                                                />
+                                                <span class="text-[11px] text-ink-secondary">
+                                                    {{ mappedName(item, 'packaging') }}
+                                                </span>
+                                            </div>
+                                            <div
                                                 v-if="siblingCount(item) || exactNoBarcode(item)"
                                                 class="flex flex-wrap gap-1 pt-0.5"
                                             >

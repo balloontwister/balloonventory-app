@@ -6,6 +6,7 @@ use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Services\Distributors\DistributorAttributeMatcher;
+use Database\Seeders\PackagingTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -104,6 +105,26 @@ class DistributorAttributeMatcherTest extends TestCase
 
         $this->assertSame('360K', $result['balloon_size']['model']->name);
         $this->assertSame($silver->id, $result['color']['model']->id);
+    }
+
+    public function test_matches_packaging_via_alias_and_slash_split(): void
+    {
+        $this->seed(PackagingTypeSeeder::class);
+        $config = ['attribute_aliases' => ['packaging' => [
+            'Nozzle-Up' => 'Nozzle Up',
+            'Loose Bag (Regular)' => 'Loose',
+            'Packaged' => 'Retail',
+        ]]];
+
+        // "Q-Pak / Nozzle-Up" splits on "/"; the "Nozzle-Up" part aliases to "Nozzle Up".
+        $nozzle = $this->matcher->match(['Brand' => ['Kalisan'], 'Package Type' => ['Q-Pak / Nozzle-Up']], $config);
+        $this->assertSame('Nozzle Up', $nozzle['packaging']['model']->name);
+
+        $loose = $this->matcher->match(['Brand' => ['Kalisan'], 'Package Type' => ['Loose Bag (Regular)']], $config);
+        $this->assertSame('Loose', $loose['packaging']['model']->name);
+
+        $retail = $this->matcher->match(['Brand' => ['Kalisan'], 'Package Type' => ['Packaged']], $config);
+        $this->assertSame('Retail', $retail['packaging']['model']->name);
     }
 
     public function test_unmatched_brand_yields_no_scoped_matches(): void

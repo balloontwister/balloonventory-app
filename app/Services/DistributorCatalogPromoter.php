@@ -8,6 +8,7 @@ use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorSkuUrl;
+use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Services\Distributors\ProposalPromotionResult;
 use App\Support\Gtin;
@@ -104,6 +105,7 @@ class DistributorCatalogPromoter
                 'balloon_size_id' => $resolved['balloonSize']->id,
                 'color_id' => $resolved['color']->id,
                 'default_count_per_bag' => $proposal->proposed_count,
+                'packaging_id' => $resolved['packaging']?->id,
                 'warehouse_sku' => $proposal->proposed_warehouse_sku,
                 'upc' => $this->originalUpc($proposal) ?? $proposal->upc,
                 // The proposal pipeline only materialises solid latex today;
@@ -151,7 +153,7 @@ class DistributorCatalogPromoter
     }
 
     /**
-     * @return array{brand: ?Brand, balloonSize: ?BalloonSize, color: ?Color}
+     * @return array{brand: ?Brand, balloonSize: ?BalloonSize, color: ?Color, packaging: ?PackagingType}
      */
     private function resolveAttributes(DistributorCatalogProposal $proposal): array
     {
@@ -192,6 +194,11 @@ class DistributorCatalogPromoter
             $resolved['color'] = Color::find($proposal->proposed_color_id);
         }
 
+        // Packaging (Nozzle Up / Loose / Retail …) comes only from the structured
+        // table — it's optional and never blocks creation (no title fallback, no
+        // manual column yet).
+        $resolved['packaging'] = $structured['packaging']['model'];
+
         return $resolved;
     }
 
@@ -199,7 +206,7 @@ class DistributorCatalogPromoter
      * Run the structured attribute matcher over the proposal's evidence (the
      * distributor's own attribute table), using that distributor's alias map.
      *
-     * @return array{brand: array<string, mixed>, balloon_size: array<string, mixed>, color: array<string, mixed>, count: int|null}
+     * @return array{brand: array<string, mixed>, balloon_size: array<string, mixed>, color: array<string, mixed>, packaging: array<string, mixed>, count: int|null}
      */
     private function structuredMatch(DistributorCatalogProposal $proposal): array
     {

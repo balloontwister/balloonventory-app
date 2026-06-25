@@ -406,6 +406,7 @@ class DistributorProposalReviewService
             'brand' => $this->presentMatch($match['brand']),
             'balloon_size' => $this->presentMatch($match['balloon_size']),
             'color' => $this->presentMatch($match['color']),
+            'packaging' => $this->presentMatch($match['packaging']),
             'count' => $match['count'],
         ];
     }

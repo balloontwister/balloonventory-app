@@ -37,6 +37,15 @@ class DistributorSeeder extends Seeder
                         'required_labels' => ['Brand', 'Industry'],
                         'min_rows' => 4,
                     ],
+                    // Distributor vocabulary → our reference rows. Packaging values
+                    // here are Larocks' "Package Type" wording.
+                    'attribute_aliases' => [
+                        'packaging' => [
+                            'Nozzle-Up' => 'Nozzle Up',          // from "Q-Pak / Nozzle-Up" (slash-split)
+                            'Loose Bag (Regular)' => 'Loose',
+                            'Packaged' => 'Retail',
+                        ],
+                    ],
                 ],
                 'is_active' => true,
                 'sort_order' => 1,

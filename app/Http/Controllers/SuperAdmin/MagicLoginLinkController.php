@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\MagicLoginLink;
 use App\Models\User;
+use App\Support\Impersonation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,13 +80,31 @@ class MagicLoginLinkController extends Controller
 
         $link->forceFill(['used_at' => now()])->save();
 
-        Auth::login($link->user);
-        $request->session()->regenerate();
+        // If an admin opens the link themselves, treat it as impersonation so
+        // they get the persistent banner + a one-click way back to their admin
+        // account. A logged-out customer following an emailed link just gets a
+        // plain passwordless login (recorded as a genuine sign-in).
+        $current = $request->user();
+        $asAdmin = $current && $current->isAnyAdmin() && $current->id !== $link->user_id;
 
         Log::info('Magic login link consumed', [
             'target_id' => $link->user_id,
+            'as_impersonation' => $asAdmin,
             'ip' => $request->ip(),
         ]);
+
+        if ($asAdmin) {
+            $request->session()->put(Impersonation::SESSION_KEY, $current->id);
+            $request->session()->put(Impersonation::TRANSITION_KEY, true);
+            Auth::login($link->user);
+            $request->session()->forget(Impersonation::TRANSITION_KEY);
+
+            return redirect()->route('dashboard')
+                ->with('success', __('flash.impersonation.started', ['name' => $link->user->name]));
+        }
+
+        Auth::login($link->user);
+        $request->session()->regenerate();
 
         return redirect()->route('dashboard')
             ->with('success', __('flash.magic_login.signed_in'));

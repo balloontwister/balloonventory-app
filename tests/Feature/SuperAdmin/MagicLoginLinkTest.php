@@ -4,6 +4,7 @@ namespace Tests\Feature\SuperAdmin;
 
 use App\Models\MagicLoginLink;
 use App\Models\User;
+use App\Support\Impersonation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -86,6 +87,32 @@ class MagicLoginLinkTest extends TestCase
 
         $link->refresh();
         $this->assertNotNull($link->used_at);
+    }
+
+    public function test_a_guest_consuming_a_link_is_not_an_impersonation_session(): void
+    {
+        ['token' => $token] = MagicLoginLink::generate($this->regularUser, $this->superAdmin);
+
+        $response = $this->post(route('magic-login.consume', $token));
+
+        $this->assertAuthenticatedAs($this->regularUser);
+        $response->assertSessionMissing(Impersonation::SESSION_KEY);
+    }
+
+    public function test_an_admin_consuming_a_link_becomes_an_impersonation_session(): void
+    {
+        ['token' => $token] = MagicLoginLink::generate($this->regularUser, $this->superAdmin);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->post(route('magic-login.consume', $token));
+
+        // The admin is now viewing as the user, with a return path.
+        $this->assertAuthenticatedAs($this->regularUser);
+        $response->assertSessionHas(Impersonation::SESSION_KEY, $this->superAdmin->id);
+
+        $this->post(route('impersonate.stop'))
+            ->assertRedirect(route('admin.users.show', $this->regularUser->id));
+        $this->assertAuthenticatedAs($this->superAdmin);
     }
 
     public function test_a_link_cannot_be_used_twice(): void

@@ -301,7 +301,7 @@ return [
         'magic_login_expiry' => 'Expira en :minutes minutos · un solo uso',
         'magic_login_copy' => 'Copiar enlace',
         'magic_login_copied' => 'Enlace de acceso copiado al portapapeles',
-        'magic_login_note' => 'Al abrir este enlace se inicia sesión como el usuario sin aviso de regreso. Usa «Acceder como usuario» si quieres volver a tu cuenta de administrador con un clic.',
+        'magic_login_note' => 'Si lo abres tú, verás el aviso «Viendo como» para volver a tu cuenta de administrador. Si se lo envías al usuario, inicia sesión directamente, sin contraseña.',
         'magic_login_failed' => 'No se pudo generar el enlace de acceso. Inténtalo de nuevo.',
         'magic_login_close' => 'Listo',
     ],

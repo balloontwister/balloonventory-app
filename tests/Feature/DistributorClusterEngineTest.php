@@ -115,6 +115,30 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertCount(3, $proposal->evidence);
     }
 
+    public function test_only_solid_latex_is_proposed_other_types_are_parked(): void
+    {
+        // A solid latex product and a foil product, each its own UPC cluster.
+        $this->stage($this->bargain, [
+            'external_id' => 'latex-1', 'raw_sku' => 'L1', 'normalized_sku' => 'L1',
+            'upc' => '030625530125', 'title' => '11 inch Red Latex', 'product_type' => 'solid_latex',
+        ]);
+        $this->stage($this->bargain, [
+            'external_id' => 'foil-1', 'raw_sku' => 'F1', 'normalized_sku' => 'F1',
+            'upc' => '026635403511', 'title' => '18 inch Birthday Foil', 'product_type' => 'foil',
+        ]);
+
+        $stats = $this->engine->run(execute: true);
+
+        $this->assertSame(2, $stats['clusters']);
+        $this->assertSame(1, $stats['proposals']);
+        $this->assertSame(1, $stats['deferred']);
+        $this->assertSame(['foil' => 1], $stats['deferred_by_type']);
+
+        // Only the latex product became a proposal; the foil is parked in staging.
+        $proposal = DistributorCatalogProposal::sole();
+        $this->assertSame('00030625530125', $proposal->upc);
+    }
+
     public function test_run_skips_clusters_already_in_the_catalog(): void
     {
         $this->the100ctTrio();

@@ -18,7 +18,8 @@ class CatalogCrawlDistributor extends Command
     protected $signature = 'catalog:crawl-distributor
                             {slug : Distributor slug (larocks, havinaparty, etc.)}
                             {--execute : Write staged products to the database (omit for dry-run)}
-                            {--limit=100 : Max product pages to fetch this run}';
+                            {--limit=100 : Max product pages to fetch this run}
+                            {--force : Re-fetch pages even if crawled in the last 24h (e.g. to backfill new fields)}';
 
     protected $description = 'Crawl product pages from a BigCommerce distributor and stage them for clustering. Designed for repeated invocation — each run processes up to --limit pages, skipping products already fetched in the last 24h.';
 
@@ -88,10 +89,13 @@ class CatalogCrawlDistributor extends Command
         }
 
         // ── Step 2: Skip already-fetched products (resume) ─────────────
-        $existingIds = DistributorProduct::where('distributor_id', $distributor->id)
-            ->where('fetched_at', '>', now()->subHours(24))
-            ->pluck('external_id')
-            ->flip();
+        // --force re-fetches everything (used to backfill newly-added fields).
+        $existingIds = $this->option('force')
+            ? collect()
+            : DistributorProduct::where('distributor_id', $distributor->id)
+                ->where('fetched_at', '>', now()->subHours(24))
+                ->pluck('external_id')
+                ->flip();
 
         $config = $distributor->config ?? [];
         $delayMs = $this->configInt($config, 'request_delay_ms', 500);

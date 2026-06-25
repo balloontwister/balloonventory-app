@@ -22,7 +22,13 @@ class ClusterDistributorProducts extends Command
         $this->line("  Clusters:             {$stats['clusters']}");
         $this->line("  Already in catalog:   {$stats['matched_existing']}");
         $this->line("    ↳ URLs attached:    {$stats['urls_attached']}");
-        $this->line("  New-product proposals: {$stats['proposals']}");
+        $this->line("  New-product proposals: {$stats['proposals']} (solid latex)");
+        $this->line("  Deferred (parked):     {$stats['deferred']}");
+
+        foreach ($stats['deferred_by_type'] as $type => $count) {
+            $this->line('    ↳ '.str_pad($type, 14).$count);
+        }
+
         $this->line("  Unclustered listings:  {$stats['unclustered']}");
 
         $this->newLine();

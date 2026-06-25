@@ -29,6 +29,7 @@ class DistributorProduct extends Model
         'normalized_sku',
         'upc',
         'title',
+        'product_type',
         'url',
         'price',
         'currency',

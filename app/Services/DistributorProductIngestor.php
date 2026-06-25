@@ -7,6 +7,8 @@ use App\Models\DistributorProduct;
 use App\Services\DistributorPlatforms\BigCommerceProductPageParser;
 use App\Services\DistributorPlatforms\Concerns\InspectsHttpResponses;
 use App\Services\DistributorPlatforms\PlatformFactory;
+use App\Services\Distributors\DistributorProductClassifier;
+use App\Services\Distributors\ProductAttributeTableExtractor;
 use App\Support\Gtin;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -36,6 +38,8 @@ class DistributorProductIngestor
     public function __construct(
         private DistributorSkuNormalizer $normalizer,
         private PlatformFactory $platformFactory,
+        private ProductAttributeTableExtractor $attributeExtractor,
+        private DistributorProductClassifier $classifier,
     ) {}
 
     /**
@@ -118,6 +122,18 @@ class DistributorProductIngestor
             return null;
         }
 
+        // Read the distributor's own structured attribute table (recipe-driven)
+        // and classify the product type, so non-latex types can be parked with
+        // their attributes rather than guessed from the title later.
+        $extraction = $this->attributeExtractor->extract($response->body(), $config);
+        $parsed['product_type'] = $this->classifier->classify($extraction);
+        $parsed['attributes'] = $extraction['attributes'];
+        $parsed['extraction'] = [
+            'ok' => $extraction['ok'],
+            'row_count' => $extraction['row_count'],
+            'missing_required' => $extraction['missing_required'],
+        ];
+
         if ($execute) {
             $this->upsertPage($distributor->id, $externalId, $url, $parsed);
         }
@@ -189,6 +205,11 @@ class DistributorProductIngestor
             ->where('external_id', $externalId)
             ->value('id');
 
+        $rawData = [
+            'attributes' => $parsed['attributes'] ?? [],
+            'extraction' => $parsed['extraction'] ?? [],
+        ];
+
         DistributorProduct::upsert(
             [[
                 'id' => $existing ?? (string) Str::uuid7(),
@@ -198,16 +219,17 @@ class DistributorProductIngestor
                 'normalized_sku' => $parsed['normalized_sku'],
                 'upc' => $parsed['upc'] ?? null,
                 'title' => $parsed['title'] ?? '',
+                'product_type' => $parsed['product_type'] ?? null,
                 'url' => $url,
                 'price' => $parsed['price'] ?? null,
                 'currency' => 'USD',
                 'stock' => $parsed['stock'] ?? null,
                 'in_stock' => $parsed['in_stock'] ?? null,
-                'raw_data' => null,
+                'raw_data' => json_encode($rawData),
                 'fetched_at' => now(),
             ]],
             ['distributor_id', 'external_id'],
-            ['raw_sku', 'normalized_sku', 'upc', 'title', 'url', 'price', 'currency', 'stock', 'in_stock', 'fetched_at'],
+            ['raw_sku', 'normalized_sku', 'upc', 'title', 'product_type', 'url', 'price', 'currency', 'stock', 'in_stock', 'raw_data', 'fetched_at'],
         );
     }
 }

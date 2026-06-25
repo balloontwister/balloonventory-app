@@ -6,6 +6,7 @@ use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorProduct;
 use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
+use App\Services\Distributors\DistributorProductClassifier;
 use App\Support\Gtin;
 use App\Support\ProductText;
 use Illuminate\Support\Collection;
@@ -78,6 +79,7 @@ class DistributorClusterEngine
         return collect($byUpc)->map(fn (array $members, string $upc) => [
             'upc' => $upc,
             'normalized_sku' => $this->representativeNormalizedSku($members),
+            'product_type' => $this->representativeProductType($members),
             'members' => $members,
         ])->values();
     }
@@ -86,7 +88,7 @@ class DistributorClusterEngine
      * Read all staged products, cluster them, and (when executing) either attach
      * distributor URLs to existing catalog SKUs or create proposals for new ones.
      *
-     * @return array{clusters: int, matched_existing: int, urls_attached: int, proposals: int, unclustered: int}
+     * @return array{clusters: int, matched_existing: int, urls_attached: int, proposals: int, deferred: int, deferred_by_type: array<string, int>, unclustered: int}
      */
     public function run(bool $execute): array
     {
@@ -97,6 +99,7 @@ class DistributorClusterEngine
         $matchedExisting = 0;
         $urlsAttached = 0;
         $proposals = 0;
+        $deferredByType = [];
         $clusteredMembers = 0;
 
         foreach ($clusters as $cluster) {
@@ -108,10 +111,22 @@ class DistributorClusterEngine
                 $matchedExisting++;
 
                 // Attach distributor purchase URLs so the Reorder page shows
-                // links for products we already catalog.
+                // links for products we already catalog — regardless of type,
+                // since a matched SKU is one we've already decided to carry.
                 if ($execute) {
                     $urlsAttached += $this->attachUrls($skuId, $cluster['members']);
                 }
+
+                continue;
+            }
+
+            // We only create proposals for product types we can currently add to
+            // the catalog. Everything else stays staged (with its attributes) and
+            // is counted here so the admin can see what's parked, ready to enable
+            // when we support that type — no re-crawl needed.
+            if (! $this->isProposalEligible($cluster['product_type'])) {
+                $type = $cluster['product_type'] ?? DistributorProductClassifier::UNKNOWN;
+                $deferredByType[$type] = ($deferredByType[$type] ?? 0) + 1;
 
                 continue;
             }
@@ -128,8 +143,39 @@ class DistributorClusterEngine
             'matched_existing' => $matchedExisting,
             'urls_attached' => $urlsAttached,
             'proposals' => $proposals,
+            'deferred' => array_sum($deferredByType),
+            'deferred_by_type' => $deferredByType,
             'unclustered' => $staged->count() - $clusteredMembers,
         ];
+    }
+
+    /**
+     * Solid latex is the only type we materialise into the catalog today. A null
+     * type (e.g. a platform whose pages we don't yet read a structured table from,
+     * like the Shopify bulk feed) keeps the legacy "propose it" behaviour so we
+     * don't silently drop those; a known non-latex type is parked.
+     */
+    private function isProposalEligible(?string $productType): bool
+    {
+        return $productType === null
+            || $productType === DistributorProductClassifier::SOLID_LATEX;
+    }
+
+    /**
+     * The product type for a cluster — the first classified member (cross-distributor
+     * members of one UPC describe the same product, so they agree).
+     *
+     * @param  array<int, array<string, mixed>>  $members
+     */
+    private function representativeProductType(array $members): ?string
+    {
+        foreach ($members as $member) {
+            if (! empty($member['product_type'])) {
+                return $member['product_type'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -219,6 +265,7 @@ class DistributorClusterEngine
             'distributor_id' => $product->distributor_id,
             'raw_sku' => $product->raw_sku,
             'normalized_sku' => $product->normalized_sku,
+            'product_type' => $product->product_type,
             'raw_upc' => $product->upc, // the distributor's original barcode, as reported
             'title' => $product->title,
             'url' => $product->url,

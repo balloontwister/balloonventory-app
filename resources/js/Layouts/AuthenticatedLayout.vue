@@ -36,6 +36,10 @@ onUnmounted(() => mediaQuery?.removeEventListener('change', syncIsDesktop));
 const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
 const isSuperOnly = page.props.auth?.isSuperAdmin ?? false;
 
+// While impersonating, the fixed banner (h-9) sits at the very top; shift the
+// fixed sidebar / sticky header and content down so nothing hides under it.
+const isImpersonating = computed(() => !!page.props.impersonating);
+
 // Desktop sidebar collapse — remembered per browser.
 const sidebarCollapsed = ref(
     typeof localStorage !== 'undefined' &&
@@ -92,11 +96,16 @@ const topNavItems = computed(() =>
         <ImpersonationBanner />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
-        <div v-if="isDesktop" class="hidden min-h-screen pt-0.5 lg:flex">
+        <div
+            v-if="isDesktop"
+            class="hidden min-h-screen lg:flex"
+            :class="isImpersonating ? 'pt-9' : 'pt-0.5'"
+        >
             <!-- Sidebar 240px -->
             <aside
                 v-show="!sidebarCollapsed"
-                class="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-border bg-surface pt-0.5"
+                class="fixed bottom-0 left-0 z-20 flex w-60 flex-col border-r border-border bg-surface pt-0.5"
+                :class="isImpersonating ? 'top-9' : 'top-0'"
             >
                 <!-- logo area -->
                 <div
@@ -664,10 +673,15 @@ const topNavItems = computed(() =>
         </div>
 
         <!-- ─── MOBILE / TABLET LAYOUT (< lg) ─── -->
-        <div v-else class="flex min-h-screen flex-col pt-0.5 lg:hidden">
+        <div
+            v-else
+            class="flex min-h-screen flex-col lg:hidden"
+            :class="isImpersonating ? 'pt-9' : 'pt-0.5'"
+        >
             <!-- Sticky BusinessSwitcher header -->
             <header
-                class="sticky top-0.5 z-10 border-b border-border bg-surface"
+                class="sticky z-10 border-b border-border bg-surface"
+                :class="isImpersonating ? 'top-9' : 'top-0.5'"
             >
                 <div class="flex items-center gap-2 px-4 py-3">
                     <div class="min-w-0 flex-1">

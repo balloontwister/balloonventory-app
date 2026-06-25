@@ -4,7 +4,7 @@ import { computed } from 'vue';
 
 const page = usePage();
 
-const impersonating = computed(() => page.props.auth?.impersonating ?? null);
+const impersonating = computed(() => page.props.impersonating ?? null);
 
 function exit() {
     router.post(route('impersonate.stop'));

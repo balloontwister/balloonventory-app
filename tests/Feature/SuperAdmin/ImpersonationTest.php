@@ -6,6 +6,7 @@ use App\Models\LoginEvent;
 use App\Models\User;
 use App\Support\Impersonation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ImpersonationTest extends TestCase
@@ -112,6 +113,19 @@ class ImpersonationTest extends TestCase
             ->assertRedirect(route('dashboard'));
 
         $this->assertAuthenticatedAs($this->regularUser);
+    }
+
+    // ── Shared prop for the banner ────────────────────────────────────────────
+
+    public function test_impersonation_prop_is_shared_at_the_top_level_for_the_banner(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->post(route('admin.users.impersonate', $this->regularUser));
+
+        $this->get(route('profile.edit'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('impersonating.userName', $this->regularUser->name)
+                ->where('impersonating.adminName', $this->superAdmin->name));
     }
 
     // ── Audit hygiene ─────────────────────────────────────────────────────────

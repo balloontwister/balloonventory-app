@@ -10,8 +10,15 @@ const props = defineProps({
     proposals: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     references: { type: Object, required: true },
+    gaps: { type: Object, default: () => ({ brands: [], sizes: [], colors: [] }) },
     pendingCount: { type: Number, default: 0 },
 });
+
+// ── Missing reference data (matcher gap report) ────────────────────────────────
+const showGaps = ref(false);
+const gapTotal = computed(
+    () => props.gaps.brands.length + props.gaps.sizes.length + props.gaps.colors.length,
+);
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 const statusFilter = ref(props.filters.status ?? '');
@@ -255,6 +262,69 @@ function formatPrice(price) {
         </template>
 
         <div class="py-2">
+            <!-- Missing reference data — what the matcher couldn't resolve -->
+            <div v-if="gapTotal > 0" class="mb-3 rounded-lg border border-border bg-warning-soft">
+                <button
+                    type="button"
+                    class="flex w-full items-center justify-between px-4 py-3 text-left"
+                    @click="showGaps = !showGaps"
+                >
+                    <span class="font-sans text-[13px] font-medium text-ink-primary">
+                        {{ $t('super_admin.dashboard.distributors.proposals.gaps_heading', { count: gapTotal }) }}
+                    </span>
+                    <span class="font-sans text-[12px] text-ink-tertiary">{{ showGaps ? '▲' : '▼' }}</span>
+                </button>
+                <div v-if="showGaps" class="space-y-3 border-t border-border px-4 py-3">
+                    <p class="font-sans text-[12px] text-ink-secondary">
+                        {{ $t('super_admin.dashboard.distributors.proposals.gaps_hint') }}
+                    </p>
+                    <div v-if="gaps.brands.length">
+                        <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
+                            {{ $t('super_admin.dashboard.distributors.proposals.gaps_brands') }}
+                        </p>
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                            <span
+                                v-for="g in gaps.brands"
+                                :key="g.value"
+                                class="rounded-md border border-border-strong bg-surface px-2 py-0.5 font-sans text-[12px] text-ink-secondary"
+                            >
+                                {{ g.value }} <span class="text-ink-tertiary">×{{ g.count }}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div v-if="gaps.sizes.length">
+                        <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
+                            {{ $t('super_admin.dashboard.distributors.proposals.gaps_sizes') }}
+                        </p>
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                            <span
+                                v-for="g in gaps.sizes"
+                                :key="g.brand + g.value"
+                                class="rounded-md border border-border-strong bg-surface px-2 py-0.5 font-sans text-[12px] text-ink-secondary"
+                            >
+                                {{ g.value }}
+                                <span class="text-ink-tertiary">· {{ g.brand }} ×{{ g.count }}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div v-if="gaps.colors.length">
+                        <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
+                            {{ $t('super_admin.dashboard.distributors.proposals.gaps_colors') }}
+                        </p>
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                            <span
+                                v-for="g in gaps.colors"
+                                :key="g.brand + g.value"
+                                class="rounded-md border border-border-strong bg-surface px-2 py-0.5 font-sans text-[12px] text-ink-secondary"
+                            >
+                                {{ g.value }}
+                                <span class="text-ink-tertiary">· {{ g.brand }} ×{{ g.count }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="rounded-lg border border-border bg-surface">
                 <!-- Filters -->
                 <div class="border-b border-border px-6 py-4">

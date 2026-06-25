@@ -147,6 +147,27 @@ class DistributorProposalControllerTest extends TestCase
                 ->where('proposals.data.0.guess.count', 100));
     }
 
+    public function test_index_surfaces_missing_reference_data_as_gaps(): void
+    {
+        $distributor = Distributor::factory()->bigcommerce()->create();
+
+        // Two proposals naming a brand we don't have — should aggregate as one
+        // brand gap with a count of 2.
+        DistributorCatalogProposal::factory()->count(2)->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => 'x',
+                'attributes' => ['Brand' => ['Elitex'], 'Size' => ['260'], 'Color' => ['Red']],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('gaps.brands.0.value', 'Elitex')
+                ->where('gaps.brands.0.count', 2));
+    }
+
     public function test_approve_without_resolvable_attributes_warns_and_creates_no_sku(): void
     {
         $proposal = DistributorCatalogProposal::factory()->create([

@@ -30,6 +30,7 @@ class DistributorProposalReviewService
     public function __construct(
         private DistributorCatalogPromoter $promoter,
         private DistributorAttributeMatcher $matcher,
+        private IdenticalSkuFinder $identicalFinder,
     ) {}
 
     /**
@@ -268,6 +269,8 @@ class DistributorProposalReviewService
             'inherited_upc' => $member['inherited_upc'] ?? false,
         ])->values();
 
+        $guess = $this->guessFor($proposal, $references['distributors']);
+
         return [
             'id' => $proposal->id,
             'upc' => $proposal->upc,
@@ -287,8 +290,46 @@ class DistributorProposalReviewService
             'resulting_sku_name' => $references['skus']->get($proposal->resulting_sku_id)?->name,
             'reviewed_at' => $proposal->reviewed_at,
             'distributor_count' => $evidence->pluck('distributor_id')->filter()->unique()->count(),
-            'guess' => $this->guessFor($proposal, $references['distributors']),
+            'guess' => $guess,
+            'catalog_match' => $this->catalogMatchFor($proposal, $guess),
             'evidence' => $evidence,
+        ];
+    }
+
+    /**
+     * What approving this proposal would do against the existing catalog, using
+     * the effective attributes (manual mapping, else the matcher guess):
+     *  - `exact`    — a same-count product already exists (approving would create
+     *                 a duplicate; `has_barcode` says whether it needs the barcode).
+     *  - `siblings` — the same product in other pack counts, which the new SKU
+     *                 will be linked to as identical.
+     * Solid latex only for now, so the lookup is scoped to is_printed = false.
+     *
+     * @param  array<string, mixed>  $guess
+     * @return array<string, mixed>
+     */
+    private function catalogMatchFor(DistributorCatalogProposal $proposal, array $guess): array
+    {
+        $brandId = $proposal->proposed_brand_id ?? data_get($guess, 'brand.selected.id');
+        $sizeId = $proposal->proposed_balloon_size_id ?? data_get($guess, 'balloon_size.selected.id');
+        $colorId = $proposal->proposed_color_id ?? data_get($guess, 'color.selected.id');
+        $count = $proposal->proposed_count ?? ($guess['count'] ?? null);
+
+        if ($brandId === null || $sizeId === null || $colorId === null) {
+            return ['available' => false];
+        }
+
+        $match = $this->identicalFinder->find($brandId, $sizeId, $colorId, false, $count);
+        $exact = $match['exact'];
+
+        return [
+            'available' => true,
+            'exact' => $exact !== null
+                ? ['id' => $exact->id, 'name' => $exact->name, 'has_barcode' => $exact->upc !== null || $exact->ean !== null]
+                : null,
+            'siblings' => $match['siblings']
+                ->map(fn ($sku) => ['id' => $sku->id, 'name' => $sku->name, 'count' => $sku->default_count_per_bag])
+                ->all(),
         ];
     }
 

@@ -255,6 +255,10 @@ return [
 
                 'suggested' => 'Suggested:',
                 'alt_candidates' => 'Other possible matches — click to choose in Edit',
+                'creates_new' => 'Approving creates a new catalog product.',
+                'links_pack_sizes' => 'Links to existing pack sizes',
+                'maybe_exists' => 'May already exist in the catalog without a barcode',
+                'maybe_exists_detail' => 'We may already carry this without a barcode: ":name". Approving would create a duplicate.',
                 'gaps_heading' => 'Missing reference data ({count}) — add to unlock more proposals',
                 'gaps_hint' => 'The distributor named these, but they don\'t exist in our catalog yet. Add them (brand first), then re-cluster to auto-resolve the affected proposals.',
                 'gaps_brands' => 'Brands',

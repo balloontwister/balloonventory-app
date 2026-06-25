@@ -1,0 +1,192 @@
+<?php
+
+namespace Tests\Feature\SuperAdmin;
+
+use App\Models\BalloonSize;
+use App\Models\Brand;
+use App\Models\Color;
+use App\Models\Distributor;
+use App\Models\DistributorCatalogProposal;
+use App\Models\Sku;
+use App\Models\User;
+use Database\Seeders\PermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class DistributorProposalControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+        // The Proposals Vue page is built separately; this suite validates the
+        // controller/service contract, not the view.
+        config(['inertia.testing.ensure_pages_exist' => false]);
+        $this->seed(PermissionSeeder::class);
+
+        $this->admin = User::factory()->create([
+            'email_verified_at' => now(),
+            'admin_level' => 'super_admin',
+        ]);
+    }
+
+    public function test_index_lists_proposals_with_hydrated_reference_names(): void
+    {
+        $brand = Brand::factory()->create();
+        $distributor = Distributor::factory()->shopify()->create();
+
+        DistributorCatalogProposal::factory()->create([
+            'proposed_brand_id' => $brand->id,
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => 'Example product',
+                'url' => 'https://example.com/p/1',
+            ]],
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('SuperAdmin/Distributors/Proposals')
+            ->where('proposals.data.0.brand_name', $brand->name)
+            ->where('proposals.data.0.evidence.0.distributor_name', $distributor->name)
+            ->where('proposals.data.0.distributor_count', 1));
+    }
+
+    public function test_approve_with_manual_mapping_creates_a_sku(): void
+    {
+        $balloonSize = BalloonSize::factory()->create();
+        $color = Color::factory()->create(['brand_id' => $balloonSize->brand_id]);
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'proposed_brand_id' => $balloonSize->brand_id,
+            'proposed_balloon_size_id' => $balloonSize->id,
+            'proposed_color_id' => $color->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id));
+
+        $response->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertSame(DistributorCatalogProposal::STATUS_APPROVED, $proposal->status);
+        $this->assertNotNull($proposal->resulting_sku_id);
+        $this->assertSame($this->admin->id, $proposal->reviewed_by);
+        $this->assertDatabaseHas('skus', ['id' => $proposal->resulting_sku_id]);
+    }
+
+    public function test_approve_without_resolvable_attributes_warns_and_creates_no_sku(): void
+    {
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'proposed_name' => 'Unmappable mystery product',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id));
+
+        $response->assertSessionHas('warning');
+
+        $proposal->refresh();
+        $this->assertSame(DistributorCatalogProposal::STATUS_APPROVED, $proposal->status);
+        $this->assertNull($proposal->resulting_sku_id);
+        $this->assertSame(0, Sku::count());
+    }
+
+    public function test_reject_marks_proposal_rejected(): void
+    {
+        $proposal = DistributorCatalogProposal::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.reject', $proposal->id))
+            ->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertSame(DistributorCatalogProposal::STATUS_REJECTED, $proposal->status);
+        $this->assertSame($this->admin->id, $proposal->reviewed_by);
+    }
+
+    public function test_reject_is_blocked_when_proposal_already_has_a_sku(): void
+    {
+        $sku = Sku::factory()->create();
+
+        $proposal = DistributorCatalogProposal::factory()->autoApproved()->create([
+            'resulting_sku_id' => $sku->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.reject', $proposal->id))
+            ->assertSessionHas('warning');
+
+        $proposal->refresh();
+        // Still auto_approved — not rejected — and the SKU is untouched.
+        $this->assertSame(DistributorCatalogProposal::STATUS_AUTO_APPROVED, $proposal->status);
+        $this->assertDatabaseHas('skus', ['id' => $sku->id]);
+    }
+
+    public function test_update_persists_manual_attribute_mapping(): void
+    {
+        $balloonSize = BalloonSize::factory()->create();
+        $color = Color::factory()->create(['brand_id' => $balloonSize->brand_id]);
+
+        $proposal = DistributorCatalogProposal::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), [
+                'proposed_brand_id' => $balloonSize->brand_id,
+                'proposed_balloon_size_id' => $balloonSize->id,
+                'proposed_color_id' => $color->id,
+                'proposed_count' => 100,
+            ])
+            ->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertSame($balloonSize->brand_id, $proposal->proposed_brand_id);
+        $this->assertSame($balloonSize->id, $proposal->proposed_balloon_size_id);
+        $this->assertSame(100, $proposal->proposed_count);
+        $this->assertSame($this->admin->id, $proposal->reviewed_by);
+    }
+
+    public function test_non_admin_cannot_reach_the_review_queue(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertForbidden();
+    }
+
+    public function test_index_show_page_includes_staged_counts(): void
+    {
+        $distributor = Distributor::factory()->shopify()->create();
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.distributors.show', $distributor));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('stagedTotal')
+            ->has('stagedWithUpc'));
+    }
+
+    public function test_pending_count_shared_via_inertia(): void
+    {
+        DistributorCatalogProposal::factory()->count(3)->create(['status' => 'pending']);
+        DistributorCatalogProposal::factory()->create(['status' => 'approved']);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('proposals.data.0.status', 'pending')
+            ->where('pendingCount', 3));
+    }
+}

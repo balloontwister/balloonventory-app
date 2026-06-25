@@ -11,11 +11,13 @@ const props = defineProps({
 
 const page = usePage();
 const isSuper = computed(() => page.props.auth?.isSuperAdmin ?? false);
+const pendingProposalsCount = computed(() => page.props.pendingProposalsCount ?? 0);
 
 const LINKS = [
     { key: 'overview', route: 'admin.dashboard', match: 'admin.dashboard' },
     { key: 'catalog', route: 'admin.catalog.skus', match: 'admin.catalog.*' },
     { key: 'distributors', route: 'admin.distributors.index', match: 'admin.distributors.*' },
+    { key: 'proposals', route: 'admin.distributors.proposals.index', match: 'admin.distributors.proposals.*', superOnly: true },
     { key: 'users', route: 'admin.users.index', match: 'admin.users.*' },
     { key: 'feedback', route: 'admin.feedback.index', match: 'admin.feedback.*' },
     { key: 'support_tickets', route: 'admin.tickets.index', match: 'admin.tickets.*' },
@@ -119,15 +121,22 @@ onUnmounted(() => {
                         v-for="l in visibleLinks"
                         :key="l.key"
                         :href="route(l.route)"
-                        class="block px-4 py-2 font-sans text-[13px] transition hover:bg-background"
-                        :class="
+                        class="flex items-center justify-between px-4 py-2 font-sans text-[13px] transition hover:bg-background"
+                        :class="[
                             route().current(l.match)
                                 ? 'font-semibold text-accent'
-                                : 'text-ink-primary'
-                        "
+                                : 'text-ink-primary',
+                            l.key === 'proposals' ? 'pl-7' : '',
+                        ]"
                         @click="close"
                     >
-                        {{ $t(`super_admin.dashboard.nav.${l.key}`) }}
+                        <span>{{ $t(`super_admin.dashboard.nav.${l.key}`) }}</span>
+                        <span
+                            v-if="l.key === 'proposals' && pendingProposalsCount > 0"
+                            class="ml-2 rounded-full bg-accent px-1.5 py-0.5 font-sans text-[11px] font-semibold text-white"
+                        >
+                            {{ pendingProposalsCount }}
+                        </span>
                     </Link>
                 </div>
             </template>

@@ -40,6 +40,17 @@ return [
         'created' => 'Distributor ":name" created.',
         'updated' => 'Distributor ":name" updated.',
         'deleted' => 'Distributor ":name" deleted.',
+        'sync_started' => 'Sync started — products will appear in staging shortly.',
+    ],
+
+    'distributor_proposals' => [
+        'approved' => 'Proposal approved.',
+        'approved_created' => 'Proposal approved and a catalog SKU was created.',
+        'approved_needs_mapping' => 'Proposal approved, but no SKU was created — map the missing attributes (:attributes) and approve again.',
+        'approved_upc_conflict' => 'Proposal approved, but its UPC already belongs to a catalog SKU, so none was created.',
+        'updated' => 'Proposal updated.',
+        'rejected' => 'Proposal rejected.',
+        'reject_blocked_has_sku' => 'This proposal already created a catalog SKU — remove that SKU from the catalog instead of rejecting here.',
     ],
 
     'support' => [

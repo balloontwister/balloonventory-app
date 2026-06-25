@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Business;
+use App\Models\DistributorCatalogProposal;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
@@ -47,6 +48,9 @@ class HandleInertiaRequests extends Middleware
                     'recent' => NotificationPresenter::recent($user, 10, unreadOnly: true),
                 ]
                 : ['unreadCount' => 0, 'recent' => []],
+            'pendingProposalsCount' => fn () => ($request->user()?->isSuperAdmin())
+                ? DistributorCatalogProposal::pending()->count()
+                : 0,
             ...$this->businessProps($request),
         ];
     }

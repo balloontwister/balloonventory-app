@@ -204,6 +204,24 @@ function displayCount(item) {
     return item.proposed_count ?? guessAttr(item, 'count') ?? null;
 }
 
+// ── Catalog match (what approving does against the existing catalog) ───────────
+function catalogMatch(item) {
+    return item.catalog_match?.available ? item.catalog_match : null;
+}
+
+function siblingCount(item) {
+    return catalogMatch(item)?.siblings?.length ?? 0;
+}
+
+function exactNoBarcode(item) {
+    const cm = catalogMatch(item);
+    return cm?.exact && !cm.exact.has_barcode ? cm.exact : null;
+}
+
+const editCatalogMatch = computed(() =>
+    editingProposal.value?.catalog_match?.available ? editingProposal.value.catalog_match : null,
+);
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function isActionable(status) {
     return status === 'pending' || status === 'auto_approved';
@@ -469,6 +487,25 @@ function formatPrice(price) {
                                                     +{{ altCount(item, attr) }}
                                                 </button>
                                             </div>
+                                            <div
+                                                v-if="siblingCount(item) || exactNoBarcode(item)"
+                                                class="flex flex-wrap gap-1 pt-0.5"
+                                            >
+                                                <span
+                                                    v-if="siblingCount(item)"
+                                                    class="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent"
+                                                    :title="$t('super_admin.dashboard.distributors.proposals.links_pack_sizes')"
+                                                >
+                                                    ↔ {{ siblingCount(item) }}
+                                                </span>
+                                                <span
+                                                    v-if="exactNoBarcode(item)"
+                                                    class="rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning"
+                                                    :title="$t('super_admin.dashboard.distributors.proposals.maybe_exists')"
+                                                >
+                                                    ⚠
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
 
@@ -683,6 +720,28 @@ function formatPrice(price) {
                         </div>
 
                         <div class="space-y-4 px-6 py-5">
+                            <!-- What approving will do against the catalog -->
+                            <div class="rounded-md border border-border bg-background px-3 py-2">
+                                <p class="font-sans text-[12px] font-medium text-ink-primary">
+                                    {{ $t('super_admin.dashboard.distributors.proposals.creates_new') }}
+                                </p>
+                                <p
+                                    v-if="editCatalogMatch && editCatalogMatch.exact && !editCatalogMatch.exact.has_barcode"
+                                    class="mt-1 font-sans text-[12px] text-warning"
+                                >
+                                    {{ $t('super_admin.dashboard.distributors.proposals.maybe_exists_detail', { name: editCatalogMatch.exact.name }) }}
+                                </p>
+                                <p
+                                    v-if="editCatalogMatch && editCatalogMatch.siblings.length"
+                                    class="mt-1 font-sans text-[12px] text-ink-secondary"
+                                >
+                                    {{ $t('super_admin.dashboard.distributors.proposals.links_pack_sizes') }}:
+                                    <span class="font-medium text-ink-primary">
+                                        {{ editCatalogMatch.siblings.map((s) => (s.count ? s.count + 'ct' : '?')).join(', ') }}
+                                    </span>
+                                </p>
+                            </div>
+
                             <!-- Brand -->
                             <div>
                                 <label class="block font-sans text-[13px] font-medium text-ink-primary">

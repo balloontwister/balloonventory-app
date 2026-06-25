@@ -27,6 +27,7 @@ class DistributorCatalogPromoter
     public function __construct(
         private CatalogAttributeResolver $resolver,
         private Distributors\DistributorAttributeMatcher $matcher,
+        private Distributors\IdenticalSkuFinder $identicalFinder,
     ) {}
 
     /**
@@ -105,10 +106,14 @@ class DistributorCatalogPromoter
                 'default_count_per_bag' => $proposal->proposed_count,
                 'warehouse_sku' => $proposal->proposed_warehouse_sku,
                 'upc' => $this->originalUpc($proposal) ?? $proposal->upc,
+                // The proposal pipeline only materialises solid latex today;
+                // print state is part of the identity used for sibling linking.
+                'is_printed' => false,
                 'is_active' => true,
             ]);
 
             $this->attachDistributorUrls($sku, $proposal);
+            $this->linkIdenticalSiblings($sku);
 
             // A human-approved proposal keeps that status; an automatic
             // materialisation records auto_approved.
@@ -122,6 +127,27 @@ class DistributorCatalogPromoter
 
             return $sku;
         });
+    }
+
+    /**
+     * Link the freshly-created SKU to any catalog SKU that is the same product in
+     * a different pack count (same brand/size/colour/print state) — so the user
+     * can switch between 100/50/12-count of the same balloon. Symmetric and
+     * incremental, so approving each pack size builds the whole identical group.
+     */
+    private function linkIdenticalSiblings(Sku $sku): void
+    {
+        $siblings = $this->identicalFinder->find(
+            $sku->brand_id,
+            $sku->balloon_size_id,
+            $sku->color_id,
+            (bool) $sku->is_printed,
+            $sku->default_count_per_bag,
+        )['siblings'];
+
+        foreach ($siblings as $sibling) {
+            $sku->linkIdentical($sibling);
+        }
     }
 
     /**

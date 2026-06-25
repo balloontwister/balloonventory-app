@@ -122,6 +122,73 @@ class DistributorProposalControllerTest extends TestCase
         ]);
     }
 
+    public function test_approve_links_new_sku_to_identical_pack_sizes_but_not_printed(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $size = BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        $color = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+
+        // The same product in a different pack size — should be linked.
+        $sibling50 = Sku::factory()->create([
+            'brand_id' => $brand->id, 'balloon_size_id' => $size->id, 'color_id' => $color->id,
+            'default_count_per_bag' => 50, 'is_printed' => false,
+        ]);
+        // Same brand/size/colour but PRINTED — a different product, must NOT link.
+        $printed = Sku::factory()->create([
+            'brand_id' => $brand->id, 'balloon_size_id' => $size->id, 'color_id' => $color->id,
+            'default_count_per_bag' => 50, 'is_printed' => true,
+        ]);
+
+        $distributor = Distributor::factory()->bigcommerce()->create();
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id, 'title' => 'x',
+                'attributes' => ['Brand' => ['Kalisan'], 'Size' => ['260'], 'Color' => ['Clear'], 'Quantity' => ['100 ct']],
+            ]],
+            'proposed_count' => 100,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id))
+            ->assertSessionHas('success');
+
+        $newSku = Sku::find($proposal->refresh()->resulting_sku_id);
+        $linkedIds = $newSku->identicalSkus()->pluck('skus.id');
+
+        $this->assertTrue($linkedIds->contains($sibling50->id));
+        $this->assertFalse($linkedIds->contains($printed->id));
+        // Symmetric: the sibling now points back.
+        $this->assertTrue($sibling50->identicalSkus()->pluck('skus.id')->contains($newSku->id));
+    }
+
+    public function test_index_exposes_catalog_match_preview(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $size = BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        $color = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Clear Transparent']);
+        Sku::factory()->create([
+            'name' => 'Kalisan 260K Clear 50ct', 'brand_id' => $brand->id,
+            'balloon_size_id' => $size->id, 'color_id' => $color->id,
+            'default_count_per_bag' => 50, 'is_printed' => false,
+        ]);
+
+        $distributor = Distributor::factory()->bigcommerce()->create();
+        DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id, 'title' => 'x',
+                'attributes' => ['Brand' => ['Kalisan'], 'Size' => ['260'], 'Color' => ['Clear'], 'Quantity' => ['100 ct']],
+            ]],
+            'proposed_count' => 100,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('proposals.data.0.catalog_match.available', true)
+                ->where('proposals.data.0.catalog_match.exact', null)
+                ->where('proposals.data.0.catalog_match.siblings.0.count', 50));
+    }
+
     public function test_index_exposes_the_matcher_guess_for_review(): void
     {
         $brand = Brand::factory()->create(['name' => 'Kalisan']);
@@ -135,6 +202,7 @@ class DistributorProposalControllerTest extends TestCase
                 'title' => 'whatever',
                 'attributes' => ['Brand' => ['Kalisan'], 'Size' => ['260'], 'Color' => ['Clear'], 'Quantity' => ['100 ct']],
             ]],
+            'proposed_count' => 100,
         ]);
 
         $this->actingAs($this->admin)

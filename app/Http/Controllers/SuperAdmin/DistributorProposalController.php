@@ -4,11 +4,13 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DistributorCatalogProposal;
+use App\Models\Sku;
 use App\Services\Distributors\DistributorProposalReviewService;
 use App\Services\Distributors\ProposalPromotionResult;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,6 +61,21 @@ class DistributorProposalController extends Controller
         $this->service->reject($proposal, $request->user()->id);
 
         return back()->with('success', __('flash.distributor_proposals.rejected'));
+    }
+
+    public function mapToExisting(Request $request, DistributorCatalogProposal $proposal): RedirectResponse
+    {
+        $data = $request->validate([
+            'sku_id' => ['required', 'string', 'exists:skus,id'],
+        ]);
+
+        try {
+            $this->service->mapToExisting($proposal, Sku::findOrFail($data['sku_id']), $request->user()->id);
+        } catch (ValidationException $e) {
+            return back()->with('warning', $e->validator->errors()->first());
+        }
+
+        return back()->with('success', __('flash.distributor_proposals.mapped'));
     }
 
     public function update(Request $request, DistributorCatalogProposal $proposal): RedirectResponse

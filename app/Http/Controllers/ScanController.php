@@ -3,16 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StockDirection;
-use App\Models\BarcodeLinkAudit;
 use App\Models\Bin;
 use App\Models\Business;
 use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
+use App\Services\BarcodeLinker;
 use App\Services\BarcodeMatcher;
 use App\Services\BinResolver;
 use App\Support\BusinessContext;
-use App\Support\Gtin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -284,7 +283,7 @@ class ScanController extends Controller
      * Rejects an invalid check digit, a code already on another SKU, or
      * overwriting a different code already on the target SKU.
      */
-    public function linkBarcode(Request $request): JsonResponse
+    public function linkBarcode(Request $request, BarcodeLinker $barcodeLinker): JsonResponse
     {
         $data = $request->validate([
             'barcode' => ['required', 'string', 'max:50'],
@@ -294,56 +293,15 @@ class ScanController extends Controller
         $businessId = BusinessContext::currentId();
         $sku = $this->resolveVisibleSku($data['sku_id'], $businessId);
 
-        $digits = Gtin::digitsOnly($data['barcode']);
-
-        // A US UPC-A scanned by a phone camera comes back as a 13-digit EAN-13
-        // with a leading zero (GS1 prefixes 0-09 are the UPC-A namespace).
-        // Collapse it back to its 12-digit UPC-A form so it's stored in `upc`,
-        // not `ean`. The mod-10 check digit is unchanged by the leading zero.
-        if (strlen($digits) === 13 && str_starts_with($digits, '0')) {
-            $digits = substr($digits, 1);
-        }
-
-        if (strlen($digits) < 8 || ! Gtin::isValidCheckDigit($digits)) {
-            throw ValidationException::withMessages([
-                'barcode' => __('scan.link.invalid_barcode'),
-            ]);
-        }
-
-        $column = strlen($digits) === 12 ? 'upc' : 'ean';
-
-        // Already on another SKU (either barcode column)? Refuse — a barcode must
-        // map to exactly one product.
-        $clash = Sku::where('id', '!=', $sku->id)
-            ->where(fn ($q) => $q->where('upc', $digits)->orWhere('ean', $digits))
-            ->first();
-
-        if ($clash !== null) {
-            throw ValidationException::withMessages([
-                'barcode' => __('scan.link.already_used', ['name' => $clash->name]),
-            ]);
-        }
-
-        // Don't clobber a different existing code on this SKU/column.
-        if ($sku->{$column} !== null && $sku->{$column} !== $digits) {
-            throw ValidationException::withMessages([
-                'barcode' => __('scan.link.has_other_code'),
-            ]);
-        }
-
-        $sku->{$column} = $digits;
-        $sku->save();
-
-        // Append-only audit trail. Any business user can write a barcode onto a
-        // shared catalog row, so record who linked what for admin review.
-        BarcodeLinkAudit::create([
-            'business_id' => $businessId,
-            'user_id' => $request->user()->id,
-            'sku_id' => $sku->id,
-            'sku_name' => $sku->name,
-            'barcode' => $digits,
-            'field' => $column,
-        ]);
+        // Shared with the admin "map proposal to existing SKU" flow — same
+        // one-barcode-one-product validation + append-only audit.
+        $barcodeLinker->link(
+            $sku,
+            $data['barcode'],
+            $businessId,
+            $request->user()->id,
+            BarcodeLinker::SOURCE_SCAN,
+        );
 
         return response()->json([
             'linked' => true,

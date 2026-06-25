@@ -253,6 +253,8 @@ return [
                 'status_approved' => 'Approved',
                 'status_rejected' => 'Rejected',
 
+                'suggested' => 'Suggested:',
+                'alt_candidates' => 'Other possible matches — click to choose in Edit',
                 'action_approve' => 'Approve',
                 'action_reject' => 'Reject',
                 'reject_confirm' => 'Reject this proposal? It will be marked rejected and excluded from future auto-creation.',

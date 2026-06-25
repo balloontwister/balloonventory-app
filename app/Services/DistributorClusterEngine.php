@@ -247,6 +247,7 @@ class DistributorClusterEngine
             'distributor_id' => $m['distributor_id'],
             'raw_sku' => $m['raw_sku'],
             'normalized_sku' => $m['normalized_sku'],
+            'attributes' => $m['attributes'] ?? [],
             'raw_upc' => $m['raw_upc'],
             'title' => $m['title'],
             'url' => $m['url'],
@@ -267,6 +268,9 @@ class DistributorClusterEngine
             'raw_sku' => $product->raw_sku,
             'normalized_sku' => $product->normalized_sku,
             'product_type' => $product->product_type,
+            // The distributor's structured attribute table (Brand/Size/Colour/…),
+            // carried into the proposal so the review queue can match + display it.
+            'attributes' => $product->raw_data['attributes'] ?? [],
             'raw_upc' => $product->upc, // the distributor's original barcode, as reported
             'title' => $product->title,
             'url' => $product->url,

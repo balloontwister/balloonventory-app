@@ -153,8 +153,17 @@ class DistributorClusterEngine
         $existing = DistributorCatalogProposal::where('upc', $cluster['upc'])->first();
 
         if ($existing !== null) {
-            // Refresh the evidence/attributes but never clobber a human's
-            // review decision (approved/rejected/auto_approved).
+            if ($this->isHumanTouched($existing)) {
+                // A human has reviewed or edited this proposal. Refresh only the
+                // provenance (evidence) so the latest listings/prices/stock show,
+                // but preserve their proposed attributes and decision.
+                $existing->evidence = $attributes['evidence'];
+                $existing->save();
+
+                return;
+            }
+
+            // Untouched, still-pending proposal: safe to refresh everything.
             $existing->fill($attributes)->save();
 
             return;
@@ -164,6 +173,21 @@ class DistributorClusterEngine
             'upc' => $cluster['upc'],
             'status' => DistributorCatalogProposal::STATUS_PENDING,
         ]);
+    }
+
+    /**
+     * Has an admin reviewed or manually mapped this proposal? Once true, a
+     * re-cluster must not overwrite their proposed attributes or decision —
+     * a non-pending status, a recorded reviewer, or any manually-set attribute
+     * FK all count as a human touch.
+     */
+    private function isHumanTouched(DistributorCatalogProposal $proposal): bool
+    {
+        return $proposal->status !== DistributorCatalogProposal::STATUS_PENDING
+            || $proposal->reviewed_by !== null
+            || $proposal->proposed_brand_id !== null
+            || $proposal->proposed_balloon_size_id !== null
+            || $proposal->proposed_color_id !== null;
     }
 
     /**

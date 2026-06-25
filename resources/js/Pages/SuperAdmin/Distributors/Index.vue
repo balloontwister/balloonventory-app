@@ -32,9 +32,14 @@ function platformLabel(type) {
                         Distributors
                     </h1>
                 </div>
-                <AppButton :href="route('admin.distributors.create')" variant="primary" size="sm">
-                    + Add Distributor
-                </AppButton>
+                <div class="flex items-center gap-2">
+                    <AppButton :href="route('admin.distributors.proposals.index')" variant="ghost" size="sm">
+                        {{ $t('super_admin.dashboard.distributors.proposals.review_proposals_link') }}
+                    </AppButton>
+                    <AppButton :href="route('admin.distributors.create')" variant="primary" size="sm">
+                        + Add Distributor
+                    </AppButton>
+                </div>
             </div>
         </template>
 

@@ -27,6 +27,7 @@ use App\Http\Controllers\SuperAdmin\CatalogController;
 use App\Http\Controllers\SuperAdmin\CatalogReferenceController;
 use App\Http\Controllers\SuperAdmin\ComingSoonController;
 use App\Http\Controllers\SuperAdmin\DistributorController;
+use App\Http\Controllers\SuperAdmin\DistributorProposalController;
 use App\Http\Controllers\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\SuperAdmin\LoginLogController;
 use App\Http\Controllers\SuperAdmin\SkuFeedbackController;
@@ -217,6 +218,15 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::get('/admin/distributors', [DistributorController::class, 'index'])->name('admin.distributors.index');
     Route::get('/admin/distributors/create', [DistributorController::class, 'create'])->name('admin.distributors.create');
     Route::post('/admin/distributors', [DistributorController::class, 'store'])->name('admin.distributors.store');
+
+    // Proposal review queue — registered BEFORE the {distributor} wildcard so
+    // "proposals" isn't captured as a distributor slug.
+    Route::get('/admin/distributors/proposals', [DistributorProposalController::class, 'index'])->name('admin.distributors.proposals.index');
+    Route::post('/admin/distributors/proposals/{proposal}/approve', [DistributorProposalController::class, 'approve'])->name('admin.distributors.proposals.approve');
+    Route::post('/admin/distributors/proposals/{proposal}/reject', [DistributorProposalController::class, 'reject'])->name('admin.distributors.proposals.reject');
+    Route::patch('/admin/distributors/proposals/{proposal}', [DistributorProposalController::class, 'update'])->name('admin.distributors.proposals.update');
+
+    Route::post('/admin/distributors/{distributor}/sync', [DistributorController::class, 'sync'])->name('admin.distributors.sync');
     Route::get('/admin/distributors/{distributor}', [DistributorController::class, 'show'])->name('admin.distributors.show');
     Route::get('/admin/distributors/{distributor}/edit', [DistributorController::class, 'edit'])->name('admin.distributors.edit');
     Route::patch('/admin/distributors/{distributor}', [DistributorController::class, 'update'])->name('admin.distributors.update');

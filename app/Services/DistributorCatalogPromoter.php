@@ -8,6 +8,7 @@ use App\Models\Color;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
+use App\Services\Distributors\ProposalPromotionResult;
 use App\Support\Gtin;
 use Illuminate\Support\Facades\DB;
 
@@ -38,6 +39,36 @@ class DistributorCatalogPromoter
         return $resolved['brand'] !== null
             && $resolved['balloonSize'] !== null
             && $resolved['color'] !== null;
+    }
+
+    /**
+     * Evaluate + (when possible) promote a proposal for the review queue, always
+     * returning a structured outcome the admin UI can act on. Unlike {@see promote()}
+     * — which returns null for several distinct reasons — this distinguishes
+     * "already has a Sku" / "UPC already in catalog" / "needs attribute mapping"
+     * / "created", and lists exactly which attributes are still unresolved.
+     */
+    public function promoteForReview(DistributorCatalogProposal $proposal): ProposalPromotionResult
+    {
+        if ($proposal->resulting_sku_id !== null) {
+            return ProposalPromotionResult::alreadyPromoted($proposal->resulting_sku_id);
+        }
+
+        if ($this->upcAlreadyInCatalog($proposal)) {
+            return ProposalPromotionResult::upcConflict();
+        }
+
+        $missing = $this->missingAttributes($this->resolveAttributes($proposal));
+
+        if ($missing !== []) {
+            return ProposalPromotionResult::needsMapping($missing);
+        }
+
+        $sku = $this->promote($proposal);
+
+        return $sku !== null
+            ? ProposalPromotionResult::created($sku->id)
+            : ProposalPromotionResult::needsMapping(['brand', 'balloon_size', 'color']);
     }
 
     /**
@@ -103,7 +134,40 @@ class DistributorCatalogPromoter
             ->filter()
             ->implode(' ');
 
-        return $this->resolver->resolve($text);
+        $resolved = $this->resolver->resolve($text);
+
+        // A human review (Edit modal) can pin any attribute to an explicit
+        // reference row. Manual mappings always win over the text resolution so
+        // an admin can rescue a proposal the resolver couldn't auto-map.
+        if ($proposal->proposed_brand_id !== null) {
+            $resolved['brand'] = Brand::find($proposal->proposed_brand_id);
+        }
+
+        if ($proposal->proposed_balloon_size_id !== null) {
+            $resolved['balloonSize'] = BalloonSize::find($proposal->proposed_balloon_size_id);
+        }
+
+        if ($proposal->proposed_color_id !== null) {
+            $resolved['color'] = Color::find($proposal->proposed_color_id);
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Which of brand/size/colour are still unresolved for a proposal — drives the
+     * "map these" hint in the review UI.
+     *
+     * @param  array{brand: ?Brand, balloonSize: ?BalloonSize, color: ?Color}  $resolved
+     * @return array<int, string>
+     */
+    private function missingAttributes(array $resolved): array
+    {
+        return collect([
+            'brand' => $resolved['brand'],
+            'balloon_size' => $resolved['balloonSize'],
+            'color' => $resolved['color'],
+        ])->filter(fn ($value) => $value === null)->keys()->all();
     }
 
     private function attachDistributorUrls(Sku $sku, DistributorCatalogProposal $proposal): void

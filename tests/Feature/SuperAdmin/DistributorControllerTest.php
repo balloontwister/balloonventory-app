@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\SuperAdmin;
 
+use App\Jobs\RunDistributorSyncJob;
 use App\Models\Business;
 use App\Models\BusinessDistributor;
 use App\Models\Distributor;
@@ -13,6 +14,7 @@ use Database\Seeders\BrandSeeder;
 use Database\Seeders\MaterialSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class DistributorControllerTest extends TestCase
@@ -142,6 +144,81 @@ class DistributorControllerTest extends TestCase
         $this->assertDatabaseMissing('distributor_sku_urls', ['distributor_id' => $distributor->id]);
         $this->assertDatabaseMissing('business_distributors', ['distributor_id' => $distributor->id]);
         $this->assertDatabaseMissing('distributor_catalog_gaps', ['distributor_id' => $distributor->id]);
+    }
+
+    public function test_sync_dispatches_job_for_super_admin(): void
+    {
+        Queue::fake();
+
+        $distributor = Distributor::factory()->shopify()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.sync', $distributor))
+            ->assertRedirect();
+
+        Queue::assertPushed(RunDistributorSyncJob::class, fn ($job) => $job->distributorId === $distributor->id);
+    }
+
+    public function test_sync_forbidden_for_non_admin(): void
+    {
+        Queue::fake();
+
+        $distributor = Distributor::factory()->shopify()->create();
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user)
+            ->post(route('admin.distributors.sync', $distributor))
+            ->assertForbidden();
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_store_serializes_structured_config_fields(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.distributors.store'), [
+                'name' => 'Config Test Distributor',
+                'slug' => 'config-test-distributor',
+                'platform_type' => 'shopify',
+                'base_url' => 'https://config-test.com',
+                'config_sku_strip_prefixes' => 'LRK-, HAV-',
+                'config_request_delay_ms' => 750,
+                'config_max_pages' => 200,
+                'config_has_json_api' => true,
+                'config_collection_handle' => 'balloons',
+            ]);
+
+        $response->assertRedirect(route('admin.distributors.index'));
+
+        $distributor = Distributor::where('slug', 'config-test-distributor')->firstOrFail();
+        $this->assertSame(['LRK-', 'HAV-'], $distributor->config['sku_strip_prefixes']);
+        $this->assertSame(750, $distributor->config['request_delay_ms']);
+        $this->assertSame(200, $distributor->config['max_pages']);
+        $this->assertTrue($distributor->config['has_json_api']);
+        $this->assertSame('balloons', $distributor->config['collection_handle']);
+    }
+
+    public function test_update_merges_advanced_config_with_structured_fields(): void
+    {
+        $distributor = Distributor::factory()->shopify()->create([
+            'config' => ['custom_key' => 'custom_value'],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.update', $distributor), [
+                'name' => $distributor->name,
+                'slug' => $distributor->slug,
+                'platform_type' => 'shopify',
+                'base_url' => $distributor->base_url,
+                'config_request_delay_ms' => 300,
+                'config_advanced' => '{"extra_key": "extra_value"}',
+            ]);
+
+        $distributor->refresh();
+        // Structured field wins
+        $this->assertSame(300, $distributor->config['request_delay_ms']);
+        // Advanced JSON key is preserved
+        $this->assertSame('extra_value', $distributor->config['extra_key']);
     }
 
     public function test_slug_can_be_reused_after_soft_delete(): void

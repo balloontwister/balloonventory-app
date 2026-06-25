@@ -2,19 +2,40 @@
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     distributor: { type: Object, required: true },
+    stagedTotal: { type: Number, default: 0 },
+    stagedWithUpc: { type: Number, default: 0 },
 });
+
+const syncing = ref(false);
 
 function platformLabel(type) {
     return type === 'shopify' ? 'Shopify' : type === 'bigcommerce' ? 'BigCommerce' : type;
 }
 
+function syncLabel(type) {
+    return type === 'shopify' ? 'Sync now' : 'Crawl more';
+}
+
 function formatDate(date) {
     if (!date) return 'Never';
     return new Date(date).toLocaleString();
+}
+
+function sync() {
+    syncing.value = true;
+    router.post(
+        route('admin.distributors.sync', props.distributor.id),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => { syncing.value = false; },
+        },
+    );
 }
 </script>
 
@@ -30,9 +51,19 @@ function formatDate(date) {
                         {{ distributor.name }}
                     </h1>
                 </div>
-                <AppButton :href="route('admin.distributors.edit', distributor.id)" variant="secondary" size="sm">
-                    Edit
-                </AppButton>
+                <div class="flex items-center gap-2">
+                    <AppButton
+                        variant="secondary"
+                        size="sm"
+                        :disabled="syncing"
+                        @click="sync"
+                    >
+                        {{ syncing ? 'Starting…' : syncLabel(distributor.platform_type) }}
+                    </AppButton>
+                    <AppButton :href="route('admin.distributors.edit', distributor.id)" variant="ghost" size="sm">
+                        Edit
+                    </AppButton>
+                </div>
             </div>
         </template>
 
@@ -73,10 +104,27 @@ function formatDate(date) {
                         <dt class="text-ink-tertiary">Sitemap URL</dt>
                         <dd class="text-ink-primary font-medium">{{ distributor.sitemap_url || 'Auto-detected' }}</dd>
                     </div>
+                    <div>
+                        <dt class="text-ink-tertiary">Staged products</dt>
+                        <dd class="text-ink-primary font-medium">
+                            {{ stagedTotal.toLocaleString() }}
+                            <span class="text-ink-tertiary font-normal">
+                                ({{ stagedWithUpc.toLocaleString() }} with barcodes)
+                            </span>
+                        </dd>
+                    </div>
                 </dl>
                 <div v-if="distributor.description" class="mt-4">
                     <dt class="text-sm text-ink-tertiary">Description</dt>
                     <dd class="text-sm text-ink-primary mt-1">{{ distributor.description }}</dd>
+                </div>
+                <div class="mt-4 pt-4 border-t border-border">
+                    <Link
+                        :href="route('admin.distributors.proposals.index')"
+                        class="font-sans text-sm text-accent hover:underline"
+                    >
+                        {{ $t('super_admin.dashboard.distributors.proposals.review_proposals_link') }} →
+                    </Link>
                 </div>
             </div>
 

@@ -219,7 +219,7 @@ class ShopifyAdapter implements DistributorPlatformAdapter
     /**
      * Parse <url> entries from a urlset XML element.
      *
-     * @return array<int, array{identifier: string, name: string, url: string, barcode: null, price: null, currency: null, in_stock: null}>
+     * @return array<int, array{identifier: string, name: string, url: string, barcode: null, price: null, currency: null, in_stock: null, vendor: null, tags: array<int, string>, updated_at: null}>
      */
     private function parseProductUrls(\SimpleXMLElement $urlset): array
     {
@@ -245,6 +245,9 @@ class ShopifyAdapter implements DistributorPlatformAdapter
                 'price' => null,
                 'currency' => null,
                 'in_stock' => null,
+                'vendor' => null,
+                'tags' => [],
+                'updated_at' => null,
             ];
         }
 
@@ -289,6 +292,14 @@ class ShopifyAdapter implements DistributorPlatformAdapter
         $handle = $product['handle'] ?? '';
         $productUrl = rtrim($distributor->base_url, '/').'/products/'.$handle;
 
+        // Product-level fields the page-enrichment pass needs: the vendor is the
+        // brand (Shopify omits it from the page table), and tags/title drive the
+        // cheap solid-latex pre-filter. updated_at lets enrichment skip pages that
+        // haven't changed since they were last fetched.
+        $vendor = $product['vendor'] ?? null;
+        $tags = $this->normalizeTags($product['tags'] ?? null);
+        $updatedAt = $product['updated_at'] ?? null;
+
         foreach ($product['variants'] ?? [] as $variant) {
             $sku = $variant['sku'] ?? '';
             $barcode = $variant['barcode'] ?? null;
@@ -309,10 +320,33 @@ class ShopifyAdapter implements DistributorPlatformAdapter
                 'price' => $price,
                 'currency' => $variant['currency'] ?? 'USD',
                 'in_stock' => $inventoryQty !== null ? $inventoryQty > 0 : null,
+                'vendor' => $vendor !== null && $vendor !== '' ? (string) $vendor : null,
+                'tags' => $tags,
+                'updated_at' => $updatedAt,
             ];
         }
 
         return $results;
+    }
+
+    /**
+     * Shopify's products.json reports tags as an array; some endpoints emit a
+     * comma-separated string. Normalise to a clean list either way.
+     *
+     * @param  mixed  $tags
+     * @return array<int, string>
+     */
+    private function normalizeTags($tags): array
+    {
+        if (is_array($tags)) {
+            return array_values(array_filter(array_map(fn ($t) => trim((string) $t), $tags)));
+        }
+
+        if (is_string($tags) && $tags !== '') {
+            return array_values(array_filter(array_map('trim', explode(',', $tags))));
+        }
+
+        return [];
     }
 
     /**

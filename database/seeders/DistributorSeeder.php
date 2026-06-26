@@ -173,6 +173,15 @@ class DistributorSeeder extends Seeder
                             'color_strip_words' => [
                                 'Nozzle Up', 'Pkg', 'Flat', 'Round', 'Air-Fill', 'Banner', 'Set',
                             ],
+                            // Latex shape (drives our R-/C-/LOL- size-name prefixes).
+                            // Round unless the title names another shape.
+                            'default_shape' => 'Round',
+                            'shape_keywords' => [
+                                'heart' => 'Heart',
+                                'link-o-loon' => 'Link',
+                                'linkoloon' => 'Link',
+                                'linky' => 'Link',
+                            ],
                             // FALLBACKS when a page has no breadcrumb. Foil signals
                             // win first — a latex brand can still sell foil letters.
                             'foil_keywords' => [

@@ -32,6 +32,8 @@ class TitleAttributeExtractorTest extends TestCase
                     ],
                     'printed_categories' => ['Printed', 'Special Occassion', 'Shop by Prints'],
                     'color_strip_words' => ['Nozzle Up', 'Pkg', 'Flat', 'Round', 'Air-Fill', 'Banner', 'Set'],
+                    'default_shape' => 'Round',
+                    'shape_keywords' => ['heart' => 'Heart', 'link-o-loon' => 'Link'],
                     'foil_keywords' => ['air-fill', 'foil', 'mylar', 'orbz', 'sphere'],
                     'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Brookloon', 'Gemar'],
                     'printed_keywords' => ['happy birthday', 'christmas'],
@@ -70,9 +72,24 @@ class TitleAttributeExtractorTest extends TestCase
         $this->assertSame(['Latex'], $result['attributes']['Balloon Material']);
         $this->assertSame(['Red Fashion'], $result['attributes']['Color']);
         $this->assertSame(['11'], $result['attributes']['Size']);
+        $this->assertSame(['Round'], $result['attributes']['Balloon Type / Shape']); // default
         $this->assertSame(['100'], $result['attributes']['Quantity']);
         $this->assertArrayNotHasKey('Occasion / Theme', $result['attributes']);
         $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $this->classify($parsed));
+    }
+
+    public function test_latex_shape_defaults_round_but_keywords_override(): void
+    {
+        $heart = [
+            'title' => '11"S Heart Shape Red (50 count)',
+            'brand' => 'Sempertex',
+            'categories' => ['Latex Balloons', 'Shop by Brand', 'Sempertex Latex', 'Red Fashion'],
+        ];
+        $this->assertSame(['Heart'], $this->extract($heart)['attributes']['Balloon Type / Shape']);
+
+        // Foil products get no shape (only latex needs the shape-prefix size).
+        $foil = ['title' => 'Script Silver N Air-Fill Pkg (5 count)', 'brand' => 'Betallic', 'categories' => ['Foil Balloons']];
+        $this->assertArrayNotHasKey('Balloon Type / Shape', $this->extract($foil)['attributes']);
     }
 
     public function test_colour_comes_from_the_title_not_a_junk_breadcrumb_leaf(): void

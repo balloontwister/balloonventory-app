@@ -423,6 +423,40 @@ class DistributorProductIngestor
      * @param  array<string, mixed>  $extraction
      * @param  array<string, mixed>  $config
      */
+    /**
+     * The UPC for an enriched Shopify product: the bulk products.json barcode when
+     * the store exposes it, else the "UPC" row the page spec list carries (Shopify's
+     * collection products.json omits the barcode, so the page is the only source).
+     * Returns the bare digits, or null when neither source has one.
+     *
+     * @param  array<string, mixed>  $product
+     * @param  array<string, mixed>  $extraction
+     */
+    private function resolveEnrichedUpc(array $product, array $extraction): ?string
+    {
+        $candidates = [];
+
+        if (! empty($product['barcode'])) {
+            $candidates[] = (string) $product['barcode'];
+        }
+
+        foreach ($extraction['attributes'] ?? [] as $label => $values) {
+            if (strcasecmp((string) $label, 'UPC') === 0) {
+                $candidates[] = (string) ($values[0] ?? '');
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            $digits = Gtin::digitsOnly($candidate);
+
+            if ($digits !== '') {
+                return $digits;
+            }
+        }
+
+        return null;
+    }
+
     private function upsertEnrichedShopify(
         string $distributorId,
         string $externalId,
@@ -436,13 +470,13 @@ class DistributorProductIngestor
             ->where('external_id', $externalId)
             ->value('id');
 
-        $upc = null;
-        if (! empty($product['barcode'])) {
-            $digits = Gtin::digitsOnly((string) $product['barcode']);
-            if ($digits !== '') {
-                $upc = $digits;
-            }
-        }
+        // The barcode source differs by store. Shopify's *collection* products.json
+        // (the bulk pass) omits the barcode entirely; the UPC instead appears on the
+        // product page itself (BargainBalloons lists it in the spec accordion). So
+        // prefer the bulk barcode when present, else fall back to the UPC the page
+        // extractor read — without it the product can't cluster (clustering is
+        // UPC-gated).
+        $upc = $this->resolveEnrichedUpc($product, $extraction);
 
         $rawData = [
             'attributes' => $extraction['attributes'] ?? [],

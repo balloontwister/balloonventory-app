@@ -29,6 +29,7 @@ class ClusterDistributorProducts extends Command
             $this->line('    ↳ '.str_pad($type, 14).$count);
         }
 
+        $this->line("  Matched by warehouse SKU: {$stats['matched_by_warehouse_sku']} (barcode-less → existing catalog)");
         $this->line("  Unclustered listings:  {$stats['unclustered']}");
 
         $this->newLine();

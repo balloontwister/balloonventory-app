@@ -20,7 +20,7 @@ class BigCommerceProductPageParserTest extends TestCase
     private function havinapartyHtml(): string
     {
         return <<<'HTML'
-        <script type="application/ld+json">{"@type":"BreadcrumbList","itemListElement":[]}</script>
+        <script type="application/ld+json">{"@type":"BreadcrumbList","itemListElement":[{"name":"Home"},{"name":"Latex Balloons"},{"name":"Shop by Brand"},{"name":"Sempertex Latex"},{"name":"Red Fashion"},{"name":"11\"S Red Fashion (100 count)"}]}</script>
         <script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"11\"S Red Fashion (100 count)","sku":"53012","brand":"Sempertex","offers":{"@type":"Offer","price":"","availability":"https://schema.org/OutOfStock"}}</script>
         <script type="text/javascript">
         var BCData = {"product_attributes":{"sku":"53012","upc":null,"mpn":null,"gtin":null,"price":{"price_range":[],"retail_price_range":[]},"stock":53,"instock":true}};
@@ -50,6 +50,8 @@ class BigCommerceProductPageParserTest extends TestCase
         $this->assertNull($p['price']);            // gated → empty
         $this->assertSame(53, $p['stock']);        // numeric stock present
         $this->assertTrue($p['in_stock']);         // from BCData, NOT the wrong JSON-LD availability
+        // Breadcrumb categories (Home + product leaf stripped).
+        $this->assertSame(['Latex Balloons', 'Shop by Brand', 'Sempertex Latex', 'Red Fashion'], $p['categories']);
     }
 
     public function test_parses_larocks_profile(): void

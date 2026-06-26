@@ -102,6 +102,102 @@ class DistributorClusterEngineTest extends TestCase
         );
     }
 
+    public function test_confident_type_wins_over_a_weakly_classified_member(): void
+    {
+        // Same UPC, two distributors. The one read weakly (non_balloon — e.g. a
+        // table-less page) is staged FIRST, so it leads the member list; the
+        // cluster must still take the confident solid_latex classification.
+        $this->stage($this->bargain, [
+            'external_id' => 'weak-1', 'raw_sku' => 'BL-53012', 'normalized_sku' => '53012',
+            'upc' => '030625530125', 'title' => 'unreadable page', 'product_type' => 'non_balloon',
+        ]);
+        $this->stage($this->laballoons, [
+            'external_id' => 'good-1', 'raw_sku' => '53012-B', 'normalized_sku' => '53012',
+            'upc' => '030625530125', 'title' => '11 inch Sempertex Fashion Red Latex Balloons',
+            'product_type' => 'solid_latex',
+        ]);
+
+        $clusters = $this->engine->buildClusters(DistributorProduct::all());
+
+        $this->assertCount(1, $clusters);
+        $this->assertSame('solid_latex', $clusters->first()['product_type']);
+    }
+
+    public function test_cluster_with_only_weak_members_keeps_the_weak_type(): void
+    {
+        $this->stage($this->bargain, [
+            'external_id' => 'weak-only', 'raw_sku' => 'X', 'normalized_sku' => 'X',
+            'upc' => '030625530125', 'title' => 'novelty', 'product_type' => 'non_balloon',
+        ]);
+
+        $clusters = $this->engine->buildClusters(DistributorProduct::all());
+
+        $this->assertSame('non_balloon', $clusters->first()['product_type']);
+    }
+
+    private function stageHavinSku(string $sku, string $brand): DistributorProduct
+    {
+        return $this->stage($this->havin, [
+            'external_id' => 'h-'.$sku, 'raw_sku' => $sku, 'normalized_sku' => $sku,
+            'upc' => null, 'url' => 'https://havinaparty.com/'.$sku.'/',
+            'title' => $sku.' Mirror Silver (50 count)', 'stock' => 34, 'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => ['Brand' => [$brand]]],
+        ]);
+    }
+
+    public function test_barcodeless_listing_matches_catalog_by_warehouse_sku_and_attaches_a_url(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $sku = Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => '10150025', 'upc' => null]);
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true]]);
+
+        $this->stageHavinSku('10150025', 'Kalisan');
+
+        $stats = $this->engine->run(execute: true);
+
+        $this->assertSame(1, $stats['matched_by_warehouse_sku']);
+        $this->assertSame(0, $stats['proposals']); // attaches to an existing SKU, never creates
+        $this->assertSame(1, DistributorSkuUrl::where('sku_id', $sku->id)
+            ->where('distributor_id', $this->havin->id)->count());
+    }
+
+    public function test_warehouse_sku_match_requires_the_config_flag(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => '10150025']);
+        $this->havin->update(['config' => []]); // flag NOT set
+
+        $this->stageHavinSku('10150025', 'Kalisan');
+
+        $this->assertSame(0, $this->engine->run(execute: true)['matched_by_warehouse_sku']);
+    }
+
+    public function test_warehouse_sku_match_is_rejected_on_a_brand_mismatch(): void
+    {
+        $kalisan = Brand::factory()->create(['name' => 'Kalisan']);
+        Brand::factory()->create(['name' => 'Sempertex']);
+        Sku::factory()->create(['brand_id' => $kalisan->id, 'warehouse_sku' => '10150025']);
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true]]);
+
+        // Same bare number, but the listing's brand is Sempertex → must not match
+        // the Kalisan SKU.
+        $this->stageHavinSku('10150025', 'Sempertex');
+
+        $this->assertSame(0, $this->engine->run(execute: true)['matched_by_warehouse_sku']);
+    }
+
+    public function test_ambiguous_warehouse_sku_does_not_match(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => '10150025']);
+        Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => '10150025']); // two SKUs, same brand+code
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true]]);
+
+        $this->stageHavinSku('10150025', 'Kalisan');
+
+        $this->assertSame(0, $this->engine->run(execute: true)['matched_by_warehouse_sku']);
+    }
+
     public function test_run_writes_a_pending_proposal_for_a_new_product(): void
     {
         $this->the100ctTrio();

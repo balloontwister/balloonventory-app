@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Brand;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorProduct;
@@ -31,6 +32,12 @@ class DistributorClusterEngine
 {
     /** @var Collection<string, Distributor> distributor configs, keyed by id, for resolution */
     private Collection $configs;
+
+    /** @var Collection<string, array<int, array{sku_id: string, brand_id: ?string}>>|null memoised warehouse_sku index */
+    private ?Collection $warehouseSkuIndex = null;
+
+    /** @var Collection<string, string>|null memoised lowercased-brand-name => brand_id */
+    private ?Collection $brandNameIndex = null;
 
     public function __construct(private ProposalResolver $proposalResolver) {}
 
@@ -146,6 +153,42 @@ class DistributorClusterEngine
             }
         }
 
+        // Warehouse-SKU rescue: a barcode-less listing that never clustered (no
+        // sibling UPC to inherit) can still match a catalog SKU directly when the
+        // distributor's on-page SKU equals our warehouse_sku — the only way to
+        // reach a catalog SKU we hold WITHOUT a barcode. Attach a purchase link;
+        // never create a SKU (no UPC = no identity to create from).
+        $clusteredIds = $clusters
+            ->flatMap(fn (array $cluster) => collect($cluster['members'])->pluck('id'))
+            ->filter()
+            ->flip();
+
+        $matchedByWarehouseSku = 0;
+
+        foreach ($staged as $product) {
+            if ($product->upc !== null || $clusteredIds->has($product->id)) {
+                continue;
+            }
+
+            $config = $this->configs->get($product->distributor_id)?->config ?? [];
+
+            if (! ($config['match_by_warehouse_sku'] ?? false)) {
+                continue;
+            }
+
+            $skuId = $this->matchWarehouseSku($product);
+
+            if ($skuId === null) {
+                continue;
+            }
+
+            $matchedByWarehouseSku++;
+
+            if ($execute) {
+                $urlsAttached += $this->attachUrls($skuId, [$this->toMember($product)]);
+            }
+        }
+
         return [
             'clusters' => $clusters->count(),
             'matched_existing' => $matchedExisting,
@@ -153,8 +196,73 @@ class DistributorClusterEngine
             'proposals' => $proposals,
             'deferred' => array_sum($deferredByType),
             'deferred_by_type' => $deferredByType,
-            'unclustered' => $staged->count() - $clusteredMembers,
+            'matched_by_warehouse_sku' => $matchedByWarehouseSku,
+            'unclustered' => $staged->count() - $clusteredMembers - $matchedByWarehouseSku,
         ];
+    }
+
+    /**
+     * Match a barcode-less staged product to an existing catalog SKU by
+     * warehouse_sku, scoped to its brand so a bare item number can't collide
+     * across manufacturers. Returns the sku_id only on a single unambiguous
+     * match, else null.
+     */
+    private function matchWarehouseSku(DistributorProduct $product): ?string
+    {
+        $sku = $product->normalized_sku ?: $product->raw_sku;
+
+        if ($sku === null || $sku === '') {
+            return null;
+        }
+
+        $candidates = $this->warehouseSkuIndex()->get($sku)
+            ?? $this->warehouseSkuIndex()->get($product->raw_sku);
+
+        if (empty($candidates)) {
+            return null;
+        }
+
+        $brandName = $product->raw_data['attributes']['Brand'][0] ?? null;
+        $brandId = $brandName !== null
+            ? $this->brandNameIndex()->get(mb_strtolower(trim((string) $brandName)))
+            : null;
+
+        if ($brandId !== null) {
+            $candidates = array_values(array_filter(
+                $candidates,
+                fn (array $c) => $c['brand_id'] === $brandId,
+            ));
+        }
+
+        // Attach only on a single unambiguous match.
+        return count($candidates) === 1 ? $candidates[0]['sku_id'] : null;
+    }
+
+    /**
+     * warehouse_sku => list of {sku_id, brand_id} for every catalog SKU that has
+     * one. Memoised for the run.
+     *
+     * @return Collection<string, array<int, array{sku_id: string, brand_id: ?string}>>
+     */
+    private function warehouseSkuIndex(): Collection
+    {
+        return $this->warehouseSkuIndex ??= Sku::whereNotNull('warehouse_sku')
+            ->get(['id', 'warehouse_sku', 'brand_id'])
+            ->groupBy('warehouse_sku')
+            ->map(fn (Collection $group) => $group
+                ->map(fn (Sku $sku) => ['sku_id' => $sku->id, 'brand_id' => $sku->brand_id])
+                ->all());
+    }
+
+    /**
+     * Lowercased brand name => brand_id. Memoised for the run.
+     *
+     * @return Collection<string, string>
+     */
+    private function brandNameIndex(): Collection
+    {
+        return $this->brandNameIndex ??= Brand::get(['id', 'name'])
+            ->mapWithKeys(fn (Brand $brand) => [mb_strtolower($brand->name) => $brand->id]);
     }
 
     /**
@@ -171,20 +279,36 @@ class DistributorClusterEngine
     }
 
     /**
-     * The product type for a cluster — the first classified member (cross-distributor
-     * members of one UPC describe the same product, so they agree).
+     * The product type for a cluster. Cross-distributor members of one UPC are the
+     * same product, so a *confident* classification (anything other than unknown /
+     * non_balloon) is authoritative and wins over a member that merely couldn't be
+     * classified — otherwise a distributor whose page we read weakly (havinaparty,
+     * no attribute table) could, by appearing first, demote a real solid-latex
+     * cluster another distributor classified correctly. Falls back to the first
+     * weak type, then null.
      *
      * @param  array<int, array<string, mixed>>  $members
      */
     private function representativeProductType(array $members): ?string
     {
+        $weak = [DistributorProductClassifier::UNKNOWN, DistributorProductClassifier::NON_BALLOON];
+        $fallback = null;
+
         foreach ($members as $member) {
-            if (! empty($member['product_type'])) {
-                return $member['product_type'];
+            $type = $member['product_type'] ?? null;
+
+            if (empty($type)) {
+                continue;
             }
+
+            if (! in_array($type, $weak, true)) {
+                return $type;
+            }
+
+            $fallback ??= $type;
         }
 
-        return null;
+        return $fallback;
     }
 
     /**
@@ -308,6 +432,7 @@ class DistributorClusterEngine
     private function toMember(DistributorProduct $product): array
     {
         return [
+            'id' => $product->id,
             'distributor_id' => $product->distributor_id,
             'raw_sku' => $product->raw_sku,
             'normalized_sku' => $product->normalized_sku,

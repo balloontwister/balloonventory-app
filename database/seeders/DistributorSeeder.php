@@ -128,6 +128,77 @@ class DistributorSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 2,
             ],
+            [
+                'name' => "Havin' A Party",
+                'slug' => 'havin-a-party',
+                'platform_type' => 'bigcommerce',
+                'base_url' => 'https://havinaparty.com',
+                // BigCommerce, but unlike Larocks it renders NO attribute table —
+                // identity comes from the page's BCData + JSON-LD (sku, brand,
+                // title, live stock; verified). No barcode/price (price is
+                // login-gated wholesale) → UPC is inherited from a sibling
+                // distributor that shares the normalized SKU. With no table, the
+                // product's type/count come from the TITLE via the title_attributes
+                // recipe (so it classifies correctly instead of non_balloon);
+                // size/colour from the title code system is a later increment.
+                'config' => [
+                    // ~1 MB pages behind Cloudflare → slow, jittered crawl.
+                    'request_delay_ms' => 1500,
+                    'request_jitter_ms' => 1000,
+                    // havinaparty has no barcode, but its on-page SKU is the bare
+                    // manufacturer item number — match it (brand-scoped) to our
+                    // warehouse_sku so a listing with no sibling UPC can still
+                    // attach a Reorder link + stock to an existing catalog SKU.
+                    'match_by_warehouse_sku' => true,
+                    // No attribute table → attributes come from the TITLE
+                    // (`11"S Red Fashion (100 count)`). Drives classification
+                    // (material/printed) + count.
+                    'extraction' => [
+                        'title_attributes' => [
+                            // PRIMARY: the JSON-LD breadcrumb's top category is the
+                            // authoritative material (Home > Latex Balloons > …).
+                            'category_material_map' => [
+                                'Latex Balloons' => 'Latex',
+                                'Foil Balloons' => 'Foil',
+                                'Mylar' => 'Foil',
+                                'Bubble' => 'Plastic',
+                            ],
+                            // Breadcrumb nodes that mark a printed product (note the
+                            // site's "Occassion" spelling).
+                            'printed_categories' => [
+                                'Printed', 'Special Occassion', 'Special Occasion', 'Shop by Prints',
+                            ],
+                            // Packaging/shape words removed when reading colour from
+                            // the title (`160K Mirror Silver Nozzle Up` → Mirror Silver).
+                            'color_strip_words' => [
+                                'Nozzle Up', 'Pkg', 'Flat', 'Round', 'Air-Fill', 'Banner', 'Set',
+                            ],
+                            // FALLBACKS when a page has no breadcrumb. Foil signals
+                            // win first — a latex brand can still sell foil letters.
+                            'foil_keywords' => [
+                                'air-fill', 'air fill', 'air filled', 'air-filled',
+                                'foil', 'mylar', 'orbz', 'sphere', 'bubble',
+                            ],
+                            'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Betallatex', 'Gemar', 'Brookloon'],
+                            'printed_keywords' => [
+                                'happy birthday', 'christmas', 'halloween',
+                                'thanksgiving', 'welcome', 'mothers day', 'fathers day',
+                                'graduation', 'anniversary', 'valentine',
+                            ],
+                            'required_labels' => ['Balloon Material'],
+                            'min_rows' => 1,
+                        ],
+                    ],
+                    // SKUs are bare manufacturer item numbers (53012, 10150025) —
+                    // no affixes to strip; normalized_sku == raw_sku.
+                    // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
+                    'size_number_aliases' => [
+                        'Sempertex' => ['11' => '12'],
+                    ],
+                ],
+                'is_active' => true,
+                'sort_order' => 3,
+            ],
         ];
 
         foreach ($distributors as $data) {

@@ -285,6 +285,7 @@ return [
         'distributors_empty' => 'Aún no hay enlaces de distribuidores',
         'distributors_in_stock' => 'En existencia',
         'distributors_out_of_stock' => 'Agotado',
+        'distributors_stock_unknown' => 'Stock desconocido',
         'distributors_visit' => 'Ver producto',
     ],
 ];

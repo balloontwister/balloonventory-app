@@ -279,4 +279,54 @@ class CatalogEnrichDistributorTest extends TestCase
             ->count();
         $this->assertSame(1, $pageFetches);
     }
+
+    public function test_enrich_reads_in_stock_from_page_json_ld_when_feed_lacks_stock(): void
+    {
+        Http::preventStrayRequests();
+
+        // Real BargainBalloons shape: the feed variant carries no inventory field,
+        // so stock is unknown from the JSON — but the page's JSON-LD Offer does.
+        $distributor = $this->bargainBalloons();
+        $product = $this->fashionYellowProduct();
+        unset($product['variants'][0]['inventory_quantity']);
+
+        $this->fakeShopify('https://bb-test.com', $product, $this->pageHtmlWithAvailability('http://schema.org/InStock'));
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertTrue(DistributorProduct::first()->in_stock);
+    }
+
+    public function test_enrich_reads_out_of_stock_from_page_json_ld(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = $this->bargainBalloons();
+        $product = $this->fashionYellowProduct();
+        unset($product['variants'][0]['inventory_quantity']);
+
+        $this->fakeShopify('https://bb-test.com', $product, $this->pageHtmlWithAvailability('http://schema.org/OutOfStock'));
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertFalse(DistributorProduct::first()->in_stock);
+    }
+
+    private function pageHtmlWithAvailability(string $availability): string
+    {
+        $json = json_encode([
+            '@type' => 'Product',
+            'offers' => ['@type' => 'Offer', 'availability' => $availability],
+        ]);
+
+        return $this->pageHtml()."\n<script type=\"application/ld+json\">{$json}</script>";
+    }
 }

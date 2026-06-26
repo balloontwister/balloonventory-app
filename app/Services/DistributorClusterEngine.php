@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorProduct;
 use App\Models\DistributorSkuUrl;
 use App\Models\Sku;
 use App\Services\Distributors\DistributorProductClassifier;
+use App\Services\Distributors\ProposalResolver;
 use App\Support\Gtin;
 use App\Support\ProductText;
 use Illuminate\Support\Collection;
@@ -27,6 +29,11 @@ use Illuminate\Support\Collection;
  */
 class DistributorClusterEngine
 {
+    /** @var Collection<string, Distributor> distributor configs, keyed by id, for resolution */
+    private Collection $configs;
+
+    public function __construct(private ProposalResolver $proposalResolver) {}
+
     /**
      * Build clusters from staged products without touching the database.
      *
@@ -95,6 +102,7 @@ class DistributorClusterEngine
         $staged = DistributorProduct::active()->get();
         $clusters = $this->buildClusters($staged);
         $upcToSkuId = $this->existingCatalogUpcMap();
+        $this->configs = Distributor::all(['id', 'config'])->keyBy('id');
 
         $matchedExisting = 0;
         $urlsAttached = 0;
@@ -188,6 +196,9 @@ class DistributorClusterEngine
         $count = $title !== null ? ProductText::packCount($title) : null;
         $distributorCount = collect($cluster['members'])->pluck('distributor_id')->unique()->count();
 
+        $config = $this->configFor($cluster['members']);
+        $resolution = $this->proposalResolver->resolve($cluster['members'], $config);
+
         $attributes = [
             'normalized_sku' => $cluster['normalized_sku'],
             'proposed_name' => $title,
@@ -195,17 +206,27 @@ class DistributorClusterEngine
             'proposed_warehouse_sku' => $cluster['normalized_sku'],
             'evidence' => $this->buildEvidence($cluster['members']),
             'confidence' => ($distributorCount >= 2 && $count !== null) ? 'high' : 'low',
+            'resolved_brand_id' => $resolution['brand_id'],
+            'resolved_brand_name' => $resolution['brand_name'],
+            'resolution_state' => $resolution['state'],
+            'resolution' => $resolution['detail'],
         ];
 
         $existing = DistributorCatalogProposal::where('upc', $cluster['upc'])->first();
 
         if ($existing !== null) {
             if ($this->isHumanTouched($existing)) {
-                // A human has reviewed or edited this proposal. Refresh only the
-                // provenance (evidence) so the latest listings/prices/stock show,
-                // but preserve their proposed attributes and decision.
-                $existing->evidence = $attributes['evidence'];
-                $existing->save();
+                // A human has reviewed or edited this proposal. Refresh the
+                // provenance (evidence) and the derived resolution so grouping
+                // stays current, but preserve their proposed attributes and
+                // decision.
+                $existing->fill([
+                    'evidence' => $attributes['evidence'],
+                    'resolved_brand_id' => $attributes['resolved_brand_id'],
+                    'resolved_brand_name' => $attributes['resolved_brand_name'],
+                    'resolution_state' => $attributes['resolution_state'],
+                    'resolution' => $attributes['resolution'],
+                ])->save();
 
                 return;
             }
@@ -220,6 +241,24 @@ class DistributorClusterEngine
             'upc' => $cluster['upc'],
             'status' => DistributorCatalogProposal::STATUS_PENDING,
         ]);
+    }
+
+    /**
+     * The distributor config of the cluster's representative (first attributed)
+     * member — the alias/label/quirk map the matcher needs to resolve attributes.
+     *
+     * @param  array<int, array<string, mixed>>  $members
+     * @return array<string, mixed>
+     */
+    private function configFor(array $members): array
+    {
+        $member = collect($members)->first(fn (array $m) => ! empty($m['attributes']));
+
+        if ($member === null) {
+            return [];
+        }
+
+        return $this->configs->get($member['distributor_id'])?->config ?? [];
     }
 
     /**

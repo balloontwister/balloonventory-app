@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\BalloonSize;
+use App\Models\Brand;
+use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorProduct;
@@ -116,6 +119,33 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertSame(100, $proposal->proposed_count);
         $this->assertSame('53012', $proposal->normalized_sku);
         $this->assertCount(3, $proposal->evidence);
+    }
+
+    public function test_run_stamps_resolution_for_grouping(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Sempertex']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => 'R-12']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Red']);
+
+        $this->stage($this->bargain, [
+            'external_id' => 's-1', 'raw_sku' => '53012', 'normalized_sku' => '53012',
+            'upc' => '030625530125', 'title' => '12 inch Round Red Sempertex 100ct',
+            'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => [
+                'Brand' => ['Sempertex'],
+                'Size' => ['12 inch'],
+                'Balloon Type / Shape' => ['Solid Color', 'Round'],
+                'Color' => ['Red'],
+            ]],
+        ]);
+
+        $this->engine->run(execute: true);
+
+        $proposal = DistributorCatalogProposal::sole();
+        $this->assertSame($brand->id, $proposal->resolved_brand_id);
+        $this->assertSame('Sempertex', $proposal->resolved_brand_name);
+        $this->assertSame(DistributorCatalogProposal::RESOLUTION_FULL, $proposal->resolution_state);
+        $this->assertSame('Red', $proposal->resolution['color']['name']);
     }
 
     public function test_only_solid_latex_is_proposed_other_types_are_parked(): void

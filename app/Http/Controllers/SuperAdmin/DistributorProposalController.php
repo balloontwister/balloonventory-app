@@ -38,6 +38,7 @@ class DistributorProposalController extends Controller
             'filters' => $filters,
             'references' => $this->service->referenceOptions(),
             'gaps' => $this->service->referenceGaps(),
+            'facets' => $this->service->facets(),
             'pendingCount' => DistributorCatalogProposal::pending()->count(),
         ]);
     }

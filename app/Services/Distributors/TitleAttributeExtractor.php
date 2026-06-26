@@ -104,6 +104,14 @@ class TitleAttributeExtractor
             $attributes['Size'] = [$size];
         }
 
+        // Latex needs a shape so the matcher can build our shape-prefixed size
+        // names (Round → `R-24`). havinaparty's latex is round unless the title
+        // says otherwise; modeling sizes (160K) already resolve on their own and
+        // are unaffected by the default.
+        if ($material === 'Latex') {
+            $attributes['Balloon Type / Shape'] = [$this->shape($title, $recipe)];
+        }
+
         $count = $this->count($title);
         if ($count !== null) {
             $attributes['Quantity'] = [$count];
@@ -229,6 +237,25 @@ class TitleAttributeExtractor
         }
 
         return $leaf !== '' ? $leaf : null;
+    }
+
+    /**
+     * The balloon shape, defaulting to Round for latex (havinaparty's latex is
+     * round unless the title names another shape via `shape_keywords`).
+     *
+     * @param  array<string, mixed>  $recipe
+     */
+    private function shape(string $title, array $recipe): string
+    {
+        $haystack = strtolower($title);
+
+        foreach ((array) ($recipe['shape_keywords'] ?? []) as $keyword => $shape) {
+            if ($keyword !== '' && str_contains($haystack, strtolower((string) $keyword))) {
+                return (string) $shape;
+            }
+        }
+
+        return (string) ($recipe['default_shape'] ?? 'Round');
     }
 
     /**

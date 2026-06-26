@@ -137,17 +137,36 @@ class DistributorSeeder extends Seeder
                 // identity comes from the page's BCData + JSON-LD (sku, brand,
                 // title, live stock; verified). No barcode/price (price is
                 // login-gated wholesale) → UPC is inherited from a sibling
-                // distributor that shares the normalized SKU.
-                // ⚠️ With no attribute table the classifier returns non_balloon, so
-                // size/color/count + product-type must come from the TITLE
-                // ("11\"S Red Fashion (100 count)") — a title-classification path
-                // that is NOT built yet. Until then havinaparty corroborates +
-                // attaches Reorder links/stock to EXISTING catalog SKUs but does
-                // not propose new products.
+                // distributor that shares the normalized SKU. With no table, the
+                // product's type/count come from the TITLE via the title_attributes
+                // recipe (so it classifies correctly instead of non_balloon);
+                // size/colour from the title code system is a later increment.
                 'config' => [
                     // ~1 MB pages behind Cloudflare → slow, jittered crawl.
                     'request_delay_ms' => 1500,
                     'request_jitter_ms' => 1000,
+                    // No attribute table → attributes come from the TITLE
+                    // (`11"S Red Fashion (100 count)`). Drives classification
+                    // (material/printed) + count.
+                    'extraction' => [
+                        'title_attributes' => [
+                            // Foil signals win first — a latex brand can still sell
+                            // foil letters/numbers/shapes.
+                            'foil_keywords' => [
+                                'air-fill', 'air fill', 'air filled', 'air-filled',
+                                'foil', 'mylar', 'orbz', 'sphere', 'bubble',
+                            ],
+                            // Latex brands default to latex when no foil signal.
+                            'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Betallatex', 'Gemar'],
+                            'printed_keywords' => [
+                                'happy birthday', 'birthday', 'christmas', 'halloween',
+                                'thanksgiving', 'welcome', 'mothers day', 'fathers day',
+                                'baby', 'graduation', 'anniversary', 'valentine',
+                            ],
+                            'required_labels' => ['Balloon Material'],
+                            'min_rows' => 1,
+                        ],
+                    ],
                     // SKUs are bare manufacturer item numbers (53012, 10150025) —
                     // no affixes to strip; normalized_sku == raw_sku.
                     // Sempertex markets its code-12 / 30 cm rounds as "11 inch".

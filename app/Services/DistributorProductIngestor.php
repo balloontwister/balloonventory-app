@@ -12,6 +12,7 @@ use App\Services\Distributors\DistributorProductClassifier;
 use App\Services\Distributors\JsonLdAvailabilityParser;
 use App\Services\Distributors\ProductAttributeTableExtractor;
 use App\Services\Distributors\ShopifyTagAttributeExtractor;
+use App\Services\Distributors\TitleAttributeExtractor;
 use App\Support\Gtin;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -47,6 +48,7 @@ class DistributorProductIngestor
         private DistributorProductClassifier $classifier,
         private ShopifyTagAttributeExtractor $tagExtractor,
         private JsonLdAvailabilityParser $availabilityParser,
+        private TitleAttributeExtractor $titleExtractor,
     ) {}
 
     /**
@@ -673,10 +675,14 @@ class DistributorProductIngestor
             return null;
         }
 
-        // Read the distributor's own structured attribute table (recipe-driven)
-        // and classify the product type, so non-latex types can be parked with
-        // their attributes rather than guessed from the title later.
-        $extraction = $this->attributeExtractor->extract($response->body(), $config);
+        // Read the product's structured attributes and classify the product type,
+        // so non-latex types can be parked with their attributes rather than
+        // guessed later. Most BigCommerce stores render an attribute table
+        // (Larocks); stores that don't (havinaparty) carry the attributes only in
+        // the title, read via the title_attributes recipe.
+        $extraction = isset($config['extraction']['title_attributes'])
+            ? $this->titleExtractor->extract($parsed, $config)
+            : $this->attributeExtractor->extract($response->body(), $config);
         $parsed['product_type'] = $this->classifier->classify($extraction);
         $parsed['attributes'] = $extraction['attributes'];
         $parsed['extraction'] = [

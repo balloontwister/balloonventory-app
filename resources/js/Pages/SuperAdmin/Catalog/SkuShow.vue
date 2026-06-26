@@ -5,12 +5,31 @@ import AppButton from '@/Components/AppButton.vue';
 import BackLink from '@/Components/BackLink.vue';
 import BrandTag from '@/Components/BrandTag.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     sku: { type: Object, required: true },
     distributorUrls: { type: Array, default: () => [] },
     returnQuery: { type: String, default: '' },
 });
+
+// Tracks which distributor row most recently had its URL copied, so we can flash
+// a transient "Copied" label on just that row.
+const copiedDistributorId = ref(null);
+let copyTimer;
+
+async function copyUrl(link) {
+    try {
+        await navigator.clipboard.writeText(link.url);
+        copiedDistributorId.value = link.distributor.id;
+        clearTimeout(copyTimer);
+        copyTimer = setTimeout(() => {
+            copiedDistributorId.value = null;
+        }, 1500);
+    } catch {
+        // Clipboard blocked (e.g. insecure context) — leave the row unchanged.
+    }
+}
 
 function stockBadge(inStock) {
     if (inStock === true) {
@@ -431,20 +450,20 @@ function formatPrice(price, currency) {
                     {{ $t('catalog.sku_show.distributors_empty') }}
                 </p>
                 <div v-else class="divide-y divide-border">
-                    <a
+                    <div
                         v-for="link in distributorUrls"
                         :key="link.distributor.id"
-                        :href="link.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        referrerpolicy="no-referrer"
                         class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface"
                     >
-                        <span
-                            class="min-w-0 flex-1 truncate font-sans text-[13px] font-medium text-ink-primary"
+                        <a
+                            :href="link.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            referrerpolicy="no-referrer"
+                            class="min-w-0 flex-1 truncate font-sans text-[13px] font-medium text-ink-primary hover:underline"
                         >
                             {{ link.distributor.name }}
-                        </span>
+                        </a>
                         <span
                             v-if="formatPrice(link.price, link.currency)"
                             class="shrink-0 font-sans text-[13px] tabular-nums text-ink-secondary"
@@ -457,12 +476,32 @@ function formatPrice(price, currency) {
                         >
                             {{ $t(stockBadge(link.in_stock).key) }}
                         </span>
-                        <span
-                            class="shrink-0 font-sans text-[12px] font-medium text-accent"
+                        <button
+                            type="button"
+                            class="shrink-0 rounded px-1.5 py-0.5 font-sans text-[12px] font-medium ring-1 ring-border transition-colors hover:bg-background"
+                            :class="
+                                copiedDistributorId === link.distributor.id
+                                    ? 'text-success'
+                                    : 'text-ink-secondary'
+                            "
+                            @click="copyUrl(link)"
+                        >
+                            {{
+                                copiedDistributorId === link.distributor.id
+                                    ? $t('catalog.sku_show.distributors_copied')
+                                    : $t('catalog.sku_show.distributors_copy')
+                            }}
+                        </button>
+                        <a
+                            :href="link.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            referrerpolicy="no-referrer"
+                            class="shrink-0 font-sans text-[12px] font-medium text-accent hover:underline"
                         >
                             {{ $t('catalog.sku_show.distributors_visit') }} ↗
-                        </span>
-                    </a>
+                        </a>
+                    </div>
                 </div>
             </div>
 

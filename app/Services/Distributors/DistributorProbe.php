@@ -26,6 +26,7 @@ class DistributorProbe
     public function __construct(
         private BigCommerceProductPageParser $parser,
         private ProductAttributeTableExtractor $extractor,
+        private TitleAttributeExtractor $titleExtractor,
         private DistributorProductClassifier $classifier,
         private DistributorAttributeMatcher $matcher,
     ) {}
@@ -49,7 +50,11 @@ class DistributorProbe
         $config = $distributor->config ?? [];
 
         $parsed = $this->parser->parse($html, $config) ?? [];
-        $extraction = $this->extractor->extract($html, $config);
+        // Stores with no attribute table (havinaparty) read attributes from the
+        // title + breadcrumb, exactly as the crawl path does.
+        $extraction = isset($config['extraction']['title_attributes'])
+            ? $this->titleExtractor->extract($parsed, $config)
+            : $this->extractor->extract($html, $config);
         $match = $this->matcher->match($extraction['attributes'], $config);
 
         return [

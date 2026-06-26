@@ -49,6 +49,16 @@ class CatalogAttributeResolver
         return ['brand' => $brand, 'balloonSize' => $balloonSize, 'color' => $color];
     }
 
+    /**
+     * The colour of a given brand named in a free-text string, or null. Used to
+     * recover the real shade from a product title when a distributor's structured
+     * "Color" field is only a coarse family ("Green" vs "Pastel Dusk Green Tea").
+     */
+    public function colorInText(string $text, Brand $brand): ?Color
+    {
+        return $this->firstMention($this->data()['colors']->get($brand->id, collect()), strtolower($text));
+    }
+
     private function firstMention(Collection $keyedByName, string $haystack)
     {
         return $keyedByName->first(fn ($model, string $name) => ProductText::mentions($haystack, $name));

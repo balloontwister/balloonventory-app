@@ -180,6 +180,24 @@ class DistributorAttributeMatcherTest extends TestCase
         $this->assertSame($lol->id, $result['balloon_size']['model']->id);
     }
 
+    public function test_size_number_alias_absorbs_a_brand_marketing_quirk(): void
+    {
+        // Sempertex sells its code-12 round as "11 inch"; we catalogue it R-12.
+        $r12 = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'R-12']);
+
+        $result = $this->matcher->match(
+            [
+                'Brand' => ['Kalisan'],
+                'Size' => ['11 inch'],
+                'Balloon Type / Shape' => ['Solid Color', 'Round'],
+            ],
+            ['size_number_aliases' => ['Kalisan' => ['11' => '12']]],
+        );
+
+        $this->assertSame($r12->id, $result['balloon_size']['model']->id);
+        $this->assertSame('exact', $result['balloon_size']['quality']);
+    }
+
     public function test_config_overrides_the_shape_prefix_map(): void
     {
         $size = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'B-18']);

@@ -46,6 +46,11 @@ class DistributorSeeder extends Seeder
                             'Packaged' => 'Retail',
                         ],
                     ],
+                    // Per-brand size-number quirks: Sempertex sells its code-12 /
+                    // 30 cm balloons as "11 inch", so 11 → 12 (→ R-12/C-12/LOL-12).
+                    'size_number_aliases' => [
+                        'Sempertex' => ['11' => '12'],
+                    ],
                 ],
                 'is_active' => true,
                 'sort_order' => 1,

@@ -256,6 +256,7 @@ return [
 
                 'suggested' => 'Suggested:',
                 'alt_candidates' => 'Other possible matches — click to choose in Edit',
+                'from_title' => 'Colour read from the product name (the distributor only listed a colour family)',
                 'creates_new' => 'Approving creates a new catalog product.',
                 'links_pack_sizes' => 'Links to existing pack sizes',
                 'maybe_exists' => 'May already exist in the catalog without a barcode',

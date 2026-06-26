@@ -141,6 +141,44 @@ class DistributorCatalogPromoterTest extends TestCase
         $this->assertNotNull($sku->balloon_size_id);
     }
 
+    public function test_fuzzy_structured_color_defers_to_the_shade_in_the_title(): void
+    {
+        [$brand, $balloonSize, , $latex] = $this->seedSempertex();
+        $family = ColorFamily::firstOrFail()->id;
+        $texture = Texture::factory()->create(['name' => 'Pastel (SMP)', 'brand_id' => $brand->id]);
+
+        // The catalog has no colour literally named "Green"; the distributor's
+        // coarse "Green" fuzzy-matches "Neon Green", but the title names the shade.
+        $neonGreen = Color::factory()->create(['name' => 'Neon Green', 'brand_id' => $brand->id, 'color_family_id' => $family, 'texture_id' => $texture->id]);
+        $pastelGreenTea = Color::factory()->create(['name' => 'Pastel Green Tea', 'brand_id' => $brand->id, 'color_family_id' => $family, 'texture_id' => $texture->id]);
+
+        $distributor = Distributor::factory()->shopify()->create();
+        $proposal = $this->proposal([
+            'upc' => '00030625999996',
+            'proposed_name' => '11 Inch Round Pastel Green Tea Sempertex 100ct',
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'url' => 'https://example.com/p/x',
+                'raw_upc' => '030625999996',
+                'title' => '11 Inch Round Pastel Green Tea Sempertex 100ct',
+                'attributes' => [
+                    'Brand' => ['Sempertex'],
+                    'Size' => ['11 inch'],
+                    'Balloon Type / Shape' => ['Solid Color', 'Round'],
+                    'Color' => ['Green'],
+                ],
+            ]],
+        ]);
+
+        $sku = $this->promoter->promote($proposal);
+
+        $this->assertNotNull($sku);
+        $this->assertSame($pastelGreenTea->id, $sku->color_id, 'Should use the title shade, not the fuzzy family match');
+        $this->assertNotSame($neonGreen->id, $sku->color_id);
+        $this->assertSame($balloonSize->id, $sku->balloon_size_id);
+        $this->assertSame($latex->id, $sku->material_id);
+    }
+
     public function test_leaves_unresolvable_proposal_pending(): void
     {
         $this->seedSempertex();

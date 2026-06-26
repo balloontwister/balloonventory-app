@@ -98,7 +98,7 @@ class DistributorAttributeMatcher
         return [
             'brand' => $brand,
             'balloon_size' => $brandModel instanceof Brand
-                ? $this->matchSize($sizeValue, $brandModel, $shapePrefix)
+                ? $this->matchSize($sizeValue, $brandModel, $shapePrefix, $this->sizeNumberAliases($brandModel->name, $config))
                 : $this->none(),
             'color' => $brandModel instanceof Brand
                 ? $this->matchColor($this->value($attributes, $labels['color']), $brandModel, $aliases)
@@ -150,9 +150,10 @@ class DistributorAttributeMatcher
     }
 
     /**
+     * @param  array<string, mixed>  $numberAliases  distributor size number → catalog number, for this brand
      * @return AttributeMatch
      */
-    private function matchSize(?string $value, Brand $brand, ?string $shapePrefix = null): array
+    private function matchSize(?string $value, Brand $brand, ?string $shapePrefix = null, array $numberAliases = []): array
     {
         if ($value === null) {
             return $this->none();
@@ -175,7 +176,9 @@ class DistributorAttributeMatcher
         // number ("R-24", "C-14", "LOL-12") which Tier 1 can't reach from the
         // distributor's bare "24 inch". With the shape resolved to a prefix, look
         // for "{prefix}-{number}". The shape disambiguates what a bare number can't
-        // (11-inch round vs heart vs link all share the number).
+        // (11-inch round vs heart vs link all share the number). A per-brand number
+        // alias absorbs a marketing quirk first (Sempertex sells its code-12 / 30 cm
+        // balloons as "11 inch", so 11 → 12 → R-12/C-12/LOL-12).
         if ($shapePrefix !== null) {
             $prefix = strtolower($shapePrefix);
 
@@ -184,7 +187,8 @@ class DistributorAttributeMatcher
                     continue;
                 }
 
-                $target = $prefix.'-'.$m[0];
+                $number = (string) ($numberAliases[$m[0]] ?? $m[0]);
+                $target = $prefix.'-'.$number;
                 $matches = $sizes->filter(fn (BalloonSize $bs) => $this->prefixedSizeName($bs->name) === $target)->values();
 
                 if ($matches->isNotEmpty()) {
@@ -194,6 +198,26 @@ class DistributorAttributeMatcher
         }
 
         return $this->none($value);
+    }
+
+    /**
+     * Per-brand size-number remap from config. Sempertex markets its code-12 /
+     * 30 cm balloons as "11 inch" across shapes, so `{"Sempertex": {"11": "12"}}`
+     * maps the distributor's 11 onto our R-12 / C-12 / LOL-12. Brand match is
+     * case-insensitive; an empty map (the default) is a no-op.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    private function sizeNumberAliases(string $brandName, array $config): array
+    {
+        foreach ($config['size_number_aliases'] ?? [] as $brand => $map) {
+            if (strcasecmp((string) $brand, $brandName) === 0) {
+                return $map;
+            }
+        }
+
+        return [];
     }
 
     /**

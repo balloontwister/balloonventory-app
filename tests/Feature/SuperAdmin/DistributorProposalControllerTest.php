@@ -348,6 +348,29 @@ class DistributorProposalControllerTest extends TestCase
                 ->where('proposals.data.0.guess.count', 100));
     }
 
+    public function test_guess_color_falls_back_to_the_title_shade_when_structured_is_coarse(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Sempertex']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Neon Green']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Pastel Green Tea']);
+        $distributor = Distributor::factory()->bigcommerce()->create();
+
+        DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => '11 Inch Round Pastel Green Tea Sempertex 100ct',
+                // Coarse structured "Green" fuzzy-matches Neon Green; the title names the shade.
+                'attributes' => ['Brand' => ['Sempertex'], 'Color' => ['Green']],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('proposals.data.0.guess.color.selected.name', 'Pastel Green Tea')
+                ->where('proposals.data.0.guess.color.source', 'title'));
+    }
+
     public function test_index_surfaces_missing_reference_data_as_gaps(): void
     {
         $distributor = Distributor::factory()->bigcommerce()->create();

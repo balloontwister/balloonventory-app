@@ -10,6 +10,7 @@ use App\Models\DistributorCatalogProposal;
 use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Services\BarcodeLinker;
+use App\Services\CatalogAttributeResolver;
 use App\Services\DistributorCatalogPromoter;
 use App\Support\Gtin;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -36,6 +37,7 @@ class DistributorProposalReviewService
         private DistributorAttributeMatcher $matcher,
         private IdenticalSkuFinder $identicalFinder,
         private BarcodeLinker $barcodeLinker,
+        private CatalogAttributeResolver $resolver,
     ) {}
 
     /**
@@ -410,15 +412,62 @@ class DistributorProposalReviewService
 
         $config = $distributors->get($member['distributor_id'])?->config ?? [];
         $match = $this->matcher->match($member['attributes'], $config);
+        $brand = $match['brand']['model'];
 
         return [
             'available' => true,
             'brand' => $this->presentMatch($match['brand']),
             'balloon_size' => $this->presentMatch($match['balloon_size']),
-            'color' => $this->presentMatch($match['color']),
+            'color' => $this->presentColor($match['color'], $brand instanceof Brand ? $brand : null, $proposal),
             'packaging' => $this->presentMatch($match['packaging']),
             'count' => $match['count'],
         ];
+    }
+
+    /**
+     * Present the colour guess, mirroring {@see DistributorCatalogPromoter::resolveColor}
+     * so the queue shows exactly what approving would create: an exact structured
+     * match stands; otherwise the shade named in the product title is preferred
+     * over a fuzzy structured family match, with the structured options kept as
+     * alternates. A `source` flag marks where the suggestion came from.
+     *
+     * @param  array{model: ?Model, quality: string, candidates: array<int, array{id: string, name: string, quality: string}>}  $match
+     * @return array<string, mixed>
+     */
+    private function presentColor(array $match, ?Brand $brand, DistributorCatalogProposal $proposal): array
+    {
+        $base = $this->presentMatch($match) + ['source' => 'structured'];
+
+        if ($match['quality'] === 'exact' || $brand === null) {
+            return $base;
+        }
+
+        $titleColor = $this->resolver->colorInText($this->proposalTitleText($proposal), $brand);
+
+        if ($titleColor === null) {
+            return $base;
+        }
+
+        return [
+            'selected' => ['id' => $titleColor->id, 'name' => $titleColor->name],
+            'quality' => 'exact',
+            'source' => 'title',
+            // Keep the structured family guesses as alternates the admin can pick.
+            'candidates' => $base['candidates'],
+        ];
+    }
+
+    /**
+     * Every title in the cluster plus the proposed name, joined — the text the
+     * title-colour resolver reads.
+     */
+    private function proposalTitleText(DistributorCatalogProposal $proposal): string
+    {
+        return collect($proposal->evidence ?? [])
+            ->pluck('title')
+            ->push($proposal->proposed_name)
+            ->filter()
+            ->implode(' ');
     }
 
     /**

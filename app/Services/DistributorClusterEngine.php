@@ -193,11 +193,15 @@ class DistributorClusterEngine
     private function persistProposal(array $cluster): void
     {
         $title = $this->representativeTitle($cluster['members']);
-        $count = $title !== null ? ProductText::packCount($title) : null;
         $distributorCount = collect($cluster['members'])->pluck('distributor_id')->unique()->count();
 
         $config = $this->configFor($cluster['members']);
         $resolution = $this->proposalResolver->resolve($cluster['members'], $config);
+
+        // Prefer the distributor's structured "Quantity" (clean) over a count parsed
+        // from the title — it sets the SKU's pack size and keys identical-sibling
+        // linking, so a wrong count is costly once a SKU exists.
+        $count = $resolution['count'] ?? ($title !== null ? ProductText::packCount($title) : null);
 
         $attributes = [
             'normalized_sku' => $cluster['normalized_sku'],

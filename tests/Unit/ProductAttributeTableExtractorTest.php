@@ -107,4 +107,55 @@ class ProductAttributeTableExtractorTest extends TestCase
         $this->assertSame(0, $result['row_count']);
         $this->assertFalse($result['ok']);
     }
+
+    private array $bargainConfig = [
+        'extraction' => [
+            'attribute_list' => ['section_marker' => 'Additional Product Details'],
+            'required_labels' => ['Manufacturer Color', 'Latex Finish', 'Package Count'],
+            'min_rows' => 4,
+        ],
+    ];
+
+    /** Mirrors BargainBalloons' real "Additional Product Details" accordion. */
+    private function bargainListHtml(): string
+    {
+        return <<<'HTML'
+        <nav><ul><li><span>Home: </span>not a spec</li></ul></nav>
+        <details><summary>Additional Product Details</summary>
+        <div class="cc-accordion-item__content">
+          <ul>
+            <li><span>SKU: </span>BL-53005</li>
+            <li><span>UPC: </span>030625530057</li>
+            <li><span>Size (inches): </span>11.0</li>
+            <li><span>Print: </span>Solid Color</li>
+            <li><span>Manufacturer Color: </span>Yellow</li>
+            <li><span>Packaging Type: </span> Retail Packaged</li>
+            <li><span>Package Count: </span>100</li>
+            <li><span>Latex Finish: </span>Fashion</li>
+          </ul>
+        </div></details>
+        <footer><ul><li><span>Contact: </span>also not a spec</li></ul></footer>
+        HTML;
+    }
+
+    public function test_extracts_a_list_style_spec_accordion(): void
+    {
+        $result = (new ProductAttributeTableExtractor)->extract($this->bargainListHtml(), $this->bargainConfig);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame(['Yellow'], $result['attributes']['Manufacturer Color']);
+        $this->assertSame(['Fashion'], $result['attributes']['Latex Finish']);
+        $this->assertSame(['100'], $result['attributes']['Package Count']);
+        $this->assertSame(['Retail Packaged'], $result['attributes']['Packaging Type']);
+        $this->assertSame(['11.0'], $result['attributes']['Size (inches)']);
+    }
+
+    public function test_section_marker_excludes_unrelated_list_items(): void
+    {
+        $result = (new ProductAttributeTableExtractor)->extract($this->bargainListHtml(), $this->bargainConfig);
+
+        // The nav/footer <li><span> entries are outside the marked section.
+        $this->assertArrayNotHasKey('Home', $result['attributes']);
+        $this->assertArrayNotHasKey('Contact', $result['attributes']);
+    }
 }

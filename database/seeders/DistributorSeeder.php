@@ -15,7 +15,36 @@ class DistributorSeeder extends Seeder
                 'slug' => 'bargain-balloons',
                 'platform_type' => 'shopify',
                 'base_url' => 'https://bargainballoons.com',
-                'config' => ['collection_handle' => 'all', 'has_json_api' => true],
+                // Shopify: bulk products.json gives barcode/vendor/price; the rich
+                // attributes live in the page's "Additional Product Details" accordion
+                // (a <ul><li><span> spec list), read via the attribute_list recipe.
+                // Brand comes from the JSON vendor; shape is absent (default Round).
+                'config' => [
+                    'collection_handle' => 'all',
+                    'has_json_api' => true,
+                    'extraction' => [
+                        'attribute_list' => ['section_marker' => 'Additional Product Details'],
+                        'required_labels' => ['Manufacturer Color', 'Latex Finish', 'Package Count'],
+                        'min_rows' => 5,
+                        // The store's labels → our canonical attribute keys.
+                        'label_map' => [
+                            'size' => 'Size (inches)',
+                            'color' => 'Manufacturer Color',
+                            'texture' => 'Latex Finish',
+                            'count' => 'Package Count',
+                            'packaging' => 'Packaging Type',
+                        ],
+                    ],
+                    'attribute_aliases' => [
+                        'brand' => ['Betallatex' => 'Sempertex'], // Betallic's old latex rebrand (title path)
+                        'packaging' => ['Retail Packaged' => 'Retail'],
+                    ],
+                    // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
+                    'size_number_aliases' => ['Sempertex' => ['11' => '12']],
+                    // Betallic remnants on the SKU → bare manufacturer item number.
+                    'sku_strip_prefixes' => ['BL-'],
+                    'sku_strip_suffixes' => ['-B'],
+                ],
                 'is_active' => true,
                 'sort_order' => 0,
             ],

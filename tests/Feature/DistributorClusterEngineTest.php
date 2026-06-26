@@ -148,6 +148,20 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertSame('Red', $proposal->resolution['color']['name']);
     }
 
+    public function test_proposed_count_prefers_structured_quantity_over_the_title(): void
+    {
+        $this->stage($this->bargain, [
+            'external_id' => 'q-1', 'raw_sku' => '53012', 'normalized_sku' => '53012',
+            'upc' => '030625530125', 'title' => '11 inch Red Fashion 100ct', // title says 100
+            'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => ['Brand' => ['Sempertex'], 'Quantity' => ['50 ct']]], // structured says 50
+        ]);
+
+        $this->engine->run(execute: true);
+
+        $this->assertSame(50, DistributorCatalogProposal::sole()->proposed_count);
+    }
+
     public function test_only_solid_latex_is_proposed_other_types_are_parked(): void
     {
         // A solid latex product and a foil product, each its own UPC cluster.

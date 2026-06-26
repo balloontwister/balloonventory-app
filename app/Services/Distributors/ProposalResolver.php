@@ -25,7 +25,7 @@ class ProposalResolver
     /**
      * @param  array<int, array<string, mixed>>  $members  the cluster's evidence members
      * @param  array<string, mixed>  $config  the representative member's distributor config
-     * @return array{brand_id: ?string, brand_name: ?string, state: string, detail: array<string, mixed>}
+     * @return array{brand_id: ?string, brand_name: ?string, state: string, count: ?int, detail: array<string, mixed>}
      */
     public function resolve(array $members, array $config): array
     {
@@ -56,6 +56,9 @@ class ProposalResolver
             'brand_id' => $brand?->id,
             'brand_name' => $brand?->name,
             'state' => $state,
+            // The distributor's structured "Quantity" (e.g. "100 ct") — cleaner than
+            // parsing a count out of the title.
+            'count' => $match['count'],
             'detail' => [
                 'brand' => $this->attr($brand, $match['brand']['value']),
                 'size' => $this->attr($size, $match['balloon_size']['value']),
@@ -78,7 +81,7 @@ class ProposalResolver
     }
 
     /**
-     * @return array{brand_id: ?string, brand_name: ?string, state: string, detail: array<string, mixed>}
+     * @return array{brand_id: ?string, brand_name: ?string, state: string, count: ?int, detail: array<string, mixed>}
      */
     private function none(): array
     {
@@ -86,6 +89,7 @@ class ProposalResolver
             'brand_id' => null,
             'brand_name' => null,
             'state' => DistributorCatalogProposal::RESOLUTION_NO_BRAND,
+            'count' => null,
             'detail' => [],
         ];
     }

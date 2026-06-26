@@ -128,6 +128,36 @@ class DistributorSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 2,
             ],
+            [
+                'name' => "Havin' A Party",
+                'slug' => 'havin-a-party',
+                'platform_type' => 'bigcommerce',
+                'base_url' => 'https://havinaparty.com',
+                // BigCommerce, but unlike Larocks it renders NO attribute table —
+                // identity comes from the page's BCData + JSON-LD (sku, brand,
+                // title, live stock; verified). No barcode/price (price is
+                // login-gated wholesale) → UPC is inherited from a sibling
+                // distributor that shares the normalized SKU.
+                // ⚠️ With no attribute table the classifier returns non_balloon, so
+                // size/color/count + product-type must come from the TITLE
+                // ("11\"S Red Fashion (100 count)") — a title-classification path
+                // that is NOT built yet. Until then havinaparty corroborates +
+                // attaches Reorder links/stock to EXISTING catalog SKUs but does
+                // not propose new products.
+                'config' => [
+                    // ~1 MB pages behind Cloudflare → slow, jittered crawl.
+                    'request_delay_ms' => 1500,
+                    'request_jitter_ms' => 1000,
+                    // SKUs are bare manufacturer item numbers (53012, 10150025) —
+                    // no affixes to strip; normalized_sku == raw_sku.
+                    // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
+                    'size_number_aliases' => [
+                        'Sempertex' => ['11' => '12'],
+                    ],
+                ],
+                'is_active' => true,
+                'sort_order' => 3,
+            ],
         ];
 
         foreach ($distributors as $data) {

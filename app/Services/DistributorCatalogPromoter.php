@@ -92,6 +92,7 @@ class DistributorCatalogPromoter
     private function multiSourceAgrees(DistributorCatalogProposal $proposal): bool
     {
         $resolvedPerDistributor = [];
+        $counts = [];
 
         foreach ($proposal->evidence ?? [] as $member) {
             if (empty($member['attributes']) || empty($member['distributor_id'])) {
@@ -111,6 +112,10 @@ class DistributorCatalogPromoter
                 'size' => $match['balloon_size']['model']?->id,
                 'color' => $match['color']['model']?->id,
             ];
+
+            if ($match['count'] !== null) {
+                $counts[$member['distributor_id']] = $match['count'];
+            }
         }
 
         if (count($resolvedPerDistributor) < 2) {
@@ -129,6 +134,15 @@ class DistributorCatalogPromoter
             if ($tuple !== $first) {
                 return false;
             }
+        }
+
+        // The pack count must not conflict either: it's part of a SKU's identity
+        // (it keys identical-sibling linking), and distributors sometimes mislabel
+        // it or carry a wrong barcode — e.g. a "3 per bag" listing stamped with the
+        // 10-pack's UPC. Among the sources that report a count, all must agree;
+        // otherwise route to review rather than auto-create a possibly-wrong pack.
+        if (count(array_unique(array_values($counts))) > 1) {
+            return false;
         }
 
         return true;

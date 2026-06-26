@@ -96,6 +96,10 @@ class DistributorSeeder extends Seeder
                 'config' => [
                     'collection_handle' => 'all',
                     'has_json_api' => true,
+                    // Tag path skips the HTML page, but LA's page renders a reliable
+                    // JSON-LD Offer.availability — opt in to one extra page fetch per
+                    // product to capture real stock (verified true on a live page).
+                    'stock_from_page' => true,
                     'extraction' => [
                         'tag_attributes' => [
                             'tag_map' => [

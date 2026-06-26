@@ -297,6 +297,17 @@ class DistributorProductIngestor
             $product['barcode'] = $barcode;
         }
 
+        // The tag path skips the HTML page, so the bulk/per-product JSON gives no
+        // stock (Shopify exposes none). Stores that render a reliable JSON-LD
+        // Offer.availability can opt in via `stock_from_page` to spend one extra
+        // page fetch for a real in-stock signal.
+        if (($config['stock_from_page'] ?? false) === true) {
+            $pageStock = $this->fetchPageAvailability($product['url']);
+            if ($pageStock !== null) {
+                $product['in_stock'] = $pageStock;
+            }
+        }
+
         $externalId = $product['identifier'];
 
         // Drift guard: don't clobber good staged attributes with an empty extraction.
@@ -307,6 +318,24 @@ class DistributorProductIngestor
         $this->upsertEnrichedShopify($distributor->id, $externalId, $product['url'], $product, $extraction, $productType, $config);
 
         return $extraction;
+    }
+
+    /**
+     * Best-effort stock read from a product page's JSON-LD Offer.availability.
+     * Returns null on a failed/blocked fetch or a page without availability, so a
+     * page hiccup never blocks staging — the product just stays stock-unknown.
+     */
+    private function fetchPageAvailability(string $url): ?bool
+    {
+        $response = Http::timeout(self::TIMEOUT)
+            ->withUserAgent(self::USER_AGENT)
+            ->get($url);
+
+        if ($this->classifyResponse($response) !== null) {
+            return null;
+        }
+
+        return $this->availabilityParser->parse($response->body());
     }
 
     /**

@@ -84,6 +84,46 @@ class DistributorSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 1,
             ],
+            [
+                'name' => 'LA Balloons',
+                'slug' => 'la-balloons',
+                'platform_type' => 'shopify',
+                'base_url' => 'https://laballoons.com',
+                // Shopify, but its attributes live in namespaced products.json tags
+                // (Color_/Size_/Packaging_) + product_type — read by the tag
+                // extractor, NO HTML page needed. The barcode is fetched from the
+                // light per-product .json (Shopify strips it from the bulk feed).
+                'config' => [
+                    'collection_handle' => 'all',
+                    'has_json_api' => true,
+                    'extraction' => [
+                        'tag_attributes' => [
+                            'tag_map' => [
+                                'Color_' => 'Color',
+                                'Size_' => 'Size',
+                                'Packaging_' => 'Package Type',
+                                'Theme_' => 'Occasion / Theme',
+                            ],
+                            // product_type → Balloon Material (drives classification).
+                            'product_type_map' => ['latex' => 'Latex', 'foil' => 'Foil', 'mylar' => 'Foil'],
+                            // "11\" Latex" → "11\"" so the size resolves.
+                            'strip_words' => ['Latex', 'Foil', 'Mylar', 'Bubble'],
+                            'required_labels' => ['Color', 'Size'],
+                            'min_rows' => 2,
+                        ],
+                    ],
+                    'attribute_aliases' => [
+                        'packaging' => ['Packaged' => 'Retail'],
+                    ],
+                    'size_number_aliases' => [
+                        'Sempertex' => ['11' => '12'],
+                    ],
+                    // Brand-suffixed SKUs (Kalisan -KL, Betallic -B, TufTex -M).
+                    'sku_strip_suffixes' => ['-KL', '-B', '-M'],
+                ],
+                'is_active' => true,
+                'sort_order' => 2,
+            ],
         ];
 
         foreach ($distributors as $data) {

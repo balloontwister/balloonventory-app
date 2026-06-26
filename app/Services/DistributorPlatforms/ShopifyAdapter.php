@@ -248,6 +248,7 @@ class ShopifyAdapter implements DistributorPlatformAdapter
                 'vendor' => null,
                 'tags' => [],
                 'updated_at' => null,
+                'product_type' => null,
             ];
         }
 
@@ -299,6 +300,7 @@ class ShopifyAdapter implements DistributorPlatformAdapter
         $vendor = $product['vendor'] ?? null;
         $tags = $this->normalizeTags($product['tags'] ?? null);
         $updatedAt = $product['updated_at'] ?? null;
+        $productType = $product['product_type'] ?? null;
 
         foreach ($product['variants'] ?? [] as $variant) {
             $sku = $variant['sku'] ?? '';
@@ -323,6 +325,7 @@ class ShopifyAdapter implements DistributorPlatformAdapter
                 'vendor' => $vendor !== null && $vendor !== '' ? (string) $vendor : null,
                 'tags' => $tags,
                 'updated_at' => $updatedAt,
+                'product_type' => $productType !== null && $productType !== '' ? (string) $productType : null,
             ];
         }
 

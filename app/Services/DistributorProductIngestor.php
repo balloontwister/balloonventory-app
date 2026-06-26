@@ -10,6 +10,7 @@ use App\Services\DistributorPlatforms\Concerns\InspectsHttpResponses;
 use App\Services\DistributorPlatforms\PlatformFactory;
 use App\Services\Distributors\DistributorProductClassifier;
 use App\Services\Distributors\ProductAttributeTableExtractor;
+use App\Services\Distributors\ShopifyTagAttributeExtractor;
 use App\Support\Gtin;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -43,6 +44,7 @@ class DistributorProductIngestor
         private PlatformFactory $platformFactory,
         private ProductAttributeTableExtractor $attributeExtractor,
         private DistributorProductClassifier $classifier,
+        private ShopifyTagAttributeExtractor $tagExtractor,
     ) {}
 
     /**
@@ -178,7 +180,12 @@ class DistributorProductIngestor
                 $this->throttle($delayMs, $jitterMs);
             }
 
-            $parsed = $this->enrichShopifyPage($distributor, $product, $config);
+            // Stores that expose their attributes as namespaced tags (LA Balloons)
+            // need no HTML page — read the tags and fetch only the barcode; others
+            // (BargainBalloons) parse the product page.
+            $parsed = isset($config['extraction']['tag_attributes'])
+                ? $this->enrichShopifyFromTags($distributor, $product, $config)
+                : $this->enrichShopifyPage($distributor, $product, $config);
 
             if ($parsed !== null) {
                 $enriched++;
@@ -246,6 +253,75 @@ class DistributorProductIngestor
         $this->upsertEnrichedShopify($distributor->id, $externalId, $url, $product, $extraction, $productType, $config);
 
         return $extraction;
+    }
+
+    /**
+     * Tag-driven enrichment (LA Balloons): the product's attributes are already in
+     * the bulk products.json tags + product_type, so no page fetch is needed for
+     * them — only the barcode, which Shopify withholds from the bulk feed, is
+     * fetched (the light per-product `.json`). Mirrors {@see enrichShopifyPage}'s
+     * inject → classify → upsert, but with the tag extractor as the source.
+     *
+     * @param  array<string, mixed>  $product
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>|null
+     */
+    private function enrichShopifyFromTags(Distributor $distributor, array $product, array $config): ?array
+    {
+        $extraction = $this->tagExtractor->extract($product, $config);
+
+        if (! ($extraction['has_recipe'] ?? false)) {
+            return null;
+        }
+
+        // Brand (vendor) + synthesised shape, same as the HTML Shopify path.
+        $extraction = $this->injectShopifyAttributes($extraction, $product, $config);
+
+        $productType = $this->classifier->classify($extraction);
+
+        // The barcode is the one field the bulk feed strips — fetch the light
+        // per-product JSON for it so the product can cluster (clustering is
+        // UPC-gated). A barcode-less product still stages (it just won't cluster).
+        $barcode = $this->fetchShopifyProductBarcode($product['url'], $product['identifier']);
+        if ($barcode !== null) {
+            $product['barcode'] = $barcode;
+        }
+
+        $externalId = $product['identifier'];
+
+        // Drift guard: don't clobber good staged attributes with an empty extraction.
+        if (! ($extraction['ok'] ?? false) && $this->hasStagedAttributes($distributor->id, $externalId)) {
+            return $extraction;
+        }
+
+        $this->upsertEnrichedShopify($distributor->id, $externalId, $product['url'], $product, $extraction, $productType, $config);
+
+        return $extraction;
+    }
+
+    /**
+     * Fetch a Shopify product's barcode from its per-product `.json` (the bulk
+     * collection feed omits it). Matches the variant by SKU, falling back to the
+     * first variant. Returns the bare value, or null on a failed fetch / no barcode.
+     */
+    private function fetchShopifyProductBarcode(string $productUrl, string $sku): ?string
+    {
+        $response = Http::timeout(self::TIMEOUT)
+            ->withUserAgent(self::USER_AGENT)
+            ->get($productUrl.'.json');
+
+        if ($this->classifyResponse($response) !== null) {
+            return null;
+        }
+
+        $variants = $response->json('product.variants') ?? [];
+
+        $match = collect($variants)->first(fn ($v) => ($v['sku'] ?? null) === $sku)
+            ?? ($variants[0] ?? null);
+
+        $barcode = $match['barcode'] ?? null;
+
+        return ($barcode !== null && $barcode !== '') ? (string) $barcode : null;
     }
 
     /**
@@ -318,7 +394,9 @@ class DistributorProductIngestor
     private function looksSolidLatex(array $product): bool
     {
         $haystack = strtolower(
-            ($product['name'] ?? '').' '.implode(' ', (array) ($product['tags'] ?? []))
+            ($product['name'] ?? '').' '
+            .($product['product_type'] ?? '').' '
+            .implode(' ', (array) ($product['tags'] ?? []))
         );
 
         if (! str_contains($haystack, 'latex')) {

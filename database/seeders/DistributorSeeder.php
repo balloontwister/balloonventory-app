@@ -145,6 +145,11 @@ class DistributorSeeder extends Seeder
                     // ~1 MB pages behind Cloudflare → slow, jittered crawl.
                     'request_delay_ms' => 1500,
                     'request_jitter_ms' => 1000,
+                    // havinaparty has no barcode, but its on-page SKU is the bare
+                    // manufacturer item number — match it (brand-scoped) to our
+                    // warehouse_sku so a listing with no sibling UPC can still
+                    // attach a Reorder link + stock to an existing catalog SKU.
+                    'match_by_warehouse_sku' => true,
                     // No attribute table → attributes come from the TITLE
                     // (`11"S Red Fashion (100 count)`). Drives classification
                     // (material/printed) + count.

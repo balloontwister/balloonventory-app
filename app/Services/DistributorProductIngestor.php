@@ -9,6 +9,7 @@ use App\Services\DistributorPlatforms\BigCommerceProductPageParser;
 use App\Services\DistributorPlatforms\Concerns\InspectsHttpResponses;
 use App\Services\DistributorPlatforms\PlatformFactory;
 use App\Services\Distributors\DistributorProductClassifier;
+use App\Services\Distributors\JsonLdAvailabilityParser;
 use App\Services\Distributors\ProductAttributeTableExtractor;
 use App\Services\Distributors\ShopifyTagAttributeExtractor;
 use App\Support\Gtin;
@@ -45,6 +46,7 @@ class DistributorProductIngestor
         private ProductAttributeTableExtractor $attributeExtractor,
         private DistributorProductClassifier $classifier,
         private ShopifyTagAttributeExtractor $tagExtractor,
+        private JsonLdAvailabilityParser $availabilityParser,
     ) {}
 
     /**
@@ -233,6 +235,14 @@ class DistributorProductIngestor
 
         if (! ($extraction['has_recipe'] ?? false)) {
             return null;
+        }
+
+        // Shopify's public feed exposes no stock field, but the rendered page
+        // embeds a JSON-LD Offer.availability. Prefer that real signal; fall back
+        // to the (typically null) feed value when the page omits availability.
+        $pageStock = $this->availabilityParser->parse($response->body());
+        if ($pageStock !== null) {
+            $product['in_stock'] = $pageStock;
         }
 
         // The page omits the brand and the shape; supply them from the JSON vendor

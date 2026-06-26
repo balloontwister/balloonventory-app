@@ -285,6 +285,7 @@ return [
         'distributors_empty' => 'No distributor links yet',
         'distributors_in_stock' => 'In stock',
         'distributors_out_of_stock' => 'Out of stock',
+        'distributors_stock_unknown' => 'Stock unknown',
         'distributors_visit' => 'View product',
     ],
 ];

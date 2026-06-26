@@ -12,6 +12,26 @@ const props = defineProps({
     returnQuery: { type: String, default: '' },
 });
 
+function stockBadge(inStock) {
+    if (inStock === true) {
+        return {
+            key: 'catalog.sku_show.distributors_in_stock',
+            class: 'bg-success-soft text-success',
+        };
+    }
+    if (inStock === false) {
+        return {
+            key: 'catalog.sku_show.distributors_out_of_stock',
+            class: 'bg-danger-soft text-danger',
+        };
+    }
+    // Unknown: the distributor lists the product but exposes no stock signal.
+    return {
+        key: 'catalog.sku_show.distributors_stock_unknown',
+        class: 'bg-background text-ink-tertiary ring-1 ring-border',
+    };
+}
+
 function formatPrice(price, currency) {
     if (price === null || price === undefined || price === '') return null;
     const amount = Number(price);
@@ -432,23 +452,10 @@ function formatPrice(price, currency) {
                             {{ formatPrice(link.price, link.currency) }}
                         </span>
                         <span
-                            v-if="link.in_stock !== null"
                             class="shrink-0 rounded px-1.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow"
-                            :class="
-                                link.in_stock
-                                    ? 'bg-success-soft text-success'
-                                    : 'bg-background text-ink-tertiary ring-1 ring-border'
-                            "
+                            :class="stockBadge(link.in_stock).class"
                         >
-                            {{
-                                link.in_stock
-                                    ? $t(
-                                          'catalog.sku_show.distributors_in_stock',
-                                      )
-                                    : $t(
-                                          'catalog.sku_show.distributors_out_of_stock',
-                                      )
-                            }}
+                            {{ $t(stockBadge(link.in_stock).key) }}
                         </span>
                         <span
                             class="shrink-0 font-sans text-[12px] font-medium text-accent"

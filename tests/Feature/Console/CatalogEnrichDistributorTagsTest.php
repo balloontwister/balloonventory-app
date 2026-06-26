@@ -126,6 +126,35 @@ class CatalogEnrichDistributorTagsTest extends TestCase
         Http::assertNotSent(fn ($r) => str_contains($r->url(), '/products/betallic-foil-40.json'));
     }
 
+    public function test_tag_mode_skips_non_latex_product_types_despite_stray_latex_tag(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = $this->laBalloons();
+        // An accessory (glitter) whose product_type is NOT latex, but a stray tag
+        // mentions latex. The product_type gate must keep it out.
+        Http::fake([
+            'https://la-test.com/collections/all/products.json?limit=250&page=1' => Http::response(['products' => [[
+                'handle' => 'glitter-blue',
+                'title' => '1 oz. GLITTER - METALLIC BLUE',
+                'vendor' => 'LA Balloons',
+                'product_type' => 'Party Decoration',
+                'tags' => ['Color_Blue', 'compatible-with-latex'],
+                'variants' => [['sku' => '401736-PB']],
+            ]]], 200),
+            'https://la-test.com/collections/all/products.json?limit=250&page=2' => Http::response(['products' => []], 200),
+        ]);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame(0, DistributorProduct::count());
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '/products/glitter-blue.json'));
+    }
+
     public function test_tag_mode_stages_even_when_barcode_is_unavailable(): void
     {
         Http::preventStrayRequests();

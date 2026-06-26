@@ -171,20 +171,36 @@ class DistributorClusterEngine
     }
 
     /**
-     * The product type for a cluster — the first classified member (cross-distributor
-     * members of one UPC describe the same product, so they agree).
+     * The product type for a cluster. Cross-distributor members of one UPC are the
+     * same product, so a *confident* classification (anything other than unknown /
+     * non_balloon) is authoritative and wins over a member that merely couldn't be
+     * classified — otherwise a distributor whose page we read weakly (havinaparty,
+     * no attribute table) could, by appearing first, demote a real solid-latex
+     * cluster another distributor classified correctly. Falls back to the first
+     * weak type, then null.
      *
      * @param  array<int, array<string, mixed>>  $members
      */
     private function representativeProductType(array $members): ?string
     {
+        $weak = [DistributorProductClassifier::UNKNOWN, DistributorProductClassifier::NON_BALLOON];
+        $fallback = null;
+
         foreach ($members as $member) {
-            if (! empty($member['product_type'])) {
-                return $member['product_type'];
+            $type = $member['product_type'] ?? null;
+
+            if (empty($type)) {
+                continue;
             }
+
+            if (! in_array($type, $weak, true)) {
+                return $type;
+            }
+
+            $fallback ??= $type;
         }
 
-        return null;
+        return $fallback;
     }
 
     /**

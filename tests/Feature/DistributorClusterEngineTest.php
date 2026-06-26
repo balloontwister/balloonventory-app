@@ -102,6 +102,39 @@ class DistributorClusterEngineTest extends TestCase
         );
     }
 
+    public function test_confident_type_wins_over_a_weakly_classified_member(): void
+    {
+        // Same UPC, two distributors. The one read weakly (non_balloon — e.g. a
+        // table-less page) is staged FIRST, so it leads the member list; the
+        // cluster must still take the confident solid_latex classification.
+        $this->stage($this->bargain, [
+            'external_id' => 'weak-1', 'raw_sku' => 'BL-53012', 'normalized_sku' => '53012',
+            'upc' => '030625530125', 'title' => 'unreadable page', 'product_type' => 'non_balloon',
+        ]);
+        $this->stage($this->laballoons, [
+            'external_id' => 'good-1', 'raw_sku' => '53012-B', 'normalized_sku' => '53012',
+            'upc' => '030625530125', 'title' => '11 inch Sempertex Fashion Red Latex Balloons',
+            'product_type' => 'solid_latex',
+        ]);
+
+        $clusters = $this->engine->buildClusters(DistributorProduct::all());
+
+        $this->assertCount(1, $clusters);
+        $this->assertSame('solid_latex', $clusters->first()['product_type']);
+    }
+
+    public function test_cluster_with_only_weak_members_keeps_the_weak_type(): void
+    {
+        $this->stage($this->bargain, [
+            'external_id' => 'weak-only', 'raw_sku' => 'X', 'normalized_sku' => 'X',
+            'upc' => '030625530125', 'title' => 'novelty', 'product_type' => 'non_balloon',
+        ]);
+
+        $clusters = $this->engine->buildClusters(DistributorProduct::all());
+
+        $this->assertSame('non_balloon', $clusters->first()['product_type']);
+    }
+
     public function test_run_writes_a_pending_proposal_for_a_new_product(): void
     {
         $this->the100ctTrio();

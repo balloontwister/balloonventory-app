@@ -50,6 +50,10 @@ class DistributorAttributeMatcher
         'count' => 'Quantity',
         'packaging' => 'Package Type',
         'shape' => 'Balloon Type / Shape',
+        // The finish/texture line. Our colour names embed the finish ("Fashion
+        // Yellow"), so when a distributor splits it out ("Manufacturer Color:
+        // Yellow" + "Latex Finish: Fashion") we recompose it to match.
+        'texture' => 'Latex Finish',
     ];
 
     /**
@@ -101,7 +105,12 @@ class DistributorAttributeMatcher
                 ? $this->matchSize($sizeValue, $brandModel, $shapePrefix, $this->sizeNumberAliases($brandModel->name, $config))
                 : $this->none(),
             'color' => $brandModel instanceof Brand
-                ? $this->matchColor($this->value($attributes, $labels['color']), $brandModel, $aliases)
+                ? $this->matchColor(
+                    $this->value($attributes, $labels['color']),
+                    $this->value($attributes, $labels['texture']),
+                    $brandModel,
+                    $aliases,
+                )
                 : $this->none(),
             'packaging' => $this->matchAliased(
                 $this->value($attributes, $labels['packaging']),
@@ -288,12 +297,29 @@ class DistributorAttributeMatcher
     }
 
     /**
+     * Our colour names embed the finish ("Fashion Yellow", "Reflex Silver"). When a
+     * distributor splits the finish into its own field ("Manufacturer Color: Yellow"
+     * + "Latex Finish: Fashion"), recompose "{finish} {colour}" and try that first —
+     * it picks the right finish variant instead of fuzzy-matching some other yellow —
+     * then fall back to the base colour alone.
+     *
      * @param  array<string, mixed>  $aliases
      * @return AttributeMatch
      */
-    private function matchColor(?string $value, Brand $brand, array $aliases): array
+    private function matchColor(?string $value, ?string $finish, Brand $brand, array $aliases): array
     {
-        return $this->matchAliased($value, $this->data()['colors']->get($brand->id, collect()), $aliases['color'] ?? []);
+        $colors = $this->data()['colors']->get($brand->id, collect());
+        $aliasMap = $aliases['color'] ?? [];
+
+        if ($value !== null && $finish !== null && trim($finish) !== '') {
+            $combined = $this->matchAliased(trim($finish).' '.trim($value), $colors, $aliasMap);
+
+            if ($combined['model'] !== null) {
+                return $combined;
+            }
+        }
+
+        return $this->matchAliased($value, $colors, $aliasMap);
     }
 
     /**

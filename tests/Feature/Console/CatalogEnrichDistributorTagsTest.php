@@ -173,4 +173,57 @@ class CatalogEnrichDistributorTagsTest extends TestCase
         $this->assertNull($p->upc); // staged with attributes, just won't cluster
         $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $p->product_type);
     }
+
+    public function test_tag_mode_captures_stock_from_page_when_opted_in(): void
+    {
+        Http::preventStrayRequests();
+
+        // Opt the tag path into the one-extra page fetch for a stock signal.
+        $distributor = $this->laBalloons();
+        $config = $distributor->config;
+        $config['stock_from_page'] = true;
+        $distributor->update(['config' => $config]);
+
+        $product = $this->kalisanLatex();
+        Http::fake([
+            'https://la-test.com/collections/all/products.json?limit=250&page=1' => Http::response(['products' => [$product]], 200),
+            'https://la-test.com/collections/all/products.json?limit=250&page=2' => Http::response(['products' => []], 200),
+            'https://la-test.com/products/'.$product['handle'].'.json' => Http::response([
+                'product' => ['variants' => [['sku' => '12423596-KL', 'barcode' => '8694573303065']]],
+            ], 200),
+            // The HTML page renders a JSON-LD Offer with availability.
+            'https://la-test.com/products/'.$product['handle'] => Http::response(
+                '<script type="application/ld+json">{"@type":"Product","offers":{"availability":"https://schema.org/InStock"}}</script>',
+                200,
+            ),
+        ]);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertTrue(DistributorProduct::first()->in_stock);
+        Http::assertSent(fn ($r) => $r->url() === 'https://la-test.com/products/'.$product['handle']);
+    }
+
+    public function test_tag_mode_does_not_fetch_page_when_not_opted_in(): void
+    {
+        Http::preventStrayRequests();
+
+        // Default config (no stock_from_page) must not fetch the HTML page; the
+        // faked endpoints below deliberately omit it, so a fetch would error.
+        $distributor = $this->laBalloons();
+        $this->fakeCatalog($this->kalisanLatex(), ['sku' => '12423596-KL', 'barcode' => '8694573303065']);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertNull(DistributorProduct::first()->in_stock);
+        Http::assertNotSent(fn ($r) => $r->url() === 'https://la-test.com/products/kalisan-magenta-24');
+    }
 }

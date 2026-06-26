@@ -53,10 +53,77 @@ class BigCommerceProductPageParser
             'upc' => $this->extractUpc($bc, $sku),
             'title' => $this->firstNonEmpty([$ld['name'] ?? null]),
             'brand' => $this->extractBrand($ld),
+            // The category breadcrumb (e.g. Latex Balloons > … > Sempertex Latex >
+            // Red Fashion) — an authoritative material/brand/colour signal for
+            // stores with no attribute table. Excludes "Home" and the product leaf.
+            'categories' => $this->breadcrumbCategories($html),
             'price' => $this->extractPrice($bc, $ld),
             'stock' => $this->extractStockCount($bc),
             'in_stock' => $this->extractInStock($bc, $ld),
         ];
+    }
+
+    /**
+     * Category names from the JSON-LD BreadcrumbList, ordered top → leaf, with the
+     * "Home" root and the product leaf removed (so only real categories remain).
+     *
+     * @return array<int, string>
+     */
+    private function breadcrumbCategories(string $html): array
+    {
+        $list = $this->jsonLdBreadcrumb($html);
+
+        if ($list === null) {
+            return [];
+        }
+
+        $names = [];
+        foreach ($list['itemListElement'] ?? [] as $element) {
+            $name = $element['name'] ?? ($element['item']['name'] ?? null);
+            if (is_string($name) && trim($name) !== '') {
+                $names[] = trim($name);
+            }
+        }
+
+        // Drop the "Home" root and the product-name leaf — keep the categories.
+        if (($names[0] ?? null) !== null && strcasecmp($names[0], 'Home') === 0) {
+            array_shift($names);
+        }
+        array_pop($names);
+
+        return array_values($names);
+    }
+
+    /**
+     * The JSON-LD `BreadcrumbList` node (bare object or inside an `@graph`).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function jsonLdBreadcrumb(string $html): ?array
+    {
+        if (! preg_match_all('#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', $html, $matches)) {
+            return null;
+        }
+
+        foreach ($matches[1] as $block) {
+            $data = json_decode(trim($block), true);
+
+            if (! is_array($data)) {
+                continue;
+            }
+
+            if (($data['@type'] ?? null) === 'BreadcrumbList') {
+                return $data;
+            }
+
+            foreach ($data['@graph'] ?? [] as $node) {
+                if (is_array($node) && ($node['@type'] ?? null) === 'BreadcrumbList') {
+                    return $node;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function extractUpc(array $bc, string $sku): ?string

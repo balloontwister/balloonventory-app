@@ -2,35 +2,38 @@
 
 namespace App\Services\Distributors;
 
+use App\Services\DistributorPlatforms\BigCommerceProductPageParser;
+
 /**
- * Derives a product's attributes from its TITLE + brand, for BigCommerce stores
- * that render NO structured attribute table (havinaparty: identity comes from
- * BCData/JSON-LD, but size/colour/type live only in the title like
- * `11"S Red Fashion (100 count)`). Emits the SAME canonical label → value(s) map
+ * Derives a product's attributes for BigCommerce stores that render NO structured
+ * attribute table (havinaparty), emitting the SAME canonical label → value(s) map
  * that {@see ProductAttributeTableExtractor} and {@see ShopifyTagAttributeExtractor}
- * produce, so the classifier, matcher, clustering and accuracy gate run unchanged.
+ * produce — so the classifier, matcher, clustering and accuracy gate run unchanged.
  *
- * This first increment resolves the fields needed to CLASSIFY the product
- * correctly — Brand, Balloon Material (latex vs foil), a printed-theme signal, and
- * Quantity. Getting the type right matters beyond proposals: a cluster's type is
- * taken from its first classified member, so a mis-typed havinaparty row could
- * otherwise demote a real solid-latex cluster shared with another distributor.
- * Size/colour parsing from the title code system (`11"S`, `160K`) is a later
- * increment; until then those products resolve on brand/count + a sibling's
- * attributes.
+ * Two page sources (both parsed by {@see BigCommerceProductPageParser}):
+ *  - the JSON-LD **BreadcrumbList** category path — authoritative for material and
+ *    colour, e.g. `Latex Balloons > Shop by Brand > Sempertex Latex > Red Fashion`;
+ *  - the **title** (`11"S Red Fashion (100 count)`) — for size + pack count;
+ *  - the JSON-LD **brand**.
  *
- * The recipe lives at config `extraction.title_attributes`:
- *   'extraction' => [
- *     'title_attributes' => [
- *       // title substrings (case-insensitive) that mark a FOIL product
- *       'foil_keywords' => ['air-fill', 'air fill', 'foil', 'mylar', 'orbz', 'sphere'],
- *       // brands whose latex line is the default when no foil signal is present
- *       'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex'],
- *       // title substrings that mark a PRINTED (themed) latex product
- *       'printed_keywords' => ['happy birthday', 'christmas', 'halloween'],
- *       'required_labels' => ['Balloon Material'],
- *       'min_rows' => 1,
- *     ],
+ * Title keywords (foil signals, latex brands) are a fallback only when the
+ * breadcrumb is absent. Getting the type right matters beyond proposals: a
+ * cluster's type is taken from its first classified member, so a mis-typed
+ * havinaparty row could otherwise demote a real solid-latex cluster shared with
+ * another distributor.
+ *
+ * Recipe at config `extraction.title_attributes`:
+ *   'title_attributes' => [
+ *     // breadcrumb top-category substring => Balloon Material (primary signal)
+ *     'category_material_map' => ['Latex Balloons' => 'Latex', 'Foil Balloons' => 'Foil', 'Mylar' => 'Foil', 'Bubble' => 'Plastic'],
+ *     // breadcrumb nodes that mark a printed product (their spelling)
+ *     'printed_categories' => ['Printed', 'Special Occassion', 'Shop by Prints'],
+ *     // FALLBACKS when no breadcrumb:
+ *     'foil_keywords' => ['air-fill', 'foil', 'mylar', 'orbz', 'sphere'],
+ *     'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex'],
+ *     'printed_keywords' => ['happy birthday', 'christmas'],
+ *     'required_labels' => ['Balloon Material'],
+ *     'min_rows' => 1,
  *   ]
  *
  * @phpstan-type ExtractionResult array{
@@ -44,7 +47,7 @@ namespace App\Services\Distributors;
 class TitleAttributeExtractor
 {
     /**
-     * @param  array<string, mixed>  $parsed  parsed page fields (title, brand) from BigCommerceProductPageParser
+     * @param  array<string, mixed>  $parsed  parsed page fields (title, brand, categories)
      * @param  array<string, mixed>  $config  the distributor's config
      * @return ExtractionResult
      */
@@ -58,6 +61,11 @@ class TitleAttributeExtractor
 
         $title = trim((string) ($parsed['title'] ?? ''));
         $brand = trim((string) ($parsed['brand'] ?? ''));
+        /** @var array<int, string> $categories */
+        $categories = array_values(array_filter(array_map(
+            fn ($c) => trim((string) $c),
+            (array) ($parsed['categories'] ?? []),
+        )));
 
         if ($title === '') {
             return $this->emptyResult(hasRecipe: true);
@@ -69,15 +77,27 @@ class TitleAttributeExtractor
             $attributes['Brand'] = [$brand];
         }
 
-        $material = $this->material($title, $brand, $recipe);
+        $material = $this->material($categories, $title, $brand, $recipe);
         if ($material !== null) {
             $attributes['Balloon Material'] = [$material];
         }
 
-        // A themed latex product is printed; the classifier reads Occasion / Theme.
-        $theme = $this->theme($title, $recipe);
+        // Themed/printed latex → the classifier reads Occasion / Theme.
+        $theme = $this->theme($categories, $title, $recipe);
         if ($theme !== null) {
             $attributes['Occasion / Theme'] = [$theme];
+        }
+
+        // Colour comes from the breadcrumb leaf for solid latex (`… > Sempertex
+        // Latex > Red Fashion`); foil/printed paths carry a theme node instead.
+        $color = $this->color($categories, $material, $theme);
+        if ($color !== null) {
+            $attributes['Color'] = [$color];
+        }
+
+        $size = $this->size($title);
+        if ($size !== null) {
+            $attributes['Size'] = [$size];
         }
 
         $count = $this->count($title);
@@ -100,16 +120,23 @@ class TitleAttributeExtractor
     }
 
     /**
-     * Latex vs foil. Foil signals (air-fill, letters/numbers, shapes) win first —
-     * a latex brand can still sell foil letters — then a latex brand defaults to
-     * latex. Returns null when neither is determinable.
+     * Latex vs foil. The breadcrumb's top category is authoritative; fall back to
+     * title foil-keywords (a latex brand can still sell foil letters) then a latex
+     * brand default. Returns null when nothing is determinable.
      *
+     * @param  array<int, string>  $categories
      * @param  array<string, mixed>  $recipe
      */
-    private function material(string $title, string $brand, array $recipe): ?string
+    private function material(array $categories, string $title, string $brand, array $recipe): ?string
     {
-        $haystack = strtolower($title);
+        $top = $categories[0] ?? '';
+        foreach ((array) ($recipe['category_material_map'] ?? []) as $needle => $material) {
+            if ($needle !== '' && stripos($top, (string) $needle) !== false) {
+                return (string) $material;
+            }
+        }
 
+        $haystack = strtolower($title);
         foreach ((array) ($recipe['foil_keywords'] ?? []) as $keyword) {
             if ($keyword !== '' && str_contains($haystack, strtolower((string) $keyword))) {
                 return 'Foil';
@@ -126,18 +153,62 @@ class TitleAttributeExtractor
     }
 
     /**
-     * The first printed-theme keyword present in the title, or null.
+     * A printed-theme signal from a breadcrumb node, then a title keyword. Null
+     * when the product is solid.
      *
+     * @param  array<int, string>  $categories
      * @param  array<string, mixed>  $recipe
      */
-    private function theme(string $title, array $recipe): ?string
+    private function theme(array $categories, string $title, array $recipe): ?string
     {
-        $haystack = strtolower($title);
+        foreach ($categories as $category) {
+            foreach ((array) ($recipe['printed_categories'] ?? []) as $needle) {
+                if ($needle !== '' && stripos($category, (string) $needle) !== false) {
+                    return $category;
+                }
+            }
+        }
 
+        $haystack = strtolower($title);
         foreach ((array) ($recipe['printed_keywords'] ?? []) as $keyword) {
             if ($keyword !== '' && str_contains($haystack, strtolower((string) $keyword))) {
                 return (string) $keyword;
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * Colour from the breadcrumb leaf, only for solid latex — the leaf is the
+     * colour node (`Red Fashion`) under `… > {Brand} Latex`. Skips brand/nav nodes
+     * and anything already flagged as a theme.
+     *
+     * @param  array<int, string>  $categories
+     */
+    private function color(array $categories, ?string $material, ?string $theme): ?string
+    {
+        if ($material !== 'Latex' || $theme !== null || $categories === []) {
+            return null;
+        }
+
+        $leaf = (string) end($categories);
+
+        // A "{Brand} Latex" or "Shop by Brand" navigation node is not a colour.
+        if (preg_match('/\blatex\b/i', $leaf) === 1 || strcasecmp($leaf, 'Shop by Brand') === 0) {
+            return null;
+        }
+
+        return $leaf !== '' ? $leaf : null;
+    }
+
+    /**
+     * The leading size number of the title (`11"S …` → 11, `160K …` → 160).
+     */
+    private function size(string $title): ?string
+    {
+        if (preg_match('/^\s*(\d+)/', $title, $m) === 1) {
+            return $m[1];
         }
 
         return null;

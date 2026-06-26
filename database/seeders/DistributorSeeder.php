@@ -150,18 +150,30 @@ class DistributorSeeder extends Seeder
                     // (material/printed) + count.
                     'extraction' => [
                         'title_attributes' => [
-                            // Foil signals win first — a latex brand can still sell
-                            // foil letters/numbers/shapes.
+                            // PRIMARY: the JSON-LD breadcrumb's top category is the
+                            // authoritative material (Home > Latex Balloons > …).
+                            'category_material_map' => [
+                                'Latex Balloons' => 'Latex',
+                                'Foil Balloons' => 'Foil',
+                                'Mylar' => 'Foil',
+                                'Bubble' => 'Plastic',
+                            ],
+                            // Breadcrumb nodes that mark a printed product (note the
+                            // site's "Occassion" spelling).
+                            'printed_categories' => [
+                                'Printed', 'Special Occassion', 'Special Occasion', 'Shop by Prints',
+                            ],
+                            // FALLBACKS when a page has no breadcrumb. Foil signals
+                            // win first — a latex brand can still sell foil letters.
                             'foil_keywords' => [
                                 'air-fill', 'air fill', 'air filled', 'air-filled',
                                 'foil', 'mylar', 'orbz', 'sphere', 'bubble',
                             ],
-                            // Latex brands default to latex when no foil signal.
-                            'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Betallatex', 'Gemar'],
+                            'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Betallatex', 'Gemar', 'Brookloon'],
                             'printed_keywords' => [
-                                'happy birthday', 'birthday', 'christmas', 'halloween',
+                                'happy birthday', 'christmas', 'halloween',
                                 'thanksgiving', 'welcome', 'mothers day', 'fathers day',
-                                'baby', 'graduation', 'anniversary', 'valentine',
+                                'graduation', 'anniversary', 'valentine',
                             ],
                             'required_labels' => ['Balloon Material'],
                             'min_rows' => 1,

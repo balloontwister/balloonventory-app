@@ -71,7 +71,7 @@ class TitleAttributeExtractorTest extends TestCase
         $this->assertSame(['Sempertex'], $result['attributes']['Brand']);
         $this->assertSame(['Latex'], $result['attributes']['Balloon Material']);
         $this->assertSame(['Red Fashion'], $result['attributes']['Color']);
-        $this->assertSame(['11'], $result['attributes']['Size']);
+        $this->assertSame(['11"'], $result['attributes']['Size']); // inch mark kept → normalises to 11in
         $this->assertSame(['Round'], $result['attributes']['Balloon Type / Shape']); // default
         $this->assertSame(['100'], $result['attributes']['Quantity']);
         $this->assertArrayNotHasKey('Occasion / Theme', $result['attributes']);
@@ -103,7 +103,7 @@ class TitleAttributeExtractorTest extends TestCase
         $result = $this->extract($parsed);
 
         $this->assertSame(['Matte Blue'], $result['attributes']['Color']);
-        $this->assertSame(['17'], $result['attributes']['Size']);
+        $this->assertSame(['17"'], $result['attributes']['Size']);
     }
 
     public function test_colour_from_title_strips_packaging_words(): void
@@ -180,6 +180,15 @@ class TitleAttributeExtractorTest extends TestCase
         // Latex brand, no foil signal → latex.
         $latex = ['title' => '24K Fuchsia Standard (2 count)', 'brand' => 'Kalisan'];
         $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $this->classify($latex));
+    }
+
+    public function test_size_keeps_inch_mark_for_round_but_not_for_modeling_codes(): void
+    {
+        $round = ['title' => '5"K Pink Blush Standard (100 count)', 'brand' => 'Kalisan', 'categories' => ['Latex Balloons']];
+        $this->assertSame(['5"'], $this->extract($round)['attributes']['Size']);
+
+        $modeling = ['title' => '160K Mirror Silver Nozzle Up (50 count)', 'brand' => 'Kalisan', 'categories' => ['Latex Balloons']];
+        $this->assertSame(['160'], $this->extract($modeling)['attributes']['Size']);
     }
 
     public function test_unknown_brand_without_signal_has_no_material(): void

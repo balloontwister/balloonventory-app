@@ -259,12 +259,15 @@ class TitleAttributeExtractor
     }
 
     /**
-     * The leading size number of the title (`11"S …` → 11, `160K …` → 160).
+     * The leading size of the title, KEEPING the inch mark when present so the
+     * matcher normalises it to inches: `11"S …` → `11"` (→ 11in, matches our
+     * `5-inch (K)` / shape-prefixed names), while a modeling code `160K …` → `160`
+     * (no unit, matches our `160K`).
      */
     private function size(string $title): ?string
     {
-        if (preg_match('/^\s*(\d+)/', $title, $m) === 1) {
-            return $m[1];
+        if (preg_match('/^\s*(\d+)\s*(["”″])?/u', $title, $m) === 1) {
+            return $m[1].(($m[2] ?? '') !== '' ? '"' : '');
         }
 
         return null;

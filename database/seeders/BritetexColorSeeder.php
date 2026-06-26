@@ -56,9 +56,11 @@ class BritetexColorSeeder extends Seeder
     private function colorData(): array
     {
         return [
+            ['name' => 'Black',  'family' => 'Blacks',  'hex' => '#1A1A1E', 'sort_order' => 5],
             ['name' => 'Blue',   'family' => 'Blues',   'hex' => '#2D6FBF', 'sort_order' => 10],
             ['name' => 'Blush',  'family' => 'Pinks',   'hex' => '#E8B7B0', 'sort_order' => 20],
             ['name' => 'Brown',  'family' => 'Browns',  'hex' => '#6B4A33', 'sort_order' => 30],
+            ['name' => 'Clear',  'family' => 'Clears',  'hex' => '#E8EEF2', 'sort_order' => 35],
             ['name' => 'Gold',   'family' => 'Golds',   'hex' => '#D4AF37', 'sort_order' => 40],
             ['name' => 'Gray',   'family' => 'Blacks',  'hex' => '#9E9EA3', 'sort_order' => 50],
             ['name' => 'Green',  'family' => 'Greens',  'hex' => '#2E9E4F', 'sort_order' => 60],

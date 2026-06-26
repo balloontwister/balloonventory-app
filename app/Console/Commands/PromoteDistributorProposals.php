@@ -12,7 +12,7 @@ class PromoteDistributorProposals extends Command
                             {--execute : Create catalog SKUs (omit for dry-run)}
                             {--brand= : Only promote proposals for this brand (case-insensitive match against evidence titles)}';
 
-    protected $description = 'Auto-create catalog SKUs from high-confidence distributor proposals.';
+    protected $description = 'Auto-create catalog SKUs from high-confidence distributor proposals that clear the accuracy gate (multi-source attribute agreement + GS1 brand check). Human-approved proposals promote regardless.';
 
     public function handle(DistributorCatalogPromoter $promoter): int
     {
@@ -54,6 +54,15 @@ class PromoteDistributorProposals extends Command
         foreach ($proposals as $proposal) {
             if ($dryRun) {
                 $promoter->canPromote($proposal) ? $created++ : $leftPending++;
+
+                continue;
+            }
+
+            // Only auto-create what clears the accuracy gate; everything else is
+            // left pending for the review queue. (Human-approved proposals bypass
+            // the gate inside canPromote — the reviewer is the corroboration.)
+            if (! $promoter->canPromote($proposal)) {
+                $leftPending++;
 
                 continue;
             }

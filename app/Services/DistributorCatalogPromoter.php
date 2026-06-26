@@ -30,10 +30,17 @@ class DistributorCatalogPromoter
         private CatalogAttributeResolver $resolver,
         private Distributors\DistributorAttributeMatcher $matcher,
         private Distributors\IdenticalSkuFinder $identicalFinder,
+        private Distributors\Gs1BrandRegistry $gs1Registry,
     ) {}
 
     /**
-     * True when the proposal can be safely auto-created right now (no writes).
+     * True when the proposal can be safely AUTO-created right now (no writes).
+     *
+     * Beyond resolving every required attribute, an automatic (non-human) create
+     * must clear the accuracy gate: identity ("high confidence") confirms a shared
+     * UPC, but the attributes still need corroboration before we add a new product
+     * to the master catalog. A human-vouched proposal (approved / manually mapped)
+     * bypasses the gate — the reviewer is the corroboration.
      */
     public function canPromote(DistributorCatalogProposal $proposal): bool
     {
@@ -43,9 +50,113 @@ class DistributorCatalogPromoter
 
         $resolved = $this->resolveAttributes($proposal);
 
-        return $resolved['brand'] !== null
-            && $resolved['balloonSize'] !== null
-            && $resolved['color'] !== null;
+        if ($resolved['brand'] === null || $resolved['balloonSize'] === null || $resolved['color'] === null) {
+            return false;
+        }
+
+        return $this->isHumanVouched($proposal) || $this->passesAccuracyGate($proposal, $resolved);
+    }
+
+    /**
+     * The auto-create accuracy gate (Todd's policy in distributor_operations_prompt.md).
+     * Both checks must hold for an unattended create:
+     *
+     *  - Multi-source attribute agreement: ≥2 distributors expose attribute tables
+     *    that resolve to the SAME brand/size/colour. A single attribute source is
+     *    review material, not auto-create material — its mis-attribution would be
+     *    copied faithfully.
+     *  - GS1 prefix → brand sanity: the resolved brand must not contradict the
+     *    barcode's known manufacturer prefix.
+     *
+     * @param  array{brand: ?Brand, balloonSize: ?BalloonSize, color: ?Color, packaging: ?PackagingType}  $resolved
+     */
+    private function passesAccuracyGate(DistributorCatalogProposal $proposal, array $resolved): bool
+    {
+        if (! $this->multiSourceAgrees($proposal)) {
+            return false;
+        }
+
+        if ($resolved['brand'] !== null && $this->gs1Conflicts($proposal, $resolved['brand'])) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether ≥2 distinct distributors expose an attribute table for this cluster
+     * AND those tables resolve to the same brand + size + colour. Each member's
+     * attributes are already stored in the proposal evidence, matched here with
+     * that distributor's own alias map.
+     */
+    private function multiSourceAgrees(DistributorCatalogProposal $proposal): bool
+    {
+        $resolvedPerDistributor = [];
+
+        foreach ($proposal->evidence ?? [] as $member) {
+            if (empty($member['attributes']) || empty($member['distributor_id'])) {
+                continue;
+            }
+
+            // One resolution per distributor (the first attributed listing).
+            if (isset($resolvedPerDistributor[$member['distributor_id']])) {
+                continue;
+            }
+
+            $config = Distributor::find($member['distributor_id'])?->config ?? [];
+            $match = $this->matcher->match($member['attributes'], $config);
+
+            $resolvedPerDistributor[$member['distributor_id']] = [
+                'brand' => $match['brand']['model']?->id,
+                'size' => $match['balloon_size']['model']?->id,
+                'color' => $match['color']['model']?->id,
+            ];
+        }
+
+        if (count($resolvedPerDistributor) < 2) {
+            return false;
+        }
+
+        $tuples = array_values($resolvedPerDistributor);
+        $first = $tuples[0];
+
+        // Every attribute must resolve and every source must agree.
+        if ($first['brand'] === null || $first['size'] === null || $first['color'] === null) {
+            return false;
+        }
+
+        foreach ($tuples as $tuple) {
+            if ($tuple !== $first) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Does the resolved brand contradict the barcode's known GS1 company prefix?
+     */
+    private function gs1Conflicts(DistributorCatalogProposal $proposal, Brand $brand): bool
+    {
+        $barcode = $this->originalUpc($proposal) ?? Gtin::digitsOnly((string) $proposal->upc);
+
+        return $this->gs1Registry->conflictsWith($barcode, $brand->name);
+    }
+
+    /**
+     * Has a human vouched for this proposal? An approved status, a recorded
+     * reviewer, or any manually-pinned attribute means the accuracy gate is
+     * already satisfied by the reviewer and should not block creation.
+     */
+    private function isHumanVouched(DistributorCatalogProposal $proposal): bool
+    {
+        return $proposal->status === DistributorCatalogProposal::STATUS_APPROVED
+            || $proposal->reviewed_by !== null
+            || $proposal->proposed_brand_id !== null
+            || $proposal->proposed_balloon_size_id !== null
+            || $proposal->proposed_color_id !== null
+            || $proposal->proposed_packaging_id !== null;
     }
 
     /**

@@ -220,6 +220,12 @@ function altCount(item, attr) {
     return g?.candidates ? Math.max(0, g.candidates.length - 1) : 0;
 }
 
+// Colour suggestions read from the product title (not the structured field) carry
+// source === 'title' — flag them so the reviewer knows where the shade came from.
+function titleSourced(item, attr) {
+    return !manualName(item, attr) && guessAttr(item, attr)?.source === 'title';
+}
+
 function displayCount(item) {
     return item.proposed_count ?? guessAttr(item, 'count') ?? null;
 }
@@ -496,6 +502,13 @@ function formatPrice(price) {
                                                     :class="mappedName(item, attr) ? 'text-ink-primary' : 'text-ink-tertiary'"
                                                 >
                                                     {{ mappedName(item, attr) ?? '—' }}
+                                                </span>
+                                                <span
+                                                    v-if="titleSourced(item, attr)"
+                                                    class="rounded bg-border-subtle px-1 text-[9px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                                    :title="$t('super_admin.dashboard.distributors.proposals.from_title')"
+                                                >
+                                                    name
                                                 </span>
                                                 <button
                                                     v-if="altCount(item, attr) > 0"

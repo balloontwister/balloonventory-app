@@ -32,6 +32,9 @@ use Illuminate\Validation\ValidationException;
  */
 class DistributorProposalReviewService
 {
+    /** Brand-filter sentinel for "proposals with no resolved brand". */
+    public const NO_BRAND_FILTER = '__none__';
+
     public function __construct(
         private DistributorCatalogPromoter $promoter,
         private DistributorAttributeMatcher $matcher,
@@ -59,14 +62,19 @@ class DistributorProposalReviewService
             )
             ->when(
                 ($filters['brand'] ?? null),
-                // Text search across the cluster's titles. Evidence is stored as
-                // JSON text, so a LIKE catches the brand name wherever it appears
-                // (proposed_name or any member title).
-                fn ($q, $brand) => $q->where(fn ($inner) => $inner
-                    ->where('proposed_name', 'like', "%{$brand}%")
-                    ->orWhere('evidence', 'like', "%{$brand}%")),
+                // Exact match on the resolved brand (the facet supplies the value);
+                // the sentinel groups the proposals we couldn't resolve a brand for.
+                fn ($q, $brand) => $brand === self::NO_BRAND_FILTER
+                    ? $q->whereNull('resolved_brand_name')
+                    : $q->where('resolved_brand_name', $brand),
             )
+            // Pending first (they need action); within that, fully-resolved
+            // "one-click" proposals first, then grouped by brand and by product
+            // number so pack-size variants sit together.
             ->orderByRaw($this->statusPriorityOrder())
+            ->orderByRaw($this->resolutionStateOrder())
+            ->orderBy('resolved_brand_name')
+            ->orderBy('normalized_sku')
             ->orderByDesc('created_at')
             ->paginate(50)
             ->withQueryString();
@@ -114,39 +122,32 @@ class DistributorProposalReviewService
      */
     public function referenceGaps(): array
     {
-        $proposals = DistributorCatalogProposal::pending()->get(['id', 'evidence']);
-
-        $distributorIds = $proposals
-            ->flatMap(fn (DistributorCatalogProposal $p) => collect($p->evidence ?? [])->pluck('distributor_id'))
-            ->filter()->unique();
-        $configs = Distributor::whereIn('id', $distributorIds)->get(['id', 'config'])->keyBy('id');
+        $proposals = DistributorCatalogProposal::pending()->get(['resolved_brand_name', 'resolution']);
 
         $brands = [];
         $sizes = [];
         $colors = [];
 
         foreach ($proposals as $proposal) {
-            $member = collect($proposal->evidence ?? [])->first(fn (array $m) => ! empty($m['attributes']));
+            $detail = $proposal->resolution ?? [];
+            $brand = $detail['brand'] ?? null;
 
-            if ($member === null) {
+            if ($brand === null) {
                 continue;
             }
 
-            $match = $this->matcher->match($member['attributes'], $configs->get($member['distributor_id'])?->config ?? []);
-
-            if ($match['brand']['model'] === null) {
-                if ($match['brand']['value'] !== null) {
-                    $brands[$match['brand']['value']] = ($brands[$match['brand']['value']] ?? 0) + 1;
+            if (array_key_exists('value', $brand)) {
+                // Brand itself unresolved — the missing brand is what to add first;
+                // its (brand-scoped) size/colour gaps aren't meaningful yet.
+                if ($brand['value'] !== null) {
+                    $brands[$brand['value']] = ($brands[$brand['value']] ?? 0) + 1;
                 }
 
-                // Without a brand, size/colour gaps aren't meaningful (they're
-                // brand-scoped) — the missing brand is the thing to add first.
                 continue;
             }
 
-            $brandName = $match['brand']['model']->name;
-            $this->tallyGap($sizes, $match['balloon_size'], $brandName);
-            $this->tallyGap($colors, $match['color'], $brandName);
+            $this->tallyDetailGap($sizes, $detail['size'] ?? null, $proposal->resolved_brand_name);
+            $this->tallyDetailGap($colors, $detail['color'] ?? null, $proposal->resolved_brand_name);
         }
 
         return [
@@ -157,18 +158,48 @@ class DistributorProposalReviewService
     }
 
     /**
-     * @param  array<string, array{value: string, brand: string, count: int}>  $bucket
-     * @param  array{model: ?Model, value: ?string}  $match
+     * Pending-proposal facets for the queue header: how many proposals resolve to
+     * each brand, and the full/partial/no_brand split. Cheap GROUP BYs over the
+     * stored resolution columns (no matcher).
+     *
+     * @return array{brands: array<int, array{name: ?string, count: int}>, states: array<string, int>}
      */
-    private function tallyGap(array &$bucket, array $match, string $brandName): void
+    public function facets(): array
     {
-        if ($match['model'] !== null || $match['value'] === null) {
+        $brands = DistributorCatalogProposal::pending()
+            ->selectRaw('resolved_brand_name as name, count(*) as total')
+            ->groupBy('resolved_brand_name')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => ['name' => $row->name, 'count' => (int) $row->total])
+            ->all();
+
+        $states = DistributorCatalogProposal::pending()
+            ->selectRaw('resolution_state as state, count(*) as total')
+            ->groupBy('resolution_state')
+            ->pluck('total', 'state')
+            ->map(fn ($total) => (int) $total)
+            ->all();
+
+        return ['brands' => $brands, 'states' => $states];
+    }
+
+    /**
+     * Tally a stored resolution attribute that's still an unresolved distributor
+     * value (missing reference data) against its brand.
+     *
+     * @param  array<string, array{value: string, brand: string, count: int}>  $bucket
+     * @param  array<string, mixed>|null  $attr  a resolution detail entry ({id,name} resolved, or {value} not)
+     */
+    private function tallyDetailGap(array &$bucket, ?array $attr, ?string $brandName): void
+    {
+        if ($attr === null || ! array_key_exists('value', $attr) || $attr['value'] === null) {
             return;
         }
 
-        $key = $brandName.'|'.$match['value'];
+        $key = $brandName.'|'.$attr['value'];
         $bucket[$key] = [
-            'value' => $match['value'],
+            'value' => $attr['value'],
             'brand' => $brandName,
             'count' => ($bucket[$key]['count'] ?? 0) + 1,
         ];
@@ -335,6 +366,8 @@ class DistributorProposalReviewService
             'normalized_sku' => $proposal->normalized_sku,
             'status' => $proposal->status,
             'confidence' => $proposal->confidence,
+            'resolved_brand_name' => $proposal->resolved_brand_name,
+            'resolution_state' => $proposal->resolution_state,
             'proposed_name' => $proposal->proposed_name,
             'proposed_count' => $proposal->proposed_count,
             'proposed_warehouse_sku' => $proposal->proposed_warehouse_sku,
@@ -497,5 +530,18 @@ class DistributorProposalReviewService
             WHEN 'approved' THEN 2
             WHEN 'rejected' THEN 3
             ELSE 4 END";
+    }
+
+    /**
+     * Fully-resolved (one-click) proposals first, then brand-only partials, then
+     * the no-brand ones. NULLs (un-clustered legacy rows) sort last.
+     */
+    private function resolutionStateOrder(): string
+    {
+        return "CASE resolution_state
+            WHEN 'full' THEN 0
+            WHEN 'partial' THEN 1
+            WHEN 'no_brand' THEN 2
+            ELSE 3 END";
     }
 }

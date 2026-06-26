@@ -371,13 +371,71 @@ class DistributorProposalControllerTest extends TestCase
                 ->where('proposals.data.0.guess.color.source', 'title'));
     }
 
+    public function test_index_exposes_brand_and_state_facets(): void
+    {
+        $distributor = Distributor::factory()->bigcommerce()->create();
+        $make = fn (array $extra) => DistributorCatalogProposal::factory()->create($extra + [
+            'evidence' => [['distributor_id' => $distributor->id, 'title' => 'x']],
+        ]);
+
+        $make(['resolved_brand_name' => 'Sempertex', 'resolution_state' => 'full']);
+        $make(['resolved_brand_name' => 'Sempertex', 'resolution_state' => 'partial']);
+        $make(['resolved_brand_name' => 'Britetex', 'resolution_state' => 'full']);
+        $make(['resolved_brand_name' => null, 'resolution_state' => 'no_brand']);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('facets.brands.0.name', 'Sempertex') // most proposals
+                ->where('facets.brands.0.count', 2)
+                ->where('facets.states.full', 2)
+                ->where('facets.states.partial', 1)
+                ->where('facets.states.no_brand', 1));
+    }
+
+    public function test_pending_proposals_sort_fully_resolved_first(): void
+    {
+        $distributor = Distributor::factory()->bigcommerce()->create();
+        $make = fn (string $state) => DistributorCatalogProposal::factory()->create([
+            'resolution_state' => $state,
+            'evidence' => [['distributor_id' => $distributor->id, 'title' => 'x']],
+        ]);
+
+        $make('no_brand');
+        $make('partial');
+        $make('full');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('proposals.data.0.status', 'pending')
+                ->where('proposals.data.0.id', DistributorCatalogProposal::where('resolution_state', 'full')->value('id'))
+                ->where('proposals.data.2.id', DistributorCatalogProposal::where('resolution_state', 'no_brand')->value('id')));
+    }
+
+    public function test_brand_filter_matches_the_resolved_brand_exactly(): void
+    {
+        $distributor = Distributor::factory()->bigcommerce()->create();
+        DistributorCatalogProposal::factory()->create(['resolved_brand_name' => 'Sempertex', 'evidence' => [['distributor_id' => $distributor->id]]]);
+        DistributorCatalogProposal::factory()->create(['resolved_brand_name' => 'Britetex', 'evidence' => [['distributor_id' => $distributor->id]]]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.distributors.proposals.index', ['brand' => 'Britetex']))
+            ->assertInertia(fn ($page) => $page
+                ->has('proposals.data', 1)
+                ->where('proposals.data.0.resolved_brand_name', 'Britetex'));
+    }
+
     public function test_index_surfaces_missing_reference_data_as_gaps(): void
     {
         $distributor = Distributor::factory()->bigcommerce()->create();
 
         // Two proposals naming a brand we don't have — should aggregate as one
-        // brand gap with a count of 2.
+        // brand gap with a count of 2. Gaps now read the resolution stamped at
+        // cluster time, so an unresolved brand is stored as a {value} detail.
         DistributorCatalogProposal::factory()->count(2)->create([
+            'resolution_state' => DistributorCatalogProposal::RESOLUTION_NO_BRAND,
+            'resolution' => ['brand' => ['value' => 'Elitex']],
             'evidence' => [[
                 'distributor_id' => $distributor->id,
                 'title' => 'x',

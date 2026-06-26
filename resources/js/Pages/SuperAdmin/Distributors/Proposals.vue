@@ -11,8 +11,11 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     references: { type: Object, required: true },
     gaps: { type: Object, default: () => ({ brands: [], sizes: [], colors: [] }) },
+    facets: { type: Object, default: () => ({ brands: [], states: {} }) },
     pendingCount: { type: Number, default: 0 },
 });
+
+const NO_BRAND = '__none__';
 
 // ── Missing reference data (matcher gap report) ────────────────────────────────
 const showGaps = ref(false);
@@ -56,6 +59,13 @@ watch(brandFilter, () => {
     clearTimeout(brandDebounce);
     brandDebounce = setTimeout(applyFilters, 350);
 });
+
+// Brand facet click: jump straight to that brand's group (no debounce wait).
+function filterByBrand(name) {
+    brandFilter.value = name;
+    clearTimeout(brandDebounce);
+    applyFilters();
+}
 
 watch([statusFilter, confidenceFilter], applyFilters);
 
@@ -375,6 +385,56 @@ function formatPrice(price) {
                     <p class="font-sans text-[13px] text-ink-secondary">
                         {{ $t('super_admin.dashboard.distributors.proposals.subheading') }}
                     </p>
+
+                    <!-- Brand facet: jump to a brand's group; counts come from the
+                         resolution stamped at cluster time. -->
+                    <div v-if="facets.brands.length" class="mt-3 flex flex-wrap items-center gap-1.5">
+                        <span class="mr-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
+                            {{ $t('super_admin.dashboard.distributors.proposals.facet_brand') }}
+                        </span>
+                        <button
+                            type="button"
+                            class="rounded-full px-2.5 py-1 font-sans text-[12px]"
+                            :class="!brandFilter ? 'bg-accent text-white' : 'border border-border-strong bg-surface text-ink-secondary hover:border-accent'"
+                            @click="filterByBrand('')"
+                        >
+                            {{ $t('super_admin.dashboard.distributors.proposals.facet_all') }}
+                        </button>
+                        <button
+                            v-for="b in facets.brands"
+                            :key="b.name ?? NO_BRAND"
+                            type="button"
+                            class="rounded-full px-2.5 py-1 font-sans text-[12px]"
+                            :class="brandFilter === (b.name ?? NO_BRAND) ? 'bg-accent text-white' : 'border border-border-strong bg-surface text-ink-secondary hover:border-accent'"
+                            @click="filterByBrand(b.name ?? NO_BRAND)"
+                        >
+                            {{ b.name ?? $t('super_admin.dashboard.distributors.proposals.facet_no_brand') }}
+                            <span :class="brandFilter === (b.name ?? NO_BRAND) ? 'text-white/75' : 'text-ink-tertiary'">{{ b.count }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Resolution split: how many of the pending are one-click vs need work. -->
+                    <div v-if="facets.brands.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span
+                            v-if="facets.states.full"
+                            class="rounded-full bg-success-soft px-2 py-0.5 font-sans text-[11px] font-semibold text-success"
+                        >
+                            {{ facets.states.full }} {{ $t('super_admin.dashboard.distributors.proposals.state_full') }}
+                        </span>
+                        <span
+                            v-if="facets.states.partial"
+                            class="rounded-full bg-warning-soft px-2 py-0.5 font-sans text-[11px] font-semibold text-warning"
+                        >
+                            {{ facets.states.partial }} {{ $t('super_admin.dashboard.distributors.proposals.state_partial') }}
+                        </span>
+                        <span
+                            v-if="facets.states.no_brand"
+                            class="rounded-full border border-border-strong bg-surface px-2 py-0.5 font-sans text-[11px] font-semibold text-ink-tertiary"
+                        >
+                            {{ facets.states.no_brand }} {{ $t('super_admin.dashboard.distributors.proposals.state_no_brand') }}
+                        </span>
+                    </div>
+
                     <div class="mt-3 flex flex-wrap items-center gap-3">
                         <select
                             v-model="statusFilter"

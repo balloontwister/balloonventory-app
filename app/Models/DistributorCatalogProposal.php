@@ -25,6 +25,12 @@ class DistributorCatalogProposal extends Model
 
     public const STATUS_REJECTED = 'rejected';
 
+    public const RESOLUTION_FULL = 'full';
+
+    public const RESOLUTION_PARTIAL = 'partial';
+
+    public const RESOLUTION_NO_BRAND = 'no_brand';
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -34,6 +40,10 @@ class DistributorCatalogProposal extends Model
         'normalized_sku',
         'status',
         'confidence',
+        'resolved_brand_id',
+        'resolved_brand_name',
+        'resolution_state',
+        'resolution',
         'proposed_brand_id',
         'proposed_balloon_size_id',
         'proposed_color_id',
@@ -50,6 +60,7 @@ class DistributorCatalogProposal extends Model
     protected $casts = [
         'proposed_count' => 'integer',
         'evidence' => 'array',
+        'resolution' => 'array',
         'reviewed_at' => 'datetime',
     ];
 

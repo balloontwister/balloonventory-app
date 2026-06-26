@@ -8,8 +8,23 @@ import { Head, Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     sku: { type: Object, required: true },
+    distributorUrls: { type: Array, default: () => [] },
     returnQuery: { type: String, default: '' },
 });
+
+function formatPrice(price, currency) {
+    if (price === null || price === undefined || price === '') return null;
+    const amount = Number(price);
+    if (Number.isNaN(amount)) return null;
+    try {
+        return new Intl.NumberFormat(undefined, {
+            style: 'currency',
+            currency: currency || 'USD',
+        }).format(amount);
+    } catch {
+        return `${currency || '$'}${amount.toFixed(2)}`;
+    }
+}
 </script>
 
 <template>
@@ -371,6 +386,75 @@ const props = defineProps({
                             {{ sibling.upc }}
                         </span>
                     </Link>
+                </div>
+            </div>
+
+            <!-- Tracked distributors -->
+            <div class="mt-6 rounded-lg border border-border">
+                <div class="border-b border-border px-4 py-3">
+                    <h3
+                        class="font-sans text-[13px] font-semibold text-ink-primary"
+                    >
+                        {{ $t('catalog.sku_show.distributors') }}
+                        <span
+                            v-if="distributorUrls.length"
+                            class="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-soft px-1.5 font-sans text-[11px] font-semibold text-accent"
+                        >
+                            {{ distributorUrls.length }}
+                        </span>
+                    </h3>
+                </div>
+                <p
+                    v-if="!distributorUrls.length"
+                    class="px-4 py-3 font-sans text-[13px] text-ink-tertiary"
+                >
+                    {{ $t('catalog.sku_show.distributors_empty') }}
+                </p>
+                <div v-else class="divide-y divide-border">
+                    <a
+                        v-for="link in distributorUrls"
+                        :key="link.distributor.id"
+                        :href="link.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface"
+                    >
+                        <span
+                            class="min-w-0 flex-1 truncate font-sans text-[13px] font-medium text-ink-primary"
+                        >
+                            {{ link.distributor.name }}
+                        </span>
+                        <span
+                            v-if="formatPrice(link.price, link.currency)"
+                            class="shrink-0 font-sans text-[13px] tabular-nums text-ink-secondary"
+                        >
+                            {{ formatPrice(link.price, link.currency) }}
+                        </span>
+                        <span
+                            v-if="link.in_stock !== null"
+                            class="shrink-0 rounded px-1.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow"
+                            :class="
+                                link.in_stock
+                                    ? 'bg-success-soft text-success'
+                                    : 'bg-background text-ink-tertiary ring-1 ring-border'
+                            "
+                        >
+                            {{
+                                link.in_stock
+                                    ? $t(
+                                          'catalog.sku_show.distributors_in_stock',
+                                      )
+                                    : $t(
+                                          'catalog.sku_show.distributors_out_of_stock',
+                                      )
+                            }}
+                        </span>
+                        <span
+                            class="shrink-0 font-sans text-[12px] font-medium text-accent"
+                        >
+                            {{ $t('catalog.sku_show.distributors_visit') }} ↗
+                        </span>
+                    </a>
                 </div>
             </div>
 

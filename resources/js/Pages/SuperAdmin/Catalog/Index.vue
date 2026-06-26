@@ -363,13 +363,18 @@ function destroy(sku) {
                         >
                             {{ $t('catalog.skus.col_warehouse_sku') }}
                         </th>
+                        <th
+                            class="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                        >
+                            {{ $t('catalog.skus.col_distributors') }}
+                        </th>
                         <th class="w-24 px-3 py-2.5"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
                     <tr v-if="skus.data.length === 0">
                         <td
-                            colspan="8"
+                            colspan="9"
                             class="px-4 py-10 text-center font-sans text-[14px] text-ink-tertiary"
                         >
                             {{ $t('catalog.skus.empty_lead') }}
@@ -440,6 +445,22 @@ function destroy(sku) {
                             class="px-3 py-3 font-mono text-[13px] text-ink-secondary"
                         >
                             {{ sku.warehouse_sku ?? '—' }}
+                        </td>
+                        <td class="px-3 py-3">
+                            <span
+                                v-if="sku.distributor_urls_count > 0"
+                                class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-soft px-1.5 font-sans text-[12px] font-semibold tabular-nums text-accent"
+                                :title="
+                                    $t('catalog.skus.col_distributors')
+                                "
+                            >
+                                {{ sku.distributor_urls_count }}
+                            </span>
+                            <span
+                                v-else
+                                class="font-sans text-[13px] text-ink-tertiary"
+                                >—</span
+                            >
                         </td>
                         <td class="px-3 py-3">
                             <div

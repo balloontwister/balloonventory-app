@@ -7,6 +7,8 @@ use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\ColorFamily;
+use App\Models\Distributor;
+use App\Models\DistributorSkuUrl;
 use App\Models\Material;
 use App\Models\PackagingType;
 use App\Models\PriceCode;
@@ -67,7 +69,14 @@ class CatalogController extends Controller
                 'priceCode',
             ];
 
-        $query = Sku::with($with)->whereNull('owned_by_business_id');
+        // Count tracked-distributor purchase links per SKU, restricted to live
+        // (active, non-trashed) distributors so a soft-deleted one never inflates
+        // the badge. Admins see every distributor regardless of business prefs.
+        $activeDistributorIds = Distributor::active()->pluck('id')->all();
+
+        $query = Sku::with($with)
+            ->withCount(['distributorUrls' => fn ($q) => $q->whereIn('distributor_id', $activeDistributorIds)])
+            ->whereNull('owned_by_business_id');
 
         if ($request->filled('brand')) {
             $query->where('brand_id', $request->brand);
@@ -261,10 +270,50 @@ class CatalogController extends Controller
 
         return Inertia::render('SuperAdmin/Catalog/SkuShow', [
             'sku' => $sku,
+            'distributorUrls' => $this->distributorUrlsFor($sku),
             // Query string of the originating list, so the back link can
             // restore the user's filters, page, and scroll position.
             'returnQuery' => $request->query('return', ''),
         ]);
+    }
+
+    /**
+     * Purchase links for a SKU across every live distributor we track.
+     *
+     * Restricted to active, non-trashed distributors so an orphaned
+     * distributor_sku_url whose distributor was soft-deleted can't eager-load a
+     * null and blow up the page. Unlike the Reorder page this is NOT scoped to a
+     * business's preferred distributors — admins see all of them.
+     *
+     * @return list<array{distributor: array{id: string, name: string, slug: string}, url: string, price: ?string, currency: ?string, in_stock: ?bool, last_checked_at: ?string}>
+     */
+    private function distributorUrlsFor(Sku $sku): array
+    {
+        $activeDistributorIds = Distributor::active()->pluck('id')->all();
+
+        if ($activeDistributorIds === []) {
+            return [];
+        }
+
+        return DistributorSkuUrl::where('sku_id', $sku->id)
+            ->whereIn('distributor_id', $activeDistributorIds)
+            ->with('distributor')
+            ->get()
+            ->map(fn (DistributorSkuUrl $u) => [
+                'distributor' => [
+                    'id' => $u->distributor->id,
+                    'name' => $u->distributor->name,
+                    'slug' => $u->distributor->slug,
+                ],
+                'url' => $u->url,
+                'price' => $u->price,
+                'currency' => $u->currency,
+                'in_stock' => $u->in_stock,
+                'last_checked_at' => $u->last_checked_at?->toIso8601String(),
+            ])
+            ->sortBy('distributor.name')
+            ->values()
+            ->all();
     }
 
     public function edit(Sku $sku): Response

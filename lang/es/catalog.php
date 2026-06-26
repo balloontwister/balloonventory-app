@@ -42,6 +42,7 @@ return [
         'col_texture' => 'Textura',
         'col_material' => 'Material',
         'col_warehouse_sku' => 'SKU de almacén',
+        'col_distributors' => 'Distribuidores',
         'printed_badge' => 'Impreso',
         'empty_lead' => 'Aún no hay SKUs.',
         'empty_cta' => 'Agrega el primero.',
@@ -280,5 +281,10 @@ return [
         'print_sides' => 'Lados de impresión',
         'identical_products' => 'Productos Idénticos',
         'identical_empty' => 'No hay productos vinculados',
+        'distributors' => 'Distribuidores Rastreados',
+        'distributors_empty' => 'Aún no hay enlaces de distribuidores',
+        'distributors_in_stock' => 'En existencia',
+        'distributors_out_of_stock' => 'Agotado',
+        'distributors_visit' => 'Ver producto',
     ],
 ];

@@ -36,7 +36,7 @@ class BritetexColorSeederTest extends TestCase
     {
         $britetex = Brand::where('name', 'Britetex')->firstOrFail();
 
-        $this->assertSame(14, Color::where('brand_id', $britetex->id)->count());
+        $this->assertSame(16, Color::where('brand_id', $britetex->id)->count());
     }
 
     public function test_every_distributor_seen_color_name_exists(): void
@@ -47,7 +47,7 @@ class BritetexColorSeederTest extends TestCase
         // values, slash-split). Each must exist for the pending proposals to flip
         // from partial to full.
         $expected = [
-            'Blue', 'Blush', 'Brown', 'Gold', 'Gray', 'Green', 'Nude',
+            'Black', 'Blue', 'Blush', 'Brown', 'Clear', 'Gold', 'Gray', 'Green', 'Nude',
             'Orange', 'Pink', 'Purple', 'Red', 'Silver', 'White', 'Yellow',
         ];
 
@@ -96,6 +96,6 @@ class BritetexColorSeederTest extends TestCase
 
         $this->seed(BritetexColorSeeder::class);
 
-        $this->assertSame(14, Color::where('brand_id', $britetex->id)->count());
+        $this->assertSame(16, Color::where('brand_id', $britetex->id)->count());
     }
 }

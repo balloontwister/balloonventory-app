@@ -8,6 +8,8 @@ use App\Models\Business;
 use App\Models\Color;
 use App\Models\ColorFamily;
 use App\Models\ColorTranslation;
+use App\Models\Distributor;
+use App\Models\DistributorSkuUrl;
 use App\Models\Material;
 use App\Models\MaterialTranslation;
 use App\Models\Shape;
@@ -268,6 +270,86 @@ class CatalogSkuShowTest extends TestCase
                         1,
                         fn ($sku) => $sku->where('id', $this->sku->id)->etc(),
                     ),
+            );
+    }
+
+    public function test_show_page_includes_tracked_distributor_urls(): void
+    {
+        $larocks = Distributor::factory()->create(['name' => 'Larocks']);
+        $bargain = Distributor::factory()->create(['name' => 'BargainBalloons']);
+
+        DistributorSkuUrl::factory()->withPrice(4.50)->inStock()->create([
+            'distributor_id' => $larocks->id,
+            'sku_id' => $this->sku->id,
+            'url' => 'https://larocks.test/p/1',
+        ]);
+        DistributorSkuUrl::factory()->outOfStock()->create([
+            'distributor_id' => $bargain->id,
+            'sku_id' => $this->sku->id,
+        ]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus.show', $this->sku))
+            ->assertOk()
+            ->assertInertia(
+                fn ($page) => $page
+                    ->has('distributorUrls', 2)
+                    // Sorted by distributor name: BargainBalloons before Larocks.
+                    ->where('distributorUrls.0.distributor.name', 'BargainBalloons')
+                    ->where('distributorUrls.0.in_stock', false)
+                    ->where('distributorUrls.1.distributor.name', 'Larocks')
+                    ->where('distributorUrls.1.url', 'https://larocks.test/p/1')
+                    ->where('distributorUrls.1.in_stock', true),
+            );
+    }
+
+    public function test_show_page_excludes_inactive_distributor_urls(): void
+    {
+        $inactive = Distributor::factory()->create(['name' => 'Gone', 'is_active' => false]);
+
+        DistributorSkuUrl::factory()->create([
+            'distributor_id' => $inactive->id,
+            'sku_id' => $this->sku->id,
+        ]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus.show', $this->sku))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('distributorUrls', 0));
+    }
+
+    public function test_show_page_distributor_urls_empty_when_none(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus.show', $this->sku))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('distributorUrls', []));
+    }
+
+    public function test_skus_index_counts_active_distributor_urls_per_sku(): void
+    {
+        $active = Distributor::factory()->create();
+        $inactive = Distributor::factory()->create(['is_active' => false]);
+
+        DistributorSkuUrl::factory()->create([
+            'distributor_id' => $active->id,
+            'sku_id' => $this->sku->id,
+        ]);
+        DistributorSkuUrl::factory()->create([
+            'distributor_id' => $inactive->id,
+            'sku_id' => $this->sku->id,
+        ]);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('admin.catalog.skus'))
+            ->assertOk()
+            ->assertInertia(
+                fn ($page) => $page->has(
+                    'skus.data',
+                    1,
+                    // Only the active distributor's link is counted.
+                    fn ($sku) => $sku->where('distributor_urls_count', 1)->etc(),
+                ),
             );
     }
 }

@@ -42,6 +42,7 @@ return [
         'col_texture' => 'Texture',
         'col_material' => 'Material',
         'col_warehouse_sku' => 'Warehouse SKU',
+        'col_distributors' => 'Distributors',
         'printed_badge' => 'Printed',
         'empty_lead' => 'No SKUs yet.',
         'empty_cta' => 'Add the first one.',
@@ -280,5 +281,10 @@ return [
         'print_sides' => 'Print sides',
         'identical_products' => 'Identical Products',
         'identical_empty' => 'No linked products',
+        'distributors' => 'Tracked Distributors',
+        'distributors_empty' => 'No distributor links yet',
+        'distributors_in_stock' => 'In stock',
+        'distributors_out_of_stock' => 'Out of stock',
+        'distributors_visit' => 'View product',
     ],
 ];

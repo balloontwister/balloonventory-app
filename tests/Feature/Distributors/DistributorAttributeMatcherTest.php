@@ -214,6 +214,35 @@ class DistributorAttributeMatcherTest extends TestCase
         $this->assertSame($size->id, $result['balloon_size']['model']->id);
     }
 
+    public function test_finish_field_recomposes_the_combined_colour_name(): void
+    {
+        // Distributor splits colour into base + finish; our catalogue name is combined.
+        $fashion = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Fashion Yellow']);
+        Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Neon Yellow']);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Color' => ['Yellow'],
+            'Latex Finish' => ['Fashion'],
+        ]);
+
+        $this->assertSame($fashion->id, $result['color']['model']->id);
+        $this->assertSame('exact', $result['color']['quality']);
+    }
+
+    public function test_colour_falls_back_to_base_when_finish_combo_has_no_match(): void
+    {
+        $yellow = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Yellow']);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Color' => ['Yellow'],
+            'Latex Finish' => ['Fashion'], // no "Fashion Yellow" in catalogue
+        ]);
+
+        $this->assertSame($yellow->id, $result['color']['model']->id);
+    }
+
     public function test_unmatched_brand_yields_no_scoped_matches(): void
     {
         $result = $this->matcher->match(['Brand' => ['Nonexistent'], 'Size' => ['260'], 'Color' => ['Clear']]);

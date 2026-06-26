@@ -72,6 +72,29 @@ class DistributorProductClassifierTest extends TestCase
         $this->assertSame(DistributorProductClassifier::ACCESSORY, $type);
     }
 
+    public function test_solid_latex_from_latex_finish_without_material_row(): void
+    {
+        // BargainBalloons exposes no "Balloon Material" row, but a "Latex Finish"
+        // field appears only on latex products + "Print: Solid Color" marks solids.
+        $type = (new DistributorProductClassifier)->classify($this->extraction([
+            'Size (inches)' => ['11.0'], 'Manufacturer Color' => ['Yellow'],
+            'Latex Finish' => ['Fashion'], 'Package Count' => ['100'],
+            'Print' => ['Solid Color'], 'Manufacturer Supplied Category Type' => ['Non-Print'],
+        ]));
+
+        $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $type);
+    }
+
+    public function test_printed_from_print_field(): void
+    {
+        $type = (new DistributorProductClassifier)->classify($this->extraction([
+            'Manufacturer Color' => ['Assorted'], 'Latex Finish' => ['Standard'],
+            'Package Count' => ['50'], 'Print' => ['Happy Birthday'],
+        ]));
+
+        $this->assertSame(DistributorProductClassifier::PRINTED, $type);
+    }
+
     public function test_non_balloon_when_no_table(): void
     {
         $type = (new DistributorProductClassifier)->classify([

@@ -66,11 +66,42 @@ class DistributorProductClassifier
             return self::ASSORTMENT;
         }
 
-        if (str_contains($material, 'latex')) {
-            return ($theme !== null && $theme !== '') ? self::PRINTED : self::SOLID_LATEX;
+        // Some stores don't expose a "Balloon Material" row but do carry a latex
+        // finish field (BargainBalloons' "Latex Finish: Fashion"), which only
+        // appears on latex products — treat its presence as the material signal.
+        $isLatex = str_contains($material, 'latex')
+            || ($this->first($attributes, 'Latex Finish') !== null);
+
+        if ($isLatex) {
+            return $this->isPrinted($attributes, $theme) ? self::PRINTED : self::SOLID_LATEX;
         }
 
         return self::UNKNOWN;
+    }
+
+    /**
+     * Whether a latex product is printed rather than solid. A themed product is
+     * printed (Larocks signal); BargainBalloons instead carries a "Print" field
+     * ("Solid Color" vs a pattern name) and a "Manufacturer Supplied Category
+     * Type" of "Non-Print" for solids, so anything other than those flags a print.
+     *
+     * @param  array<string, array<int, string>>  $attributes
+     */
+    private function isPrinted(array $attributes, ?string $theme): bool
+    {
+        if ($theme !== null && $theme !== '') {
+            return true;
+        }
+
+        $print = strtolower($this->first($attributes, 'Print') ?? '');
+
+        if ($print !== '' && $print !== 'solid color') {
+            return true;
+        }
+
+        $category = strtolower($this->first($attributes, 'Manufacturer Supplied Category Type') ?? '');
+
+        return str_contains($category, 'print') && ! str_contains($category, 'non-print');
     }
 
     /**

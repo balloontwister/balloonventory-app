@@ -11,9 +11,11 @@ class CatalogIngestDistributor extends Command
     protected $signature = 'catalog:ingest-distributor
                             {slug : Distributor slug (bargain-balloons, etc.)}
                             {--execute : Write staged products to the database (omit for dry-run)}
-                            {--limit= : Cap the number of products (for testing; Shopify only)}';
+                            {--limit= : Cap the number of products (bulk pass), or product pages (--enrich)}
+                            {--enrich : Targeted second pass: fetch the product page for net-new latex products to read their full attribute table}
+                            {--force : With --enrich, re-fetch pages even if already enriched and unchanged}';
 
-    protected $description = 'Ingest products from a Shopify distributor into the staging table. For BigCommerce, use catalog:crawl-distributor instead.';
+    protected $description = 'Ingest products from a Shopify distributor into the staging table. Bulk barcode pass by default; --enrich for the targeted page-attribute pass. For BigCommerce, use catalog:crawl-distributor instead.';
 
     public function handle(DistributorProductIngestor $ingestor): int
     {
@@ -45,6 +47,10 @@ class CatalogIngestDistributor extends Command
 
         $this->newLine();
         $this->info("{$distributor->name} ({$distributor->platform_type})");
+
+        if ($this->option('enrich')) {
+            return $this->enrich($ingestor, $distributor, $execute, $limit);
+        }
 
         $result = $ingestor->ingestShopify($distributor, $execute, $limit);
 
@@ -80,6 +86,40 @@ class CatalogIngestDistributor extends Command
             ? '<info>[EXECUTED]</info>'
             : '<comment>[DRY RUN]</comment>';
         $this->line("{$mode} Fetched: {$result['fetched']} | Staged: {$result['staged']}");
+
+        if (! $execute) {
+            $this->line('         Run with --execute to write to staging.');
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Run the targeted page-enrichment pass and report it.
+     */
+    private function enrich(DistributorProductIngestor $ingestor, Distributor $distributor, bool $execute, ?int $limit): int
+    {
+        $this->line('  Pass: page-enrichment (net-new latex only)');
+
+        $result = $ingestor->enrichShopify($distributor, $execute, $limit, (bool) $this->option('force'));
+
+        $this->line("  Fetched (bulk JSON):  {$result['fetched']}");
+        $this->line("  Skipped (already ours/another distributor): {$result['skipped_existing']}");
+        $this->line("  Skipped (not solid latex):                  {$result['skipped_non_latex']}");
+        $this->line("  Skipped (already enriched + fresh):         {$result['skipped_fresh']}");
+        $this->line("  Enriched:             {$result['enriched']}");
+        $this->line("  Failed:               {$result['failed']}");
+
+        $report = $result['report'];
+
+        if ($report['used_fallback'] ?? false) {
+            $this->warn('  ⚠ Bulk JSON unavailable — sitemap fallback has no barcode/vendor/tags, so nothing can be enriched.');
+        }
+
+        $this->newLine();
+        $mode = $execute ? '<info>[EXECUTED]</info>' : '<comment>[DRY RUN]</comment>';
+        $tail = $result['hit_limit'] ? ' Hit --limit; run again to continue.' : '';
+        $this->line("{$mode} Enriched {$result['enriched']} product page(s).{$tail}");
 
         if (! $execute) {
             $this->line('         Run with --execute to write to staging.');

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\DistributorProductFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,8 @@ class DistributorProduct extends Model
         'in_stock',
         'raw_data',
         'fetched_at',
+        'last_seen_at',
+        'removed_at',
     ];
 
     protected $casts = [
@@ -45,7 +48,20 @@ class DistributorProduct extends Model
         'in_stock' => 'boolean',
         'raw_data' => 'array',
         'fetched_at' => 'datetime',
+        'last_seen_at' => 'datetime',
+        'removed_at' => 'datetime',
     ];
+
+    /**
+     * Products still listed in the distributor's catalog (not retired by a
+     * sitemap removal). Only these should feed clustering / proposals.
+     *
+     * @param  Builder<DistributorProduct>  $query
+     */
+    public function scopeActive($query): void
+    {
+        $query->whereNull('removed_at');
+    }
 
     public function getConnectionName(): ?string
     {

@@ -92,7 +92,7 @@ class DistributorClusterEngine
      */
     public function run(bool $execute): array
     {
-        $staged = DistributorProduct::query()->get();
+        $staged = DistributorProduct::active()->get();
         $clusters = $this->buildClusters($staged);
         $upcToSkuId = $this->existingCatalogUpcMap();
 

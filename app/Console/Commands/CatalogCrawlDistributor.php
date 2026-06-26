@@ -10,6 +10,7 @@ use App\Services\DistributorPlatforms\PlatformFactory;
 use App\Services\DistributorProductIngestor;
 use App\Services\Distributors\DistributorHealthEvaluator;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class CatalogCrawlDistributor extends Command
@@ -89,14 +90,16 @@ class CatalogCrawlDistributor extends Command
             return Command::SUCCESS;
         }
 
-        // ── Step 2: Skip already-fetched products (resume) ─────────────
-        // --force re-fetches everything (used to backfill newly-added fields).
-        $existingIds = $this->option('force')
+        // ── Step 2: Decide what to (re)fetch (incremental refresh) ─────
+        // Skip a product we already fetched *after* its sitemap <lastmod> — it
+        // hasn't changed. New and updated products fall through and get crawled.
+        // Without a usable lastmod we fall back to a 24h freshness window so a big
+        // backfill still resumes. --force re-fetches everything.
+        $known = $this->option('force')
             ? collect()
             : DistributorProduct::where('distributor_id', $distributor->id)
-                ->where('fetched_at', '>', now()->subHours(24))
-                ->pluck('external_id')
-                ->flip();
+                ->get(['external_id', 'fetched_at'])
+                ->keyBy('external_id');
 
         $config = $distributor->config ?? [];
         $delayMs = $this->configInt($config, 'request_delay_ms', 500);
@@ -107,6 +110,7 @@ class CatalogCrawlDistributor extends Command
         $staged = 0;
         $failed = 0;
         $skipped = 0;
+        $hitLimit = false;
         $extractionOk = 0;   // pages whose attribute table parsed against the recipe
         $pagesParsed = 0;    // pages we successfully fetched + read product data from
         $extractionBroke = false;
@@ -116,13 +120,14 @@ class CatalogCrawlDistributor extends Command
             $url = $product['url'];
             $externalId = $this->resolveExternalId($url);
 
-            if ($existingIds->has($externalId)) {
+            if ($this->isFresh($known->get($externalId), $product['lastmod'] ?? null)) {
                 $skipped++;
 
                 continue;
             }
 
-            if ($limit !== null && $queued >= $limit) {
+            if ($queued >= $limit) {
+                $hitLimit = true;
                 break;
             }
 
@@ -195,13 +200,19 @@ class CatalogCrawlDistributor extends Command
             ]);
         }
 
-        // ── Step 4: Mark complete ──────────────────────────────────────
-        $allDone = ! $fetchReport->stoppedEarly && ($limit === null || $queued < $limit);
-        // More precisely: all remaining URLs were queued (nothing left undone).
-        $remainingCount = $totalUrls - $existingIds->count() - $skipped;
-        $caughtUp = $remainingCount <= $queued;
+        // ── Step 4: Reconcile removals + mark complete ─────────────────
+        // The sitemap is fully enumerated regardless of --limit, so we can retire
+        // products that dropped out of it — but only when the fetch was COMPLETE; a
+        // truncated/blocked sitemap would wrongly retire live products.
+        $sitemapComplete = ! $fetchReport->stoppedEarly && ! $fetchReport->usedFallback;
+        $removed = ($execute && $sitemapComplete)
+            ? $this->reconcileRemovals($distributor, $sitemapProducts)
+            : 0;
 
-        if ($execute && $allDone && $caughtUp) {
+        // Caught up when we walked the whole sitemap this run without hitting --limit.
+        $caughtUp = ! $hitLimit;
+
+        if ($execute && $sitemapComplete && $caughtUp) {
             $distributor->update(['last_synced_at' => now()]);
         }
 
@@ -211,11 +222,15 @@ class CatalogCrawlDistributor extends Command
 
         // ── Summary ────────────────────────────────────────────────────
         $this->newLine();
-        $this->line("  Sitemap URLs:  {$totalUrls}");
-        $this->line("  Skipped (24h): {$skipped}");
-        $this->line("  Queued:        {$queued}");
-        $this->line("  Staged:        {$staged}");
-        $this->line("  Failed:        {$failed}");
+        $this->line("  Sitemap URLs:    {$totalUrls}");
+        $this->line("  Skipped (fresh): {$skipped}");
+        $this->line("  Queued:          {$queued}");
+        $this->line("  Staged:          {$staged}");
+        $this->line("  Failed:          {$failed}");
+
+        if ($execute && $sitemapComplete) {
+            $this->line("  Retired (gone):  {$removed}");
+        }
 
         if ($execute && $pagesParsed > 0) {
             $this->line("  Extracted OK:  {$extractionOk}/{$pagesParsed}".($distributor->health_status ? "  [health: {$distributor->health_status}]" : ''));
@@ -228,7 +243,8 @@ class CatalogCrawlDistributor extends Command
         $mode = $execute
             ? '<info>[EXECUTED]</info>'
             : '<comment>[DRY RUN]</comment>';
-        $status = $caughtUp ? 'All products up to date.' : ($remainingCount - $queued).' products remaining. Run again to continue.';
+        $remaining = max(0, $totalUrls - $skipped - $queued);
+        $status = $caughtUp ? 'All products up to date.' : $remaining.' products remaining. Run again to continue.';
         $this->line("{$mode} {$status}");
 
         if (! $execute) {
@@ -258,5 +274,62 @@ class CatalogCrawlDistributor extends Command
         $last = end($segments);
 
         return $last ?: $path;
+    }
+
+    /**
+     * Whether a staged product is still fresh and can be skipped this run: we
+     * already fetched its page at or after the sitemap's last-modified time. With
+     * no usable lastmod we fall back to a 24h window so a long backfill resumes
+     * without re-pulling pages it just did.
+     *
+     * @param  DistributorProduct|null  $known  the staged row (external_id + fetched_at), or null if new
+     */
+    private function isFresh(?DistributorProduct $known, ?string $lastmod): bool
+    {
+        if ($known === null || $known->fetched_at === null) {
+            return false; // never staged / never page-fetched → crawl it
+        }
+
+        if ($lastmod !== null && ($changedAt = $this->parseLastmod($lastmod)) !== null) {
+            return $known->fetched_at->greaterThanOrEqualTo($changedAt);
+        }
+
+        return $known->fetched_at->greaterThan(now()->subHours(24));
+    }
+
+    private function parseLastmod(string $value): ?Carbon
+    {
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Mark every product still listed in the sitemap as seen now (un-retiring any
+     * that reappeared), then retire the staged products that are no longer listed.
+     * Caller guarantees the sitemap fetch was complete. Returns the retired count.
+     *
+     * @param  array<int, array<string, mixed>>  $sitemapProducts
+     */
+    private function reconcileRemovals(Distributor $distributor, array $sitemapProducts): int
+    {
+        $runAt = now();
+
+        $sitemapIds = collect($sitemapProducts)
+            ->map(fn (array $product) => $this->resolveExternalId($product['url']))
+            ->unique();
+
+        foreach ($sitemapIds->chunk(500) as $chunk) {
+            DistributorProduct::where('distributor_id', $distributor->id)
+                ->whereIn('external_id', $chunk->all())
+                ->update(['last_seen_at' => $runAt, 'removed_at' => null]);
+        }
+
+        return DistributorProduct::where('distributor_id', $distributor->id)
+            ->whereNull('removed_at')
+            ->where(fn ($q) => $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $runAt))
+            ->update(['removed_at' => $runAt]);
     }
 }

@@ -152,6 +152,9 @@ class BigCommerceAdapter implements DistributorPlatformAdapter
                 'price' => null,
                 'currency' => null,
                 'in_stock' => null,
+                // Sitemap last-modified, when the store populates it — drives the
+                // incremental refresh (fetch only changed/new pages).
+                'lastmod' => trim((string) ($entry->lastmod ?? '')) ?: null,
             ];
         }
 

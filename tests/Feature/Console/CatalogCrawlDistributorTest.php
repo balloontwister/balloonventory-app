@@ -111,11 +111,186 @@ class CatalogCrawlDistributorTest extends TestCase
             '--execute' => true,
             '--limit' => 10,
         ])
-            ->expectsOutputToContain('Skipped (24h): 1')
+            ->expectsOutputToContain('Skipped (fresh): 1')
             ->assertSuccessful();
 
         // Still only the pre-seeded product; no new ones created.
         $this->assertSame(1, DistributorProduct::count());
+    }
+
+    public function test_skips_unchanged_product_via_sitemap_lastmod(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://test-lastmod.com',
+            'config' => ['request_delay_ms' => 0],
+        ]);
+
+        // Fetched 2 days ago; the sitemap says it last changed 10 days ago — so it
+        // hasn't changed since we fetched it. The page is NOT faked: a fetch attempt
+        // would throw (preventStrayRequests), proving we skipped it.
+        DistributorProduct::factory()->forDistributor($distributor)->create([
+            'external_id' => 'unchanged',
+            'title' => 'Original title',
+            'fetched_at' => now()->subDays(2),
+        ]);
+
+        Http::fake([
+            'test-lastmod.com/xmlsitemap.php?type=products&page=1' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>'
+                .'<loc>https://test-lastmod.com/unchanged/</loc>'
+                .'<lastmod>'.now()->subDays(10)->toAtomString().'</lastmod>'
+                .'</url></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-lastmod.com/xmlsitemap.php?type=products&page=2' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+        ]);
+
+        $this->artisan('catalog:crawl-distributor', ['slug' => $distributor->slug, '--execute' => true, '--limit' => 10])
+            ->expectsOutputToContain('Skipped (fresh): 1')
+            ->assertSuccessful();
+
+        $this->assertSame('Original title', DistributorProduct::first()->title);
+    }
+
+    public function test_refetches_updated_product_via_sitemap_lastmod(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://test-updated.com',
+            'config' => ['request_delay_ms' => 0],
+        ]);
+
+        // Fetched 10 days ago; the sitemap says it changed 2 days ago → re-fetch.
+        DistributorProduct::factory()->forDistributor($distributor)->create([
+            'external_id' => 'changed',
+            'title' => 'Stale title',
+            'fetched_at' => now()->subDays(10),
+        ]);
+
+        Http::fake([
+            'test-updated.com/xmlsitemap.php?type=products&page=1' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>'
+                .'<loc>https://test-updated.com/changed/</loc>'
+                .'<lastmod>'.now()->subDays(2)->toAtomString().'</lastmod>'
+                .'</url></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-updated.com/xmlsitemap.php?type=products&page=2' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-updated.com/changed/' => Http::response($this->bigCommerceProductHtml(['title' => 'Fresh title']), 200),
+        ]);
+
+        $this->artisan('catalog:crawl-distributor', ['slug' => $distributor->slug, '--execute' => true, '--limit' => 10])
+            ->assertSuccessful();
+
+        $this->assertSame('Fresh title', DistributorProduct::where('external_id', 'changed')->value('title'));
+    }
+
+    public function test_retires_products_that_left_the_sitemap(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://test-retire.com',
+            'config' => ['request_delay_ms' => 0],
+        ]);
+
+        // 'gone' is staged but no longer listed in the sitemap.
+        $gone = DistributorProduct::factory()->forDistributor($distributor)->create([
+            'external_id' => 'gone', 'fetched_at' => now()->subDays(3),
+        ]);
+
+        Http::fake([
+            'test-retire.com/xmlsitemap.php?type=products&page=1' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://test-retire.com/present/</loc></url></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-retire.com/xmlsitemap.php?type=products&page=2' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-retire.com/present/' => Http::response($this->bigCommerceProductHtml(['sku' => 'PRES']), 200),
+        ]);
+
+        $this->artisan('catalog:crawl-distributor', ['slug' => $distributor->slug, '--execute' => true, '--limit' => 10])
+            ->expectsOutputToContain('Retired (gone):  1')
+            ->assertSuccessful();
+
+        $this->assertNotNull($gone->fresh()->removed_at, 'Missing product should be retired');
+        $present = DistributorProduct::where('external_id', 'present')->first();
+        $this->assertNull($present->removed_at);
+        $this->assertNotNull($present->last_seen_at);
+    }
+
+    public function test_reappeared_product_is_un_retired(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://test-reappear.com',
+            'config' => ['request_delay_ms' => 0],
+        ]);
+
+        // Previously retired, but back in the sitemap (unchanged → page not fetched).
+        $back = DistributorProduct::factory()->forDistributor($distributor)->create([
+            'external_id' => 'back', 'fetched_at' => now()->subDays(2), 'removed_at' => now()->subDay(),
+        ]);
+
+        Http::fake([
+            'test-reappear.com/xmlsitemap.php?type=products&page=1' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>'
+                .'<loc>https://test-reappear.com/back/</loc><lastmod>'.now()->subDays(20)->toAtomString().'</lastmod>'
+                .'</url></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-reappear.com/xmlsitemap.php?type=products&page=2' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+        ]);
+
+        $this->artisan('catalog:crawl-distributor', ['slug' => $distributor->slug, '--execute' => true, '--limit' => 10])
+            ->assertSuccessful();
+
+        $this->assertNull($back->fresh()->removed_at, 'Reappeared product should be un-retired');
+    }
+
+    public function test_does_not_retire_when_the_sitemap_is_incomplete(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://test-incomplete.com',
+            'config' => ['request_delay_ms' => 0, 'max_retries' => 0],
+        ]);
+
+        $gone = DistributorProduct::factory()->forDistributor($distributor)->create([
+            'external_id' => 'gone', 'fetched_at' => now()->subDays(3),
+        ]);
+
+        // Page 1 lists one product; page 2 is blocked (403) → sitemap truncated, so
+        // we must NOT retire 'gone' even though it isn't listed.
+        Http::fake([
+            'test-incomplete.com/xmlsitemap.php?type=products&page=1' => Http::response(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://test-incomplete.com/present/</loc></url></urlset>',
+                200, ['Content-Type' => 'application/xml'],
+            ),
+            'test-incomplete.com/xmlsitemap.php?type=products&page=2' => Http::response('blocked', 403),
+            'test-incomplete.com/present/' => Http::response($this->bigCommerceProductHtml(['sku' => 'PRES']), 200),
+        ]);
+
+        $this->artisan('catalog:crawl-distributor', ['slug' => $distributor->slug, '--execute' => true, '--limit' => 10])
+            ->assertSuccessful();
+
+        $this->assertNull($gone->fresh()->removed_at, 'Must not retire on an incomplete sitemap');
     }
 
     public function test_crawler_respects_limit(): void

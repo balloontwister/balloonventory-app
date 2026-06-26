@@ -123,6 +123,27 @@ class CatalogEnrichDistributorTest extends TestCase
         $this->assertSame(['Fashion'], $product->raw_data['attributes']['Latex Finish']);
     }
 
+    public function test_enrich_reads_upc_from_the_page_when_products_json_lacks_a_barcode(): void
+    {
+        Http::preventStrayRequests();
+
+        // BargainBalloons' collection products.json omits the barcode entirely; the
+        // UPC lives only in the product page's spec accordion. Enrichment must read
+        // it there, or the product can never cluster (clustering is UPC-gated).
+        $distributor = $this->bargainBalloons();
+        $product = $this->fashionYellowProduct();
+        unset($product['variants'][0]['barcode']);
+        $this->fakeShopify('https://bb-test.com', $product);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame('030625530057', DistributorProduct::first()->upc);
+    }
+
     public function test_enrich_skips_a_product_already_in_our_catalog(): void
     {
         Http::preventStrayRequests();

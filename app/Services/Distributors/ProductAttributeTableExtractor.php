@@ -15,11 +15,23 @@ namespace App\Services\Distributors;
  * when a site changes its template (a sudden drop in matched rows / required
  * labels) — see {@see extract()}'s returned `ok` / `missing_required`.
  *
+ * Two recipe shapes are supported:
+ *   - `attribute_table` (Larocks): adjacent label/value cells identified by CSS class.
+ *   - `attribute_list` (BargainBalloons): a `<ul>` of `<li><span>Label: </span>Value</li>`,
+ *     optionally anchored to a `section_marker` so only the spec list is read.
+ *
  * Example recipe (Larocks):
  *   'extraction' => [
  *     'attribute_table' => ['header_class' => 'productView-table-header', 'value_class' => 'productView-table-data'],
  *     'required_labels' => ['Brand', 'Industry'],
  *     'min_rows' => 4,
+ *   ]
+ *
+ * Example recipe (BargainBalloons):
+ *   'extraction' => [
+ *     'attribute_list' => ['section_marker' => 'Additional Product Details'],
+ *     'required_labels' => ['Manufacturer Color', 'Latex Finish', 'Package Count'],
+ *     'min_rows' => 5,
  *   ]
  *
  * @phpstan-type ExtractionResult array{
@@ -38,16 +50,21 @@ class ProductAttributeTableExtractor
      */
     public function extract(string $html, array $config): array
     {
-        $recipe = $config['extraction']['attribute_table'] ?? null;
+        $tableRecipe = $config['extraction']['attribute_table'] ?? null;
+        $listRecipe = $config['extraction']['attribute_list'] ?? null;
 
-        if (! is_array($recipe)) {
+        if (is_array($tableRecipe)) {
+            $attributes = $this->scan(
+                $html,
+                $tableRecipe['header_class'] ?? 'productView-table-header',
+                $tableRecipe['value_class'] ?? 'productView-table-data',
+            );
+        } elseif (is_array($listRecipe)) {
+            $attributes = $this->scanList($html, $listRecipe);
+        } else {
             return $this->emptyResult(hasRecipe: false);
         }
 
-        $headerClass = $recipe['header_class'] ?? 'productView-table-header';
-        $valueClass = $recipe['value_class'] ?? 'productView-table-data';
-
-        $attributes = $this->scan($html, $headerClass, $valueClass);
         $rowCount = array_sum(array_map('count', $attributes));
 
         $required = $config['extraction']['required_labels'] ?? [];
@@ -84,6 +101,50 @@ class ProductAttributeTableExtractor
         foreach ($matches as $match) {
             $label = $this->clean($match[1]);
             $label = rtrim($label, ': ');
+            $value = $this->clean($match[2]);
+
+            if ($label === '' || $value === '') {
+                continue;
+            }
+
+            $attributes[$label][] = $value;
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Pull `<li><span>Label: </span>Value</li>` pairs from a spec list. An optional
+     * `section_marker` narrows scanning to the list that follows it (up to the next
+     * `</ul>`), so unrelated `<li>` elsewhere on the page (nav, related products)
+     * can't leak in. Repeated labels are collected as a list, like {@see scan()}.
+     *
+     * @param  array<string, mixed>  $recipe
+     * @return array<string, array<int, string>>
+     */
+    private function scanList(string $html, array $recipe): array
+    {
+        $marker = $recipe['section_marker'] ?? null;
+
+        if ($marker !== null) {
+            $start = stripos($html, (string) $marker);
+
+            if ($start === false) {
+                return [];
+            }
+
+            $end = stripos($html, '</ul>', $start);
+            $html = substr($html, $start, $end !== false ? $end - $start : 5000);
+        }
+
+        if (! preg_match_all('#<li[^>]*>\s*<span[^>]*>(.*?)</span>(.*?)</li>#is', $html, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $attributes = [];
+
+        foreach ($matches as $match) {
+            $label = rtrim($this->clean($match[1]), ': ');
             $value = $this->clean($match[2]);
 
             if ($label === '' || $value === '') {

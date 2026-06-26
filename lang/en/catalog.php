@@ -287,5 +287,7 @@ return [
         'distributors_out_of_stock' => 'Out of stock',
         'distributors_stock_unknown' => 'Stock unknown',
         'distributors_visit' => 'View product',
+        'distributors_copy' => 'Copy link',
+        'distributors_copied' => 'Copied!',
     ],
 ];

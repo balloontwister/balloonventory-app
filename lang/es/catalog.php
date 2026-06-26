@@ -287,5 +287,7 @@ return [
         'distributors_out_of_stock' => 'Agotado',
         'distributors_stock_unknown' => 'Stock desconocido',
         'distributors_visit' => 'Ver producto',
+        'distributors_copy' => 'Copiar enlace',
+        'distributors_copied' => '¡Copiado!',
     ],
 ];

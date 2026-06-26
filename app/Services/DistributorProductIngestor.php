@@ -393,9 +393,21 @@ class DistributorProductIngestor
      */
     private function looksSolidLatex(array $product): bool
     {
+        // When the store classifies its own products (LA Balloons' product_type),
+        // trust that signal: only a latex product type qualifies. This keeps out
+        // accessories/decor (conduit, glitter) that merely mention "latex" in a
+        // tag. Stores that leave product_type empty (BargainBalloons) fall back to
+        // the title/tags heuristic below.
+        $type = strtolower((string) ($product['product_type'] ?? ''));
+
+        if ($type !== '') {
+            return str_contains($type, 'latex')
+                && ! str_contains($type, 'foil')
+                && ! str_contains($type, 'mylar');
+        }
+
         $haystack = strtolower(
             ($product['name'] ?? '').' '
-            .($product['product_type'] ?? '').' '
             .implode(' ', (array) ($product['tags'] ?? []))
         );
 

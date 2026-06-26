@@ -249,13 +249,22 @@ class DistributorCatalogPromoterTest extends TestCase
             'texture_id' => $textureK->id,
         ]);
 
-        // Sempertex proposal — should be promoted with --brand=sempertex.
+        // Sempertex proposal — should be promoted with --brand=sempertex. Two
+        // distributors expose agreeing attribute tables so it clears the
+        // multi-source accuracy gate and auto-creates.
+        $sempertexAttributes = [
+            'Brand' => ['Sempertex'],
+            'Size' => ['11 inch'],
+            'Color' => ['Fashion Red'],
+        ];
         $this->proposal([
             'upc' => '00030625530125',
             'proposed_name' => '11-inch Sempertex Fashion Red 100 count',
             'evidence' => [
                 ['distributor_id' => Distributor::factory()->shopify()->create()->id,
-                    'url' => 'https://example.com/p/1', 'raw_upc' => '030625530125', 'title' => 'Sempertex Fashion Red 11 inch'],
+                    'url' => 'https://example.com/p/1', 'raw_upc' => '030625530125', 'title' => 'Sempertex Fashion Red 11 inch', 'attributes' => $sempertexAttributes],
+                ['distributor_id' => Distributor::factory()->bigcommerce()->create()->id,
+                    'url' => 'https://other.com/p/1', 'raw_upc' => '030625530125', 'title' => 'Sempertex Fashion Red 11 inch', 'attributes' => $sempertexAttributes],
             ],
         ]);
 

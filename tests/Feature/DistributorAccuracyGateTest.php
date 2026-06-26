@@ -135,6 +135,34 @@ class DistributorAccuracyGateTest extends TestCase
         $this->assertTrue($this->promoter->canPromote($proposal));
     }
 
+    public function test_two_sources_with_conflicting_count_do_not_auto_create(): void
+    {
+        $bb = Distributor::factory()->shopify()->create();
+        $larocks = Distributor::factory()->bigcommerce()->create();
+
+        // Brand/size/colour agree, but the pack count disagrees (a distributor
+        // mislabel, or a wrong barcode shared with another pack) → route to review.
+        $proposal = $this->proposal([
+            $this->member($bb->id, $this->fashionRed() + ['Quantity' => ['3']]),
+            $this->member($larocks->id, $this->fashionRed() + ['Quantity' => ['10']]),
+        ]);
+
+        $this->assertFalse($this->promoter->canPromote($proposal));
+    }
+
+    public function test_two_sources_with_matching_count_auto_create(): void
+    {
+        $bb = Distributor::factory()->shopify()->create();
+        $larocks = Distributor::factory()->bigcommerce()->create();
+
+        $proposal = $this->proposal([
+            $this->member($bb->id, $this->fashionRed() + ['Quantity' => ['100']]),
+            $this->member($larocks->id, $this->fashionRed() + ['Quantity' => ['100']]),
+        ]);
+
+        $this->assertTrue($this->promoter->canPromote($proposal));
+    }
+
     public function test_two_disagreeing_sources_do_not_auto_create(): void
     {
         $bb = Distributor::factory()->shopify()->create();

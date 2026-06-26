@@ -31,8 +31,9 @@ class TitleAttributeExtractorTest extends TestCase
                         'Bubble' => 'Plastic',
                     ],
                     'printed_categories' => ['Printed', 'Special Occassion', 'Shop by Prints'],
+                    'color_strip_words' => ['Nozzle Up', 'Pkg', 'Flat', 'Round', 'Air-Fill', 'Banner', 'Set'],
                     'foil_keywords' => ['air-fill', 'foil', 'mylar', 'orbz', 'sphere'],
-                    'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex'],
+                    'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Brookloon', 'Gemar'],
                     'printed_keywords' => ['happy birthday', 'christmas'],
                     'required_labels' => ['Balloon Material'],
                     'min_rows' => 1,
@@ -72,6 +73,42 @@ class TitleAttributeExtractorTest extends TestCase
         $this->assertSame(['100'], $result['attributes']['Quantity']);
         $this->assertArrayNotHasKey('Occasion / Theme', $result['attributes']);
         $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $this->classify($parsed));
+    }
+
+    public function test_colour_comes_from_the_title_not_a_junk_breadcrumb_leaf(): void
+    {
+        // Breadcrumb leaf is a sale bucket; the title carries the real shade.
+        $parsed = [
+            'title' => '17"B Matte Blue #153 (50 count)',
+            'brand' => 'Brookloon',
+            'categories' => ['Latex Balloons', 'Shop by Brand', 'Brookloon Latex', 'CLEARANCE'],
+        ];
+        $result = $this->extract($parsed);
+
+        $this->assertSame(['Matte Blue'], $result['attributes']['Color']);
+        $this->assertSame(['17'], $result['attributes']['Size']);
+    }
+
+    public function test_colour_from_title_strips_packaging_words(): void
+    {
+        $parsed = [
+            'title' => '160K Mirror Silver Nozzle Up (50 count)',
+            'brand' => 'Kalisan',
+            'categories' => ['Latex Balloons', 'Shop by Brand', 'Kalisan Latex', 'Mirror Silver'],
+        ];
+
+        $this->assertSame(['Mirror Silver'], $this->extract($parsed)['attributes']['Color']);
+    }
+
+    public function test_colour_falls_back_to_breadcrumb_when_title_has_no_colour(): void
+    {
+        $parsed = [
+            'title' => '11"S (100 count)',
+            'brand' => 'Sempertex',
+            'categories' => ['Latex Balloons', 'Shop by Brand', 'Sempertex Latex', 'Red Fashion'],
+        ];
+
+        $this->assertSame(['Red Fashion'], $this->extract($parsed)['attributes']['Color']);
     }
 
     public function test_breadcrumb_foil_category_classifies_foil(): void

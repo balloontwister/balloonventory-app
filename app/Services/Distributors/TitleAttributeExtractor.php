@@ -88,11 +88,15 @@ class TitleAttributeExtractor
             $attributes['Occasion / Theme'] = [$theme];
         }
 
-        // Colour comes from the breadcrumb leaf for solid latex (`… > Sempertex
-        // Latex > Red Fashion`); foil/printed paths carry a theme node instead.
-        $color = $this->color($categories, $material, $theme);
-        if ($color !== null) {
-            $attributes['Color'] = [$color];
+        // Colour, for solid latex only. The title carries the real shade most
+        // consistently (`11"S Metallic Green …`, `17"B Matte Blue #153 …`); the
+        // breadcrumb leaf is a fallback — it is sometimes a colour-family grouping
+        // ("Oranges"), a sale bucket ("CLEARANCE"), or absent.
+        if ($material === 'Latex' && $theme === null) {
+            $color = $this->colorFromTitle($title, $recipe) ?? $this->colorFromBreadcrumb($categories);
+            if ($color !== null) {
+                $attributes['Color'] = [$color];
+            }
         }
 
         $size = $this->size($title);
@@ -180,21 +184,46 @@ class TitleAttributeExtractor
     }
 
     /**
-     * Colour from the breadcrumb leaf, only for solid latex — the leaf is the
-     * colour node (`Red Fashion`) under `… > {Brand} Latex`. Skips brand/nav nodes
-     * and anything already flagged as a theme.
+     * Colour from the title: strip the leading size+brand-letter code (`11"S`,
+     * `160K`, `5"G`), the trailing "(N count)", any `#NNN` style code, and
+     * packaging/shape words, leaving the colour/finish (`Mirror Silver`,
+     * `Matte Blue`). Returns null when nothing remains.
+     *
+     * @param  array<string, mixed>  $recipe
+     */
+    private function colorFromTitle(string $title, array $recipe): ?string
+    {
+        $value = $title;
+        // Leading size + brand-letter code: 11"S, 160K, 5"G, 34"O, 18-A, 260S.
+        $value = preg_replace('/^\s*\d+\s*["”\'’]?\s*-?\s*[A-Za-z]{1,3}\b/u', '', $value) ?? $value;
+        // Trailing "( … count … )".
+        $value = preg_replace('/\([^)]*count[^)]*\)\s*$/i', '', $value) ?? $value;
+        // Internal item codes like "#028".
+        $value = preg_replace('/#\s*\d+/', '', $value) ?? $value;
+
+        foreach ((array) ($recipe['color_strip_words'] ?? []) as $word) {
+            $value = preg_replace('/\b'.preg_quote((string) $word, '/').'\b/i', '', $value) ?? $value;
+        }
+
+        $value = trim((string) preg_replace('/\s+/', ' ', $value));
+
+        return $value !== '' ? $value : null;
+    }
+
+    /**
+     * Colour from the breadcrumb leaf (`… > {Brand} Latex > Red Fashion`) — a
+     * fallback when the title yields nothing. Skips brand/nav nodes.
      *
      * @param  array<int, string>  $categories
      */
-    private function color(array $categories, ?string $material, ?string $theme): ?string
+    private function colorFromBreadcrumb(array $categories): ?string
     {
-        if ($material !== 'Latex' || $theme !== null || $categories === []) {
+        if ($categories === []) {
             return null;
         }
 
         $leaf = (string) end($categories);
 
-        // A "{Brand} Latex" or "Shop by Brand" navigation node is not a colour.
         if (preg_match('/\blatex\b/i', $leaf) === 1 || strcasecmp($leaf, 'Shop by Brand') === 0) {
             return null;
         }

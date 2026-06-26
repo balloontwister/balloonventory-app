@@ -163,6 +163,11 @@ class DistributorSeeder extends Seeder
                             'printed_categories' => [
                                 'Printed', 'Special Occassion', 'Special Occasion', 'Shop by Prints',
                             ],
+                            // Packaging/shape words removed when reading colour from
+                            // the title (`160K Mirror Silver Nozzle Up` → Mirror Silver).
+                            'color_strip_words' => [
+                                'Nozzle Up', 'Pkg', 'Flat', 'Round', 'Air-Fill', 'Banner', 'Set',
+                            ],
                             // FALLBACKS when a page has no breadcrumb. Foil signals
                             // win first — a latex brand can still sell foil letters.
                             'foil_keywords' => [

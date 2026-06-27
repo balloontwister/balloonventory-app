@@ -78,6 +78,52 @@ class CatalogCrawlDistributorTest extends TestCase
         $this->assertTrue($product->in_stock);
     }
 
+    public function test_crawl_filter_skips_non_latex_slugs_pre_fetch(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = Distributor::factory()->bigcommerce()->create([
+            'base_url' => 'https://test-filter.com',
+            'config' => [
+                'request_delay_ms' => 0,
+                'crawl_filter' => [
+                    'require_leading_digit' => true,
+                    'skip_keywords' => ['air-fill', 'foil', 'orbz'],
+                ],
+            ],
+        ]);
+
+        // Four sitemap URLs: a latex (crawl), a letter-led accessory + a letter-led
+        // foil script (skip: no leading digit), and a digit-led foil (skip: keyword).
+        $sitemap = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            .'<url><loc>https://test-filter.com/11s-red-fashion-100-count/</loc></url>'
+            .'<url><loc>https://test-filter.com/tassel-small-8-green/</loc></url>'
+            .'<url><loc>https://test-filter.com/script-silver-n-air-fill-pkg/</loc></url>'
+            .'<url><loc>https://test-filter.com/18a-orbz-mint-green/</loc></url>'
+            .'</urlset>';
+
+        Http::fake([
+            'test-filter.com/xmlsitemap.php?type=products&page=1' => Http::response($sitemap, 200, ['Content-Type' => 'application/xml']),
+            'test-filter.com/xmlsitemap.php?type=products&page=2' => Http::response('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>', 200, ['Content-Type' => 'application/xml']),
+            // Only the latex page is faked — if a filtered URL were fetched,
+            // preventStrayRequests would fail the test.
+            'test-filter.com/11s-red-fashion-100-count/' => Http::response($this->bigCommerceProductHtml(), 200),
+        ]);
+
+        $this->artisan('catalog:crawl-distributor', [
+            'slug' => $distributor->slug,
+            '--execute' => true,
+            '--limit' => 10,
+        ])->assertSuccessful();
+
+        // Only the latex product was crawled + staged.
+        $this->assertSame(1, DistributorProduct::count());
+        $this->assertSame('11s-red-fashion-100-count', DistributorProduct::first()->external_id);
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), 'tassel-small'));
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), 'script-silver'));
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '18a-orbz'));
+    }
+
     public function test_crawler_skips_previously_fetched_products(): void
     {
         Http::preventStrayRequests();

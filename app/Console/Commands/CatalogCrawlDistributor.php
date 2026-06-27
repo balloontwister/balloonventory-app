@@ -110,6 +110,7 @@ class CatalogCrawlDistributor extends Command
         $staged = 0;
         $failed = 0;
         $skipped = 0;
+        $filtered = 0;
         $hitLimit = false;
         $extractionOk = 0;   // pages whose attribute table parsed against the recipe
         $pagesParsed = 0;    // pages we successfully fetched + read product data from
@@ -119,6 +120,16 @@ class CatalogCrawlDistributor extends Command
         foreach ($sitemapProducts as $product) {
             $url = $product['url'];
             $externalId = $this->resolveExternalId($url);
+
+            // Pre-fetch slug filter (config crawl_filter): skip URLs we can tell
+            // from the slug are not what we're after, WITHOUT spending a fetch on
+            // the ~1 MB page. They stay in the sitemap list, so removal
+            // reconciliation is unaffected.
+            if ($this->isFilteredOut($url, $config)) {
+                $filtered++;
+
+                continue;
+            }
 
             if ($this->isFresh($known->get($externalId), $product['lastmod'] ?? null)) {
                 $skipped++;
@@ -223,6 +234,9 @@ class CatalogCrawlDistributor extends Command
         // ── Summary ────────────────────────────────────────────────────
         $this->newLine();
         $this->line("  Sitemap URLs:    {$totalUrls}");
+        if ($filtered > 0) {
+            $this->line("  Filtered (slug): {$filtered} (not latex — accessories/foils skipped pre-fetch)");
+        }
         $this->line("  Skipped (fresh): {$skipped}");
         $this->line("  Queued:          {$queued}");
         $this->line("  Staged:          {$staged}");
@@ -243,7 +257,7 @@ class CatalogCrawlDistributor extends Command
         $mode = $execute
             ? '<info>[EXECUTED]</info>'
             : '<comment>[DRY RUN]</comment>';
-        $remaining = max(0, $totalUrls - $skipped - $queued);
+        $remaining = max(0, $totalUrls - $filtered - $skipped - $queued);
         $status = $caughtUp ? 'All products up to date.' : $remaining.' products remaining. Run again to continue.';
         $this->line("{$mode} {$status}");
 
@@ -252,6 +266,45 @@ class CatalogCrawlDistributor extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Pre-fetch slug filter, driven by config `crawl_filter`:
+     *   'crawl_filter' => [
+     *     // skip slugs that don't start with a digit — solid-latex slugs always
+     *     // lead with a size (11s-…, 160k-…); letter-led slugs are accessories
+     *     // (arch-kit-…, tassel-…) or foil letters/scripts (script-silver-…).
+     *     'require_leading_digit' => true,
+     *     // skip slugs containing any of these (high-confidence non-latex signals)
+     *     'skip_keywords' => ['air-fill', 'foil', 'orbz', 'sphere', 'mylar', 'banner'],
+     *   ]
+     * Conservative by design: when in doubt the URL is crawled (no latex lost).
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function isFilteredOut(string $url, array $config): bool
+    {
+        $filter = $config['crawl_filter'] ?? null;
+
+        if (! is_array($filter)) {
+            return false;
+        }
+
+        $slug = strtolower(trim((string) parse_url($url, \PHP_URL_PATH), '/'));
+        // Last path segment is the product slug.
+        $slug = (string) (strrchr($slug, '/') ? ltrim(strrchr($slug, '/'), '/') : $slug);
+
+        if (($filter['require_leading_digit'] ?? false) && preg_match('/^\d/', $slug) !== 1) {
+            return true;
+        }
+
+        foreach ((array) ($filter['skip_keywords'] ?? []) as $keyword) {
+            if ($keyword !== '' && str_contains($slug, strtolower((string) $keyword))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

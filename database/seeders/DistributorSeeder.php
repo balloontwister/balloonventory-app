@@ -150,6 +150,15 @@ class DistributorSeeder extends Seeder
                     // warehouse_sku so a listing with no sibling UPC can still
                     // attach a Reorder link + stock to an existing catalog SKU.
                     'match_by_warehouse_sku' => true,
+                    // Pre-fetch slug filter — skip the ~1 MB page fetch for items a
+                    // solid-latex slug never looks like: letter-led slugs
+                    // (accessories, foil letters/scripts) and high-confidence foil
+                    // keywords. Conservative — themed foils without these signals
+                    // still get crawled (no latex lost; they park for later).
+                    'crawl_filter' => [
+                        'require_leading_digit' => true,
+                        'skip_keywords' => ['air-fill', 'air-filled', 'foil', 'orbz', 'sphere', 'mylar', 'bubble', 'banner'],
+                    ],
                     // No attribute table → attributes come from the TITLE
                     // (`11"S Red Fashion (100 count)`). Drives classification
                     // (material/printed) + count.

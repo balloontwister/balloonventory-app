@@ -43,22 +43,23 @@ class DistributorClusterEngineTest extends TestCase
 
     private function the100ctTrio(): void
     {
-        // havinaparty: no barcode, no price (login-gated).
+        // havinaparty: no barcode, no price (login-gated). Carries a brand, so it
+        // can be confirmed as the same product when it inherits the UPC.
         $this->stage($this->havin, [
             'external_id' => 'h-1', 'raw_sku' => '53012', 'normalized_sku' => '53012',
             'upc' => null, 'price' => null, 'title' => '11"S Red Fashion (100 count)', 'stock' => 54,
-            'product_type' => 'solid_latex',
+            'product_type' => 'solid_latex', 'raw_data' => ['attributes' => ['Brand' => ['Sempertex']]],
         ]);
         // BargainBalloons + LA Balloons: same product, same UPC, decorated SKUs.
         $this->stage($this->bargain, [
             'external_id' => 'b-1', 'raw_sku' => 'BL-53012', 'normalized_sku' => '53012',
             'upc' => '030625530125', 'price' => 13.97, 'title' => '11 inch Latex Balloons 100 Per Bag Fashion Red Betallatex',
-            'product_type' => 'solid_latex',
+            'product_type' => 'solid_latex', 'raw_data' => ['attributes' => ['Brand' => ['Sempertex']]],
         ]);
         $this->stage($this->laballoons, [
             'external_id' => 'l-1', 'raw_sku' => '53012-B', 'normalized_sku' => '53012',
             'upc' => '030625530125', 'price' => 21.69, 'title' => '11 inch Sempertex Fashion Red Latex Balloons',
-            'product_type' => 'solid_latex',
+            'product_type' => 'solid_latex', 'raw_data' => ['attributes' => ['Brand' => ['Sempertex']]],
         ]);
     }
 
@@ -100,6 +101,70 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertFalse(
             collect($hundred['members'])->contains(fn ($m) => $m['distributor_id'] === $this->havin->id),
         );
+    }
+
+    public function test_barcodeless_member_without_a_brand_does_not_inherit(): void
+    {
+        // The real bug: an Elitex latex barcode + a BargainBalloons foil row that
+        // shares the bare item number 36683 but carries NO attributes. It must NOT
+        // inherit the Elitex UPC (different product), so the cluster stays clean.
+        $this->stage($this->bargain, [
+            'external_id' => 'foil-1', 'raw_sku' => '36683-01', 'normalized_sku' => '36683',
+            'upc' => null, 'title' => '23" Star Wars SuperShape Foil Balloon',
+            'raw_data' => ['attributes' => []], // no brand
+        ]);
+        $this->stage($this->laballoons, [
+            'external_id' => 'elitex-1', 'raw_sku' => '8853406036683', 'normalized_sku' => '36683',
+            'upc' => '8853406036683', 'title' => '12 Inch Round Pastel Ivory Elitex',
+            'product_type' => 'solid_latex', 'raw_data' => ['attributes' => ['Brand' => ['Elitex']]],
+        ]);
+
+        $clusters = $this->engine->buildClusters(DistributorProduct::all());
+
+        $this->assertCount(1, $clusters);
+        // Only the Elitex member — the no-brand foil row was not pulled in.
+        $this->assertCount(1, $clusters->first()['members']);
+        $this->assertSame('8853406036683', $clusters->first()['members'][0]['raw_sku']);
+    }
+
+    public function test_barcodeless_member_with_a_mismatched_brand_does_not_inherit(): void
+    {
+        // Same bare number, but the barcode-less row IS branded — wrongly. A foil
+        // "Anagram" item 36683 must not inherit the Elitex UPC.
+        $this->stage($this->havin, [
+            'external_id' => 'ana-1', 'raw_sku' => '36683', 'normalized_sku' => '36683',
+            'upc' => null, 'title' => '23" Star Wars Foil',
+            'raw_data' => ['attributes' => ['Brand' => ['Anagram']]],
+        ]);
+        $this->stage($this->laballoons, [
+            'external_id' => 'elitex-2', 'raw_sku' => '8853406036683', 'normalized_sku' => '36683',
+            'upc' => '8853406036683', 'title' => '12 Inch Pastel Ivory Elitex',
+            'raw_data' => ['attributes' => ['Brand' => ['Elitex']]],
+        ]);
+
+        $clusters = $this->engine->buildClusters(DistributorProduct::all());
+
+        $this->assertCount(1, $clusters->first()['members']); // Elitex only
+    }
+
+    public function test_a_bare_member_does_not_lift_confidence_to_high(): void
+    {
+        // One real attribute source (LA) + a barcoded but attribute-less second
+        // distributor sharing the UPC → must stay low confidence, not high.
+        $this->stage($this->laballoons, [
+            'external_id' => 'la-c', 'raw_sku' => '99', 'normalized_sku' => '99',
+            'upc' => '030625530125', 'title' => '11 inch Sempertex Fashion Red',
+            'product_type' => 'solid_latex', 'raw_data' => ['attributes' => ['Brand' => ['Sempertex'], 'Quantity' => ['100']]],
+        ]);
+        $this->stage($this->bargain, [
+            'external_id' => 'bb-bare', 'raw_sku' => 'X', 'normalized_sku' => 'X',
+            'upc' => '030625530125', 'title' => 'bare row', 'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => []], // no brand → no corroboration
+        ]);
+
+        $this->engine->run(execute: true);
+
+        $this->assertSame('low', DistributorCatalogProposal::first()->confidence);
     }
 
     public function test_confident_type_wins_over_a_weakly_classified_member(): void

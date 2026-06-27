@@ -51,6 +51,7 @@ class DistributorClusterEngine
     {
         $byUpc = [];          // canonical UPC => member[]
         $normalizedToUpcs = []; // normalized_sku => [canonicalUpc => true]
+        $upcBrands = [];      // canonical UPC => [lowercased brand => true] of its barcoded members
         $withoutUpc = [];     // members lacking a UPC
 
         foreach ($products as $product) {
@@ -62,6 +63,10 @@ class DistributorClusterEngine
                 $member['inherited_upc'] = false;
                 $byUpc[$canonical][] = $member;
 
+                if (($brand = $this->memberBrand($member)) !== null) {
+                    $upcBrands[$canonical][$brand] = true;
+                }
+
                 if ($member['normalized_sku'] !== null && $member['normalized_sku'] !== '') {
                     $normalizedToUpcs[$member['normalized_sku']][$canonical] = true;
                 }
@@ -71,8 +76,11 @@ class DistributorClusterEngine
         }
 
         // A barcode-less listing joins a cluster only when its normalized SKU
-        // points at exactly one UPC — otherwise we can't safely tell which
-        // variant it is, so it stays unclustered.
+        // points at exactly one UPC AND its brand matches that product's brand.
+        // The brand gate is essential: bare item numbers aren't namespaced across
+        // manufacturers (Elitex latex #36683 vs an Anagram foil #36683), so without
+        // it a no-/wrong-brand row inherits an unrelated UPC, contaminating the
+        // cluster, hijacking its name, and faking multi-distributor confidence.
         foreach ($withoutUpc as $member) {
             $normalized = $member['normalized_sku'];
 
@@ -85,6 +93,14 @@ class DistributorClusterEngine
             }
 
             $canonical = array_key_first($normalizedToUpcs[$normalized]);
+
+            // Must carry a brand that matches the barcoded product's brand. A
+            // member with no brand can't be confirmed as the same product.
+            $brand = $this->memberBrand($member);
+            if ($brand === null || ! isset($upcBrands[$canonical][$brand])) {
+                continue;
+            }
+
             $member['upc'] = $canonical;
             $member['inherited_upc'] = true;
             $byUpc[$canonical][] = $member;
@@ -317,7 +333,12 @@ class DistributorClusterEngine
     private function persistProposal(array $cluster): void
     {
         $title = $this->representativeTitle($cluster['members']);
-        $distributorCount = collect($cluster['members'])->pluck('distributor_id')->unique()->count();
+        // Confidence counts only distributors that contributed ATTRIBUTES — a bare
+        // barcoded row (no brand) corroborates nothing, so it must not lift a
+        // single-source cluster to "high".
+        $distributorCount = collect($cluster['members'])
+            ->filter(fn (array $m) => $this->memberBrand($m) !== null)
+            ->pluck('distributor_id')->unique()->count();
 
         $config = $this->configFor($cluster['members']);
         $resolution = $this->proposalResolver->resolve($cluster['members'], $config);
@@ -449,6 +470,26 @@ class DistributorClusterEngine
             'upc' => null,
             'inherited_upc' => false,
         ];
+    }
+
+    /**
+     * A member's brand, lowercased, from its extracted attributes (label "Brand",
+     * matched case-insensitively). Null when the member carries no brand — which,
+     * for UPC inheritance, means we can't confirm it's the same product.
+     *
+     * @param  array<string, mixed>  $member
+     */
+    private function memberBrand(array $member): ?string
+    {
+        foreach ($member['attributes'] ?? [] as $label => $values) {
+            if (strcasecmp((string) $label, 'Brand') === 0) {
+                $value = trim((string) ($values[0] ?? ''));
+
+                return $value !== '' ? mb_strtolower($value) : null;
+            }
+        }
+
+        return null;
     }
 
     /**

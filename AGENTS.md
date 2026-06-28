@@ -228,6 +228,8 @@ Per-entity folder + slot configuration lives in a `CONFIG` map at the top of the
 
 The user-facing form layer uses two reusable components: `<ImageUpload>` for the input (file picker + preview + clear toggle, with `v-model:file` and `v-model:clear`) and `<ImageGallery>` for display (accepts an array of URLs, filters falsy entries, so today's 1–2-slot entities and a future multi-image gallery use the same prop shape). Forms that include an `<ImageUpload>` must submit with `forceFormData: true` so multipart reaches PHP, and use `_method` spoofing on PATCH routes (Inertia v2's `useForm` does this automatically when forceFormData is set).
 
+**Validation gotcha — SVG.** Laravel 11+ excludes SVG from the `image` rule by default. Catalog uploads use `image:allow_svg` to opt in, because vendors often ship logos as vector SVG. Any new image-upload endpoint must use the same flag, or SVG files will be rejected with "The field must be an image." The service already handles SVG correctly (passes through unmodified — vector, no resize), so the validation flag is the only place this matters.
+
 If we later migrate to `spatie/laravel-medialibrary` for gallery-style multi-image, the service is the only file that changes; controllers and Vue components keep their current API.
 
 **Future entities** — when adding profile pictures (`users.avatar_path`) or business logos (`businesses.logo_path`), follow the same pattern: column on the model, slot in `CatalogImageService` config (rename the service if it stops being catalog-only), `<ImageUpload>` on the form, `<ImageGallery>` for display. Do not create a parallel upload path.

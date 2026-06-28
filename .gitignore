@@ -27,4 +27,5 @@ Thumbs.db
 
 # Local scratch — not part of the project
 /intake
+/prompts
 /Database Table*.md

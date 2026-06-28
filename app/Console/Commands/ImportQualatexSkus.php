@@ -17,16 +17,16 @@ class ImportQualatexSkus extends Command
                             {--execute : Write to the database (omit for dry-run)}
                             {--path= : Override path to the normalized JSON file}';
 
-    protected $description = 'Import Qualatex SKUs from intake/qualatex_normalized.json (sourced from the legacy From_Larry inventory)';
+    protected $description = 'Import Qualatex SKUs from intake/qualatex/qualatex_normalized.json (sourced from the legacy From_Larry inventory)';
 
     public function handle(): int
     {
         $dryRun = ! $this->option('execute');
-        $jsonPath = $this->option('path') ?: base_path('intake/qualatex_normalized.json');
+        $jsonPath = $this->option('path') ?: base_path('intake/qualatex/qualatex_normalized.json');
 
         if (! file_exists($jsonPath)) {
             $this->error("File not found: {$jsonPath}");
-            $this->line('Run: python3 intake/qualatex_normalize.py');
+            $this->line('Run: python3 intake/qualatex/qualatex_normalize.py');
 
             return Command::FAILURE;
         }

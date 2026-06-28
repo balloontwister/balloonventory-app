@@ -14,16 +14,16 @@ class ImportTuftexSkus extends Command
     protected $signature = 'catalog:import-tuftex
                             {--execute : Write to the database (omit for dry-run)}';
 
-    protected $description = 'Import TufTex SKUs from intake/tuftex_normalized.json';
+    protected $description = 'Import TufTex SKUs from intake/tuftex/tuftex_normalized.json';
 
     public function handle(): int
     {
         $dryRun = ! $this->option('execute');
-        $jsonPath = base_path('intake/tuftex_normalized.json');
+        $jsonPath = base_path('intake/tuftex/tuftex_normalized.json');
 
         if (! file_exists($jsonPath)) {
             $this->error("File not found: {$jsonPath}");
-            $this->line('Run: python3 intake/tuftex_normalize.py');
+            $this->line('Run: python3 intake/tuftex/tuftex_normalize.py');
 
             return Command::FAILURE;
         }

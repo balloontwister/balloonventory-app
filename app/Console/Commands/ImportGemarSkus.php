@@ -17,16 +17,16 @@ class ImportGemarSkus extends Command
                             {--execute : Write to the database (omit for dry-run)}
                             {--path= : Override path to the normalized JSON file}';
 
-    protected $description = 'Import Gemar SKUs from intake/gemar_normalized.json';
+    protected $description = 'Import Gemar SKUs from intake/gemar/gemar_normalized.json';
 
     public function handle(): int
     {
         $dryRun = ! $this->option('execute');
-        $jsonPath = $this->option('path') ?: base_path('intake/gemar_normalized.json');
+        $jsonPath = $this->option('path') ?: base_path('intake/gemar/gemar_normalized.json');
 
         if (! file_exists($jsonPath)) {
             $this->error("File not found: {$jsonPath}");
-            $this->line('Run: python3 intake/gemar_normalize.py');
+            $this->line('Run: python3 intake/gemar/gemar_normalize.py');
 
             return Command::FAILURE;
         }

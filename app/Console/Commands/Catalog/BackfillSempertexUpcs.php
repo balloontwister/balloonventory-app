@@ -16,7 +16,7 @@ class BackfillSempertexUpcs extends Command
 {
     protected $signature = 'catalog:backfill-sempertex-upcs
                             {--apply : Write resolved UPCs to the database (omit for dry-run)}
-                            {--source= : Path to sempertex_upcs_raw.json (default: intake/sempertex_upcs_raw.json)}';
+                            {--source= : Path to sempertex_upcs_raw.json (default: intake/sempertex/sempertex_upcs_raw.json)}';
 
     protected $description = 'Match scraped Sempertex UPC data to skus and optionally back-fill the upc column.';
 
@@ -46,11 +46,11 @@ class BackfillSempertexUpcs extends Command
 
     public function handle(): int
     {
-        $sourcePath = $this->option('source') ?: base_path('intake/sempertex_upcs_raw.json');
+        $sourcePath = $this->option('source') ?: base_path('intake/sempertex/sempertex_upcs_raw.json');
 
         if (! file_exists($sourcePath)) {
             $this->error("Source file not found: {$sourcePath}");
-            $this->line('Run: python3 intake/sempertex_upc_fetch.py');
+            $this->line('Run: python3 intake/sempertex/sempertex_upc_fetch.py');
 
             return self::FAILURE;
         }

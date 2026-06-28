@@ -99,7 +99,7 @@ class KalisanColorSeeder extends Seeder
 
     /**
      * Full Kalisan color list combining the brand's published PDF
-     * (intake/KALISAN COLORS PANTONE CODES.pdf) with the by-color catalog at
+     * (intake/kalisan/KALISAN COLORS PANTONE CODES.pdf) with the by-color catalog at
      * https://en.kalisan.com.tr/plain-latex-balloons-by-color/.
      *
      * PMS values are pulled directly from the PDF; hex codes are converted

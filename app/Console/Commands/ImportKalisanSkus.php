@@ -17,16 +17,16 @@ class ImportKalisanSkus extends Command
                             {--execute : Write to the database (omit for dry-run)}
                             {--path= : Override path to the normalized JSON file}';
 
-    protected $description = 'Import Kalisan SKUs from intake/kalisan_normalized.json';
+    protected $description = 'Import Kalisan SKUs from intake/kalisan/kalisan_normalized.json';
 
     public function handle(): int
     {
         $dryRun = ! $this->option('execute');
-        $jsonPath = $this->option('path') ?: base_path('intake/kalisan_normalized.json');
+        $jsonPath = $this->option('path') ?: base_path('intake/kalisan/kalisan_normalized.json');
 
         if (! file_exists($jsonPath)) {
             $this->error("File not found: {$jsonPath}");
-            $this->line('Run: python3 intake/kalisan_normalize.py');
+            $this->line('Run: python3 intake/kalisan/kalisan_normalize.py');
 
             return Command::FAILURE;
         }

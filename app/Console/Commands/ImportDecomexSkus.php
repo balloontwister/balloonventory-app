@@ -17,16 +17,16 @@ class ImportDecomexSkus extends Command
                             {--execute : Write to the database (omit for dry-run)}
                             {--path= : Override path to the normalized JSON file}';
 
-    protected $description = 'Import Decomex SKUs from intake/decomex_normalized.json';
+    protected $description = 'Import Decomex SKUs from intake/decomex/decomex_normalized.json';
 
     public function handle(): int
     {
         $dryRun = ! $this->option('execute');
-        $jsonPath = $this->option('path') ?: base_path('intake/decomex_normalized.json');
+        $jsonPath = $this->option('path') ?: base_path('intake/decomex/decomex_normalized.json');
 
         if (! file_exists($jsonPath)) {
             $this->error("File not found: {$jsonPath}");
-            $this->line('Run: python3 intake/decomex_normalize.py');
+            $this->line('Run: python3 intake/decomex/decomex_normalize.py');
 
             return Command::FAILURE;
         }

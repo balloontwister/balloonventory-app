@@ -16,16 +16,16 @@ class ImportTuftexFoils extends Command
                             {--execute : Write to the database (omit for dry-run)}
                             {--path= : Override the normalized JSON path}';
 
-    protected $description = 'Import TufTex foil SKUs from intake/tuftex_foils_normalized.json';
+    protected $description = 'Import TufTex foil SKUs from intake/tuftex/tuftex_foils_normalized.json';
 
     public function handle(): int
     {
         $dryRun = ! $this->option('execute');
-        $jsonPath = $this->option('path') ?: base_path('intake/tuftex_foils_normalized.json');
+        $jsonPath = $this->option('path') ?: base_path('intake/tuftex/tuftex_foils_normalized.json');
 
         if (! file_exists($jsonPath)) {
             $this->error("File not found: {$jsonPath}");
-            $this->line('Run: python3 intake/build_tuftex_foils_sheet.py');
+            $this->line('Run: python3 intake/tuftex/build_tuftex_foils_sheet.py');
 
             return Command::FAILURE;
         }

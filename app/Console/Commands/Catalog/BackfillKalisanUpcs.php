@@ -16,7 +16,7 @@ class BackfillKalisanUpcs extends Command
 {
     protected $signature = 'catalog:backfill-kalisan-upcs
                             {--apply : Write resolved barcodes to the database (omit for dry-run)}
-                            {--source= : Path to kalisan_upcs_raw.json (default: intake/kalisan_upcs_raw.json)}';
+                            {--source= : Path to kalisan_upcs_raw.json (default: intake/kalisan/kalisan_upcs_raw.json)}';
 
     protected $description = 'Match scraped Kalisan EAN-13 data to skus and optionally back-fill the ean/upc columns.';
 
@@ -37,11 +37,11 @@ class BackfillKalisanUpcs extends Command
 
     public function handle(): int
     {
-        $sourcePath = $this->option('source') ?: base_path('intake/kalisan_upcs_raw.json');
+        $sourcePath = $this->option('source') ?: base_path('intake/kalisan/kalisan_upcs_raw.json');
 
         if (! file_exists($sourcePath)) {
             $this->error("Source file not found: {$sourcePath}");
-            $this->line('Run: python3 intake/kalisan_upc_fetch.py');
+            $this->line('Run: python3 intake/kalisan/kalisan_upc_fetch.py');
 
             return self::FAILURE;
         }

@@ -106,11 +106,13 @@ const displayName = computed(
                 :aria-label="$t('scan.undo')"
                 @click="emit('undo', scan.movement_id)"
             >
+                <!-- icon: arrow-uturn-left -->
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     class="h-4 w-4"
+                    aria-hidden="true"
                 >
                     <path
                         fill-rule="evenodd"

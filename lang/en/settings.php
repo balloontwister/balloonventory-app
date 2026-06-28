@@ -6,12 +6,17 @@ return [
 
     'preferences' => [
         'heading' => 'Preferences',
-        'subheading' => 'Choose the language and timezone Balloonventory uses for you.',
+        'subheading' => 'Choose the language, timezone, and appearance for Balloonventory.',
         'language_label' => 'Language',
         'more_languages_coming' => 'More languages coming soon.',
         'timezone_label' => 'Timezone',
         'timezone_unset' => 'Not set',
         'timezone_help' => 'Dates and times in the app are shown in this timezone.',
+        'theme_label' => 'Appearance',
+        'theme_light' => 'Light',
+        'theme_dark' => 'Dark',
+        'theme_system' => 'System',
+        'theme_help' => 'System follows your device\'s light or dark mode setting.',
         'submit' => 'Save preferences',
         'saved' => 'Preferences saved.',
     ],

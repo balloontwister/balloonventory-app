@@ -31,6 +31,7 @@ class SettingsController extends Controller
             'preferences' => [
                 'locale' => $user->locale ?? 'en',
                 'timezone' => $user->timezone,
+                'theme' => $user->theme ?? 'system',
             ],
             'supportedLocales' => config('app.supported_locales'),
         ]);
@@ -41,6 +42,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'locale' => ['required', 'string', 'in:'.implode(',', array_keys(config('app.supported_locales')))],
             'timezone' => ['nullable', 'string', 'in:'.implode(',', timezone_identifiers_list())],
+            'theme' => ['required', 'string', 'in:light,dark,system'],
         ]);
 
         $request->user()->forceFill($validated)->save();

@@ -13,7 +13,14 @@ const props = defineProps({
 const form = useForm({
     locale: props.preferences.locale,
     timezone: props.preferences.timezone ?? '',
+    theme: props.preferences.theme ?? 'system',
 });
+
+const themeOptions = [
+    { value: 'light', labelKey: 'settings.preferences.theme_light' },
+    { value: 'dark', labelKey: 'settings.preferences.theme_dark' },
+    { value: 'system', labelKey: 'settings.preferences.theme_system' },
+];
 
 const localeOptions = computed(() =>
     Object.entries(props.supportedLocales).map(([code, label]) => ({
@@ -135,6 +142,31 @@ const submit = () => form.patch(route('settings.preferences.update'));
                         </select>
                         <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
                             {{ $t('settings.preferences.timezone_help') }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <InputLabel
+                            :value="$t('settings.preferences.theme_label')"
+                        />
+                        <div class="mt-1 inline-flex rounded-md border border-border-strong bg-background p-0.5">
+                            <button
+                                v-for="opt in themeOptions"
+                                :key="opt.value"
+                                type="button"
+                                :class="[
+                                    'rounded px-4 py-1.5 font-sans text-[14px] font-medium transition',
+                                    form.theme === opt.value
+                                        ? 'bg-surface text-ink-primary shadow-sm'
+                                        : 'text-ink-secondary hover:text-ink-primary',
+                                ]"
+                                @click="form.theme = opt.value"
+                            >
+                                {{ $t(opt.labelKey) }}
+                            </button>
+                        </div>
+                        <p class="mt-1 font-sans text-[12px] text-ink-tertiary">
+                            {{ $t('settings.preferences.theme_help') }}
                         </p>
                     </div>
 

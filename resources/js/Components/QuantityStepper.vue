@@ -54,13 +54,16 @@ function increment() {
                 type="button"
                 class="flex h-10 w-10 items-center justify-center rounded-md border border-border-strong bg-surface text-ink-primary transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-30"
                 :disabled="!canDecrement"
+                aria-label="Decrease"
                 @click="decrement"
             >
+                <!-- icon: minus -->
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     class="h-4 w-4"
+                    aria-hidden="true"
                 >
                     <path
                         fill-rule="evenodd"
@@ -79,13 +82,16 @@ function increment() {
             <button
                 type="button"
                 class="flex h-10 w-10 items-center justify-center rounded-md border border-border-strong bg-surface text-ink-primary transition-colors hover:bg-background"
+                aria-label="Increase"
                 @click="increment"
             >
+                <!-- icon: plus -->
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     class="h-4 w-4"
+                    aria-hidden="true"
                 >
                     <path
                         fill-rule="evenodd"

@@ -491,7 +491,105 @@ Three breakpoints:
 
 Below 768px, every table becomes a vertical list of cards. Each card mirrors the row content stacked: swatch + name on top row, brand + size + finish on a meta row, stock badge on the right.
 
-## 9. Agent Prompt Guide
+## 9. Icons
+
+Icons are inline SVGs copied directly into Vue components — no icon library package, no CDN dependency.
+
+**Source:** Heroicons v2 (MIT license, no attribution required). All icons come from this set. Do not introduce icons from other sets.
+
+**Grid:** Use `viewBox="0 0 20 20"` as the default. `24×24` is acceptable for larger contexts (page headers, empty states). `16×16` for very tight inline uses (badges, table cells). Do not mix grids within the same component.
+
+**Style:** Prefer `fill="currentColor"` (solid style) for UI chrome. Use `stroke="currentColor"` (outline style) sparingly — only where a lighter visual weight is clearly better (e.g., the unfavorited star, the camera outline in ScanField).
+
+**Color:** Always use `currentColor` so the icon inherits its color from the surrounding Tailwind text class. Never hardcode a hex value in an SVG `fill` or `stroke` attribute.
+
+**Sizing:** Control size via Tailwind (`h-4 w-4`, `h-5 w-5`, `h-6 w-6`). Do not set `width` or `height` attributes directly on the `<svg>` element.
+
+**Naming convention:** Add `<!-- icon: {heroicons-slug} -->` as an HTML comment immediately before every `<svg>` tag, using the exact Heroicons v2 slug (e.g. `chevron-down`, `magnifying-glass`, `star`). This makes icons grep-able: `grep -r "icon: star" resources/js` finds every usage instantly. Comments are stripped by the Vite build and never reach the browser.
+
+**Accessibility:** Add `aria-hidden="true"` to decorative icons (icons paired with visible text, or inside buttons that already carry an `aria-label`). For interactive icon-only buttons (no visible label), add `aria-label` to the button element, not the SVG itself.
+
+**Do not** use emoji as icon substitutes in chrome. **Do not** pull icons from a CDN or add an icon package dependency — inline SVG is intentional to keep the bundle self-contained and avoid layout flash.
+
+### Icons currently in use
+
+These are the Heroicons v2 slugs used across the codebase. Check this list before adding a new icon — reuse what's already here first.
+
+| Icon | Used for |
+|---|---|
+| `archive-box` | Archive actions |
+| `arrow-left` | Back navigation |
+| `arrow-left-on-rectangle` | Log out |
+| `arrow-path` | Refresh / sync |
+| `arrow-uturn-left` | Undo scan |
+| `bars-3` | Mobile menu / hamburger |
+| `bell` | Notifications |
+| `book-open` | Documentation / guides |
+| `building-office` | Business |
+| `calendar` | Date fields, jobs |
+| `camera` | Camera scanner trigger |
+| `chart-bar` / `circle-stack` | Stats, database |
+| `check` | Confirmation, success state |
+| `chevron-down` | Dropdowns, accordions |
+| `chevron-left` | Back, previous |
+| `chevron-right` | Forward, next, list rows |
+| `clipboard-document-list` | Lists, copied content |
+| `cog-6-tooth` | Settings |
+| `credit-card` | Billing |
+| `cube` | SKU / product |
+| `document` | Files, records |
+| `document-duplicate` | Duplicate action |
+| `ellipsis-vertical` | Action menus (⋮) |
+| `envelope` | Email |
+| `exclamation-circle` | Inline error |
+| `exclamation-triangle` | Warning banner |
+| `globe-alt` | Locale / language |
+| `inbox` | Inbox, messages |
+| `lock-closed` | Permissions, locked state |
+| `magnifying-glass` | Search |
+| `minus` | Decrement, remove |
+| `plus` | Add, increment |
+| `qr-code` | Barcode / scan |
+| `question-mark-circle` | Help, unknown state |
+| `shield-check` | Super admin, security |
+| `shopping-bag` | Check out workflow |
+| `squares-2x2` | Grid view |
+| `star` | Favorites |
+| `table-cells` | Distributor / data table |
+| `trash` | Delete |
+| `user` | Profile, single user |
+| `user-plus` | Invite user |
+| `users` | Team / multiple users |
+| `x-mark` | Close, dismiss |
+
+## 10. Accessibility
+
+Accessibility is a build-toward standard, not a retroactive audit. Apply these rules to all new components and when editing existing ones.
+
+### Icons
+
+- All decorative SVGs (icons paired with visible text, or inside labeled buttons) must have `aria-hidden="true"`.
+- Interactive icon-only buttons must have `aria-label` on the `<button>` element. Use i18n keys (`$t(...)`) for all user-visible strings so labels are translatable.
+- Always use the `<!-- icon: slug -->` comment convention so icons are grep-able.
+
+### Buttons and interactions
+
+- `aria-label` is required on any button or control with no visible text label.
+- `aria-expanded` is required on any toggle that shows/hides content (dropdowns, accordions, collapsible panels).
+- `aria-pressed` is required on binary toggle buttons (e.g., a theme toggle).
+
+### Forms
+
+- Every input must have an associated `<label>` (or `aria-label` if the label is visually hidden). Placeholder text is not a substitute for a label.
+- Error messages must be associated with their input via `aria-describedby`.
+
+### General
+
+- Minimum touch target size: 44×44px on mobile (apply padding, not size, to preserve layout).
+- Do not rely on color alone to convey state — pair color with text, icon, or pattern.
+- Do not use `tabindex` values greater than 0.
+
+## 11. Agent Prompt Guide
 
 ### Quick reference
 

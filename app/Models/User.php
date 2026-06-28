@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
         // forceFill (seeders) so it can never be mass-assigned from request input.
         'avatar_path',
         'locale',
+        'theme',
         'timezone',
         'last_login_at',
         'original_email',

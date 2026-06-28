@@ -18,11 +18,13 @@ function exit() {
             class="fixed inset-x-0 top-0 z-[100] flex h-9 items-center justify-center gap-3 border-b border-amber-600 bg-amber-500 px-4 text-amber-950 shadow-md"
             role="status"
         >
+            <!-- icon: question-mark-circle -->
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 class="h-4 w-4 shrink-0"
+                aria-hidden="true"
             >
                 <path
                     fill-rule="evenodd"

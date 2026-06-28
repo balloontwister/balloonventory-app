@@ -40,13 +40,14 @@ function requiredRole(permission) {
             "
             class="inline-flex items-center gap-1.5"
         >
-            <!-- lock glyph for destructive gated actions -->
+            <!-- icon: lock-closed -->
             <svg
                 v-if="!allowed && destructive"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
                 class="h-3.5 w-3.5 flex-shrink-0 text-ink-tertiary"
                 fill="currentColor"
+                aria-hidden="true"
             >
                 <path
                     fill-rule="evenodd"

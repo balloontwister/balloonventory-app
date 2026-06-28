@@ -55,11 +55,13 @@ function close() {
                     <div
                         class="flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft"
                     >
+                        <!-- icon: check -->
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                             class="h-6 w-6 text-accent"
+                            aria-hidden="true"
                         >
                             <path
                                 fill-rule="evenodd"
@@ -113,13 +115,16 @@ function close() {
                     <button
                         type="button"
                         class="ml-4 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-ink-tertiary transition hover:bg-background hover:text-ink-primary"
+                        aria-label="Close"
                         @click="close"
                     >
+                        <!-- icon: x-mark -->
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                             class="h-4 w-4"
+                            aria-hidden="true"
                         >
                             <path
                                 d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"

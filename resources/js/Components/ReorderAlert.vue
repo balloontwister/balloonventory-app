@@ -14,12 +14,13 @@ defineProps({
             border-color: rgba(234, 88, 12, 0.3);
         "
     >
-        <!-- icon -->
+        <!-- icon: exclamation-triangle -->
         <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
             class="h-5 w-5 flex-shrink-0 text-warning"
+            aria-hidden="true"
         >
             <path
                 fill-rule="evenodd"

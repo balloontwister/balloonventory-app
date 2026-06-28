@@ -6,12 +6,17 @@ return [
 
     'preferences' => [
         'heading' => 'Preferencias',
-        'subheading' => 'Elige el idioma y la zona horaria que Balloonventory usará para ti.',
+        'subheading' => 'Elige el idioma, la zona horaria y la apariencia de Balloonventory.',
         'language_label' => 'Idioma',
         'more_languages_coming' => 'Más idiomas próximamente.',
         'timezone_label' => 'Zona horaria',
         'timezone_unset' => 'No definida',
         'timezone_help' => 'Las fechas y horas en la aplicación se muestran en esta zona horaria.',
+        'theme_label' => 'Apariencia',
+        'theme_light' => 'Claro',
+        'theme_dark' => 'Oscuro',
+        'theme_system' => 'Sistema',
+        'theme_help' => 'Sistema sigue la configuración de modo claro u oscuro de tu dispositivo.',
         'submit' => 'Guardar preferencias',
         'saved' => 'Preferencias guardadas.',
     ],

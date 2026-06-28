@@ -7,11 +7,13 @@ import { Link } from '@inertiajs/vue3';
         :href="route('admin.dashboard')"
         class="inline-flex items-center gap-1 font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
     >
+        <!-- icon: chevron-left -->
         <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
             class="h-3.5 w-3.5"
+            aria-hidden="true"
         >
             <path
                 fill-rule="evenodd"

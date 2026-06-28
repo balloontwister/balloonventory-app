@@ -57,7 +57,22 @@ const timezoneOptions = computed(() => {
     return list;
 });
 
-const submit = () => form.patch(route('settings.preferences.update'));
+const applyTheme = (theme) => {
+    const html = document.documentElement;
+    if (theme === 'dark') {
+        html.classList.add('dark');
+    } else if (theme === 'light') {
+        html.classList.remove('dark');
+    } else {
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? html.classList.add('dark')
+            : html.classList.remove('dark');
+    }
+};
+
+const submit = () => form.patch(route('settings.preferences.update'), {
+    onSuccess: () => applyTheme(form.theme),
+});
 </script>
 
 <template>

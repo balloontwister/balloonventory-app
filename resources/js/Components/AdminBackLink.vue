@@ -1,10 +1,20 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const props = defineProps({
+    // Override the destination/label; defaults to the Admin Dashboard so existing
+    // callers are unchanged.
+    href: { type: String, default: null },
+    label: { type: String, default: null },
+});
+
+const target = computed(() => props.href ?? route('admin.dashboard'));
 </script>
 
 <template>
     <Link
-        :href="route('admin.dashboard')"
+        :href="target"
         class="inline-flex items-center gap-1 font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
     >
         <!-- icon: chevron-left -->
@@ -21,6 +31,6 @@ import { Link } from '@inertiajs/vue3';
                 clip-rule="evenodd"
             />
         </svg>
-        {{ $t('super_admin.dashboard.back') }}
+        {{ label ?? $t('super_admin.dashboard.back') }}
     </Link>
 </template>

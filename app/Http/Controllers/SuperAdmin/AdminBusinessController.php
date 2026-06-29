@@ -105,7 +105,7 @@ class AdminBusinessController extends Controller
             'plan' => $business->plan->value,
             'logo_url' => $business->logo_path
                 ? Storage::disk('public')->url($business->logo_path)
-                : asset('images/defaults/business-logo-default.png'),
+                : asset('images/defaults/balloon-company-logo-light-default.png'),
             'members_count' => (int) $business->members_count,
             'inventory_skus_count' => (int) $business->inventory_skus_count,
             'inventory_bags_total' => (int) $business->inventory_bags_total,
@@ -116,8 +116,11 @@ class AdminBusinessController extends Controller
             'deleted_at' => $business->deleted_at,
         ]);
 
+        // NOTE: prop is named businessList (not "businesses") to avoid clobbering
+        // the globally-shared "businesses" prop (the current user's memberships,
+        // used by BusinessSwitcher). Same reason "business" → "record" in show().
         return Inertia::render('SuperAdmin/Businesses/Index', [
-            'businesses' => $businesses,
+            'businessList' => $businesses,
             'filters' => [
                 'search' => $request->input('search', ''),
                 'status' => $request->input('status', ''),
@@ -205,7 +208,7 @@ class AdminBusinessController extends Controller
             ->get(['id', 'user_name', 'subject', 'archived_at', 'created_at']);
 
         return Inertia::render('SuperAdmin/Businesses/Show', [
-            'business' => [
+            'record' => [
                 'id' => $model->id,
                 'name' => $model->name,
                 'slug' => $model->slug,
@@ -213,7 +216,7 @@ class AdminBusinessController extends Controller
                 'business_type' => $model->business_type,
                 'logo_url' => $model->logo_path
                     ? Storage::disk('public')->url($model->logo_path)
-                    : asset('images/defaults/business-logo-default.png'),
+                    : asset('images/defaults/balloon-company-logo-light-default.png'),
                 'created_at' => $model->created_at,
                 'onboarding_completed_at' => $model->onboarding_completed_at,
                 'frozen_at' => $model->frozen_at,

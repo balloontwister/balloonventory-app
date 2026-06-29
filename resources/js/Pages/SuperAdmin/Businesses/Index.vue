@@ -6,7 +6,9 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
-    businesses: { type: Object, required: true },
+    // Named businessList (not "businesses") so it doesn't clobber the globally
+    // shared "businesses" prop (the user's memberships) used by BusinessSwitcher.
+    businessList: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
 });
 
@@ -253,7 +255,7 @@ function statusLabel(business) {
                             </thead>
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr
-                                    v-for="business in businesses.data"
+                                    v-for="business in businessList.data"
                                     :key="business.id"
                                     class="hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
@@ -316,7 +318,7 @@ function statusLabel(business) {
                     <!-- Pagination -->
                     <div class="flex items-center justify-between">
                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                            {{ $t('super_admin.businesses.total_count', { count: businesses.total }) }}
+                            {{ $t('super_admin.businesses.total_count', { count: businessList.total }) }}
                         </div>
                         <div class="flex gap-2">
                             <select
@@ -331,8 +333,8 @@ function statusLabel(business) {
                     </div>
 
                     <!-- Pagination Links -->
-                    <div v-if="businesses.links.length > 3" class="flex justify-center gap-1">
-                        <template v-for="link in businesses.links">
+                    <div v-if="businessList.links.length > 3" class="flex justify-center gap-1">
+                        <template v-for="link in businessList.links">
                             <Link
                                 v-if="!link.url"
                                 :key="link.label"
@@ -359,7 +361,7 @@ function statusLabel(business) {
                 <!-- Card View -->
                 <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div
-                        v-for="business in businesses.data"
+                        v-for="business in businessList.data"
                         :key="business.id"
                         class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
                     >

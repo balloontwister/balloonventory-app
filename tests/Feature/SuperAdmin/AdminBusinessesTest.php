@@ -67,7 +67,7 @@ class AdminBusinessesTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('SuperAdmin/Businesses/Index')
-            ->has('businesses.data', 1)
+            ->has('businessList.data', 1)
         );
     }
 
@@ -97,8 +97,8 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['search' => 'Acme']));
 
         $response->assertInertia(fn ($page) => $page
-            ->has('businesses.data', 1)
-            ->where('businesses.data.0.name', 'Acme Balloons')
+            ->has('businessList.data', 1)
+            ->where('businessList.data.0.name', 'Acme Balloons')
         );
     }
 
@@ -110,7 +110,7 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['search' => 'test-business']));
 
         $response->assertInertia(fn ($page) => $page
-            ->has('businesses.data', 1)
+            ->has('businessList.data', 1)
         );
     }
 
@@ -122,7 +122,7 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['search' => 'hello@balloons.test']));
 
         $response->assertInertia(fn ($page) => $page
-            ->has('businesses.data', 1)
+            ->has('businessList.data', 1)
         );
     }
 
@@ -136,8 +136,8 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['status' => 'active']));
 
         $response->assertInertia(fn ($page) => $page
-            ->has('businesses.data', 1)
-            ->where('businesses.data.0.id', $activeBusiness->id)
+            ->has('businessList.data', 1)
+            ->where('businessList.data.0.id', $activeBusiness->id)
         );
     }
 
@@ -150,8 +150,8 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['status' => 'frozen']));
 
         $response->assertInertia(fn ($page) => $page
-            ->has('businesses.data', 1)
-            ->where('businesses.data.0.id', $frozenBusiness->id)
+            ->has('businessList.data', 1)
+            ->where('businessList.data.0.id', $frozenBusiness->id)
         );
     }
 
@@ -165,8 +165,8 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['status' => 'deleted']));
 
         $response->assertInertia(fn ($page) => $page
-            ->has('businesses.data', 1)
-            ->where('businesses.data.0.id', $deletedBusiness->id)
+            ->has('businessList.data', 1)
+            ->where('businessList.data.0.id', $deletedBusiness->id)
         );
     }
 
@@ -180,8 +180,8 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['sort' => 'name', 'dir' => 'asc']));
 
         $response->assertInertia(fn ($page) => $page
-            ->where('businesses.data.0.name', 'Acme Balloons')
-            ->where('businesses.data.1.name', 'Zebra Balloons')
+            ->where('businessList.data.0.name', 'Acme Balloons')
+            ->where('businessList.data.1.name', 'Zebra Balloons')
         );
     }
 
@@ -195,7 +195,7 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index', ['sort' => 'created_at', 'dir' => 'desc']));
 
         $response->assertInertia(fn ($page) => $page
-            ->where('businesses.data.0.id', $business2->id)
+            ->where('businessList.data.0.id', $business2->id)
         );
     }
 
@@ -210,7 +210,7 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index'));
 
         $response->assertInertia(fn ($page) => $page
-            ->where('businesses.data.0.members_count', 1)
+            ->where('businessList.data.0.members_count', 1)
         );
     }
 
@@ -225,7 +225,7 @@ class AdminBusinessesTest extends TestCase
             ->get(route('admin.businesses.index'));
 
         $response->assertInertia(fn ($page) => $page
-            ->where('businesses.data.0.owner_id', $owner->id)
+            ->where('businessList.data.0.owner_id', $owner->id)
         );
     }
 
@@ -241,7 +241,7 @@ class AdminBusinessesTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('SuperAdmin/Businesses/Show')
-            ->where('business.id', $this->business->id)
+            ->where('record.id', $this->business->id)
         );
     }
 
@@ -256,7 +256,7 @@ class AdminBusinessesTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->has('members', 1)
             ->where('members.0.name', $owner->name)
-            ->where('business.owner_id', $owner->id)
+            ->where('record.owner_id', $owner->id)
         );
     }
 
@@ -352,7 +352,7 @@ class AdminBusinessesTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->where('business.deleted_at', $business->deleted_at->toJson())
+            ->where('record.deleted_at', $business->deleted_at->toJson())
         );
     }
 

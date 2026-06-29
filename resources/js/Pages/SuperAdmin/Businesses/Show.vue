@@ -3,9 +3,13 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import BusinessActionMenu from '@/Components/BusinessActionMenu.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-defineProps({
-    business: { type: Object, required: true },
+const props = defineProps({
+    // Named "record" (not "business") so it doesn't clobber the globally-shared
+    // "business" prop (the current business) used by BusinessSwitcher. Aliased to
+    // a local `business` below so the rest of this component reads naturally.
+    record: { type: Object, required: true },
     members: { type: Array, required: true },
     members_count: { type: Number, required: true },
     pending_invitations: { type: Array, required: true },
@@ -15,6 +19,8 @@ defineProps({
     bins_count: { type: Number, required: true },
     tickets: { type: Array, required: true },
 });
+
+const business = computed(() => props.record);
 
 function statusBadgeClass(business) {
     if (business.deleted_at) return 'badge-red';
@@ -41,7 +47,10 @@ function roleLabel(role) {
             <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
                 <!-- Header -->
                 <div class="mb-8">
-                    <AdminBackLink />
+                    <AdminBackLink
+                        :href="route('admin.businesses.index')"
+                        :label="$t('super_admin.businesses.detail.back')"
+                    />
                     <div class="mt-4 flex items-start justify-between">
                         <div class="flex items-center gap-4">
                             <img
@@ -68,7 +77,7 @@ function roleLabel(role) {
                                 </div>
                             </div>
                         </div>
-                        <BusinessActionMenu :business="business" />
+                        <BusinessActionMenu :business="business" :show-view-details="false" />
                     </div>
                 </div>
 

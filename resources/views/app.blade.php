@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"@auth{{ auth()->user()->theme === 'dark' ? ' class="dark"' : '' }}@endauth>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => auth()->user()?->theme === 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">

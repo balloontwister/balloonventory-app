@@ -151,7 +151,7 @@ function statusLabel(business) {
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
                         <input
                             v-model="search"
-                            type="text"
+                            type="search"
                             :placeholder="$t('super_admin.businesses.search_placeholder')"
                             class="flex-1 rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         />

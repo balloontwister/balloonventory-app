@@ -85,6 +85,9 @@ class BusinessController extends Controller
 
         abort_unless($membership !== null, 403);
         abort_if($membership->role === 'none', 403);
+        // A suspended business behaves like "No Access" — members may see it but
+        // cannot enter it until support unsuspends it.
+        abort_if($membership->business?->isFrozen() ?? false, 403);
 
         $request->session()->put('current_business_id', $business);
         BusinessContext::set($business);

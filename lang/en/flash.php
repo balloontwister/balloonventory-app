@@ -81,6 +81,13 @@ return [
         'password_set_notify_unavailable' => 'Password updated for :name, but the notification email template is inactive — no notification was sent.',
     ],
 
+    'businesses' => [
+        'suspended' => ':name has been suspended.',
+        'unsuspended' => ':name has been unsuspended.',
+        'deleted' => ':name has been deleted.',
+        'frozen_notice' => 'This business is suspended. Contact support to restore access.',
+    ],
+
     'email_template' => [
         'saved_activated' => 'Template saved and activated. It will now fire on its trigger.',
         'saved_deactivated' => 'Template saved and deactivated. It will not fire until activated.',

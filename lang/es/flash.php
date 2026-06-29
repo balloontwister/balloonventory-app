@@ -61,6 +61,13 @@ return [
         'password_set_notify_unavailable' => 'Contraseña actualizada para :name, pero la plantilla de correo de notificación está inactiva — no se envió notificación.',
     ],
 
+    'businesses' => [
+        'suspended' => ':name ha sido suspendido.',
+        'unsuspended' => ':name ha sido reactivado.',
+        'deleted' => ':name ha sido eliminado.',
+        'frozen_notice' => 'Este negocio está suspendido. Contacta con soporte para restaurar el acceso.',
+    ],
+
     'email_template' => [
         'saved_activated' => 'Plantilla guardada y activada. Ahora se enviará con su disparador.',
         'saved_deactivated' => 'Plantilla guardada y desactivada. No se enviará hasta que se active.',

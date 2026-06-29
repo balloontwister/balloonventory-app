@@ -18,6 +18,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReorderController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SuperAdmin\AdminBusinessController;
 use App\Http\Controllers\SuperAdmin\AdminUserController;
 use App\Http\Controllers\SuperAdmin\AdminUserEmailController;
 use App\Http\Controllers\SuperAdmin\BackupController;
@@ -94,7 +95,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // ─── Authenticated + verified + business-gated routes ────────────────────────
-Route::middleware(['auth', 'verified', 'ensure.business'])->group(function () {
+Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/nudges/dismiss', [DashboardController::class, 'dismissNudge'])->name('dashboard.nudges.dismiss');
 
@@ -197,6 +198,13 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
     Route::post('/admin/users/{user}/impersonate', [ImpersonationController::class, 'start'])->name('admin.users.impersonate');
     Route::post('/admin/users/{user}/magic-login', [MagicLoginLinkController::class, 'store'])->name('admin.users.magic-login');
     Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+
+    // ── Businesses ───────────────────────────────────────────────────────────
+    Route::get('/admin/businesses', [AdminBusinessController::class, 'index'])->name('admin.businesses.index');
+    Route::get('/admin/businesses/{business}', [AdminBusinessController::class, 'show'])->name('admin.businesses.show');
+    Route::post('/admin/businesses/{business}/suspend', [AdminBusinessController::class, 'suspend'])->name('admin.businesses.suspend');
+    Route::delete('/admin/businesses/{business}/suspend', [AdminBusinessController::class, 'thaw'])->name('admin.businesses.thaw');
+    Route::delete('/admin/businesses/{business}', [AdminBusinessController::class, 'destroy'])->name('admin.businesses.destroy');
 
     // ── Catalog ──────────────────────────────────────────────────────────────
     Route::get('/admin/catalog', fn () => redirect()->route('admin.catalog.skus'))->name('admin.catalog');

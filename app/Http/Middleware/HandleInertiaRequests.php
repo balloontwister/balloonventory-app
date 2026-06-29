@@ -123,6 +123,7 @@ class HandleInertiaRequests extends Middleware
                 'slug' => $currentBusiness->slug,
                 'color' => $currentMembership->business_badge_color,
                 'logoUrl' => $this->businessLogoUrl($currentBusiness),
+                'frozen' => $currentBusiness->isFrozen(),
             ] : null,
 
             'businesses' => $memberships->map(fn (Membership $m) => [
@@ -130,6 +131,7 @@ class HandleInertiaRequests extends Middleware
                 'name' => $m->business->name,
                 'color' => $m->business_badge_color,
                 'logoUrl' => $this->businessLogoUrl($m->business),
+                'frozen' => $m->business->isFrozen(),
                 'pivot' => ['role' => $m->role, 'membership_id' => $m->id],
             ])->values(),
 

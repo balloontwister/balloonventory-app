@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Business;
+use App\Support\AdminBusinessView;
 use App\Support\BusinessContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -36,6 +37,12 @@ class EnsureBusinessActive
 
     public function handle(Request $request, Closure $next): Response
     {
+        // A Super Admin viewing a business as admin may enter it even when it's
+        // suspended — that's often the reason they're going in.
+        if (AdminBusinessView::isActive() && $request->user()?->isSuperAdmin()) {
+            return $next($request);
+        }
+
         $businessId = BusinessContext::currentId();
 
         if ($businessId === null || $this->isAllowed($request)) {

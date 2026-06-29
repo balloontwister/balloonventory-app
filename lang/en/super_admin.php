@@ -454,6 +454,9 @@ return [
 
         'actions_menu' => 'Actions',
         'view_details' => 'View details',
+        'view_as' => 'View as business',
+        'view_as_banner' => 'Viewing :name as admin',
+        'view_as_exit' => 'Exit',
         'email_owner' => 'Email owner',
         'impersonate_owner' => 'Switch to owner',
         'suspend_button' => 'Suspend business',

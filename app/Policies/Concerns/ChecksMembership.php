@@ -6,15 +6,25 @@ use App\Models\Business;
 use App\Models\Membership;
 use App\Models\User;
 use App\Scopes\BusinessScope;
+use App\Support\AdminBusinessView;
 use Spatie\Permission\Models\Role;
 
 trait ChecksMembership
 {
     /**
      * Return the user's active role string in the given business, or null if not a member.
+     *
+     * Exception: a Super Admin who has explicitly entered this business via
+     * "View as business" resolves as 'owner', so the existing permission matrix
+     * grants full business abilities — scoped to exactly the business they are
+     * viewing, and only while they are genuinely a Super Admin.
      */
     protected function membershipRole(User $user, Business $business): ?string
     {
+        if ($user->isSuperAdmin() && AdminBusinessView::isViewing($business->id)) {
+            return 'owner';
+        }
+
         return Membership::withoutGlobalScope(BusinessScope::class)
             ->where('user_id', $user->id)
             ->where('business_id', $business->id)

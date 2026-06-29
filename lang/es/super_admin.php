@@ -360,6 +360,9 @@ return [
 
         'actions_menu' => 'Acciones',
         'view_details' => 'Ver detalles',
+        'view_as' => 'Ver como negocio',
+        'view_as_banner' => 'Viendo :name como administrador',
+        'view_as_exit' => 'Salir',
         'email_owner' => 'Correo al propietario',
         'impersonate_owner' => 'Acceder como propietario',
         'suspend_button' => 'Suspender negocio',

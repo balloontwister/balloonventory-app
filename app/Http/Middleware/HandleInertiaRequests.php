@@ -8,6 +8,7 @@ use App\Models\DistributorCatalogProposal;
 use App\Models\Membership;
 use App\Models\User;
 use App\Scopes\BusinessScope;
+use App\Support\AdminBusinessView;
 use App\Support\BusinessContext;
 use App\Support\Impersonation;
 use App\Support\NotificationPresenter;
@@ -37,6 +38,7 @@ class HandleInertiaRequests extends Middleware
                 'avatarUrl' => $this->avatarUrl($request),
             ],
             'impersonating' => fn () => $this->impersonationProps($request),
+            'adminViewingBusiness' => fn () => $this->adminViewingBusinessProps($request),
             'locale' => fn () => app()->getLocale(),
             'supportedLocales' => fn () => collect(config('app.supported_locales'))
                 ->map(fn ($label, $code) => ['code' => $code, 'label' => $label])
@@ -82,6 +84,25 @@ class HandleInertiaRequests extends Middleware
         ];
     }
 
+    /**
+     * When a Super Admin is viewing a business as admin, expose enough for the
+     * persistent "viewing X as admin" banner; otherwise null.
+     *
+     * @return array{name: string}|null
+     */
+    private function adminViewingBusinessProps(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if (! $user?->isSuperAdmin() || ! AdminBusinessView::isActive()) {
+            return null;
+        }
+
+        $business = Business::find(AdminBusinessView::businessId());
+
+        return $business ? ['name' => $business->name] : null;
+    }
+
     private function businessProps(Request $request): array
     {
         $user = $request->user();
@@ -92,6 +113,40 @@ class HandleInertiaRequests extends Middleware
                 'businesses' => [],
                 'membership' => null,
                 'permissions' => [],
+            ];
+        }
+
+        // Super-Admin "View as business": present the viewed business as the
+        // current one with owner-level abilities, while keeping the admin's own
+        // memberships in the switcher so they can navigate back.
+        if ($user->isSuperAdmin() && AdminBusinessView::isActive()) {
+            $viewed = Business::find(AdminBusinessView::businessId());
+
+            $ownMemberships = Membership::withoutGlobalScope(BusinessScope::class)
+                ->with('business')
+                ->where('user_id', $user->id)
+                ->whereNull('deleted_at')
+                ->get();
+
+            return [
+                'business' => $viewed ? [
+                    'id' => $viewed->id,
+                    'name' => $viewed->name,
+                    'slug' => $viewed->slug,
+                    'color' => null,
+                    'logoUrl' => $this->businessLogoUrl($viewed),
+                    'frozen' => $viewed->isFrozen(),
+                ] : null,
+                'businesses' => $ownMemberships->map(fn (Membership $m) => [
+                    'id' => $m->business->id,
+                    'name' => $m->business->name,
+                    'color' => $m->business_badge_color,
+                    'logoUrl' => $this->businessLogoUrl($m->business),
+                    'frozen' => $m->business->isFrozen(),
+                    'pivot' => ['role' => $m->role, 'membership_id' => $m->id],
+                ])->values(),
+                'membership' => ['id' => null, 'role' => 'owner', 'business_badge_color' => null],
+                'permissions' => self::permissionsForRole('owner'),
             ];
         }
 

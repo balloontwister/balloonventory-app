@@ -201,7 +201,10 @@ Route::middleware(['auth', 'verified', RequireAdminAccess::class])->group(functi
 
     // ── Businesses ───────────────────────────────────────────────────────────
     Route::get('/admin/businesses', [AdminBusinessController::class, 'index'])->name('admin.businesses.index');
+    // Static segment registered before the {business} wildcard.
+    Route::post('/admin/businesses/stop-view', [AdminBusinessController::class, 'stopViewAs'])->name('admin.businesses.stop-view');
     Route::get('/admin/businesses/{business}', [AdminBusinessController::class, 'show'])->name('admin.businesses.show');
+    Route::post('/admin/businesses/{business}/view-as', [AdminBusinessController::class, 'viewAs'])->name('admin.businesses.view-as');
     Route::post('/admin/businesses/{business}/suspend', [AdminBusinessController::class, 'suspend'])->name('admin.businesses.suspend');
     Route::delete('/admin/businesses/{business}/suspend', [AdminBusinessController::class, 'thaw'])->name('admin.businesses.thaw');
     Route::delete('/admin/businesses/{business}', [AdminBusinessController::class, 'destroy'])->name('admin.businesses.destroy');

@@ -4,6 +4,7 @@ import AdminMenu from '@/Components/AdminMenu.vue';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
+import AdminBusinessBanner from '@/Components/AdminBusinessBanner.vue';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import Toaster from '@/Components/Toaster.vue';
 import { useBusiness } from '@/Composables/useBusiness';
@@ -36,9 +37,12 @@ onUnmounted(() => mediaQuery?.removeEventListener('change', syncIsDesktop));
 const isSuperAdmin = page.props.auth?.isAnyAdmin ?? false;
 const isSuperOnly = page.props.auth?.isSuperAdmin ?? false;
 
-// While impersonating, the fixed banner (h-9) sits at the very top; shift the
-// fixed sidebar / sticky header and content down so nothing hides under it.
-const isImpersonating = computed(() => !!page.props.impersonating);
+// While impersonating — or while a Super Admin is viewing a business as admin —
+// a fixed banner (h-9) sits at the very top; shift the fixed sidebar / sticky
+// header and content down so nothing hides under it. (Only one shows at a time.)
+const isImpersonating = computed(
+    () => !!page.props.impersonating || !!page.props.adminViewingBusiness,
+);
 
 // Desktop sidebar collapse — remembered per browser.
 const sidebarCollapsed = ref(
@@ -94,6 +98,7 @@ const topNavItems = computed(() =>
 
         <!-- Persistent "viewing as user" banner while impersonating -->
         <ImpersonationBanner />
+        <AdminBusinessBanner />
 
         <!-- ─── DESKTOP LAYOUT (lg+) ─── -->
         <div

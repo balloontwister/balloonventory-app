@@ -139,7 +139,7 @@ function cancelAction() {
             @click="toggleMenu"
             class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
-            {{ __('super_admin.businesses.actions_menu') }}
+            {{ $t('super_admin.businesses.actions_menu') }}
         </button>
 
         <!-- Teleported Fixed Menu -->
@@ -156,7 +156,7 @@ function cancelAction() {
                     class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
                     @click="closeMenu"
                 >
-                    {{ __('super_admin.businesses.view_details') }}
+                    {{ $t('super_admin.businesses.view_details') }}
                 </Link>
 
                 <!-- Email Owner -->
@@ -166,7 +166,7 @@ function cancelAction() {
                     class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
                     @click="closeMenu"
                 >
-                    {{ __('super_admin.businesses.email_owner') }}
+                    {{ $t('super_admin.businesses.email_owner') }}
                 </Link>
 
                 <!-- Impersonate Owner -->
@@ -176,7 +176,7 @@ function cancelAction() {
                     class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
                     @click="impersonateOwner"
                 >
-                    {{ __('super_admin.businesses.impersonate_owner') }}
+                    {{ $t('super_admin.businesses.impersonate_owner') }}
                 </button>
 
                 <!-- Divider -->
@@ -192,7 +192,7 @@ function cancelAction() {
                     class="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20"
                     @click="confirmAction({ type: 'suspend' })"
                 >
-                    {{ __('super_admin.businesses.suspend_button') }}
+                    {{ $t('super_admin.businesses.suspend_button') }}
                 </button>
 
                 <!-- Unsuspend -->
@@ -202,7 +202,7 @@ function cancelAction() {
                     class="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
                     @click="confirmAction({ type: 'unsuspend' })"
                 >
-                    {{ __('super_admin.businesses.unsuspend_button') }}
+                    {{ $t('super_admin.businesses.unsuspend_button') }}
                 </button>
 
                 <!-- Delete -->
@@ -212,7 +212,7 @@ function cancelAction() {
                     class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                     @click="confirmAction({ type: 'delete' })"
                 >
-                    {{ __('super_admin.businesses.delete_button') }}
+                    {{ $t('super_admin.businesses.delete_button') }}
                 </button>
             </div>
         </Teleport>
@@ -225,24 +225,24 @@ function cancelAction() {
             <div class="p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                     <template v-if="pendingAction?.type === 'suspend'">
-                        {{ __('super_admin.businesses.suspend_button') }}
+                        {{ $t('super_admin.businesses.suspend_button') }}
                     </template>
                     <template v-else-if="pendingAction?.type === 'unsuspend'">
-                        {{ __('super_admin.businesses.unsuspend_button') }}
+                        {{ $t('super_admin.businesses.unsuspend_button') }}
                     </template>
                     <template v-else-if="pendingAction?.type === 'delete'">
-                        {{ __('super_admin.businesses.delete_button') }}
+                        {{ $t('super_admin.businesses.delete_button') }}
                     </template>
                 </h3>
                 <p class="mt-2 text-gray-600 dark:text-gray-400">
                     <template v-if="pendingAction?.type === 'suspend'">
-                        {{ __('super_admin.businesses.suspend_confirm', { name: business.name }) }}
+                        {{ $t('super_admin.businesses.suspend_confirm', { name: business.name }) }}
                     </template>
                     <template v-else-if="pendingAction?.type === 'unsuspend'">
-                        {{ __('super_admin.businesses.unsuspend_confirm', { name: business.name }) }}
+                        {{ $t('super_admin.businesses.unsuspend_confirm', { name: business.name }) }}
                     </template>
                     <template v-else-if="pendingAction?.type === 'delete'">
-                        {{ __('super_admin.businesses.delete_confirm', { name: business.name }) }}
+                        {{ $t('super_admin.businesses.delete_confirm', { name: business.name }) }}
                     </template>
                 </p>
                 <div class="mt-6 flex justify-end gap-3">
@@ -251,7 +251,7 @@ function cancelAction() {
                         @click="cancelAction"
                         class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
-                        {{ __('super_admin.businesses.confirm_cancel') }}
+                        {{ $t('super_admin.businesses.confirm_cancel') }}
                     </button>
                     <button
                         type="button"
@@ -265,7 +265,7 @@ function cancelAction() {
                                   : 'bg-red-600 hover:bg-red-700',
                         ]"
                     >
-                        {{ __('super_admin.businesses.confirm_yes') }}
+                        {{ $t('super_admin.businesses.confirm_yes') }}
                     </button>
                 </div>
             </div>

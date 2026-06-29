@@ -35,7 +35,7 @@ function roleLabel(role) {
 
 <template>
     <AuthenticatedLayout>
-        <Head :title="__('super_admin.businesses.detail.meta_title', { name: business.name })" />
+        <Head :title="$t('super_admin.businesses.detail.meta_title', { name: business.name })" />
 
         <div class="min-h-full bg-gray-50 dark:bg-gray-900">
             <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -63,7 +63,7 @@ function roleLabel(role) {
                                             statusBadgeClass(business),
                                         ]"
                                     >
-                                        {{ __(statusLabel(business)) }}
+                                        {{ $t(statusLabel(business)) }}
                                     </span>
                                 </div>
                             </div>
@@ -75,12 +75,12 @@ function roleLabel(role) {
                 <!-- Identity Card -->
                 <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('super_admin.businesses.detail.identity_section') }}
+                        {{ $t('super_admin.businesses.detail.identity_section') }}
                     </h2>
                     <dl class="grid gap-6 sm:grid-cols-2">
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.type') }}
+                                {{ $t('super_admin.businesses.detail.type') }}
                             </dt>
                             <dd class="mt-1 text-gray-900 dark:text-white">
                                 {{ business.business_type || '—' }}
@@ -88,15 +88,15 @@ function roleLabel(role) {
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.col_plan') }}
+                                {{ $t('super_admin.businesses.col_plan') }}
                             </dt>
                             <dd class="mt-1 text-gray-900 dark:text-white">
-                                {{ __(`super_admin.businesses.plan_${business.plan}`) }}
+                                {{ $t(`super_admin.businesses.plan_${business.plan}`) }}
                             </dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.created_at') }}
+                                {{ $t('super_admin.businesses.detail.created_at') }}
                             </dt>
                             <dd class="mt-1 text-gray-900 dark:text-white">
                                 {{ new Date(business.created_at).toLocaleString() }}
@@ -104,7 +104,7 @@ function roleLabel(role) {
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.onboarded_at') }}
+                                {{ $t('super_admin.businesses.detail.onboarded_at') }}
                             </dt>
                             <dd class="mt-1 text-gray-900 dark:text-white">
                                 {{
@@ -120,7 +120,7 @@ function roleLabel(role) {
                 <!-- Contact Card -->
                 <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('super_admin.businesses.detail.contact_section') }}
+                        {{ $t('super_admin.businesses.detail.contact_section') }}
                     </h2>
                     <dl class="space-y-4">
                         <div
@@ -128,7 +128,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.phone') }}
+                                {{ $t('super_admin.businesses.detail.phone') }}
                             </dt>
                             <dd class="text-gray-900 dark:text-white">{{ business.phone }}</dd>
                         </div>
@@ -137,7 +137,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.contact_email') }}
+                                {{ $t('super_admin.businesses.detail.contact_email') }}
                             </dt>
                             <dd class="text-gray-900 dark:text-white">{{ business.contact_email }}</dd>
                         </div>
@@ -146,7 +146,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.address_line1') }}
+                                {{ $t('super_admin.businesses.detail.address_line1') }}
                             </dt>
                             <dd class="text-right text-gray-900 dark:text-white">{{ business.address_line1 }}</dd>
                         </div>
@@ -155,7 +155,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.address_line2') }}
+                                {{ $t('super_admin.businesses.detail.address_line2') }}
                             </dt>
                             <dd class="text-right text-gray-900 dark:text-white">{{ business.address_line2 }}</dd>
                         </div>
@@ -164,7 +164,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.city') }}
+                                {{ $t('super_admin.businesses.detail.city') }}
                             </dt>
                             <dd class="text-gray-900 dark:text-white">{{ business.city }}</dd>
                         </div>
@@ -173,7 +173,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.state_region') }}
+                                {{ $t('super_admin.businesses.detail.state_region') }}
                             </dt>
                             <dd class="text-gray-900 dark:text-white">{{ business.state_region }}</dd>
                         </div>
@@ -182,7 +182,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.postal_code') }}
+                                {{ $t('super_admin.businesses.detail.postal_code') }}
                             </dt>
                             <dd class="text-gray-900 dark:text-white">{{ business.postal_code }}</dd>
                         </div>
@@ -191,7 +191,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.country') }}
+                                {{ $t('super_admin.businesses.detail.country') }}
                             </dt>
                             <dd class="text-gray-900 dark:text-white">{{ business.country }}</dd>
                         </div>
@@ -200,7 +200,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.website_url') }}
+                                {{ $t('super_admin.businesses.detail.website_url') }}
                             </dt>
                             <dd class="text-blue-600 dark:text-blue-400">
                                 <a :href="business.website_url" target="_blank" rel="noopener noreferrer">
@@ -213,7 +213,7 @@ function roleLabel(role) {
                             class="flex justify-between"
                         >
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.website_url_2') }}
+                                {{ $t('super_admin.businesses.detail.website_url_2') }}
                             </dt>
                             <dd class="text-blue-600 dark:text-blue-400">
                                 <a :href="business.website_url_2" target="_blank" rel="noopener noreferrer">
@@ -227,11 +227,11 @@ function roleLabel(role) {
                 <!-- Team Card -->
                 <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('super_admin.businesses.detail.team_section') }}
+                        {{ $t('super_admin.businesses.detail.team_section') }}
                     </h2>
                     <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
                         {{
-                            __(
+                            $t(
                                 `super_admin.businesses.detail.member_count${members_count === 1 ? '' : '_plural'}`,
                                 { count: members_count },
                             )
@@ -246,16 +246,16 @@ function roleLabel(role) {
                             <thead class="border-b border-gray-200 dark:border-gray-700">
                                 <tr>
                                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                                        {{ __('super_admin.businesses.detail.col_member_name') }}
+                                        {{ $t('super_admin.businesses.detail.col_member_name') }}
                                     </th>
                                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                                        {{ __('super_admin.businesses.detail.col_member_email') }}
+                                        {{ $t('super_admin.businesses.detail.col_member_email') }}
                                     </th>
                                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                                        {{ __('super_admin.businesses.detail.col_member_role') }}
+                                        {{ $t('super_admin.businesses.detail.col_member_role') }}
                                     </th>
                                     <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                                        {{ __('super_admin.businesses.detail.col_member_joined') }}
+                                        {{ $t('super_admin.businesses.detail.col_member_joined') }}
                                     </th>
                                 </tr>
                             </thead>
@@ -289,7 +289,7 @@ function roleLabel(role) {
                                                     : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100',
                                             ]"
                                         >
-                                            {{ __(roleLabel(member.role)) }}
+                                            {{ $t(roleLabel(member.role)) }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
@@ -303,7 +303,7 @@ function roleLabel(role) {
                         v-else
                         class="text-center text-sm text-gray-600 dark:text-gray-400"
                     >
-                        {{ __('super_admin.businesses.detail.members_empty') }}
+                        {{ $t('super_admin.businesses.detail.members_empty') }}
                     </div>
 
                     <!-- Pending Invitations -->
@@ -312,7 +312,7 @@ function roleLabel(role) {
                         class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700"
                     >
                         <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
-                            {{ __('super_admin.businesses.detail.pending_invitations') }}
+                            {{ $t('super_admin.businesses.detail.pending_invitations') }}
                         </h3>
                         <ul class="space-y-2">
                             <li
@@ -323,12 +323,12 @@ function roleLabel(role) {
                                 <div>
                                     <p class="font-medium text-gray-900 dark:text-white">{{ invite.invited_email }}</p>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                                        {{ __(roleLabel(invite.role)) }}
+                                        {{ $t(roleLabel(invite.role)) }}
                                     </p>
                                 </div>
                                 <div class="text-right text-sm text-gray-600 dark:text-gray-400">
                                     {{
-                                        __('super_admin.businesses.detail.invite_expires', {
+                                        $t('super_admin.businesses.detail.invite_expires', {
                                             date: new Date(invite.expires_at).toLocaleDateString(),
                                         })
                                     }}
@@ -341,12 +341,12 @@ function roleLabel(role) {
                 <!-- Inventory Card -->
                 <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('super_admin.businesses.detail.inventory_section') }}
+                        {{ $t('super_admin.businesses.detail.inventory_section') }}
                     </h2>
                     <dl class="grid gap-6 sm:grid-cols-2">
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.skus_count') }}
+                                {{ $t('super_admin.businesses.detail.skus_count') }}
                             </dt>
                             <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">
                                 {{ inventory_skus_count }}
@@ -354,7 +354,7 @@ function roleLabel(role) {
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.bags_count') }}
+                                {{ $t('super_admin.businesses.detail.bags_count') }}
                             </dt>
                             <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">
                                 {{ inventory_bags_total }}
@@ -362,7 +362,7 @@ function roleLabel(role) {
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.locations_count') }}
+                                {{ $t('super_admin.businesses.detail.locations_count') }}
                             </dt>
                             <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">
                                 {{ locations_count }}
@@ -370,7 +370,7 @@ function roleLabel(role) {
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.detail.bins_count') }}
+                                {{ $t('super_admin.businesses.detail.bins_count') }}
                             </dt>
                             <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">
                                 {{ bins_count }}
@@ -382,13 +382,13 @@ function roleLabel(role) {
                 <!-- Activity Card -->
                 <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('super_admin.businesses.detail.activity_section') }}
+                        {{ $t('super_admin.businesses.detail.activity_section') }}
                     </h2>
 
                     <div class="mb-6">
                         <h3 class="mb-3 font-medium text-gray-900 dark:text-white">
                             {{
-                                __(
+                                $t(
                                     `super_admin.businesses.detail.tickets_count${tickets.length === 1 ? '' : 's'}`,
                                     { count: tickets.length },
                                 )
@@ -405,7 +405,7 @@ function roleLabel(role) {
                             >
                                 <p class="font-medium text-gray-900 dark:text-white">{{ ticket.subject }}</p>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    {{ __('super_admin.businesses.detail.ticket_from', { name: ticket.user_name }) }}
+                                    {{ $t('super_admin.businesses.detail.ticket_from', { name: ticket.user_name }) }}
                                     · {{ new Date(ticket.created_at).toLocaleString() }}
                                 </p>
                             </div>
@@ -414,7 +414,7 @@ function roleLabel(role) {
                             v-else
                             class="text-sm text-gray-600 dark:text-gray-400"
                         >
-                            {{ __('super_admin.businesses.detail.tickets_empty') }}
+                            {{ $t('super_admin.businesses.detail.tickets_empty') }}
                         </div>
                     </div>
                 </div>

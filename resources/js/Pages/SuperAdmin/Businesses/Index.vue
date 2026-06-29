@@ -115,7 +115,7 @@ function statusLabel(business) {
 
 <template>
     <AuthenticatedLayout>
-        <Head :title="__('super_admin.businesses.meta_title')" />
+        <Head :title="$t('super_admin.businesses.meta_title')" />
 
         <div class="min-h-full bg-gray-50 dark:bg-gray-900">
             <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -125,10 +125,10 @@ function statusLabel(business) {
                         <AdminBackLink />
                         <div>
                             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                                {{ __('super_admin.businesses.heading') }}
+                                {{ $t('super_admin.businesses.heading') }}
                             </h1>
                             <p class="mt-1 text-gray-600 dark:text-gray-400">
-                                {{ __('super_admin.businesses.description') }}
+                                {{ $t('super_admin.businesses.description') }}
                             </p>
                         </div>
                     </div>
@@ -141,7 +141,7 @@ function statusLabel(business) {
                         <input
                             v-model="search"
                             type="text"
-                            :placeholder="__('super_admin.businesses.search_placeholder')"
+                            :placeholder="$t('super_admin.businesses.search_placeholder')"
                             class="flex-1 rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         />
 
@@ -149,21 +149,21 @@ function statusLabel(business) {
                             v-model="status"
                             class="rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         >
-                            <option value="">{{ __('super_admin.businesses.filter_status') }}</option>
-                            <option value="active">{{ __('super_admin.businesses.filter_active') }}</option>
-                            <option value="frozen">{{ __('super_admin.businesses.filter_frozen') }}</option>
-                            <option value="deleted">{{ __('super_admin.businesses.filter_deleted') }}</option>
-                            <option value="onboarded">{{ __('super_admin.businesses.filter_onboarded') }}</option>
+                            <option value="">{{ $t('super_admin.businesses.filter_status') }}</option>
+                            <option value="active">{{ $t('super_admin.businesses.filter_active') }}</option>
+                            <option value="frozen">{{ $t('super_admin.businesses.filter_frozen') }}</option>
+                            <option value="deleted">{{ $t('super_admin.businesses.filter_deleted') }}</option>
+                            <option value="onboarded">{{ $t('super_admin.businesses.filter_onboarded') }}</option>
                         </select>
 
                         <select
                             v-model="plan"
                             class="rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         >
-                            <option value="">{{ __('super_admin.businesses.filter_plan') }}</option>
-                            <option value="solo">{{ __('super_admin.businesses.plan_solo') }}</option>
-                            <option value="store">{{ __('super_admin.businesses.plan_store') }}</option>
-                            <option value="enterprise">{{ __('super_admin.businesses.plan_enterprise') }}</option>
+                            <option value="">{{ $t('super_admin.businesses.filter_plan') }}</option>
+                            <option value="solo">{{ $t('super_admin.businesses.plan_solo') }}</option>
+                            <option value="store">{{ $t('super_admin.businesses.plan_store') }}</option>
+                            <option value="enterprise">{{ $t('super_admin.businesses.plan_enterprise') }}</option>
                         </select>
 
                         <div class="flex gap-2">
@@ -176,7 +176,7 @@ function statusLabel(business) {
                                         : 'border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300',
                                 ]"
                             >
-                                {{ __('super_admin.businesses.view_list') }}
+                                {{ $t('super_admin.businesses.view_list') }}
                             </button>
                             <button
                                 @click="viewMode = 'card'"
@@ -187,7 +187,7 @@ function statusLabel(business) {
                                         : 'border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300',
                                 ]"
                             >
-                                {{ __('super_admin.businesses.view_card') }}
+                                {{ $t('super_admin.businesses.view_card') }}
                             </button>
                         </div>
                     </div>
@@ -204,7 +204,7 @@ function statusLabel(business) {
                                             @click="toggleSort('name')"
                                             class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
                                         >
-                                            {{ __('super_admin.businesses.col_name') }}
+                                            {{ $t('super_admin.businesses.col_name') }}
                                         </button>
                                     </th>
                                     <th class="px-6 py-3 text-left">
@@ -212,7 +212,7 @@ function statusLabel(business) {
                                             @click="toggleSort('plan')"
                                             class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
                                         >
-                                            {{ __('super_admin.businesses.col_plan') }}
+                                            {{ $t('super_admin.businesses.col_plan') }}
                                         </button>
                                     </th>
                                     <th class="px-6 py-3 text-left">
@@ -220,7 +220,7 @@ function statusLabel(business) {
                                             @click="toggleSort('members')"
                                             class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
                                         >
-                                            {{ __('super_admin.businesses.col_members') }}
+                                            {{ $t('super_admin.businesses.col_members') }}
                                         </button>
                                     </th>
                                     <th class="px-6 py-3 text-left">
@@ -228,7 +228,7 @@ function statusLabel(business) {
                                             @click="toggleSort('inventory_skus')"
                                             class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
                                         >
-                                            {{ __('super_admin.businesses.col_inventory') }}
+                                            {{ $t('super_admin.businesses.col_inventory') }}
                                         </button>
                                     </th>
                                     <th class="px-6 py-3 text-left">
@@ -236,17 +236,17 @@ function statusLabel(business) {
                                             @click="toggleSort('created_at')"
                                             class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
                                         >
-                                            {{ __('super_admin.businesses.col_created') }}
+                                            {{ $t('super_admin.businesses.col_created') }}
                                         </button>
                                     </th>
                                     <th class="px-6 py-3 text-left">
                                         <span class="font-semibold text-gray-900 dark:text-white">
-                                            {{ __('super_admin.businesses.col_status') }}
+                                            {{ $t('super_admin.businesses.col_status') }}
                                         </span>
                                     </th>
                                     <th class="px-6 py-3 text-right">
                                         <span class="font-semibold text-gray-900 dark:text-white">
-                                            {{ __('super_admin.businesses.col_actions') }}
+                                            {{ $t('super_admin.businesses.col_actions') }}
                                         </span>
                                     </th>
                                 </tr>
@@ -271,7 +271,7 @@ function statusLabel(business) {
                                         </Link>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                        {{ __(`super_admin.businesses.plan_${business.plan}`) }}
+                                        {{ $t(`super_admin.businesses.plan_${business.plan}`) }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                                         {{ business.members_count }}
@@ -279,7 +279,7 @@ function statusLabel(business) {
                                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                                         <template v-if="business.inventory_skus_count > 0">
                                             {{
-                                                __(
+                                                $t(
                                                     'super_admin.businesses.inventory_value',
                                                     {
                                                         skus: business.inventory_skus_count,
@@ -289,7 +289,7 @@ function statusLabel(business) {
                                             }}
                                         </template>
                                         <template v-else>
-                                            {{ __('super_admin.businesses.inventory_none') }}
+                                            {{ $t('super_admin.businesses.inventory_none') }}
                                         </template>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
@@ -302,7 +302,7 @@ function statusLabel(business) {
                                                 statusBadgeClass(business),
                                             ]"
                                         >
-                                            {{ __(statusLabel(business)) }}
+                                            {{ $t(statusLabel(business)) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
@@ -316,7 +316,7 @@ function statusLabel(business) {
                     <!-- Pagination -->
                     <div class="flex items-center justify-between">
                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                            {{ __('super_admin.businesses.total_count', { count: businesses.total }) }}
+                            {{ $t('super_admin.businesses.total_count', { count: businesses.total }) }}
                         </div>
                         <div class="flex gap-2">
                             <select
@@ -324,7 +324,7 @@ function statusLabel(business) {
                                 class="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                             >
                                 <option v-for="option in PER_PAGE_OPTIONS" :key="option" :value="option">
-                                    {{ option === 'all' ? __('super_admin.businesses.per_page_all') : option }}
+                                    {{ option === 'all' ? $t('super_admin.businesses.per_page_all') : option }}
                                 </option>
                             </select>
                         </div>
@@ -386,25 +386,25 @@ function statusLabel(business) {
                                     statusBadgeClass(business),
                                 ]"
                             >
-                                {{ __(statusLabel(business)) }}
+                                {{ $t(statusLabel(business)) }}
                             </span>
                         </div>
 
                         <div class="mb-4 space-y-2 text-sm">
                             <div class="flex justify-between text-gray-700 dark:text-gray-300">
-                                <span>{{ __('super_admin.businesses.col_plan') }}</span>
-                                <span class="font-medium">{{ __(`super_admin.businesses.plan_${business.plan}`) }}</span>
+                                <span>{{ $t('super_admin.businesses.col_plan') }}</span>
+                                <span class="font-medium">{{ $t(`super_admin.businesses.plan_${business.plan}`) }}</span>
                             </div>
                             <div class="flex justify-between text-gray-700 dark:text-gray-300">
-                                <span>{{ __('super_admin.businesses.col_members') }}</span>
+                                <span>{{ $t('super_admin.businesses.col_members') }}</span>
                                 <span class="font-medium">{{ business.members_count }}</span>
                             </div>
                             <div class="flex justify-between text-gray-700 dark:text-gray-300">
-                                <span>{{ __('super_admin.businesses.col_inventory') }}</span>
+                                <span>{{ $t('super_admin.businesses.col_inventory') }}</span>
                                 <span class="font-medium">
                                     <template v-if="business.inventory_skus_count > 0">
                                         {{
-                                            __(
+                                            $t(
                                                 'super_admin.businesses.inventory_value',
                                                 {
                                                     skus: business.inventory_skus_count,
@@ -414,12 +414,12 @@ function statusLabel(business) {
                                         }}
                                     </template>
                                     <template v-else>
-                                        {{ __('super_admin.businesses.inventory_none') }}
+                                        {{ $t('super_admin.businesses.inventory_none') }}
                                     </template>
                                 </span>
                             </div>
                             <div class="flex justify-between text-gray-700 dark:text-gray-300">
-                                <span>{{ __('super_admin.businesses.col_created') }}</span>
+                                <span>{{ $t('super_admin.businesses.col_created') }}</span>
                                 <span class="font-medium">{{ new Date(business.created_at).toLocaleDateString() }}</span>
                             </div>
                         </div>
@@ -428,7 +428,7 @@ function statusLabel(business) {
                             :href="route('admin.businesses.show', business.id)"
                             class="mt-4 block text-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900 dark:text-blue-100"
                         >
-                            {{ __('super_admin.businesses.view_details') }}
+                            {{ $t('super_admin.businesses.view_details') }}
                         </Link>
                     </div>
                 </div>

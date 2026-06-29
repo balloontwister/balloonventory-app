@@ -176,7 +176,7 @@ function cancelAction() {
                     class="w-full px-4 py-2 text-left text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
                     @click="viewAsBusiness"
                 >
-                    {{ __('super_admin.businesses.view_as') }}
+                    {{ $t('super_admin.businesses.view_as') }}
                 </button>
 
                 <!-- Email Owner -->

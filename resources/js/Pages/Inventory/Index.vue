@@ -5,6 +5,7 @@ import InventoryTabs from '@/Components/InventoryTabs.vue';
 import StockBadge from '@/Components/StockBadge.vue';
 import Modal from '@/Components/Modal.vue';
 import FavoriteStar from '@/Components/FavoriteStar.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import { useBusiness } from '@/Composables/useBusiness.js';
@@ -234,11 +235,10 @@ function isFavorite(sku) {
                         {{ $t('inventory.empty_body') }}
                     </p>
                 </div>
-                <input
+                <SearchInput
                     v-model="search"
-                    type="search"
                     :placeholder="$t('inventory.empty_search_placeholder')"
-                    class="w-72 rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    class="w-72"
                 />
             </div>
         </template>
@@ -247,11 +247,10 @@ function isFavorite(sku) {
         <template v-else>
             <!-- Toolbar -->
             <div class="mb-4 flex flex-wrap items-center gap-3">
-                <input
+                <SearchInput
                     v-model="search"
-                    type="search"
                     :placeholder="$t('inventory.toolbar.search_placeholder')"
-                    class="w-56 rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    class="w-56"
                 />
 
                 <select

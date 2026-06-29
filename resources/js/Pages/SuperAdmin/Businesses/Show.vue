@@ -111,6 +111,19 @@ function roleLabel(role) {
                                 {{ new Date(business.created_at).toLocaleString() }}
                             </dd>
                         </div>
+                        <div v-if="business.created_by">
+                            <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                {{ $t('super_admin.businesses.detail.created_by') }}
+                            </dt>
+                            <dd class="mt-1 text-gray-900 dark:text-white">
+                                <Link
+                                    :href="route('admin.users.show', business.created_by.id)"
+                                    class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                                >
+                                    {{ business.created_by.name }}
+                                </Link>
+                            </dd>
+                        </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">
                                 {{ $t('super_admin.businesses.detail.onboarded_at') }}

@@ -38,6 +38,15 @@ const PLAN_FILTERS = [
     { value: 'enterprise', label: 'super_admin.businesses.plan_enterprise' },
 ];
 
+// Sortable list-view columns (key must match the controller's sort whitelist).
+const SORTABLE_COLUMNS = [
+    { key: 'name', label: 'super_admin.businesses.col_name' },
+    { key: 'plan', label: 'super_admin.businesses.col_plan' },
+    { key: 'members', label: 'super_admin.businesses.col_members' },
+    { key: 'inventory_skus', label: 'super_admin.businesses.col_inventory' },
+    { key: 'created_at', label: 'super_admin.businesses.col_created' },
+];
+
 // Columns whose natural first sort is descending (recent/biggest first).
 const DESC_FIRST = [
     'created_at',
@@ -199,55 +208,39 @@ function statusLabel(business) {
                 <div v-if="viewMode === 'list'" class="space-y-4">
                     <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
                         <table class="w-full">
-                            <thead class="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700">
+                            <thead class="border-b border-gray-200 bg-gray-50 text-left text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300">
                                 <tr>
-                                    <th class="px-6 py-3 text-left">
+                                    <th
+                                        v-for="col in SORTABLE_COLUMNS"
+                                        :key="col.key"
+                                        class="px-6 py-3 text-left"
+                                    >
                                         <button
-                                            @click="toggleSort('name')"
-                                            class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
+                                            type="button"
+                                            @click="toggleSort(col.key)"
+                                            class="group inline-flex items-center gap-1 font-medium transition hover:text-gray-900 dark:hover:text-white"
+                                            :class="{ 'text-gray-900 dark:text-white': sortCol === col.key }"
                                         >
-                                            {{ $t('super_admin.businesses.col_name') }}
+                                            {{ $t(col.label) }}
+                                            <span
+                                                class="text-[10px]"
+                                                :class="
+                                                    sortCol === col.key
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0 group-hover:opacity-40'
+                                                "
+                                            >
+                                                {{ sortCol === col.key && sortDir === 'asc' ? '▲' : '▼' }}
+                                            </span>
                                         </button>
                                     </th>
                                     <th class="px-6 py-3 text-left">
-                                        <button
-                                            @click="toggleSort('plan')"
-                                            class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
-                                        >
-                                            {{ $t('super_admin.businesses.col_plan') }}
-                                        </button>
-                                    </th>
-                                    <th class="px-6 py-3 text-left">
-                                        <button
-                                            @click="toggleSort('members')"
-                                            class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
-                                        >
-                                            {{ $t('super_admin.businesses.col_members') }}
-                                        </button>
-                                    </th>
-                                    <th class="px-6 py-3 text-left">
-                                        <button
-                                            @click="toggleSort('inventory_skus')"
-                                            class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
-                                        >
-                                            {{ $t('super_admin.businesses.col_inventory') }}
-                                        </button>
-                                    </th>
-                                    <th class="px-6 py-3 text-left">
-                                        <button
-                                            @click="toggleSort('created_at')"
-                                            class="font-semibold text-gray-900 dark:text-white hover:text-blue-600"
-                                        >
-                                            {{ $t('super_admin.businesses.col_created') }}
-                                        </button>
-                                    </th>
-                                    <th class="px-6 py-3 text-left">
-                                        <span class="font-semibold text-gray-900 dark:text-white">
+                                        <span class="font-medium">
                                             {{ $t('super_admin.businesses.col_status') }}
                                         </span>
                                     </th>
                                     <th class="px-6 py-3 text-right">
-                                        <span class="font-semibold text-gray-900 dark:text-white">
+                                        <span class="font-medium">
                                             {{ $t('super_admin.businesses.col_actions') }}
                                         </span>
                                     </th>

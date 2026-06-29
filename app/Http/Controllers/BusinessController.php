@@ -34,6 +34,7 @@ class BusinessController extends Controller
             'id' => (string) Str::uuid7(),
             'name' => $request->name,
             'slug' => $slug,
+            'created_by_user_id' => $request->user()->id,
         ]);
 
         $membership = Membership::create([

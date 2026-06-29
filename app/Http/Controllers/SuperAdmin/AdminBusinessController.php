@@ -30,7 +30,7 @@ class AdminBusinessController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:active,frozen,deleted,onboarded'],
             'plan' => ['nullable', 'in:solo,store,enterprise'],
-            'sort' => ['nullable', 'in:name,created_at,members,inventory_skus,inventory_bags,onboarded_at'],
+            'sort' => ['nullable', 'in:name,plan,created_at,members,inventory_skus,inventory_bags,onboarded_at'],
             'dir' => ['nullable', 'in:asc,desc'],
             'per_page' => ['nullable', 'in:25,50,100,all'],
         ]);
@@ -85,6 +85,7 @@ class AdminBusinessController extends Controller
 
         match ($sort) {
             'name' => $query->orderBy('name', $dir),
+            'plan' => $query->orderBy('plan', $dir),
             'created_at' => $query->orderBy('created_at', $dir),
             'members' => $query->orderBy('members_count', $dir),
             'inventory_skus' => $query->orderBy('inventory_skus_count', $dir),
@@ -195,6 +196,8 @@ class AdminBusinessController extends Controller
             ->where('business_id', $model->id)
             ->count();
 
+        $model->loadMissing('creator:id,name');
+
         // Support tickets from members of this business
         $memberIds = Membership::withoutGlobalScope(BusinessScope::class)
             ->where('business_id', $model->id)
@@ -232,6 +235,9 @@ class AdminBusinessController extends Controller
                 'website_url_2' => $model->website_url_2,
                 'contact_email' => $model->contact_email,
                 'owner_id' => $model->owner()?->id,
+                'created_by' => $model->creator
+                    ? ['id' => $model->creator->id, 'name' => $model->creator->name]
+                    : null,
             ],
             'members' => $members,
             'members_count' => count($members),

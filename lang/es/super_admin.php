@@ -384,6 +384,7 @@ return [
             'type' => 'Tipo de negocio',
             'plan' => 'Plan',
             'created_at' => 'Creado',
+            'created_by' => 'Creado por',
             'onboarded_at' => 'Incorporado',
 
             'contact_section' => 'Contacto',

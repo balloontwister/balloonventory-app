@@ -356,6 +356,40 @@ class AdminBusinessesTest extends TestCase
         );
     }
 
+    public function test_business_detail_shows_creator(): void
+    {
+        $creator = User::factory()->create();
+        $business = Business::factory()->create(['created_by_user_id' => $creator->id]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->get(route('admin.businesses.show', $business->id));
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('record.created_by.id', $creator->id)
+            ->where('record.created_by.name', $creator->name)
+        );
+    }
+
+    public function test_business_detail_creator_is_null_when_unknown(): void
+    {
+        $business = Business::factory()->create(['created_by_user_id' => null]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->get(route('admin.businesses.show', $business->id));
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('record.created_by', null)
+        );
+    }
+
+    public function test_businesses_index_can_sort_by_plan(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->get(route('admin.businesses.index', ['sort' => 'plan', 'dir' => 'asc']));
+
+        $response->assertStatus(200);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // suspend
     // ─────────────────────────────────────────────────────────────────────────

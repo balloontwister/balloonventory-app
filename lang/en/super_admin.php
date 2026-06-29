@@ -478,6 +478,7 @@ return [
             'type' => 'Business type',
             'plan' => 'Plan',
             'created_at' => 'Created',
+            'created_by' => 'Created by',
             'onboarded_at' => 'Onboarded',
 
             'contact_section' => 'Contact',

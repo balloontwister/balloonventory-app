@@ -24,8 +24,12 @@ createInertiaApp({
                 lang: props.initialPage.props.locale ?? 'en',
                 fallbackLang: 'en',
                 resolve: async (lang) => {
+                    // The laravel-vue-i18n Vite plugin compiles our PHP lang
+                    // files (lang/en, lang/es) to lang/php_{lang}.json — the only
+                    // lang JSON that exists. Resolving the un-prefixed name threw
+                    // "Object.assign(...)[s] is not a function" on every page boot.
                     const langs = import.meta.glob('../../lang/*.json');
-                    return await langs[`../../lang/${lang}.json`]();
+                    return await langs[`../../lang/php_${lang}.json`]();
                 },
             })
             .mount(el);

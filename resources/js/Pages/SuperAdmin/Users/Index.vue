@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 import UserActionMenu from '@/Components/UserActionMenu.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -190,13 +191,10 @@ function numberFmt(n) {
                         {{ $t('super_admin.users.description') }}
                     </p>
                     <div class="mt-3 flex flex-wrap items-center gap-3">
-                        <input
+                        <SearchInput
                             v-model="search"
-                            type="search"
-                            :placeholder="
-                                $t('super_admin.users.search_placeholder')
-                            "
-                            class="w-72 max-w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                            :placeholder="$t('super_admin.users.search_placeholder')"
+                            class="w-72 max-w-full"
                         />
                         <select
                             v-model="status"

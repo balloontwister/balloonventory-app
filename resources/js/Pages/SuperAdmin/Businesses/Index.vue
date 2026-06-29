@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import BusinessActionMenu from '@/Components/BusinessActionMenu.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -149,11 +150,10 @@ function statusLabel(business) {
                 <div class="mb-6 space-y-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                     <!-- Search + Filters -->
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
-                        <input
+                        <SearchInput
                             v-model="search"
-                            type="search"
                             :placeholder="$t('super_admin.businesses.search_placeholder')"
-                            class="flex-1 rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            class="flex-1"
                         />
 
                         <select

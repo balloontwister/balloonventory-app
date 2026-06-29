@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BusinessPlan;
+use App\Scopes\BusinessScope;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -46,6 +47,7 @@ class Business extends Model
             'plan' => BusinessPlan::class,
             'onboarding_answers' => 'array',
             'onboarding_completed_at' => 'datetime',
+            'frozen_at' => 'datetime',
         ];
     }
 
@@ -67,6 +69,11 @@ class Business extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
+    }
+
+    public function businessInvitations(): HasMany
+    {
+        return $this->hasMany(BusinessInvitation::class);
     }
 
     public function lists(): HasMany
@@ -116,5 +123,28 @@ class Business extends Model
             ->wherePivot('is_enabled', true)
             ->orderByPivot('sort_order')
             ->withTimestamps();
+    }
+
+    public function isFrozen(): bool
+    {
+        return $this->frozen_at !== null;
+    }
+
+    /**
+     * The primary owner of this business: the earliest-joined member with the
+     * 'owner' role, falling back to the earliest member of any role. Bypasses
+     * the tenant scope so it resolves regardless of the caller's current
+     * business context, and uses portable ordering (no MySQL-only FIELD()).
+     */
+    public function owner(): ?User
+    {
+        return $this->memberships()
+            ->withoutGlobalScope(BusinessScope::class)
+            ->whereNull('deleted_at')
+            ->orderByRaw("CASE WHEN role = 'owner' THEN 0 ELSE 1 END")
+            ->orderBy('joined_at', 'asc')
+            ->with('user')
+            ->first()
+            ?->user;
     }
 }

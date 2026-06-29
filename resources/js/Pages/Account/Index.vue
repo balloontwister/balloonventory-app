@@ -412,7 +412,7 @@ function leaveBusiness(biz) {
                         >
                             {{ biz.name }}
                         </p>
-                        <RoleBadge :role="biz.pivot?.role ?? 'guest'" />
+                        <RoleBadge :role="biz.pivot?.role ?? 'guest'" :frozen="biz.frozen" />
                     </div>
                     <div class="flex flex-shrink-0 items-center gap-2">
                         <button
@@ -423,7 +423,7 @@ function leaveBusiness(biz) {
                             {{ $t('account.other_businesses.leave') }}
                         </button>
                         <button
-                            v-if="biz.pivot?.role !== 'none'"
+                            v-if="biz.pivot?.role !== 'none' && !biz.frozen"
                             type="button"
                             class="rounded-md bg-accent px-3 py-1.5 font-sans text-[13px] font-semibold text-accent-on transition hover:bg-accent-hover"
                             @click="switchBusiness(biz.id)"

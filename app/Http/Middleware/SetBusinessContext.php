@@ -20,6 +20,7 @@ class SetBusinessContext
         }
 
         $memberships = Membership::withoutGlobalScope(BusinessScope::class)
+            ->with('business')
             ->where('user_id', $user->id)
             ->whereNull('deleted_at')
             ->get();
@@ -30,10 +31,14 @@ class SetBusinessContext
 
         $sessionId = $request->session()->get('current_business_id');
 
-        // Prefer businesses where the user has real access (not 'none').
-        // This prevents a suspended membership from locking the user out of
-        // the dashboard entirely when they have other active businesses.
-        $accessible = $memberships->where('role', '!=', 'none');
+        // Prefer businesses the user can actually use: real access (not 'none')
+        // and not suspended (frozen). This keeps a suspended or no-access
+        // membership from landing the user in an unusable business when they
+        // have other working ones. (If ALL are unusable we still fall back so
+        // the request can resolve; EnsureBusinessActive then gates it.)
+        $accessible = $memberships->filter(
+            fn (Membership $m) => $m->role !== 'none' && ! ($m->business?->isFrozen() ?? false)
+        );
         $pool = $accessible->isNotEmpty() ? $accessible : $memberships;
 
         $current = $pool->firstWhere('business_id', $sessionId)

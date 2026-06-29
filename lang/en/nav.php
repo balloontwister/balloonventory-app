@@ -17,6 +17,8 @@ return [
     'no_business_selected' => 'No business selected',
     'manage_businesses' => 'Manage businesses',
     'switch_business' => 'Switch business',
+    'suspended' => 'Suspended',
+    'suspended_hint' => 'This business is suspended. Contact support to restore access.',
     'go_to_dashboard' => 'Go to dashboard',
     'collapse_sidebar' => 'Collapse sidebar',
     'expand_sidebar' => 'Expand sidebar',

@@ -84,14 +84,20 @@ function switchBusiness(id) {
                 v-for="biz in businesses"
                 :key="biz.id"
                 type="button"
-                :disabled="biz.id === business?.id || biz.pivot?.role === 'none'"
+                :disabled="biz.id === business?.id || biz.pivot?.role === 'none' || biz.frozen"
+                :title="biz.frozen ? $t('nav.suspended_hint') : undefined"
                 class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition"
                 :class="
-                    biz.id === business?.id || biz.pivot?.role === 'none'
+                    biz.id === business?.id || biz.pivot?.role === 'none' || biz.frozen
                         ? 'cursor-default opacity-50'
                         : 'hover:bg-background'
                 "
-                @click="biz.id !== business?.id && biz.pivot?.role !== 'none' && switchBusiness(biz.id)"
+                @click="
+                    biz.id !== business?.id &&
+                        biz.pivot?.role !== 'none' &&
+                        !biz.frozen &&
+                        switchBusiness(biz.id)
+                "
             >
                 <img
                     v-if="biz.logoUrl"
@@ -109,7 +115,7 @@ function switchBusiness(id) {
                     <p class="truncate font-sans text-[14px] text-ink-primary">
                         {{ biz.name }}
                     </p>
-                    <RoleBadge :role="biz.pivot?.role ?? 'guest'" />
+                    <RoleBadge :role="biz.pivot?.role ?? 'guest'" :frozen="biz.frozen" />
                 </div>
                 <!-- checkmark for current -->
                 <svg

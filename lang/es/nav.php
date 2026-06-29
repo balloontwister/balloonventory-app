@@ -17,6 +17,8 @@ return [
     'no_business_selected' => 'Sin negocio seleccionado',
     'manage_businesses' => 'Gestionar negocios',
     'switch_business' => 'Cambiar negocio',
+    'suspended' => 'Suspendido',
+    'suspended_hint' => 'Este negocio está suspendido. Contacta con soporte para restaurar el acceso.',
     'go_to_dashboard' => 'Ir al panel',
     'collapse_sidebar' => 'Contraer barra lateral',
     'expand_sidebar' => 'Expandir barra lateral',

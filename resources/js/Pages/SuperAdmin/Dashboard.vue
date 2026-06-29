@@ -30,6 +30,22 @@ const usersLines = computed(() => {
     return lines;
 });
 
+const businessesLines = computed(() => {
+    const lines = [
+        trans('super_admin.dashboard.cards.businesses_new', {
+            count: s.businesses.new_7d,
+        }),
+    ];
+    if (s.businesses.frozen > 0) {
+        lines.push(
+            trans('super_admin.dashboard.cards.businesses_frozen', {
+                count: s.businesses.frozen,
+            }),
+        );
+    }
+    return lines;
+});
+
 const barcodeLines = computed(() => [
     trans('super_admin.dashboard.cards.barcode_recent', {
         count: s.barcode.recent,
@@ -66,6 +82,21 @@ const emailLines = computed(() => [
                     <template #icon>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
                             <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 17a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z" />
+                        </svg>
+                    </template>
+                </AdminCard>
+
+                <!-- Businesses -->
+                <AdminCard
+                    :title="$t('super_admin.dashboard.cards.businesses_title')"
+                    :href="route('admin.businesses.index')"
+                    :stat="s.businesses.total"
+                    :stat-label="$t('super_admin.dashboard.cards.businesses_label')"
+                    :lines="businessesLines"
+                >
+                    <template #icon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                            <path fill-rule="evenodd" d="M1 2.75A.75.75 0 011.75 2h16.5a.75.75 0 010 1.5H18v8.75A2.75 2.75 0 0115.25 15h-1.072l.798 3.06a.75.75 0 01-1.452.38L13.41 18H6.59l-.114.44a.75.75 0 01-1.452-.38L5.823 15H4.75A2.75 2.75 0 012 12.25V3.5h-.25A.75.75 0 011 2.75zM7.373 15l-.391 1.5h6.037l-.392-1.5H7.373zM13.25 5a.75.75 0 01.75.75v4a.75.75 0 01-1.5 0v-4a.75.75 0 01.75-.75zm-3 1a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0v-3A.75.75 0 0110.25 6zM8 7.75a.75.75 0 00-1.5 0v2a.75.75 0 001.5 0v-2z" clip-rule="evenodd" />
                         </svg>
                     </template>
                 </AdminCard>

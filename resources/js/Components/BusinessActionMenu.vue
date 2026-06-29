@@ -65,6 +65,7 @@ const menu = computed(() => {
     const hasOwner = !!b.owner_id;
     return {
         viewDetails: props.showViewDetails && !deleted,
+        viewAsBusiness: isSuperAdmin && !deleted,
         emailOwner: !deleted && hasOwner,
         impersonateOwner: !deleted && !frozen && hasOwner,
         suspend: !deleted && !frozen,
@@ -72,6 +73,15 @@ const menu = computed(() => {
         delete: isSuperAdmin && !deleted,
     };
 });
+
+function viewAsBusiness() {
+    closeMenu();
+    router.post(
+        route('admin.businesses.view-as', props.business.id),
+        {},
+        { onError: () => pushToast(trans('super_admin.businesses.action_failed'), 'error') },
+    );
+}
 
 const emailOwnerHref = computed(() =>
     route('admin.email-templates.index', { user: props.business.owner_id }),
@@ -158,6 +168,16 @@ function cancelAction() {
                 >
                     {{ $t('super_admin.businesses.view_details') }}
                 </Link>
+
+                <!-- View as business (admin enters the business as themselves) -->
+                <button
+                    v-if="menu.viewAsBusiness"
+                    type="button"
+                    class="w-full px-4 py-2 text-left text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                    @click="viewAsBusiness"
+                >
+                    {{ __('super_admin.businesses.view_as') }}
+                </button>
 
                 <!-- Email Owner -->
                 <Link

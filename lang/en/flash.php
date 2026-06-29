@@ -86,6 +86,8 @@ return [
         'unsuspended' => ':name has been unsuspended.',
         'deleted' => ':name has been deleted.',
         'frozen_notice' => 'This business is suspended. Contact support to restore access.',
+        'view_as_started' => 'Now viewing :name as admin. Changes you make apply to this business.',
+        'view_as_stopped' => 'Exited the business — back to your admin view.',
     ],
 
     'email_template' => [

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
+use App\Support\AdminBusinessView;
 use App\Support\BusinessContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -16,6 +17,14 @@ class SetBusinessContext
         $user = $request->user();
 
         if (! $user) {
+            return $next($request);
+        }
+
+        // Super-Admin "View as business": point the tenant scope at the viewed
+        // business even though the admin isn't a member of it.
+        if ($user->isSuperAdmin() && AdminBusinessView::isActive()) {
+            BusinessContext::set(AdminBusinessView::businessId());
+
             return $next($request);
         }
 

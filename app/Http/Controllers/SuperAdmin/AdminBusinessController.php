@@ -13,11 +13,15 @@ use App\Models\User;
 use App\Notifications\BusinessFrozen;
 use App\Notifications\BusinessThawed;
 use App\Scopes\BusinessScope;
+use App\Support\AdminBusinessView;
+use App\Support\BusinessContext;
 use App\Support\Countries;
+use App\Support\Impersonation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -291,6 +295,51 @@ class AdminBusinessController extends Controller
         $business->delete();
 
         return back()->with('success', __('flash.businesses.deleted', ['name' => $business->name]));
+    }
+
+    /**
+     * Begin a Super-Admin "View as business" session: enter $business and
+     * operate inside it as the admin (no user impersonation). Super-Admin-only.
+     */
+    public function viewAs(Request $request, Business $business): RedirectResponse
+    {
+        $admin = $request->user();
+
+        abort_unless($admin->isSuperAdmin(), 403);
+        abort_if($request->session()->has(Impersonation::SESSION_KEY), 422, 'Stop impersonating a user first.');
+
+        Log::info('Admin view-as-business started', [
+            'admin_id' => $admin->id,
+            'business_id' => $business->id,
+            'ip' => $request->ip(),
+        ]);
+
+        AdminBusinessView::start($business->id);
+        BusinessContext::set($business->id);
+
+        return redirect()->route('dashboard')
+            ->with('success', __('flash.businesses.view_as_started', ['name' => $business->name]));
+    }
+
+    /**
+     * End the "View as business" session and return to the admin's own context.
+     */
+    public function stopViewAs(Request $request): RedirectResponse
+    {
+        $businessId = AdminBusinessView::businessId();
+        AdminBusinessView::stop();
+
+        if ($businessId === null) {
+            return redirect()->route('admin.businesses.index');
+        }
+
+        Log::info('Admin view-as-business ended', [
+            'admin_id' => $request->user()?->id,
+            'business_id' => $businessId,
+        ]);
+
+        return redirect()->route('admin.businesses.show', $businessId)
+            ->with('success', __('flash.businesses.view_as_stopped'));
     }
 
     /**

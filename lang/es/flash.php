@@ -66,6 +66,8 @@ return [
         'unsuspended' => ':name ha sido reactivado.',
         'deleted' => ':name ha sido eliminado.',
         'frozen_notice' => 'Este negocio está suspendido. Contacta con soporte para restaurar el acceso.',
+        'view_as_started' => 'Ahora viendo :name como administrador. Tus cambios afectan a este negocio.',
+        'view_as_stopped' => 'Saliste del negocio — de vuelta a tu vista de administrador.',
     ],
 
     'email_template' => [

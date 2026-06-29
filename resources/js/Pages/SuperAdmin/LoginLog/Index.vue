@@ -3,6 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import { useDateTime } from '@/Composables/useDateTime.js';
+
+const { formatDateTime, timeZoneLabel } = useDateTime();
 
 const props = defineProps({
     events: { type: Object, required: true },
@@ -38,16 +41,6 @@ watch(search, () => {
 });
 watch(event, navigate);
 
-function formatDateTime(val) {
-    if (!val) return '—';
-    return new Date(val).toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-    });
-}
 
 function deviceLabel(ua) {
     if (!ua) return '—';
@@ -130,7 +123,9 @@ function outcomeClass(e) {
                         <thead>
                             <tr class="border-b border-border text-left text-ink-secondary">
                                 <th class="px-6 py-3 font-medium">
-                                    {{ $t('super_admin.login_log.col_when') }}
+                                    {{ $t('super_admin.login_log.col_when')
+                                    }}<span v-if="timeZoneLabel" class="text-ink-tertiary">
+                                        ({{ timeZoneLabel }})</span>
                                 </th>
                                 <th class="px-6 py-3 font-medium">
                                     {{ $t('super_admin.login_log.col_user') }}

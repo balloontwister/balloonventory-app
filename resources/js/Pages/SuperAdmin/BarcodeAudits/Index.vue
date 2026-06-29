@@ -4,6 +4,9 @@ import AdminBackLink from '@/Components/AdminBackLink.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { ref, watch } from 'vue';
+import { useDateTime } from '@/Composables/useDateTime.js';
+
+const { formatDateTime, timeZoneLabel } = useDateTime();
 
 const props = defineProps({
     audits: { type: Object, required: true },
@@ -23,17 +26,6 @@ watch(search, (val) => {
         );
     }, 350);
 });
-
-function formatDateTime(val) {
-    if (!val) return '—';
-    return new Date(val).toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-    });
-}
 
 function revert(audit) {
     if (
@@ -95,7 +87,8 @@ function revert(audit) {
                                         $t(
                                             'super_admin.dashboard.barcode_audits.col_when',
                                         )
-                                    }}
+                                    }}<span v-if="timeZoneLabel" class="text-ink-tertiary">
+                                        ({{ timeZoneLabel }})</span>
                                 </th>
                                 <th class="px-6 py-3 font-medium">
                                     {{

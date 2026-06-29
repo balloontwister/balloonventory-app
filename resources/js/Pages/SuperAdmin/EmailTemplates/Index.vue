@@ -5,6 +5,11 @@ import UserEmailComposer from '@/Pages/SuperAdmin/EmailTemplates/Partials/UserEm
 import { Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { useDateTime } from '@/Composables/useDateTime.js';
+
+// Email send log shows a real send time, so it uses the viewer's timezone.
+// The daily/monthly charts below stay on their own date-only formatters.
+const { formatDateTime, timeZoneLabel } = useDateTime();
 
 const props = defineProps({
     templates: { type: Array, required: true },
@@ -69,15 +74,6 @@ function formatMonth(val) {
     });
 }
 
-function formatDateTime(val) {
-    if (!val) return '—';
-    return new Date(val).toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-    });
-}
 </script>
 
 <template>
@@ -206,7 +202,9 @@ function formatDateTime(val) {
                                     {{ $t('super_admin.dashboard.log_col_type') }}
                                 </th>
                                 <th class="pb-2 text-right font-medium">
-                                    {{ $t('super_admin.dashboard.log_col_sent') }}
+                                    {{ $t('super_admin.dashboard.log_col_sent')
+                                    }}<span v-if="timeZoneLabel" class="text-ink-tertiary">
+                                        ({{ timeZoneLabel }})</span>
                                 </th>
                             </tr>
                         </thead>

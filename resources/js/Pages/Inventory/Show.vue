@@ -12,6 +12,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import { useBusiness } from '@/Composables/useBusiness.js';
+import { useDateTime } from '@/Composables/useDateTime.js';
 
 const props = defineProps({
     sku: { type: Object, required: true },
@@ -403,14 +404,10 @@ function movementSummary(movement) {
     return parts.join(', ');
 }
 
-function formatDate(value) {
-    if (!value) return '—';
-    return new Date(value).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
-}
+// Activity history shows the actual time of each movement, rendered in the
+// viewer's saved timezone (see useDateTime). The zone is labelled once in the
+// section heading rather than on every row.
+const { formatDateTime, timeZoneLabel } = useDateTime();
 </script>
 
 <template>
@@ -1337,7 +1334,9 @@ function formatDate(value) {
                         <h2
                             class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
-                            {{ $t('inventory.show.section_history') }}
+                            {{ $t('inventory.show.section_history')
+                            }}<span v-if="timeZoneLabel" class="text-ink-tertiary">
+                                ({{ timeZoneLabel }})</span>
                         </h2>
 
                         <p
@@ -1360,7 +1359,7 @@ function formatDate(value) {
                                         <td
                                             class="px-3 py-2.5 font-sans text-[13px] text-ink-secondary"
                                         >
-                                            {{ formatDate(movement.created_at) }}
+                                            {{ formatDateTime(movement.created_at) }}
                                         </td>
                                         <td class="px-3 py-2.5">
                                             <span

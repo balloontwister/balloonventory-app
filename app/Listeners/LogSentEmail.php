@@ -24,6 +24,11 @@ class LogSentEmail
             'subject' => $subject,
             'mailable' => class_basename($mailable),
             'user_id' => $userId,
+            // Set sent_at explicitly in app time (UTC). Relying on the column's
+            // useCurrent() default records the DB server's local wall-clock
+            // (MySQL session tz is SYSTEM), which then gets mislabeled as UTC
+            // and renders hours off in the email log.
+            'sent_at' => now(),
         ]);
     }
 }

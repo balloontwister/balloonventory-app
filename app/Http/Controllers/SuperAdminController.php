@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\FeedbackStatus;
 use App\Models\BarcodeLinkAudit;
+use App\Models\Business;
 use App\Models\EmailLog;
 use App\Models\LoginEvent;
 use App\Models\Sku;
@@ -29,6 +30,11 @@ class SuperAdminController extends Controller
                     'total' => User::count(),
                     'new_7d' => User::where('created_at', '>=', now()->subDays(7))->count(),
                     'frozen' => User::whereNotNull('frozen_at')->count(),
+                ],
+                'businesses' => [
+                    'total' => Business::count(),
+                    'new_7d' => Business::where('created_at', '>=', now()->subDays(7))->count(),
+                    'frozen' => Business::whereNotNull('frozen_at')->count(),
                 ],
                 'catalog' => [
                     'skus' => Sku::whereNull('owned_by_business_id')->count(),

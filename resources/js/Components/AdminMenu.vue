@@ -20,6 +20,7 @@ const LINKS = [
     { key: 'distributors', route: 'admin.distributors.index', match: 'admin.distributors.*' },
     { key: 'proposals', route: 'admin.distributors.proposals.index', match: 'admin.distributors.proposals.*', superOnly: true },
     { key: 'users', route: 'admin.users.index', match: 'admin.users.*' },
+    { key: 'businesses', route: 'admin.businesses.index', match: 'admin.businesses.*' },
     { key: 'feedback', route: 'admin.feedback.index', match: 'admin.feedback.*' },
     { key: 'support_tickets', route: 'admin.tickets.index', match: 'admin.tickets.*' },
     { key: 'barcode_log', route: 'admin.barcode-audits.index', match: 'admin.barcode-audits.*' },

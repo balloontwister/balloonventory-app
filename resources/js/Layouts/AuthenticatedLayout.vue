@@ -184,7 +184,7 @@ const topNavItems = computed(() =>
 
                 <!-- BusinessSwitcher -->
                 <div class="px-2">
-                    <BusinessSwitcher />
+                    <BusinessSwitcher :key="business?.id" />
                 </div>
 
                 <!-- Nav -->
@@ -681,7 +681,7 @@ const topNavItems = computed(() =>
                         {{ $t(item.labelKey) }}
                     </Link>
                     <div class="ml-auto w-56 flex-shrink-0">
-                        <BusinessSwitcher />
+                        <BusinessSwitcher :key="business?.id" />
                     </div>
                 </nav>
 
@@ -746,7 +746,7 @@ const topNavItems = computed(() =>
             >
                 <div class="flex items-center gap-2 px-4 py-3">
                     <div class="min-w-0 flex-1">
-                        <BusinessSwitcher />
+                        <BusinessSwitcher :key="business?.id" />
                     </div>
                     <NotificationBell compact />
                     <AdminMenu v-if="isSuperAdmin" compact />

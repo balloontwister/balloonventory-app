@@ -141,6 +141,30 @@ class NoBusinessWelcomeTest extends TestCase
             ->assertRedirect(route('dashboard'));
     }
 
+    public function test_no_business_user_can_reach_the_notifications_page(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page->component('Notifications/Index'),
+            );
+    }
+
+    public function test_no_business_user_can_reach_their_profile(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page->component('Profile/Edit'),
+            );
+    }
+
     public function test_no_business_user_can_still_create_their_own_business(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);

@@ -85,6 +85,5 @@ return [
         'create_body' => "Create your business and you'll be the Owner. You can invite team members afterward.",
         'create_cta' => 'Set up my shop',
         'waiting_body' => 'Joining someone else’s team? Ask the owner to invite this account by email:',
-        'logout' => 'Sign out',
     ],
 ];

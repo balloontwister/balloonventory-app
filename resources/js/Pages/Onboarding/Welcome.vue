@@ -1,7 +1,7 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
+import MinimalLayout from '@/Layouts/MinimalLayout.vue';
 import InvitationNotice from '@/Components/Dashboard/InvitationNotice.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 defineProps({
@@ -10,17 +10,15 @@ defineProps({
 
 const page = usePage();
 const email = computed(() => page.props.auth?.user?.email ?? '');
-
-const logout = () => useForm({}).post(route('logout'));
 </script>
 
 <template>
     <Head :title="$t('onboarding.welcome.meta_title')" />
 
-    <GuestLayout>
-        <div class="w-full">
+    <MinimalLayout>
+        <div class="mx-auto w-full max-w-xl">
             <h1
-                class="font-display text-[22px] font-semibold tracking-h3 text-ink-primary"
+                class="font-display text-[24px] font-semibold tracking-h3 text-ink-primary"
             >
                 {{ $t('onboarding.welcome.heading') }}
             </h1>
@@ -47,7 +45,9 @@ const logout = () => useForm({}).post(route('logout'));
             </div>
 
             <!-- Create your own business -->
-            <div class="mt-6 rounded-lg border border-border bg-background p-5">
+            <div
+                class="mt-6 rounded-lg border border-border bg-surface p-5 shadow-pop"
+            >
                 <h2
                     class="font-sans text-[15px] font-semibold text-ink-primary"
                 >
@@ -72,16 +72,6 @@ const logout = () => useForm({}).post(route('logout'));
                 {{ $t('onboarding.welcome.waiting_body') }}
                 <span class="font-semibold text-ink-primary">{{ email }}</span>
             </p>
-
-            <div class="mt-6 border-t border-border pt-4">
-                <button
-                    type="button"
-                    class="font-sans text-[13px] text-ink-tertiary underline hover:text-ink-secondary"
-                    @click="logout"
-                >
-                    {{ $t('onboarding.welcome.logout') }}
-                </button>
-            </div>
         </div>
-    </GuestLayout>
+    </MinimalLayout>
 </template>

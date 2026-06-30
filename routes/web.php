@@ -84,6 +84,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/invitations/accept-in-app', [InvitationController::class, 'acceptInApp'])->name('invitations.accept-in-app');
     Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
+
+    // Notifications are per-user (not business-scoped): the feed is the user's own
+    // across every business, regardless of the current dashboard. So it lives here,
+    // outside the business gate, and is reachable with no current business.
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 });
 
 // ─── Terms acceptance interstitial (auth only — reachable before verify/business) ──
@@ -193,13 +200,9 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
     Route::delete('/memberships/{membership}/leave', [MembershipController::class, 'leave'])->name('memberships.leave');
     Route::delete('/memberships/invitations/{invitation}/revoke', [MembershipController::class, 'revokeInvite'])->name('memberships.invitations.revoke');
 
-    // Invitation accept/decline live in the no-business group above so a member-less
-    // invitee can respond from the welcome page; the dashboard reuses those routes.
-
-    // ─── Notifications (unified notice feed) ─────────────────────────────────────
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
-    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    // Invitation accept/decline and the notification feed live in the no-business
+    // group above (both are user-scoped, not business-scoped) so a member-less user
+    // can use them; the dashboard / app shell reuse the same routes.
 
     // ── Lists & Jobs hub ──────────────────────────────────────────────────────
     Route::get('/lists', [ListsController::class, 'index'])->name('lists.index');

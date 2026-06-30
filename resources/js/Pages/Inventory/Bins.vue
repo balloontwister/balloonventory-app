@@ -318,10 +318,10 @@ function binSummaryLabel(bin) {
         </template>
 
         <div class="flex flex-wrap items-center gap-2">
-            <AppButton
+            <button
                 v-if="allBins.length > 0"
-                variant="secondary"
-                size="sm"
+                type="button"
+                class="rounded-md px-2 py-1 font-sans text-[15px] font-medium text-accent hover:bg-accent-soft disabled:opacity-50"
                 :disabled="contentsLoading"
                 @click="toggleAllContents"
             >
@@ -330,7 +330,7 @@ function binSummaryLabel(bin) {
                         ? $t('bins.contents_hide_all')
                         : $t('bins.contents_show_all')
                 }}
-            </AppButton>
+            </button>
 
             <div class="ml-auto flex flex-wrap items-center gap-2">
                 <select

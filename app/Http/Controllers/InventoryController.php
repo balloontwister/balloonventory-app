@@ -311,10 +311,28 @@ class InventoryController extends Controller
             }
         }
 
+        // Likewise when opened from a list — return to that list. The origin
+        // distinguishes the dedicated list page from the By-list inventory tab,
+        // since "back" must land on whichever one the user was viewing.
+        $backList = null;
+        $listOrigin = $request->query('from');
+        if (in_array($listOrigin, ['list-detail', 'inventory-list'], true) && $request->filled('list')) {
+            $list = BalloonList::find($request->query('list'));
+            if ($list !== null) {
+                $backList = [
+                    'name' => $list->name,
+                    'href' => $listOrigin === 'list-detail'
+                        ? route('lists.show', $list->id)
+                        : route('inventory.lists.index', ['list' => $list->id]),
+                ];
+            }
+        }
+
         return Inertia::render('Inventory/Show', [
             'sku' => $sku,
             'override' => $override,
             'backBin' => $backBin,
+            'backList' => $backList,
             'stockLevels' => $stockLevels,
             'identicalSkus' => $identicalSkus,
             'bins' => $this->binsForSelector(),

@@ -20,7 +20,9 @@ function isActive(list) {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex flex-col gap-3">
-                <h1 class="font-display text-[22px] font-semibold text-ink-primary">
+                <h1
+                    class="font-display text-[22px] font-semibold text-ink-primary"
+                >
                     {{ $t('inventory.heading') }}
                 </h1>
                 <InventoryTabs active="lists" />
@@ -72,7 +74,7 @@ function isActive(list) {
             v-if="activeList"
             class="rounded-lg border border-border bg-surface"
         >
-            <ListContents :list="activeList" />
+            <ListContents :list="activeList" back-context="inventory-list" />
         </div>
         <p
             v-else

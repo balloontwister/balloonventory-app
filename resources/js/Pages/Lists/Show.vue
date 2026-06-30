@@ -53,7 +53,9 @@ function deleteList() {
 }
 
 function unarchive() {
-    useForm({ archived: false }).patch(route('lists.update', { list: props.list.id }));
+    useForm({ archived: false }).patch(
+        route('lists.update', { list: props.list.id }),
+    );
 }
 </script>
 
@@ -93,13 +95,21 @@ function unarchive() {
                             v-if="list.visibility === 'owner_editable'"
                             class="rounded-full bg-accent-soft px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-accent"
                         >
-                            {{ $t('lists.form.visibility_owner_editable').split(' — ')[0] }}
+                            {{
+                                $t(
+                                    'lists.form.visibility_owner_editable',
+                                ).split(' — ')[0]
+                            }}
                         </span>
                         <span
                             v-else-if="list.visibility === 'private'"
-                            class="rounded-full bg-ink-tertiary/10 px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                            class="bg-ink-tertiary/10 rounded-full px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
-                            {{ $t('lists.form.visibility_private').split(' — ')[0] }}
+                            {{
+                                $t('lists.form.visibility_private').split(
+                                    ' — ',
+                                )[0]
+                            }}
                         </span>
 
                         <Link
@@ -128,7 +138,9 @@ function unarchive() {
                 v-if="list.notes"
                 class="rounded-lg border border-border bg-surface px-4 py-3"
             >
-                <p class="font-sans text-[14px] text-ink-secondary">{{ list.notes }}</p>
+                <p class="font-sans text-[14px] text-ink-secondary">
+                    {{ list.notes }}
+                </p>
             </div>
 
             <!-- Archived notice -->
@@ -136,7 +148,9 @@ function unarchive() {
                 v-if="list.archived_at"
                 class="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3"
             >
-                <span class="rounded-full bg-ink-tertiary/10 px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary">
+                <span
+                    class="bg-ink-tertiary/10 rounded-full px-2.5 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                >
                     {{ $t('lists.detail.archived_badge') }}
                 </span>
                 <p class="flex-1 font-sans text-[13px] text-ink-secondary">
@@ -153,7 +167,7 @@ function unarchive() {
             </div>
 
             <div class="rounded-lg border border-border bg-surface">
-                <ListContents :list="list" />
+                <ListContents :list="list" back-context="list-detail" />
             </div>
 
             <!-- History -->
@@ -182,30 +196,75 @@ function unarchive() {
                         </span>
 
                         <!-- Description -->
-                        <span class="min-w-0 flex-1 font-sans text-[13px] text-ink-primary">
+                        <span
+                            class="min-w-0 flex-1 font-sans text-[13px] text-ink-primary"
+                        >
                             <template v-if="event.type === 'created'">
-                                {{ $t('lists.history.created', { user: event.user_name }) }}
+                                {{
+                                    $t('lists.history.created', {
+                                        user: event.user_name,
+                                    })
+                                }}
                             </template>
                             <template v-else-if="event.type === 'renamed'">
-                                {{ $t('lists.history.renamed', { user: event.user_name, old: event.payload.old, new: event.payload.new }) }}
+                                {{
+                                    $t('lists.history.renamed', {
+                                        user: event.user_name,
+                                        old: event.payload.old,
+                                        new: event.payload.new,
+                                    })
+                                }}
                             </template>
                             <template v-else-if="event.type === 'archived'">
-                                {{ $t('lists.history.archived', { user: event.user_name }) }}
+                                {{
+                                    $t('lists.history.archived', {
+                                        user: event.user_name,
+                                    })
+                                }}
                             </template>
                             <template v-else-if="event.type === 'unarchived'">
-                                {{ $t('lists.history.unarchived', { user: event.user_name }) }}
+                                {{
+                                    $t('lists.history.unarchived', {
+                                        user: event.user_name,
+                                    })
+                                }}
                             </template>
-                            <template v-else-if="event.type === 'visibility_changed'">
-                                {{ $t('lists.history.visibility_changed', { user: event.user_name }) }}
+                            <template
+                                v-else-if="event.type === 'visibility_changed'"
+                            >
+                                {{
+                                    $t('lists.history.visibility_changed', {
+                                        user: event.user_name,
+                                    })
+                                }}
                             </template>
                             <template v-else-if="event.type === 'item_added'">
-                                {{ $t('lists.history.item_added', { user: event.user_name, sku: event.payload.sku_name }) }}
+                                {{
+                                    $t('lists.history.item_added', {
+                                        user: event.user_name,
+                                        sku: event.payload.sku_name,
+                                    })
+                                }}
                             </template>
                             <template v-else-if="event.type === 'item_removed'">
-                                {{ $t('lists.history.item_removed', { user: event.user_name, sku: event.payload.sku_name }) }}
+                                {{
+                                    $t('lists.history.item_removed', {
+                                        user: event.user_name,
+                                        sku: event.payload.sku_name,
+                                    })
+                                }}
                             </template>
-                            <template v-else-if="event.type === 'item_qty_changed'">
-                                {{ $t('lists.history.item_qty_changed', { user: event.user_name, sku: event.payload.sku_name, old: event.payload.old_qty ?? '—', new: event.payload.new_qty ?? '—' }) }}
+                            <template
+                                v-else-if="event.type === 'item_qty_changed'"
+                            >
+                                {{
+                                    $t('lists.history.item_qty_changed', {
+                                        user: event.user_name,
+                                        sku: event.payload.sku_name,
+                                        old: event.payload.old_qty ?? '—',
+                                        new: event.payload.new_qty ?? '—',
+                                    })
+                                }}
                             </template>
                         </span>
 
@@ -230,7 +289,9 @@ function unarchive() {
                         {{
                             showAllEvents
                                 ? $t('lists.history.show_less')
-                                : $t('lists.history.show_more', { count: hiddenEventCount })
+                                : $t('lists.history.show_more', {
+                                      count: hiddenEventCount,
+                                  })
                         }}
                     </button>
                 </div>

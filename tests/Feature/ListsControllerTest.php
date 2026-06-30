@@ -13,6 +13,7 @@ use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ListsControllerTest extends TestCase
@@ -485,5 +486,62 @@ class ListsControllerTest extends TestCase
                 ->where('activeList.is_business_favorites', true)
                 ->has('lists', 2)
             );
+    }
+
+    // ── SKU back-link origin (opened from a list) ────────────────────────────────
+
+    public function test_sku_show_back_links_to_the_dedicated_list_page(): void
+    {
+        $list = $this->customList();
+        $sku = Sku::factory()->create();
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', [
+                'sku' => $sku->id,
+                'from' => 'list-detail',
+                'list' => $list->id,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Inventory/Show')
+                ->where('backList.name', $list->name)
+                ->where('backList.href', route('lists.show', $list->id)));
+    }
+
+    public function test_sku_show_back_links_to_the_by_list_tab(): void
+    {
+        $list = $this->customList();
+        $sku = Sku::factory()->create();
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', [
+                'sku' => $sku->id,
+                'from' => 'inventory-list',
+                'list' => $list->id,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('backList.href', route('inventory.lists.index', ['list' => $list->id])));
+    }
+
+    public function test_sku_show_ignores_a_list_from_another_business(): void
+    {
+        $sku = Sku::factory()->create();
+        $otherBusiness = Business::factory()->create();
+        $foreignList = BalloonList::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id,
+            'name' => 'Foreign list',
+            'is_business_favorites' => false,
+            'created_by_user_id' => $this->owner->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', [
+                'sku' => $sku->id,
+                'from' => 'list-detail',
+                'list' => $foreignList->id,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('backList', null));
     }
 }

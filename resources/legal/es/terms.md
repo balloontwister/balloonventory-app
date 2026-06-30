@@ -1,7 +1,7 @@
 
 ## 1. Aceptación de estos términos
 
-Al crear una cuenta o utilizar Balloonventory ("el Servicio"), aceptas estos Términos de Servicio. Si no estás de acuerdo, no utilices el Servicio.
+Balloonventory es operado por ManagerSal LLC ("ManagerSal", "nosotros"). Al crear una cuenta o utilizar Balloonventory ("el Servicio"), aceptas estos Términos de Servicio, que constituyen un acuerdo entre tú y ManagerSal LLC. Si no estás de acuerdo, no utilices el Servicio.
 
 ## 2. El Servicio
 

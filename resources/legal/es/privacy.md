@@ -1,3 +1,5 @@
+ManagerSal LLC ("ManagerSal", "nosotros") opera Balloonventory y es responsable del tratamiento de los datos personales descritos en esta política.
+
 ## 1. Qué recopilamos
 
 - **Información de cuenta** — tu nombre, correo electrónico, contraseña (cifrada), y preferencias de idioma y zona horaria.

@@ -20,21 +20,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Company & contact (Phase 0 — confirm before real prose ships)
+    | Company & contact (Phase 0 — confirmed 2026-06-30)
     |--------------------------------------------------------------------------
     |
-    | TODO(Phase 0): 'company' must be the exact registered legal entity name +
-    | state, and must match the Stripe account later. If the LLC does not yet
-    | formally exist, that gates the prose (not the scaffolding).
+    | Operating entity: ManagerSal LLC. Re-audit (and surface it in the prose +
+    | match the Stripe account) if a dedicated Balloonventory entity is formed.
     |
-    | TODO(Phase 0): 'contact_email' must be a real, monitored inbox — Resend is
-    | send-only, so a published address that nobody receives is a compliance
-    | liability (Privacy Policy promises a ~30-day response).
+    | 'contact_email' is the published support/privacy address (also hardcoded in
+    | resources/legal/en/privacy.md). It must remain a monitored inbox — Resend is
+    | send-only, so inbound is routed elsewhere (e.g. Cloudflare Email Routing).
+    |
+    | Policy prose is generator-based; a lawyer review is advisable before a full
+    | public (non-beta) launch.
     |
     */
 
-    'company' => env('LEGAL_COMPANY', 'Twisted Balloon LLC'),
+    'company' => env('LEGAL_COMPANY', 'ManagerSal LLC'),
 
-    'contact_email' => env('LEGAL_CONTACT_EMAIL', 'privacy@balloonventory.com'),
+    'contact_email' => env('LEGAL_CONTACT_EMAIL', 'support@balloonventory.com'),
 
 ];

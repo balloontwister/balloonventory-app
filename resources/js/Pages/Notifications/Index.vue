@@ -1,13 +1,23 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import MinimalLayout from '@/Layouts/MinimalLayout.vue';
 import NotificationCard from '@/Components/Dashboard/NotificationCard.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-const props = defineProps({
+defineProps({
     notifications: { type: Object, required: true },
     filter: { type: String, default: 'all' },
     unreadCount: { type: Number, default: 0 },
 });
+
+const page = usePage();
+
+// The feed is the same regardless of business; a user with no current business
+// gets the trimmed shell instead of the business app shell.
+const layout = computed(() =>
+    page.props.business ? AuthenticatedLayout : MinimalLayout,
+);
 
 function markAllRead() {
     router.post(route('notifications.read-all'), {}, { preserveScroll: true });
@@ -17,7 +27,7 @@ function markAllRead() {
 <template>
     <Head :title="$t('dashboard.notifications.title')" />
 
-    <AuthenticatedLayout>
+    <component :is="layout">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-ink-primary">
                 {{ $t('dashboard.notifications.title') }}
@@ -41,7 +51,9 @@ function markAllRead() {
                         {{ $t('dashboard.notifications.filter_all') }}
                     </Link>
                     <Link
-                        :href="route('notifications.index', { filter: 'unread' })"
+                        :href="
+                            route('notifications.index', { filter: 'unread' })
+                        "
                         preserve-scroll
                         class="rounded-md px-3 py-1.5 font-sans text-[13px] font-medium transition"
                         :class="
@@ -86,7 +98,8 @@ function markAllRead() {
                 class="flex items-center justify-between pt-2"
             >
                 <p class="font-sans text-[13px] text-ink-secondary">
-                    {{ notifications.current_page }} / {{ notifications.last_page }}
+                    {{ notifications.current_page }} /
+                    {{ notifications.last_page }}
                 </p>
                 <div class="flex gap-2">
                     <Link
@@ -108,5 +121,5 @@ function markAllRead() {
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </component>
 </template>

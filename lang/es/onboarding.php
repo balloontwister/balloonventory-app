@@ -85,6 +85,5 @@ return [
         'create_body' => 'Crea tu negocio y serás el Propietario. Podrás invitar a tu equipo después.',
         'create_cta' => 'Configurar mi tienda',
         'waiting_body' => '¿Te unes al equipo de alguien más? Pide al propietario que invite esta cuenta por correo:',
-        'logout' => 'Cerrar sesión',
     ],
 ];

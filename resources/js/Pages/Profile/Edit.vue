@@ -5,7 +5,9 @@ import ImageUpload from '@/Components/ImageUpload.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
+import MinimalLayout from '@/Layouts/MinimalLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 defineProps({
     mustVerifyEmail: { type: Boolean },
@@ -18,6 +20,14 @@ defineProps({
 });
 
 const page = usePage();
+
+// Members get the full app shell; a user with no current business gets the
+// trimmed shell so the page's business nav doesn't bounce them to /welcome.
+const hasBusiness = computed(() => !!page.props.business);
+const layout = computed(() =>
+    hasBusiness.value ? AuthenticatedLayout : MinimalLayout,
+);
+
 const avatarForm = useForm({ avatar: null, avatar_clear: false });
 const submitAvatar = () =>
     avatarForm.post(route('profile.avatar.update'), { forceFormData: true });
@@ -26,11 +36,19 @@ const submitAvatar = () =>
 <template>
     <Head :title="$t('profile.meta_title')" />
 
-    <AuthenticatedLayout>
+    <component :is="layout">
         <template #header>
             <BackLink
-                :href="route('account.index')"
-                :label="$t('nav.account')"
+                :href="
+                    hasBusiness
+                        ? route('account.index')
+                        : route('onboarding.welcome')
+                "
+                :label="
+                    hasBusiness
+                        ? $t('nav.account')
+                        : $t('onboarding.welcome.heading')
+                "
             />
             <h1
                 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
@@ -126,5 +144,5 @@ const submitAvatar = () =>
                 />
             </div>
         </div>
-    </AuthenticatedLayout>
+    </component>
 </template>

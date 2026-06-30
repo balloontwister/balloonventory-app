@@ -1,9 +1,15 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { onMounted } from 'vue';
+import { useInventoryView } from '@/Composables/useInventoryView.js';
 
-defineProps({
+const props = defineProps({
     active: { type: String, default: 'items' }, // items | bins | lists
 });
+
+// Remember this as the last-opened Inventory view so the nav returns here.
+const { remember } = useInventoryView();
+onMounted(() => remember(props.active));
 </script>
 
 <template>

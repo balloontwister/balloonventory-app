@@ -166,6 +166,7 @@ const editForm = useForm({
     name: '',
     number: '',
     number_locked: false,
+    position_locked: false,
     description: '',
 });
 
@@ -175,6 +176,7 @@ function openEdit() {
     editForm.name = props.bin.name;
     editForm.number = props.bin.number ?? '';
     editForm.number_locked = !!props.bin.number_locked;
+    editForm.position_locked = !!props.bin.position_locked;
     editForm.description = props.bin.description ?? '';
     modalType.value = 'edit';
 }
@@ -1070,6 +1072,25 @@ function downloadLabelSvg() {
                     }}</span>
                     <InfoButton :title="$t('bins.lock.info_title')">
                         <p>{{ $t('bins.lock.info_body') }}</p>
+                    </InfoButton>
+                </label>
+
+                <!-- Position lock -->
+                <label
+                    class="flex items-center gap-2 font-sans text-[13px] text-ink-primary"
+                >
+                    <input
+                        v-model="editForm.position_locked"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-border-strong text-accent focus:ring-accent-soft"
+                    />
+                    <span>{{ $t('bins.position_lock.label') }}</span>
+                    <span class="text-ink-tertiary">·</span>
+                    <span class="text-ink-tertiary">{{
+                        $t('bins.position_lock.hint')
+                    }}</span>
+                    <InfoButton :title="$t('bins.position_lock.info_title')">
+                        <p>{{ $t('bins.position_lock.info_body') }}</p>
                     </InfoButton>
                 </label>
 

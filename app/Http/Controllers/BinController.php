@@ -39,11 +39,7 @@ class BinController extends Controller
         $locations = Location::query()
             ->with(['bins' => function ($query) {
                 $query
-                    ->orderByDesc('is_default')
-                    ->orderBy('sort_order')
-                    ->orderByRaw('`number` is null')
-                    ->orderBy('number')
-                    ->orderBy('name')
+                    ->orderedForDisplay()
                     ->withSum('stockLevels as full_bags_total', 'full_bags')
                     ->withSum('stockLevels as open_bags_total', 'open_bags')
                     ->withCount(['stockLevels as sku_count' => fn (Builder $q) => $q
@@ -74,14 +70,7 @@ class BinController extends Controller
         $this->binResolver->resolveDefault($business);
 
         $locations = Location::query()
-            ->with(['bins' => function ($query) {
-                $query
-                    ->orderByDesc('is_default')
-                    ->orderBy('sort_order')
-                    ->orderByRaw('`number` is null')
-                    ->orderBy('number')
-                    ->orderBy('name');
-            }])
+            ->with(['bins' => fn ($query) => $query->orderedForDisplay()])
             ->orderByDesc('is_default')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -115,12 +104,7 @@ class BinController extends Controller
 
         // Ordered the same way the views present bins, so numbers track layout.
         $orderedBins = Location::query()
-            ->with(['bins' => fn ($q) => $q
-                ->orderByDesc('is_default')
-                ->orderBy('sort_order')
-                ->orderByRaw('`number` is null')
-                ->orderBy('number')
-                ->orderBy('name')])
+            ->with(['bins' => fn ($q) => $q->orderedForDisplay()])
             ->orderByDesc('is_default')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -166,6 +150,51 @@ class BinController extends Controller
         return back()->with('success', __('bins.flash.auto_numbered', [
             'count' => count($assignments),
         ]));
+    }
+
+    /**
+     * Persist a new visual order for one location's bins (drag-reorder on Manage
+     * storage). The bins are sent in their new order; sort_order is written by
+     * index. Only ids that belong to the given location are honored. Position
+     * locks are enforced on the client (locked bins can't be dragged or crossed),
+     * so the submitted order already keeps them in place.
+     */
+    public function reorder(Request $request): RedirectResponse
+    {
+        $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
+
+        $data = $request->validate([
+            'location_id' => [
+                'required',
+                'uuid',
+                Rule::exists('locations', 'id')
+                    ->where('business_id', $businessId)
+                    ->whereNull('deleted_at'),
+            ],
+            'bin_ids' => ['required', 'array'],
+            'bin_ids.*' => ['uuid'],
+        ]);
+
+        // Restrict to bins that actually live in this location (the global
+        // BusinessScope already restricts to this business).
+        $validIds = Bin::where('location_id', $data['location_id'])
+            ->whereIn('id', $data['bin_ids'])
+            ->pluck('id')
+            ->all();
+
+        $ordered = array_values(array_filter(
+            $data['bin_ids'],
+            fn ($id) => in_array($id, $validIds, true),
+        ));
+
+        DB::transaction(function () use ($ordered) {
+            foreach ($ordered as $index => $binId) {
+                Bin::where('id', $binId)->update(['sort_order' => $index]);
+            }
+        });
+
+        return back()->with('success', __('bins.flash.reordered'));
     }
 
     /**
@@ -262,6 +291,7 @@ class BinController extends Controller
                 'scan_code' => $bin->scan_code,
                 'is_default' => $bin->is_default,
                 'number_locked' => $bin->number_locked,
+                'position_locked' => $bin->position_locked,
                 'location_id' => $bin->location_id,
                 'location_name' => $bin->location?->name,
             ],
@@ -346,6 +376,7 @@ class BinController extends Controller
             'name' => $data['name'],
             'number' => $data['number'] ?? null,
             'number_locked' => $data['number_locked'] ?? false,
+            'position_locked' => $data['position_locked'] ?? false,
             'description' => $data['description'] ?? null,
         ]);
 
@@ -385,7 +416,7 @@ class BinController extends Controller
     }
 
     /**
-     * @return array{location_id:string,name:string,number:?int,number_locked?:bool,description:?string}
+     * @return array{location_id:string,name:string,number:?int,number_locked?:bool,position_locked?:bool,description:?string}
      */
     private function validateBin(Request $request, ?string $businessId, ?Bin $bin = null): array
     {
@@ -408,6 +439,7 @@ class BinController extends Controller
                     ->ignore($bin?->id),
             ],
             'number_locked' => ['boolean'],
+            'position_locked' => ['boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
         ]);
     }
@@ -448,9 +480,7 @@ class BinController extends Controller
     private function binsForSelector(): array
     {
         return Bin::with('location:id,name')
-            ->orderByDesc('is_default')
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->orderedForDisplay()
             ->get()
             ->map(fn (Bin $bin) => [
                 'id' => $bin->id,

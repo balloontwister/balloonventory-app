@@ -152,6 +152,10 @@ return [
         'auto_number_renumber_hint' => 'Reasigna números secuenciales a cada contenedor en orden. Los contenedores bloqueados conservan su número.',
         'auto_number_renumber_confirm' => '¿Renumerar todos los contenedores? Esto cambia los números existentes (excepto los bloqueados) y puede dejar de coincidir con etiquetas ya impresas.',
         'auto_number_locked_note' => 'Consejo: bloquea el número de un contenedor desde su pantalla de edición para proteger una etiqueta ya impresa.',
+        'rearrange' => 'Reordenar',
+        'rearrange_done' => 'Listo',
+        'rearrange_hint' => 'Arrastra los contenedores al orden en que están físicamente. Los bloqueados se quedan en su lugar.',
+        'rearrange_save' => 'Guardar orden',
     ],
 
     'lock' => [
@@ -161,8 +165,16 @@ return [
         'info_body' => 'Cuando un número está bloqueado, el contenedor lo conserva aunque numeres o renumeres tus contenedores. Bloquéalo una vez impresa su etiqueta física para que el número no deje de coincidir con la etiqueta.',
     ],
 
+    'position_lock' => [
+        'label' => 'Bloquear posición',
+        'hint' => 'Evita que se mueva',
+        'info_title' => 'Bloquear la posición de un contenedor',
+        'info_body' => 'Cuando la posición está bloqueada, este contenedor no se puede arrastrar al reordenar, y los demás no pueden moverse más allá de él — se queda en su lugar. Útil para un contenedor que siempre está en el mismo sitio, como tu contenedor principal o predeterminado.',
+    ],
+
     'flash' => [
         'auto_numbered' => ':count contenedores numerados.',
+        'reordered' => 'Orden de contenedores guardado.',
         'location_created' => 'Ubicación creada.',
         'location_updated' => 'Ubicación actualizada.',
         'location_deleted' => 'Ubicación eliminada.',

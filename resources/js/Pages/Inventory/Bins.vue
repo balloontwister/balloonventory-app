@@ -8,13 +8,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';
 import { useBusiness } from '@/Composables/useBusiness.js';
-import {
-    AVERY_FORMATS,
-    LABEL_PRESETS,
-    buildAverySheetHtml,
-    buildLabelSvg,
-    labelToPngBlob,
-} from '@/Composables/useBinLabels';
+import { AVERY_FORMATS, buildAverySheetHtml } from '@/Composables/useBinLabels';
 
 const props = defineProps({
     locations: { type: Array, required: true },
@@ -33,93 +27,6 @@ function labelText(bin, locationName) {
     const number = bin.number != null ? `#${bin.number} ` : '';
     const location = locationName ? `${locationName} · ` : '';
     return `${location}${number}${bin.name}`;
-}
-
-// ── View / export a single label ───────────────────────────────────────────────
-const labelPresets = LABEL_PRESETS;
-const viewLabelBin = ref(null); // { name, code }
-const sizeKey = ref(LABEL_PRESETS[0].key);
-const customWidthIn = ref(2.625);
-const customHeightIn = ref(1);
-const copyState = ref(''); // '' | 'copied' | 'error'
-
-const labelDims = computed(() => {
-    if (sizeKey.value === 'custom') {
-        return {
-            widthIn: Math.min(
-                Math.max(Number(customWidthIn.value) || 0, 0.5),
-                8,
-            ),
-            heightIn: Math.min(
-                Math.max(Number(customHeightIn.value) || 0, 0.25),
-                11,
-            ),
-        };
-    }
-    const preset = LABEL_PRESETS.find((p) => p.key === sizeKey.value);
-    return { widthIn: preset.widthIn, heightIn: preset.heightIn };
-});
-
-const previewSvg = computed(() =>
-    viewLabelBin.value
-        ? buildLabelSvg({
-              name: viewLabelBin.value.name,
-              code: viewLabelBin.value.code,
-              widthIn: labelDims.value.widthIn,
-              heightIn: labelDims.value.heightIn,
-          })
-        : '',
-);
-
-function openViewLabel(bin, locationName) {
-    viewLabelBin.value = {
-        name: labelText(bin, locationName),
-        code: bin.scan_code,
-    };
-    copyState.value = '';
-    modalType.value = 'view';
-}
-
-function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-async function copyLabelImage() {
-    copyState.value = '';
-    try {
-        const blob = await labelToPngBlob(
-            previewSvg.value,
-            labelDims.value.widthIn,
-            labelDims.value.heightIn,
-        );
-        await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob }),
-        ]);
-        copyState.value = 'copied';
-    } catch {
-        copyState.value = 'error';
-    }
-}
-
-async function downloadLabelPng() {
-    const blob = await labelToPngBlob(
-        previewSvg.value,
-        labelDims.value.widthIn,
-        labelDims.value.heightIn,
-    );
-    downloadBlob(blob, `${viewLabelBin.value.code}.png`);
-}
-
-function downloadLabelSvg() {
-    downloadBlob(
-        new Blob([previewSvg.value], { type: 'image/svg+xml' }),
-        `${viewLabelBin.value.code}.svg`,
-    );
 }
 
 // ── Bulk print on a standard Avery sheet ───────────────────────────────────────
@@ -207,6 +114,8 @@ function isOpen(binId) {
 // native <dialog> modals on one page stack their backdrops and trap clicks, so
 // the page keeps exactly one dialog at a time.
 const modalType = ref(null); // null | 'location' | 'bin'
+// (Single-bin label viewing/export now lives on the bin detail page;
+// the wall keeps only the bulk "Print all labels" action.)
 
 function closeModal() {
     modalType.value = null;
@@ -294,15 +203,6 @@ function submitBin() {
     } else {
         binForm.post(route('inventory.bins.store'), options);
     }
-}
-
-function deleteBin(bin) {
-    if (!window.confirm(trans('bins.delete.bin_confirm'))) {
-        return;
-    }
-    useForm({}).delete(route('inventory.bins.destroy', { bin: bin.id }), {
-        preserveScroll: true,
-    });
 }
 
 function binsCountLabel(location) {
@@ -580,23 +480,6 @@ function binSummaryLabel(bin) {
                                         : $t('bins.bin.expand')
                                 }}
                             </button>
-                            <div class="ml-auto flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
-                                    @click="openViewLabel(bin, location.name)"
-                                >
-                                    {{ $t('bins.view_label') }}
-                                </button>
-                                <button
-                                    v-if="canManageBins && !bin.is_default"
-                                    type="button"
-                                    class="rounded-md px-2 py-1 font-sans text-[13px] text-danger hover:bg-danger-soft"
-                                    @click="deleteBin(bin)"
-                                >
-                                    {{ $t('bins.form.delete') }}
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -784,117 +667,6 @@ function binSummaryLabel(bin) {
                     </AppButton>
                 </div>
             </form>
-
-            <div
-                v-else-if="modalType === 'view'"
-                class="flex flex-col gap-4 p-6"
-            >
-                <h2
-                    class="font-display text-[18px] font-semibold text-ink-primary"
-                >
-                    {{ $t('bins.label.view_title') }}
-                </h2>
-
-                <!-- Size controls -->
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex flex-col gap-1">
-                        <label
-                            for="label-size"
-                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
-                        >
-                            {{ $t('bins.label.size') }}
-                        </label>
-                        <select
-                            id="label-size"
-                            v-model="sizeKey"
-                            class="rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                        >
-                            <option
-                                v-for="p in labelPresets"
-                                :key="p.key"
-                                :value="p.key"
-                            >
-                                {{ p.label }}
-                            </option>
-                            <option value="custom">
-                                {{ $t('bins.label.custom') }}
-                            </option>
-                        </select>
-                    </div>
-                    <template v-if="sizeKey === 'custom'">
-                        <div class="w-24">
-                            <AppInput
-                                v-model="customWidthIn"
-                                type="number"
-                                :label="$t('bins.label.width_in')"
-                            />
-                        </div>
-                        <div class="w-24">
-                            <AppInput
-                                v-model="customHeightIn"
-                                type="number"
-                                :label="$t('bins.label.height_in')"
-                            />
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Live preview -->
-                <div
-                    class="flex justify-center rounded-md border border-border bg-background p-4"
-                >
-                    <div class="label-preview" v-html="previewSvg" />
-                </div>
-
-                <!-- Actions -->
-                <div class="flex flex-wrap items-center justify-end gap-2">
-                    <span
-                        v-if="copyState === 'copied'"
-                        class="mr-auto font-sans text-[13px] text-success"
-                    >
-                        {{ $t('bins.label.copied') }}
-                    </span>
-                    <span
-                        v-else-if="copyState === 'error'"
-                        class="mr-auto font-sans text-[13px] text-danger"
-                    >
-                        {{ $t('bins.label.copy_error') }}
-                    </span>
-                    <AppButton
-                        variant="secondary"
-                        size="sm"
-                        @click="downloadLabelSvg"
-                    >
-                        {{ $t('bins.label.download_svg') }}
-                    </AppButton>
-                    <AppButton
-                        variant="secondary"
-                        size="sm"
-                        @click="downloadLabelPng"
-                    >
-                        {{ $t('bins.label.download_png') }}
-                    </AppButton>
-                    <AppButton
-                        variant="primary"
-                        size="sm"
-                        @click="copyLabelImage"
-                    >
-                        {{ $t('bins.label.copy') }}
-                    </AppButton>
-                </div>
-                <div class="flex justify-end">
-                    <AppButton variant="ghost" size="sm" @click="closeModal">
-                        {{ $t('bins.form.cancel') }}
-                    </AppButton>
-                </div>
-            </div>
         </Modal>
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-.label-preview :deep(svg) {
-    max-width: 100%;
-    height: auto;
-}
-</style>

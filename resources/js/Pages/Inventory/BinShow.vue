@@ -158,6 +158,15 @@ function submitEdit() {
     });
 }
 
+// Delete the bin (blocked server-side for the Default bin or one holding
+// stock). On success the controller redirects to the By-Bin wall.
+function deleteBin() {
+    if (!window.confirm(trans('bins.delete.bin_confirm'))) {
+        return;
+    }
+    router.delete(route('inventory.bins.destroy', { bin: props.bin.id }));
+}
+
 // ── Move an item to another bin ───────────────────────────────────────────────
 const moveForm = useForm({
     from_bin_id: '',
@@ -402,6 +411,15 @@ function downloadLabelSvg() {
                         @click="openEdit"
                     >
                         {{ $t('bins.form.edit') }}
+                    </AppButton>
+                    <AppButton
+                        v-if="canManage && !bin.is_default"
+                        variant="ghost"
+                        size="sm"
+                        class="text-danger hover:bg-danger-soft"
+                        @click="deleteBin"
+                    >
+                        {{ $t('bins.form.delete') }}
                     </AppButton>
                 </div>
             </div>

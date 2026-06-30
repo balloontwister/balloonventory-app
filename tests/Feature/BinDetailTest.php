@@ -99,6 +99,18 @@ class BinDetailTest extends TestCase
             );
     }
 
+    public function test_deleting_an_empty_bin_redirects_to_the_wall(): void
+    {
+        // Delete is now triggered from the detail page, so it must land on the
+        // wall (the deleted bin's own URL would 404).
+        $this->actingAs($this->owner)
+            ->delete(route('inventory.bins.destroy', $this->bin))
+            ->assertRedirect(route('inventory.bins.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSoftDeleted('bins', ['id' => $this->bin->id]);
+    }
+
     public function test_show_404s_for_a_bin_from_another_business(): void
     {
         $otherBusiness = Business::factory()->create();

@@ -240,7 +240,10 @@ class BinController extends Controller
 
         $bin->delete();
 
-        return back()->with('success', __('bins.flash.bin_deleted'));
+        // Redirect to the wall rather than back() — delete is now triggered from
+        // the bin detail page, whose URL would 404 once the bin is gone.
+        return redirect()->route('inventory.bins.index')
+            ->with('success', __('bins.flash.bin_deleted'));
     }
 
     /**

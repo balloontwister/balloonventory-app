@@ -133,10 +133,16 @@ class BinController extends Controller
                 'description' => $bin->description,
                 'scan_code' => $bin->scan_code,
                 'is_default' => $bin->is_default,
+                'location_id' => $bin->location_id,
                 'location_name' => $bin->location?->name,
             ],
             'items' => $items,
             'bins' => $this->binsForSelector(),
+            // Locations for the "edit bin" form's location picker.
+            'locations' => Location::orderByDesc('is_default')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'fullBagsTotal' => (int) $levels->sum('full_bags'),
             'openBagsTotal' => (int) $levels->sum('open_bags'),
         ]);

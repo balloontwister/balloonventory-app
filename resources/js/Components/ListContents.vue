@@ -6,7 +6,21 @@ import StockBadge from '@/Components/StockBadge.vue';
 const props = defineProps({
     list: { type: Object, required: true },
     // { id, name, is_business_favorites, notes, items: [...], can: { editItems, ... } }
+    // Where this list is being viewed, so an item's SKU page can link back here:
+    // 'list-detail' (Lists/Show) or 'inventory-list' (the By-list tab).
+    backContext: { type: String, default: null },
 });
+
+// SKU detail link that remembers this list as the origin, so "back" on the SKU
+// page returns to this list instead of the inventory list.
+function itemHref(skuId) {
+    const params = { sku: skuId };
+    if (props.backContext) {
+        params.from = props.backContext;
+        params.list = props.list.id;
+    }
+    return route('inventory.sku.show', params);
+}
 
 const items = computed(() => props.list.items ?? []);
 const isFavorites = computed(() => !!props.list.is_business_favorites);
@@ -138,7 +152,9 @@ function removeItem(item) {
                         v-else
                         :key="sku.id"
                         type="button"
-                        :disabled="existingSkuIds.has(sku.id) || adding === sku.id"
+                        :disabled="
+                            existingSkuIds.has(sku.id) || adding === sku.id
+                        "
                         class="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-background disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
                         @click="addSku(sku)"
                     >
@@ -260,11 +276,7 @@ function removeItem(item) {
                                     :style="{ backgroundColor: item.color_hex }"
                                 />
                                 <Link
-                                    :href="
-                                        route('inventory.sku.show', {
-                                            sku: item.sku_id,
-                                        })
-                                    "
+                                    :href="itemHref(item.sku_id)"
                                     class="min-w-0 truncate font-sans text-[14px] font-medium text-ink-primary hover:underline"
                                 >
                                     {{ item.name }}
@@ -273,7 +285,9 @@ function removeItem(item) {
                         </td>
                         <!-- Brand -->
                         <td class="hidden px-3 py-3 sm:table-cell">
-                            <span class="font-mono text-[13px] text-ink-secondary">
+                            <span
+                                class="font-mono text-[13px] text-ink-secondary"
+                            >
                                 {{ item.brand ?? '—' }}
                             </span>
                         </td>

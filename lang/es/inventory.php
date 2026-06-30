@@ -57,6 +57,7 @@ return [
     'show' => [
         'back' => 'Volver al inventario',
         'back_to_bin' => 'Volver a :bin',
+        'back_to_list' => 'Volver a :list',
         'section_stock' => 'Existencias',
         'section_details' => 'Detalles',
         'section_override' => 'Tus personalizaciones',

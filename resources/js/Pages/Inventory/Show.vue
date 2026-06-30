@@ -31,6 +31,8 @@ const props = defineProps({
     returnQuery: { type: String, default: '' },
     // Set when the user opened this SKU from a bin, so "back" returns to that bin.
     backBin: { type: Object, default: null },
+    // Set when opened from a list ({ name, href }), so "back" returns to it.
+    backList: { type: Object, default: null },
 });
 
 const { can } = useBusiness();
@@ -84,22 +86,33 @@ function addToInventory() {
 
 // Back link restores the list's filters (returnQuery) and scrolls to the row
 // that was opened (#sku-<id>), mirroring the master catalog — unless the user
-// arrived from a bin, in which case it returns to that bin's detail page.
-const backHref = computed(() =>
-    props.backBin
-        ? route('inventory.bins.show', props.backBin.id)
-        : route('inventory.index') + props.returnQuery + '#sku-' + props.sku.id,
-);
+// arrived from a bin or a list, in which case it returns there.
+const backHref = computed(() => {
+    if (props.backBin) {
+        return route('inventory.bins.show', props.backBin.id);
+    }
+    if (props.backList) {
+        return props.backList.href;
+    }
+    return (
+        route('inventory.index') + props.returnQuery + '#sku-' + props.sku.id
+    );
+});
 
 const backLabel = computed(() => {
-    if (!props.backBin) {
-        return trans('inventory.show.back');
+    if (props.backBin) {
+        const number =
+            props.backBin.number != null ? `#${props.backBin.number} ` : '';
+        return trans('inventory.show.back_to_bin', {
+            bin: `${number}${props.backBin.name}`,
+        });
     }
-    const number =
-        props.backBin.number != null ? `#${props.backBin.number} ` : '';
-    return trans('inventory.show.back_to_bin', {
-        bin: `${number}${props.backBin.name}`,
-    });
+    if (props.backList) {
+        return trans('inventory.show.back_to_list', {
+            list: props.backList.name,
+        });
+    }
+    return trans('inventory.show.back');
 });
 
 // Photos available for this SKU (the controller falls back to the color's image

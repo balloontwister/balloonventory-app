@@ -341,6 +341,7 @@ class BinController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
 
         $data = $this->validateBin($request, $businessId);
 
@@ -359,6 +360,7 @@ class BinController extends Controller
     public function update(Request $request, Bin $bin): RedirectResponse
     {
         $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
 
         $data = $this->validateBin($request, $businessId, $bin);
 
@@ -376,6 +378,8 @@ class BinController extends Controller
 
     public function destroy(Request $request, Bin $bin): RedirectResponse
     {
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail(BusinessContext::currentId()));
+
         if ($bin->is_default) {
             return back()->with('error', __('bins.flash.bin_default_protected'));
         }

@@ -53,10 +53,18 @@ class ScanController extends Controller
 
         $initialMode = in_array($request->query('mode'), ['add', 'remove']) ? $request->query('mode') : 'add';
 
+        // Pre-select a working bin when arriving from a bin card ("scan into this
+        // bin"). The Bin global scope keeps the lookup tenant-safe; an unknown or
+        // foreign id falls back to Auto.
+        $initialBinId = $request->filled('bin')
+            ? Bin::find($request->query('bin'))?->id
+            : null;
+
         return Inertia::render('Scan/Index', [
             'bins' => $this->binsForSelector($businessId),
             'defaultBinId' => $defaultBin->id,
             'initialMode' => $initialMode,
+            'initialBinId' => $initialBinId,
         ]);
     }
 

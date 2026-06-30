@@ -103,6 +103,23 @@ class EmailTemplateRegistry
                 ],
             ],
         ],
+        'ownership_transfer' => [
+            'description' => 'Sent to a member when the sole owner deletes their account and nominates them to take over the business.',
+            'variables' => [
+                'inviter_name' => [
+                    'description' => 'Name of the departing owner who nominated them.',
+                    'sample' => 'Sam Rivera',
+                ],
+                'business_name' => [
+                    'description' => 'Name of the business being handed over.',
+                    'sample' => 'Twisted Balloon',
+                ],
+                'accept_url' => [
+                    'description' => 'Magic link the nominee clicks to accept ownership.',
+                    'sample' => null, // resolved from config('app.url') for previews
+                ],
+            ],
+        ],
         'member_left_business' => [
             'description' => 'Sent to every owner of a business when a member removes themselves from it.',
             'variables' => [

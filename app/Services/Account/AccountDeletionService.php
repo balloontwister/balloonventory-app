@@ -163,11 +163,10 @@ class AccountDeletionService
 
     protected function sendOwnershipInvitationEmail(Business $business, User $successor, User $departing, BusinessInvitation $invitation): void
     {
-        $mail = TemplatedMailable::forKey('business_invitation', [
+        $mail = TemplatedMailable::forKey('ownership_transfer', [
             'user_name' => $successor->name,
             'inviter_name' => $departing->name,
             'business_name' => $business->name,
-            'role_label' => 'Owner',
             'accept_url' => route('invitations.accept', ['token' => $invitation->token]),
         ]);
 

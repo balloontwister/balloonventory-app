@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\BusinessFrozenReason;
+use App\Mail\TemplatedMailable;
 use App\Models\Business;
 use App\Models\BusinessInvitation;
 use App\Models\Membership;
 use App\Models\User;
+use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -63,6 +65,7 @@ class AccountDeletionOwnerHandoffTest extends TestCase
 
     public function test_nominating_a_successor_freezes_and_invites_them(): void
     {
+        $this->seed(EmailTemplateSeeder::class);
         Mail::fake();
 
         $business = Business::factory()->create();
@@ -86,6 +89,12 @@ class AccountDeletionOwnerHandoffTest extends TestCase
         $this->assertNotNull($invitation);
         $this->assertSame('owner', $invitation->role);
         $this->assertSame(BusinessInvitation::STATUS_PENDING, $invitation->status);
+
+        // The nominee is emailed the ownership-transfer template (queued mailable).
+        Mail::assertQueued(
+            TemplatedMailable::class,
+            fn (TemplatedMailable $mail) => $mail->hasTo($staff->email),
+        );
 
         $this->assertSoftDeleted($owner);
     }

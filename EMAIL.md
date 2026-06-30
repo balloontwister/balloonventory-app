@@ -276,6 +276,27 @@ These resolve from the recipient and app config, so they exist in every send con
 
 ---
 
+### `ownership_transfer`
+
+| Property | Value |
+|---|---|
+| Label | Ownership Transfer |
+| Trigger | The sole owner deletes their account and nominates a member to take over (business is frozen until they accept) |
+| Status | Active |
+| From | tallie@balloonventory.com ("Tallie at Balloonventory") |
+
+**Available variables** (plus base variables):
+
+| Token | Resolves to |
+|---|---|
+| `{{inviter_name}}` | Name of the departing owner who nominated them |
+| `{{business_name}}` | Name of the business being handed over |
+| `{{accept_url}}` | Magic link the nominee clicks to accept ownership |
+
+**Trigger location:** `AccountDeletionService::sendOwnershipInvitationEmail` (from `handleSelfDeletion`).
+
+---
+
 ### `member_left_business`
 
 | Property | Value |

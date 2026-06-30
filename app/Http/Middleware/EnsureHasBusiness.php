@@ -30,7 +30,7 @@ class EnsureHasBusiness
             ->exists();
 
         if (! $hasMembership) {
-            return redirect()->route('onboarding.create-business');
+            return redirect()->route('onboarding.welcome');
         }
 
         return $next($request);

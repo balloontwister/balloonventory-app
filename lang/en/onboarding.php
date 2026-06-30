@@ -75,4 +75,16 @@ return [
         'review_color' => 'Accent color',
         'review_locations_summary' => ':locations location(s), :bins bin(s)',
     ],
+
+    'welcome' => [
+        'meta_title' => 'Welcome to Balloonventory',
+        'heading' => "You're in!",
+        'lead' => 'Your account is ready. Set up your own shop now, or join a team you’ve been invited to.',
+        'invites_heading' => 'Team invitations',
+        'create_heading' => 'Set up my own shop',
+        'create_body' => "Create your business and you'll be the Owner. You can invite team members afterward.",
+        'create_cta' => 'Set up my shop',
+        'waiting_body' => 'Joining someone else’s team? Ask the owner to invite this account by email:',
+        'logout' => 'Sign out',
+    ],
 ];

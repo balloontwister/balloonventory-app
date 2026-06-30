@@ -75,4 +75,16 @@ return [
         'review_color' => 'Color de acento',
         'review_locations_summary' => ':locations ubicación(es), :bins contenedor(es)',
     ],
+
+    'welcome' => [
+        'meta_title' => 'Bienvenido a Balloonventory',
+        'heading' => '¡Ya estás dentro!',
+        'lead' => 'Tu cuenta está lista. Configura tu propia tienda ahora o únete a un equipo que te haya invitado.',
+        'invites_heading' => 'Invitaciones de equipo',
+        'create_heading' => 'Configurar mi propia tienda',
+        'create_body' => 'Crea tu negocio y serás el Propietario. Podrás invitar a tu equipo después.',
+        'create_cta' => 'Configurar mi tienda',
+        'waiting_body' => '¿Te unes al equipo de alguien más? Pide al propietario que invite esta cuenta por correo:',
+        'logout' => 'Cerrar sesión',
+    ],
 ];

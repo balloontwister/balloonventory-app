@@ -5,13 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\BalloonList;
 use App\Models\Bin;
 use App\Models\Business;
-use App\Models\BusinessInvitation;
 use App\Models\BusinessSkuOverride;
 use App\Models\ListItem;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
-use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use App\Support\PendingInvitations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -46,7 +45,7 @@ class DashboardController extends Controller
             'lowStock' => $can['viewCounts'] ? $lowStockData['items'] : [],
             'recentActivity' => $can['viewCounts'] ? $this->buildRecentActivity() : [],
             'nudges' => $this->buildNudges($user, $business),
-            'pendingInvitations' => $this->buildPendingInvitations($user),
+            'pendingInvitations' => PendingInvitations::for($user),
             'can' => $can,
         ]);
     }
@@ -181,40 +180,6 @@ class DashboardController extends Controller
     /**
      * @return list<array{token: string, business_name: string, inviter_name: string, role_label: string}>
      */
-    private function buildPendingInvitations(mixed $user): array
-    {
-        return BusinessInvitation::withoutGlobalScope(BusinessScope::class)
-            // Load the inviter even if soft-deleted: an ownership-transfer invite
-            // is sent by an owner who is deleting their account, so by the time the
-            // successor sees it the inviter row is trashed.
-            ->with(['business', 'inviter' => fn ($q) => $q->withTrashed()])
-            ->where('invited_user_id', $user->id)
-            ->where('status', BusinessInvitation::STATUS_PENDING)
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->get()
-            ->map(fn (BusinessInvitation $inv) => [
-                'token' => $inv->token,
-                'business_name' => $inv->business->name,
-                'inviter_name' => $inv->inviter?->name ?? __('dashboard.invitations.former_owner'),
-                'role_label' => $this->roleLabel($inv->role),
-            ])
-            ->values()
-            ->all();
-    }
-
-    private function roleLabel(string $role): string
-    {
-        return match ($role) {
-            'owner' => 'Owner',
-            'manager' => 'Manager',
-            'staff' => 'Artist',
-            'guest' => 'Guest Artist',
-            default => $role,
-        };
-    }
-
     private function buildNudges(mixed $user, Business $business): array
     {
         $dismissed = $user->dismissed_nudges ?? [];

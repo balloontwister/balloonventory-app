@@ -24,6 +24,8 @@ const props = defineProps({
     locations: { type: Array, default: () => [] },
     fullBagsTotal: { type: Number, default: 0 },
     openBagsTotal: { type: Number, default: 0 },
+    // Where the user arrived from: '' (default, → By-Bin wall) or 'manage'.
+    from: { type: String, default: '' },
 });
 
 const { can } = useBusiness();
@@ -33,6 +35,29 @@ const binTitle = computed(() => {
     const number = props.bin.number != null ? `#${props.bin.number} ` : '';
     return `${number}${props.bin.name}`;
 });
+
+// Return to wherever the user came from — Manage storage when opened there,
+// otherwise the By-Bin wall.
+const backHref = computed(() =>
+    props.from === 'manage'
+        ? route('inventory.storage')
+        : route('inventory.bins.index'),
+);
+const backLabel = computed(() =>
+    props.from === 'manage'
+        ? trans('bins.show.back_manage')
+        : trans('bins.show.back'),
+);
+
+// Carry this bin as the origin when opening an item, so the SKU page's back
+// link returns here instead of the inventory list.
+function itemHref(skuId) {
+    return route('inventory.sku.show', {
+        sku: skuId,
+        from: 'bin',
+        bin: props.bin.id,
+    });
+}
 
 const otherBins = computed(() =>
     props.bins.filter((b) => b.id !== props.bin.id),
@@ -357,10 +382,7 @@ function downloadLabelSvg() {
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink
-                :href="route('inventory.bins.index')"
-                :label="$t('bins.show.back')"
-            />
+            <BackLink :href="backHref" :label="backLabel" />
         </template>
 
         <div class="mx-auto max-w-3xl">
@@ -470,7 +492,7 @@ function downloadLabelSvg() {
                                 :style="{ backgroundColor: row.color_hex }"
                             />
                             <Link
-                                :href="route('inventory.sku.show', row.sku_id)"
+                                :href="itemHref(row.sku_id)"
                                 class="min-w-0 flex-1"
                             >
                                 <p

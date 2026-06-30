@@ -29,6 +29,8 @@ const props = defineProps({
     lists: { type: Array, default: () => [] },
     canManageLists: { type: Boolean, default: false },
     returnQuery: { type: String, default: '' },
+    // Set when the user opened this SKU from a bin, so "back" returns to that bin.
+    backBin: { type: Object, default: null },
 });
 
 const { can } = useBusiness();
@@ -39,9 +41,7 @@ const canEditOverride = computed(() => can('sku.edit_override'));
 const addListOpen = ref(false);
 const addingToList = ref(null); // list id being added
 
-const onListIds = computed(
-    () => new Set(props.onLists.map((list) => list.id)),
-);
+const onListIds = computed(() => new Set(props.onLists.map((list) => list.id)));
 
 function addToList(list) {
     if (onListIds.value.has(list.id) || addingToList.value) {
@@ -83,10 +83,24 @@ function addToInventory() {
 }
 
 // Back link restores the list's filters (returnQuery) and scrolls to the row
-// that was opened (#sku-<id>), mirroring the master catalog.
-const backHref = computed(
-    () => route('inventory.index') + props.returnQuery + '#sku-' + props.sku.id,
+// that was opened (#sku-<id>), mirroring the master catalog — unless the user
+// arrived from a bin, in which case it returns to that bin's detail page.
+const backHref = computed(() =>
+    props.backBin
+        ? route('inventory.bins.show', props.backBin.id)
+        : route('inventory.index') + props.returnQuery + '#sku-' + props.sku.id,
 );
+
+const backLabel = computed(() => {
+    if (!props.backBin) {
+        return trans('inventory.show.back');
+    }
+    const number =
+        props.backBin.number != null ? `#${props.backBin.number} ` : '';
+    return trans('inventory.show.back_to_bin', {
+        bin: `${number}${props.backBin.name}`,
+    });
+});
 
 // Photos available for this SKU (the controller falls back to the color's image
 // when the SKU has none). Single is the primary; any others are swap thumbnails.
@@ -217,10 +231,13 @@ function removeBinRow(row) {
     if (!window.confirm(trans('inventory.show.stock_remove_bin_confirm'))) {
         return;
     }
-    router.delete(route('inventory.sku.bin.remove', [props.sku.id, row.bin_id]), {
-        preserveScroll: true,
-        preserveState: true,
-    });
+    router.delete(
+        route('inventory.sku.bin.remove', [props.sku.id, row.bin_id]),
+        {
+            preserveScroll: true,
+            preserveState: true,
+        },
+    );
 }
 
 function saveRow(row) {
@@ -415,7 +432,7 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
 
     <AuthenticatedLayout>
         <template #header>
-            <BackLink :href="backHref" :label="$t('inventory.show.back')" />
+            <BackLink :href="backHref" :label="backLabel" />
         </template>
 
         <div class="mx-auto max-w-4xl">
@@ -549,7 +566,10 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                     <div
                         class="rounded-lg border border-border bg-surface p-4 lg:sticky lg:top-4"
                     >
-                        <div v-if="galleryImages.length" class="mb-4 flex gap-2">
+                        <div
+                            v-if="galleryImages.length"
+                            class="mb-4 flex gap-2"
+                        >
                             <img
                                 :src="activeImage"
                                 :alt="
@@ -627,7 +647,8 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                         v-if="sku.color.color_hex"
                                         class="inline-block h-2.5 w-2.5 rounded-sm ring-1 ring-inset ring-black/10"
                                         :style="{
-                                            backgroundColor: sku.color.color_hex,
+                                            backgroundColor:
+                                                sku.color.color_hex,
                                         }"
                                     />
                                     {{ sku.color.name }}
@@ -664,9 +685,12 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                 </dt>
                                 <dd class="text-right text-ink-primary">
                                     {{
-                                        $t('inventory.show.detail_count_value', {
-                                            count: sku.default_count_per_bag,
-                                        })
+                                        $t(
+                                            'inventory.show.detail_count_value',
+                                            {
+                                                count: sku.default_count_per_bag,
+                                            },
+                                        )
                                     }}
                                 </dd>
                             </div>
@@ -690,7 +714,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                 <dt class="text-ink-secondary">
                                     {{ $t('inventory.show.detail_upc') }}
                                 </dt>
-                                <dd class="text-right font-mono text-ink-primary">
+                                <dd
+                                    class="text-right font-mono text-ink-primary"
+                                >
                                     {{ sku.upc }}
                                 </dd>
                             </div>
@@ -701,7 +727,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                 <dt class="text-ink-secondary">
                                     {{ $t('inventory.show.detail_ean') }}
                                 </dt>
-                                <dd class="text-right font-mono text-ink-primary">
+                                <dd
+                                    class="text-right font-mono text-ink-primary"
+                                >
                                     {{ sku.ean }}
                                 </dd>
                             </div>
@@ -713,7 +741,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                     {{ $t('inventory.show.detail_upc') }}
                                 </dt>
                                 <dd class="text-right text-ink-tertiary">
-                                    {{ $t('inventory.show.detail_barcode_none') }}
+                                    {{
+                                        $t('inventory.show.detail_barcode_none')
+                                    }}
                                 </dd>
                             </div>
                         </dl>
@@ -799,7 +829,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                             <p
                                 class="font-sans text-[14px] font-semibold text-ink-primary"
                             >
-                                {{ $t('inventory.show.not_in_inventory_title') }}
+                                {{
+                                    $t('inventory.show.not_in_inventory_title')
+                                }}
                             </p>
                             <p
                                 class="max-w-sm font-sans text-[13px] text-ink-secondary"
@@ -824,7 +856,7 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                 :key="row.bin_id"
                                 class="rounded-md border border-border px-3 py-2.5"
                                 :class="{
-                                    'border-accent bg-accent-soft/30':
+                                    'bg-accent-soft/30 border-accent':
                                         isDirty(row),
                                 }"
                             >
@@ -848,10 +880,16 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                             size="sm"
                                             @click="openTransfer(row.bin_id)"
                                         >
-                                            {{ $t('inventory.show.stock_move') }}
+                                            {{
+                                                $t('inventory.show.stock_move')
+                                            }}
                                         </AppButton>
                                         <AppButton
-                                            v-if="canAdjust && rowIsEmpty(row) && !isDirty(row)"
+                                            v-if="
+                                                canAdjust &&
+                                                rowIsEmpty(row) &&
+                                                !isDirty(row)
+                                            "
                                             variant="ghost"
                                             size="sm"
                                             class="text-ink-tertiary hover:text-danger"
@@ -877,7 +915,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                             <span
                                                 class="w-10 font-sans text-[12px] text-ink-secondary"
                                                 >{{
-                                                    $t('inventory.show.stock_full')
+                                                    $t(
+                                                        'inventory.show.stock_full',
+                                                    )
                                                 }}</span
                                             >
                                             <button
@@ -926,7 +966,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                             <span
                                                 class="w-10 font-sans text-[12px] text-ink-secondary"
                                                 >{{
-                                                    $t('inventory.show.stock_open')
+                                                    $t(
+                                                        'inventory.show.stock_open',
+                                                    )
                                                 }}</span
                                             >
                                             <button
@@ -994,7 +1036,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                                 @click="resetRow(row)"
                                             >
                                                 {{
-                                                    $t('inventory.show.stock_reset')
+                                                    $t(
+                                                        'inventory.show.stock_reset',
+                                                    )
                                                 }}
                                             </AppButton>
                                             <AppButton
@@ -1003,7 +1047,11 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                                 :disabled="row.saving"
                                                 @click="saveRow(row)"
                                             >
-                                                {{ $t('inventory.show.stock_save') }}
+                                                {{
+                                                    $t(
+                                                        'inventory.show.stock_save',
+                                                    )
+                                                }}
                                             </AppButton>
                                         </div>
                                     </template>
@@ -1011,12 +1059,32 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                     <!-- Read-only counts for guests -->
                                     <template v-else>
                                         <div class="flex items-center gap-2">
-                                            <span class="w-10 font-sans text-[12px] text-ink-secondary">{{ $t('inventory.show.stock_full') }}</span>
-                                            <span class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary">{{ row.full }}</span>
+                                            <span
+                                                class="w-10 font-sans text-[12px] text-ink-secondary"
+                                                >{{
+                                                    $t(
+                                                        'inventory.show.stock_full',
+                                                    )
+                                                }}</span
+                                            >
+                                            <span
+                                                class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary"
+                                                >{{ row.full }}</span
+                                            >
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <span class="w-10 font-sans text-[12px] text-ink-secondary">{{ $t('inventory.show.stock_open') }}</span>
-                                            <span class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary">{{ row.open }}</span>
+                                            <span
+                                                class="w-10 font-sans text-[12px] text-ink-secondary"
+                                                >{{
+                                                    $t(
+                                                        'inventory.show.stock_open',
+                                                    )
+                                                }}</span
+                                            >
+                                            <span
+                                                class="min-w-[1.5rem] text-center font-mono text-[15px] font-medium text-ink-primary"
+                                                >{{ row.open }}</span
+                                            >
                                         </div>
                                     </template>
                                 </div>
@@ -1035,14 +1103,16 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                             v-if="reorderQuantity !== null"
                             class="mt-3 flex items-center gap-2"
                         >
-                            <span class="font-sans text-[13px] text-ink-secondary"
+                            <span
+                                class="font-sans text-[13px] text-ink-secondary"
                                 >{{ $t('inventory.show.reorder_label') }}:</span
                             >
                             <span
                                 class="font-mono text-[13px] font-medium text-ink-primary"
                                 >{{ reorderQuantity }}</span
                             >
-                            <span class="font-sans text-[12px] text-ink-tertiary"
+                            <span
+                                class="font-sans text-[12px] text-ink-tertiary"
                                 >— {{ $t('inventory.show.reorder_hint') }}</span
                             >
                         </div>
@@ -1050,7 +1120,7 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                         <!-- Lists this item is on -->
                         <div
                             v-if="onLists.length"
-                            class="mt-4 rounded-md border border-accent/20 bg-accent-soft/40 px-4 py-3"
+                            class="border-accent/20 bg-accent-soft/40 mt-4 rounded-md border px-4 py-3"
                         >
                             <p
                                 class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
@@ -1073,7 +1143,7 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                 v-for="item in identicalSkus"
                                 :key="item.id"
                                 :href="route('inventory.sku.show', item.id)"
-                                class="group flex items-center gap-3 rounded-md border border-border px-3 py-2.5 transition hover:bg-accent-soft/40"
+                                class="hover:bg-accent-soft/40 group flex items-center gap-3 rounded-md border border-border px-3 py-2.5 transition"
                             >
                                 <span
                                     v-if="item.color?.color_hex"
@@ -1092,7 +1162,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                         class="font-sans text-[12px] text-ink-tertiary"
                                     >
                                         {{ item.brand?.abbreviation }}
-                                        <template v-if="item.balloon_size?.size">
+                                        <template
+                                            v-if="item.balloon_size?.size"
+                                        >
                                             · {{ item.balloon_size.size.name }}
                                         </template>
                                     </p>
@@ -1314,7 +1386,9 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                         @click="editingOverride = false"
                                     >
                                         {{
-                                            $t('inventory.show.customize_cancel')
+                                            $t(
+                                                'inventory.show.customize_cancel',
+                                            )
                                         }}
                                     </AppButton>
                                     <AppButton
@@ -1335,8 +1409,12 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                             class="mb-3 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
                         >
                             {{ $t('inventory.show.section_history')
-                            }}<span v-if="timeZoneLabel" class="text-ink-tertiary">
-                                ({{ timeZoneLabel }})</span>
+                            }}<span
+                                v-if="timeZoneLabel"
+                                class="text-ink-tertiary"
+                            >
+                                ({{ timeZoneLabel }})</span
+                            >
                         </h2>
 
                         <p
@@ -1359,7 +1437,11 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
                                         <td
                                             class="px-3 py-2.5 font-sans text-[13px] text-ink-secondary"
                                         >
-                                            {{ formatDateTime(movement.created_at) }}
+                                            {{
+                                                formatDateTime(
+                                                    movement.created_at,
+                                                )
+                                            }}
                                         </td>
                                         <td class="px-3 py-2.5">
                                             <span
@@ -1443,9 +1525,18 @@ const { formatDateTime, timeZoneLabel } = useDateTime();
         />
 
         <!-- Transfer modal -->
-        <Modal :show="transferOpen" max-width="md" @close="transferOpen = false">
-            <form class="flex flex-col gap-4 p-6" @submit.prevent="submitTransfer">
-                <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+        <Modal
+            :show="transferOpen"
+            max-width="md"
+            @close="transferOpen = false"
+        >
+            <form
+                class="flex flex-col gap-4 p-6"
+                @submit.prevent="submitTransfer"
+            >
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
                     {{ $t('inventory.show.transfer_title') }}
                 </h2>
 

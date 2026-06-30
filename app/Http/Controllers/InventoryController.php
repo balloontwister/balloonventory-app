@@ -300,9 +300,21 @@ class InventoryController extends Controller
             ->map(fn (ListItem $item) => ['id' => $item->list->id, 'name' => $item->list->name])
             ->values();
 
+        // When the user opened this SKU from a bin's detail page, surface that bin
+        // so the back link returns there instead of the inventory list. The Bin
+        // global scope keeps the lookup tenant-safe.
+        $backBin = null;
+        if ($request->query('from') === 'bin' && $request->filled('bin')) {
+            $bin = Bin::find($request->query('bin'));
+            if ($bin !== null) {
+                $backBin = ['id' => $bin->id, 'name' => $bin->name, 'number' => $bin->number];
+            }
+        }
+
         return Inertia::render('Inventory/Show', [
             'sku' => $sku,
             'override' => $override,
+            'backBin' => $backBin,
             'stockLevels' => $stockLevels,
             'identicalSkus' => $identicalSkus,
             'bins' => $this->binsForSelector(),

@@ -234,7 +234,7 @@ class BinController extends Controller
      * "add item to this bin" flows. Implicit binding + the global BusinessScope
      * keep this scoped to the current business (404 for foreign bins).
      */
-    public function show(Bin $bin): Response
+    public function show(Request $request, Bin $bin): Response
     {
         Gate::authorize('inventory.view_counts', Business::findOrFail(BusinessContext::currentId()));
 
@@ -274,6 +274,9 @@ class BinController extends Controller
                 ->get(['id', 'name']),
             'fullBagsTotal' => (int) $levels->sum('full_bags'),
             'openBagsTotal' => (int) $levels->sum('open_bags'),
+            // Where the user arrived from, so the back link can return there
+            // (e.g. Manage storage) instead of always the By-Bin wall.
+            'from' => $request->query('from', ''),
         ]);
     }
 

@@ -484,6 +484,7 @@ function printAll() {
                                     :href="
                                         route('inventory.bins.show', {
                                             bin: bin.id,
+                                            from: 'manage',
                                         })
                                     "
                                     class="text-accent hover:underline"

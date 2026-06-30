@@ -64,6 +64,7 @@ return [
         'empty' => 'This bin is empty.',
         'expand' => 'Show contents',
         'collapse' => 'Hide contents',
+        'contents_short' => 'Contents',
         'loading' => 'Loading contents…',
     ],
 

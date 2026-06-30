@@ -64,6 +64,7 @@ return [
         'empty' => 'Este contenedor está vacío.',
         'expand' => 'Ver contenido',
         'collapse' => 'Ocultar contenido',
+        'contents_short' => 'Contenido',
         'loading' => 'Cargando contenido…',
     ],
 

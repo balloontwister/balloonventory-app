@@ -422,11 +422,18 @@ function binSummaryLabel(bin) {
                                 class="rounded-md px-1.5 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
                                 @click="toggleBin(bin)"
                             >
-                                {{
-                                    isOpen(bin.id)
-                                        ? $t('bins.bin.collapse')
-                                        : $t('bins.bin.expand')
-                                }}
+                                <!-- Phones: just "Contents" to keep the row on one
+                                     line; wider screens get the full toggle label. -->
+                                <span class="sm:hidden">
+                                    {{ $t('bins.bin.contents_short') }}
+                                </span>
+                                <span class="hidden sm:inline">
+                                    {{
+                                        isOpen(bin.id)
+                                            ? $t('bins.bin.collapse')
+                                            : $t('bins.bin.expand')
+                                    }}
+                                </span>
                             </button>
                         </div>
                     </div>

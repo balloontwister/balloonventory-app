@@ -22,6 +22,7 @@ use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ScanControllerTest extends TestCase
@@ -98,6 +99,32 @@ class ScanControllerTest extends TestCase
     {
         $this->get(route('scan.index'))
             ->assertRedirect(route('login'));
+    }
+
+    public function test_index_preselects_the_working_bin_from_the_query(): void
+    {
+        $this->actingAs($this->owner)
+            ->get(route('scan.index', ['bin' => $this->bin->id]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Scan/Index')
+                ->where('initialBinId', $this->bin->id));
+    }
+
+    public function test_index_ignores_a_bin_from_another_business(): void
+    {
+        $otherBusiness = Business::factory()->create();
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'name' => 'Default', 'is_default' => true,
+        ]);
+        $foreignBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'location_id' => $otherLocation->id, 'name' => 'Foreign',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('scan.index', ['bin' => $foreignBin->id]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('initialBinId', null));
     }
 
     // ── lookup ───────────────────────────────────────────────────────────────────

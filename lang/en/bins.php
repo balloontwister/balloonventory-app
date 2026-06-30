@@ -19,6 +19,7 @@ return [
     'contents_show_all' => 'Show all contents',
     'contents_hide_all' => 'Hide all contents',
     'manage_storage' => 'Manage storage',
+    'scan_into' => 'Scan into this bin',
 
     'info' => [
         'title' => 'Locations & bins',

@@ -17,13 +17,15 @@ const props = defineProps({
     bins: { type: Array, default: () => [] },
     defaultBinId: { type: String, default: null },
     initialMode: { type: String, default: 'add' },
+    // Pre-selected working bin when arriving via a bin card's "scan into" action.
+    initialBinId: { type: String, default: null },
 });
 
 // ── Working bin ───────────────────────────────────────────────────────────────
 // '' = Auto: new items fall back to Default, known items go to their own bin.
 // A chosen bin only applies to items that aren't in stock yet ("known location
 // wins"). Held in a plain ref so it resets when the page is left and re-entered.
-const workingBinId = ref('');
+const workingBinId = ref(props.initialBinId || '');
 
 // Resolve which bin a scan should target. Known location wins: if the item
 // already lives somewhere, use that; otherwise the working bin (or Default).
@@ -228,13 +230,23 @@ async function processScan(upc) {
             scanStatus.value = null;
             pendingMatch.value = {
                 upc,
-                candidates: [{ match: lookup.data.match_type, score: 100, sku: lookup.data.sku }],
+                candidates: [
+                    {
+                        match: lookup.data.match_type,
+                        score: 100,
+                        sku: lookup.data.sku,
+                    },
+                ],
                 lookupOnly: true,
             };
             return;
         }
 
-        await recordMovement(upc, lookup.data.sku.id, resolveTargetBin(lookup.data.sku));
+        await recordMovement(
+            upc,
+            lookup.data.sku.id,
+            resolveTargetBin(lookup.data.sku),
+        );
         scanStatus.value = null;
     } catch {
         scanStatus.value = 'error';
@@ -422,11 +434,7 @@ async function linkToSku(sku) {
 }
 
 function linkSkuLine(sku) {
-    return [
-        sku.brand?.abbreviation,
-        sku.balloon_size?.name,
-        sku.color?.name,
-    ]
+    return [sku.brand?.abbreviation, sku.balloon_size?.name, sku.color?.name]
         .filter(Boolean)
         .join(' · ');
 }
@@ -634,8 +642,8 @@ const contextHintKey = computed(() => {
                                 pendingMatch.lookupOnly
                                     ? $t('scan.found_heading')
                                     : pendingMatch.reason === 'no_barcode'
-                                        ? $t('scan.no_barcode_heading')
-                                        : $t('scan.confirm_heading')
+                                      ? $t('scan.no_barcode_heading')
+                                      : $t('scan.confirm_heading')
                             }}
                         </p>
                         <p
@@ -701,7 +709,9 @@ const contextHintKey = computed(() => {
                             }}
                         </span>
                         <Link
-                            v-if="!canRecordMovements || pendingMatch.lookupOnly"
+                            v-if="
+                                !canRecordMovements || pendingMatch.lookupOnly
+                            "
                             :href="route('inventory.sku.show', c.sku.id)"
                             class="shrink-0 rounded-md border border-border-strong px-3 py-1.5 font-sans text-[13px] font-semibold text-ink-primary hover:bg-background"
                         >
@@ -759,11 +769,15 @@ const contextHintKey = computed(() => {
                         <span
                             class="min-w-0 flex-1 truncate font-sans text-[14px] text-ink-primary"
                         >
-                            <span v-if="b.location_name" class="text-ink-tertiary"
+                            <span
+                                v-if="b.location_name"
+                                class="text-ink-tertiary"
                                 >{{ b.location_name }} · </span
                             >{{ b.bin_name }}
                         </span>
-                        <span class="shrink-0 font-mono text-[12px] text-ink-secondary">
+                        <span
+                            class="shrink-0 font-mono text-[12px] text-ink-secondary"
+                        >
                             {{
                                 $t('scan.bin_holds', {
                                     full: b.full_bags,
@@ -801,7 +815,10 @@ const contextHintKey = computed(() => {
             </TransitionGroup>
 
             <!-- ── Recent scans list ───────────────────────────────────────────── -->
-            <div v-if="canRecordMovements" class="rounded-lg border border-border">
+            <div
+                v-if="canRecordMovements"
+                class="rounded-lg border border-border"
+            >
                 <div
                     class="flex items-center justify-between border-b border-border bg-background px-4 py-2.5"
                 >
@@ -873,7 +890,11 @@ const contextHintKey = computed(() => {
                                 v-if="s.bin"
                                 class="truncate font-sans text-[12px] text-ink-tertiary"
                             >
-                                {{ $t('scan.recorded_to_bin', { bin: s.bin.name }) }}
+                                {{
+                                    $t('scan.recorded_to_bin', {
+                                        bin: s.bin.name,
+                                    })
+                                }}
                             </span>
                         </span>
 
@@ -970,10 +991,7 @@ const contextHintKey = computed(() => {
                     class="w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                 />
 
-                <p
-                    v-if="linkError"
-                    class="font-sans text-[13px] text-danger"
-                >
+                <p v-if="linkError" class="font-sans text-[13px] text-danger">
                     {{ linkError }}
                 </p>
 
@@ -998,7 +1016,7 @@ const contextHintKey = computed(() => {
                             <button
                                 type="button"
                                 :disabled="linkProcessing"
-                                class="flex w-full items-center gap-3 rounded-md border border-border px-3 py-2.5 text-left transition hover:bg-accent-soft/40 disabled:opacity-50"
+                                class="hover:bg-accent-soft/40 flex w-full items-center gap-3 rounded-md border border-border px-3 py-2.5 text-left transition disabled:opacity-50"
                                 @click="linkToSku(sku)"
                             >
                                 <span

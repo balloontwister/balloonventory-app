@@ -379,16 +379,44 @@ function binSummaryLabel(bin) {
                         <div
                             class="mt-auto flex flex-wrap items-center justify-between gap-x-1 gap-y-0.5 border-t border-border px-3 py-2"
                         >
-                            <Link
-                                :href="
-                                    route('inventory.bins.show', {
-                                        bin: bin.id,
-                                    })
-                                "
-                                class="rounded-md px-2 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft"
-                            >
-                                {{ $t('bins.show.open') }}
-                            </Link>
+                            <div class="flex items-center gap-x-1">
+                                <Link
+                                    :href="
+                                        route('inventory.bins.show', {
+                                            bin: bin.id,
+                                        })
+                                    "
+                                    class="rounded-md px-2 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft"
+                                >
+                                    {{ $t('bins.show.open') }}
+                                </Link>
+                                <Link
+                                    :href="route('scan.index', { bin: bin.id })"
+                                    class="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-background hover:text-accent"
+                                    :title="$t('bins.scan_into')"
+                                    :aria-label="$t('bins.scan_into')"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="h-[18px] w-[18px]"
+                                    >
+                                        <path
+                                            d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3M21 9V6a1 1 0 00-1-1h-3M21 15v3a1 1 0 01-1 1h-3"
+                                        />
+                                        <line x1="7" y1="12" x2="17" y2="12" />
+                                        <line x1="7" y1="9" x2="7" y2="15" />
+                                        <line x1="11" y1="10" x2="11" y2="14" />
+                                        <line x1="15" y1="9" x2="15" y2="15" />
+                                        <line x1="17" y1="12" x2="17" y2="12" />
+                                    </svg>
+                                </Link>
+                            </div>
                             <button
                                 type="button"
                                 class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"

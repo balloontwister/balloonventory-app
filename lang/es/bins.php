@@ -19,6 +19,7 @@ return [
     'contents_show_all' => 'Mostrar todo el contenido',
     'contents_hide_all' => 'Ocultar todo el contenido',
     'manage_storage' => 'Administrar almacenamiento',
+    'scan_into' => 'Escanear en este contenedor',
 
     'info' => [
         'title' => 'Ubicaciones y contenedores',

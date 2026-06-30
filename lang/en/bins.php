@@ -142,6 +142,8 @@ return [
         'subtitle' => 'Add, edit, and organize your locations and bins. Print labels and number bins here.',
         'auto_number' => 'Auto-number bins',
         'print_all' => 'Print all labels',
+        'print_intro' => 'Pick the label sheet you’re printing on, then print every bin’s label.',
+        'print_action' => 'Print',
         'open' => 'Open',
         'show_label' => 'Show label',
         'edit' => 'Edit',

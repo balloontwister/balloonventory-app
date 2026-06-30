@@ -142,6 +142,8 @@ return [
         'subtitle' => 'Agrega, edita y organiza tus ubicaciones y contenedores. Imprime etiquetas y numera contenedores aquí.',
         'auto_number' => 'Numerar contenedores',
         'print_all' => 'Imprimir todas las etiquetas',
+        'print_intro' => 'Elige la hoja de etiquetas en la que vas a imprimir, luego imprime la etiqueta de cada contenedor.',
+        'print_action' => 'Imprimir',
         'open' => 'Abrir',
         'show_label' => 'Ver etiqueta',
         'edit' => 'Editar',

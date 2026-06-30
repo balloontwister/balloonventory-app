@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -153,5 +154,92 @@ class LocationControllerTest extends TestCase
             ->assertNotFound();
 
         $this->assertSame('Foreign', $otherLocation->fresh()->name);
+    }
+
+    // ── reorder / position lock ──────────────────────────────────────────────────
+
+    private function makeLocation(string $name, int $sort): Location
+    {
+        return Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'name' => $name,
+            'sort_order' => $sort,
+        ]);
+    }
+
+    public function test_update_persists_the_position_lock(): void
+    {
+        $location = $this->makeLocation('Studio', 1);
+
+        $this->actingAs($this->owner)
+            ->patch(route('inventory.locations.update', $location), [
+                'name' => 'Studio',
+                'position_locked' => true,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('locations', [
+            'id' => $location->id,
+            'position_locked' => true,
+        ]);
+    }
+
+    public function test_reorder_writes_sort_order_by_submitted_order(): void
+    {
+        $this->seed(PermissionSeeder::class);
+        $a = $this->makeLocation('A', 0);
+        $b = $this->makeLocation('B', 1);
+        $c = $this->makeLocation('C', 2);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.locations.reorder'), [
+                'location_ids' => [$c->id, $a->id, $b->id],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertSame(0, $c->refresh()->sort_order);
+        $this->assertSame(1, $a->refresh()->sort_order);
+        $this->assertSame(2, $b->refresh()->sort_order);
+    }
+
+    public function test_reorder_ignores_a_location_from_another_business(): void
+    {
+        $this->seed(PermissionSeeder::class);
+        $a = $this->makeLocation('A', 0);
+
+        $otherBusiness = Business::factory()->create();
+        $foreign = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id,
+            'name' => 'Foreign',
+            'sort_order' => 9,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.locations.reorder'), [
+                'location_ids' => [$foreign->id, $a->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(0, $a->refresh()->sort_order);
+        $this->assertSame(9, $foreign->refresh()->sort_order);
+    }
+
+    public function test_reorder_is_denied_without_manage_permission(): void
+    {
+        $this->seed(PermissionSeeder::class);
+        $guest = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $guest->id,
+            'business_id' => $this->business->id,
+            'role' => 'guest',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($guest)
+            ->post(route('inventory.locations.reorder'), [
+                'location_ids' => [$this->defaultLocation->id],
+            ])
+            ->assertForbidden();
     }
 }

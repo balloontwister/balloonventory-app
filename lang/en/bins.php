@@ -52,6 +52,8 @@ return [
         'empty' => 'This location has no bins yet.',
         'show_contents' => 'Show contents',
         'hide_contents' => 'Hide contents',
+        'lock_info_title' => 'Locking a location’s position',
+        'lock_info_body' => 'When a location’s position is locked, it can’t be dragged when you rearrange, and other locations can’t be moved past it — it stays put. Handy for a location that’s always first, like your main studio.',
     ],
 
     'bin' => [
@@ -156,6 +158,8 @@ return [
         'rearrange_done' => 'Done',
         'rearrange_hint' => 'Drag bins into the order they’re in physically. Locked bins stay put.',
         'rearrange_save' => 'Save order',
+        'rearrange_locations' => 'Rearrange locations',
+        'rearrange_locations_hint' => 'Drag locations into the order they’re in physically. Locked locations stay put.',
     ],
 
     'lock' => [
@@ -175,6 +179,7 @@ return [
     'flash' => [
         'auto_numbered' => 'Numbered :count bins.',
         'reordered' => 'Bin order saved.',
+        'locations_reordered' => 'Location order saved.',
         'location_created' => 'Location created.',
         'location_updated' => 'Location updated.',
         'location_deleted' => 'Location deleted.',

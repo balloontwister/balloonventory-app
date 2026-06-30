@@ -229,4 +229,55 @@ class BinDetailTest extends TestCase
         $this->assertTrue($inBinRow['in_bin']);
         $this->assertFalse($catalogRow['in_bin']);
     }
+
+    public function test_bulk_contents_groups_stocked_items_by_bin(): void
+    {
+        $skuA = Sku::factory()->create();
+        $skuB = Sku::factory()->create();
+        $this->stock($skuA, $this->bin, full: 2, open: 0);
+
+        $secondBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $this->location->id,
+            'name' => 'Shelf B',
+        ]);
+        $this->stock($skuB, $secondBin, full: 1, open: 3);
+
+        $response = $this->actingAs($this->owner)
+            ->getJson(route('inventory.bins.bulk-contents'))
+            ->assertOk();
+
+        $contents = $response->json('contents');
+
+        $this->assertArrayHasKey($this->bin->id, $contents);
+        $this->assertArrayHasKey($secondBin->id, $contents);
+        $this->assertSame($skuA->id, $contents[$this->bin->id][0]['sku_id']);
+        $this->assertSame($skuB->id, $contents[$secondBin->id][0]['sku_id']);
+    }
+
+    public function test_bulk_contents_can_be_scoped_to_one_location(): void
+    {
+        $skuA = Sku::factory()->create();
+        $skuB = Sku::factory()->create();
+        $this->stock($skuA, $this->bin, full: 2, open: 0);
+
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'name' => 'Warehouse',
+        ]);
+        $otherBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $otherLocation->id,
+            'name' => 'Rack 1',
+        ]);
+        $this->stock($skuB, $otherBin, full: 5, open: 0);
+
+        $contents = $this->actingAs($this->owner)
+            ->getJson(route('inventory.bins.bulk-contents', ['location' => $otherLocation->id]))
+            ->assertOk()
+            ->json('contents');
+
+        $this->assertArrayHasKey($otherBin->id, $contents);
+        $this->assertArrayNotHasKey($this->bin->id, $contents);
+    }
 }

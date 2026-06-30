@@ -87,8 +87,7 @@ class AccountDeletionService
             }
         }
 
-        $this->detachMemberships($user);
-        $user->delete();
+        $this->purge($user);
     }
 
     /**
@@ -102,8 +101,7 @@ class AccountDeletionService
             $business->freeze(BusinessFrozenReason::Ownerless);
         }
 
-        $this->detachMemberships($user);
-        $user->delete();
+        $this->purge($user);
     }
 
     /**
@@ -179,6 +177,17 @@ class AccountDeletionService
     }
 
     /**
+     * Detach the user's memberships, free their email, and soft-delete them.
+     */
+    protected function purge(User $user): void
+    {
+        $this->detachMemberships($user);
+        $this->releaseEmail($user);
+
+        $user->delete();
+    }
+
+    /**
      * Soft-delete every membership the user holds, across all businesses.
      */
     protected function detachMemberships(User $user): void
@@ -186,6 +195,22 @@ class AccountDeletionService
         Membership::withoutGlobalScope(BusinessScope::class)
             ->where('user_id', $user->id)
             ->delete();
+    }
+
+    /**
+     * Tombstone the email so the address is immediately available for a fresh
+     * registration (mirrors PruneUnverifiedUsers). The users.email unique index
+     * is not soft-delete aware, so leaving the real email on the soft-deleted
+     * row would cause a duplicate-key error when the address is reused.
+     */
+    protected function releaseEmail(User $user): void
+    {
+        if ($user->original_email === null) {
+            $user->original_email = $user->email;
+        }
+
+        $user->email = $user->id.'@deleted.invalid';
+        $user->save();
     }
 
     protected function ownerCount(Business $business): int

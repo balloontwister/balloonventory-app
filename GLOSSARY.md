@@ -31,7 +31,7 @@ Balloon sizes are model designations, not raw measurements, not counts, and not 
 | `16-inch` | Large round |
 | `36-inch` | Jumbo round; often called a "geo" or "giant round" |
 
-In the Balloonventory database, the `size` table is the brand-agnostic "Size Family" — multiple `balloon_size` rows (brand+material-specific instances) roll up to one `size`. See DATA.md → `size` and `balloon_size`.
+In the Balloonventory database, the `size` table is the brand-specific. "Size Family" — multiple `balloon_size` rows (brand+material-specific instances) roll up to one `size` and is brand-agnostic. See DATA.md → `size` and `balloon_size`.
 
 ---
 
@@ -43,12 +43,12 @@ Shape describes the physical form of the balloon, not its color or finish.
 |-------|-------------|
 | `Round` | Standard spherical balloon; the default for decorator work |
 | `Heart` | Heart-shaped latex balloon; the ears are fat and short, giving it its shape when inflated |
-| `Link` | A balloon with a thin tail that is    designed to link together into chains; also sold as "Link-O-Loon" or "Quick Link" |
-| `Star` | Five-pointed star-shaped balloon |
-| `Circle` | Flat disc-shaped balloon (distinct from Round) |
+| `Link` | A balloon with a thin tail that is designed to link together into chains; also sold as "Link-O-Loon" or "Quick Link" |
+| `Star` | Five-pointed star-shaped balloon, usually made from foil |
+| `Circle` | Flat disc-shaped balloon (distinct from Round), usually made from foil |
 | `Non-round` | Catch-all for elongated, oval, or irregular latex shapes that don't fit Round or Heart |
 | `Shaped` | Pre-formed foil/latex with a specific non-geometric outline (e.g. a star, cloud, or animal silhouette) |
-| `SuperShape` | Large, complex foil balloon — usually a branded character or object shape |
+| `SuperShape` | Large, complex foil balloon — usually a branded character or object shape, usually made from foil |
 | `Geo Blossom` | Balloon with a hole in its center, flower-like when inflated; a Qualatex trademark |
 | `Geo Donut` | Ring/donut-shaped balloon with a center hole; a Qualatex trademark |
 | `Bee Body` | See size `321` above; the shape is defined by the balloon's molded form, not just its size |
@@ -119,7 +119,7 @@ General balloon trade vocabulary an agent may not know.
 
 **Balloon Artist** — a person who creates balloon sculptures. This is an all-encompassing term that includes entertainers, decorators, profeesionals, and hobbyists.
 
-**Twister ** — a person who creates balloon sculptures by twisting and knotting modeling balloons. Usually into balloon animals, balloon hats, balloon characters, and more.
+**Twister** — a person who creates balloon sculptures by twisting and knotting modeling balloons. Usually into balloon animals, balloon hats, balloon characters, and more.
 
 **Decorator** — a balloon professional who focuses on large-scale event decor (arches, garlands, columns) rather than on-demand twisted sculptures.
 

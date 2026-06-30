@@ -184,7 +184,10 @@ class DashboardController extends Controller
     private function buildPendingInvitations(mixed $user): array
     {
         return BusinessInvitation::withoutGlobalScope(BusinessScope::class)
-            ->with(['business', 'inviter'])
+            // Load the inviter even if soft-deleted: an ownership-transfer invite
+            // is sent by an owner who is deleting their account, so by the time the
+            // successor sees it the inviter row is trashed.
+            ->with(['business', 'inviter' => fn ($q) => $q->withTrashed()])
             ->where('invited_user_id', $user->id)
             ->where('status', BusinessInvitation::STATUS_PENDING)
             ->where(function ($q) {
@@ -194,7 +197,7 @@ class DashboardController extends Controller
             ->map(fn (BusinessInvitation $inv) => [
                 'token' => $inv->token,
                 'business_name' => $inv->business->name,
-                'inviter_name' => $inv->inviter->name,
+                'inviter_name' => $inv->inviter?->name ?? __('dashboard.invitations.former_owner'),
                 'role_label' => $this->roleLabel($inv->role),
             ])
             ->values()

@@ -18,6 +18,7 @@ use App\Notifications\AccountThawed;
 use App\Notifications\SiteAdminGranted;
 use App\Notifications\SiteAdminRevoked;
 use App\Scopes\BusinessScope;
+use App\Services\Account\AccountDeletionService;
 use App\Support\Countries;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -394,13 +395,17 @@ class AdminUserController extends Controller
      * Soft-delete (prune) a user. Super-Admin-only and never an admin or self —
      * admins must be demoted before they can be removed.
      */
-    public function destroy(Request $request, User $user): RedirectResponse
+    public function destroy(Request $request, User $user, AccountDeletionService $accountDeletion): RedirectResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
         abort_if($user->id === $request->user()->id, 422, 'You cannot delete your own account.');
         abort_if($user->isAnyAdmin(), 422, 'Remove admin access before deleting this account.');
 
-        $user->delete();
+        // Freeze any business this user solely owns (no successor to nominate on
+        // an admin-initiated delete) and detach their memberships before deleting.
+        DB::transaction(function () use ($user, $accountDeletion) {
+            $accountDeletion->handleAdminDeletion($user);
+        });
 
         return back()->with('success', __('flash.users.deleted', ['name' => $user->name]));
     }

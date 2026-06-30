@@ -36,9 +36,15 @@ starts changing hands.
 5. **Consent at signup:** add a Terms/Privacy acceptance checkbox to Register, and record
    `terms_accepted_at` + `terms_version` on the user.
 6. **Data export / deletion:** account deletion already exists (`DeleteUserForm` →
-   `profile.destroy`) — but it needs an **audit** (soft vs hard delete, last-business-owner
-   edge case). Self-serve "Download my data" is **Tier B**; for Alpha a documented
-   email-request path in the Privacy Policy is legally sufficient (respond within 30 days).
+   `profile.destroy`). ⚠️ **Confirmed live gap (verified 2026-06-30):** `ProfileController::destroy`
+   is a bare `$user->delete()` with **no owner-handoff step** — a sole owner deleting their account
+   silently orphans the business, its inventory, and every other member's access, with nothing
+   flagging it. The existing last-owner guard only covers *leaving* a business
+   (`MembershipPolicy`/`MembershipController`), not account deletion. **Decision (Todd,
+   2026-06-30): handle this via business-freeze + an explicit successor choice, NOT a hard block
+   and NOT auto-promotion** — see the "Owner handoff on account deletion" spec in Phase 5. Fix
+   before beta. Self-serve "Download my data" is **Tier B**; for Alpha a documented email-request
+   path in the Privacy Policy is legally sufficient (respond within 30 days).
 
 ---
 
@@ -51,8 +57,24 @@ starts changing hands.
 - **Register.vue** — name/email/password only. **No terms acceptance.**
 - **Account hub** (`Pages/Account/Index.vue`) — rows: Profile · Business · Preferences ·
   Help & Support · Super Admin · Log out. **No legal/about entry.**
-- **Account deletion exists** — `Profile/Partials/DeleteUserForm.vue` → `profile.destroy`
-  (needs behavior audit; see Phase 5).
+- **Account deletion exists** — `Profile/Partials/DeleteUserForm.vue` → `profile.destroy`.
+  ⚠️ Verified: `ProfileController::destroy` does a bare soft-delete with **no owner-handoff step**
+  (see TL;DR #6 and the Phase 5 spec). User model uses `SoftDeletes`.
+- **Business freeze already exists and is enforced** (verified) — `businesses.frozen_at` +
+  `Business::isFrozen()`; `SetBusinessContext` drops frozen businesses from active context;
+  `EnsureBusinessActive` redirects members out with a warning; `BusinessController` aborts 403;
+  admin can freeze/unfreeze + filter active/frozen/deleted (`AdminBusinessController::suspend`).
+  The owner-handoff flow reuses this — no new freeze machinery needed.
+- **Impersonation / "View as Business" exists** — `Impersonation.php`, `AdminBusinessView.php`,
+  `ImpersonationController`, `AdminBusinessController`, `MagicLoginLinkController`. Admin recovery
+  of a frozen/ownerless business is possible today.
+- **Ownership is *derived*, not a column** — `Business::owner()` = earliest member with
+  `role='owner'`; there is **no `owner_id` column and no transfer-owner action**. "Assign a new
+  owner" today means writing a membership role change; a first-class admin/owner transfer action
+  is a gap to build (see Phase 5).
+- **Invited users bypass Register entirely** — the multi-business invite flow auto-accepts via
+  magic-link and never renders `Register.vue`, so a terms checkbox there alone would **miss every
+  invited user** (likely a large share of beta). See Phase 3.
 - **No analytics/tracking anywhere** (grep-verified). Only essential cookies + some `localStorage`
   prefs (localStorage is not a cookie and is covered by the Privacy Policy, not cookie law).
 - **i18n is en + es** across the app → legal pages should be bilingual (es can ship as a
@@ -123,6 +145,10 @@ starts changing hands.
 - **`resources/legal/en/terms.md`**, `privacy.md`, `cookies.md`, `acceptable-use.md`, `refunds.md`
 - **`resources/legal/es/…`** (same filenames; can land as a fast-follow — controller falls back
   to `en` so a missing es file won't 500).
+- **Controlling-language clause (required if es legal prose ships):** a binding contract in two
+  languages invites "which version wins?" ambiguity, made worse by rough machine translation. Add
+  a standard *"the English-language version of these terms controls in the event of any conflict"*
+  line to both the ToS and Privacy prose. Cheap insurance.
 
 ### Frontend
 - **`resources/js/Pages/Legal/Show.vue`** — simple prose page in `GuestLayout` (or a minimal
@@ -138,6 +164,10 @@ starts changing hands.
 - **`resources/js/Components/CookieNotice.vue`** — one-time dismissible banner, persisted to
   `localStorage['cookie-notice.dismissed']`. Plain notice + link to `/cookies`. **Not** a
   consent gate. Mount once in `GuestLayout` and `AuthenticatedLayout`.
+  - **Keep dismissal client-side only — do NOT persist it server-side.** Storing dismissal on the
+    user/server would imply you're *recording consent* you neither need (no tracking to gate) nor
+    can honor. Re-showing per-browser after a cache clear is correct and expected for a notice.
+    Guard against scope-creep turning this into a consent record.
 
 ### i18n
 - **`lang/en/legal.php`** + **`lang/es/legal.php`** — page chrome only (titles, "Last updated",
@@ -148,6 +178,12 @@ starts changing hands.
 
 ## Consent at registration (Phase 3)
 
+> ⚠️ **Ordering guard:** Phase 3 records *acceptance of a specific `terms_version`*. Do **not**
+> enable the checkbox/interstitial against placeholder prose, or you'll have users on record as
+> having accepted lorem ipsum. Either (a) gate Phase 3 behind Phase 4 (real lawyer-reviewed prose
+> live first), or (b) accept that the first real-prose version bump must force re-acceptance. The
+> interstitial mechanism below makes (b) cheap, so either path is fine — just decide consciously.
+
 - **Migration** `add_terms_acceptance_to_users`: `terms_accepted_at` (timestamp, nullable),
   `terms_version` (string, nullable).
 - **Register.vue**: add a required checkbox above the submit button —
@@ -156,12 +192,15 @@ starts changing hands.
 - **Backend** (`Auth/RegisteredUserController@store` or its form request): validate
   `terms => ['accepted']`; on success set `terms_accepted_at = now()` and
   `terms_version = config('legal.terms_version')`.
-- **Re-acceptance (future):** when `terms_version` changes, you *can* prompt existing users to
-  re-accept via a dashboard interstitial. Not needed for Alpha — note it and move on.
-- **Invited users** (magic-link auto-accept flow): decide whether acceptance is captured at
-  first login. For Alpha, a line in the ToS ("by using the service you agree") plus the
-  signup checkbox for self-serve registrations is enough; flag the invited-user path as a
-  follow-up.
+- **Acceptance interstitial (covers invited users AND re-acceptance) — build this, don't defer it.**
+  The Register checkbox alone misses every magic-link/invited user (verified — they never render
+  `Register.vue`). Add a lightweight middleware/interstitial that catches any authenticated user
+  whose `terms_accepted_at IS NULL` **or** whose stored `terms_version` is older than
+  `config('legal.terms_version')`, and shows a blocking "review & accept the updated terms" screen
+  before they can proceed (allowlist logout/legal pages so they can still read & leave). This one
+  mechanism solves three things at once: invited-user consent, the placeholder→real-prose
+  re-acceptance bump, and all future material updates. Clickwrap-by-use ("by using the service you
+  agree") is a weaker fallback in the ToS prose, not a substitute for the affirmative record.
 
 ---
 
@@ -176,16 +215,46 @@ starts changing hands.
   data belongs to the business, not the individual — the personal export covers the person's
   data; business data export is a separate (owner-only) feature. State this in the docs.
 
-### Deletion ("right to erasure") — audit existing first
-- `profile.destroy` / `DeleteUserForm` already exists. **Audit before relying on it:**
-  1. Soft delete or hard delete? (Users appear to soft-delete — `withTrashed` is used in admin.)
-     The Privacy Policy must describe retention honestly (e.g. "deactivated immediately, purged
-     after N days").
-  2. **Last-owner edge case:** what happens to a Business (and its other members' access +
-     inventory) when the sole owner deletes their account? There's a last-owner guard for
-     *leaving*; confirm it also governs *account deletion*. This is the riskiest gap.
-  3. A true "erase my data" request may need a manual/admin path beyond the self-serve button
-     for Alpha. Document the request path.
+### Deletion ("right to erasure") — ⚠️ pre-beta, requires the owner-handoff flow below
+- `profile.destroy` / `DeleteUserForm` already exists, but **`ProfileController::destroy` is a bare
+  `$user->delete()` with no owner handoff (verified 2026-06-30).**
+
+#### Owner handoff on account deletion (DECIDED — Todd, 2026-06-30)
+When a user starts account deletion, branch per business **where they are the sole owner**:
+
+1. **Another owner already exists** → no action; delete the user. Business still has an owner.
+2. **Other members exist (any role, incl. guests) but no other owner** → the deletion flow
+   **prompts the departing owner to assign ownership to one of those existing members** (their
+   explicit choice from a list). **No auto-promotion** — a member must never be saddled with a
+   business they didn't ask for, so the system never picks for them.
+   - If they assign → promote the chosen member to `owner`, then delete the user.
+   - If they decline → the business follows the **frozen path** (below).
+3. **Truly solo** (deleter is the only member) or **declined handoff** → set `frozen_at = now()`
+   on the business (reusing the existing, enforced freeze machinery), then delete the user. The
+   business is preserved, surfaces in the admin **frozen** filter + dashboard count, and is
+   recoverable via impersonation / a future transfer-owner action.
+
+> **Do NOT** hard-block deletion, and do NOT silently orphan with no state change — the freeze flag
+> is what makes an ownerless business discoverable and what actually protects its data (members
+> blocked, dropped from context).
+
+**Build notes:**
+- The Register/Profile delete UI needs the conditional successor-picker step (only shown when
+  case 2 applies); the backend computes the per-business branch and validates the chosen member is
+  a real current member of that business.
+- Ownership is derived from membership role (no `owner_id`), so "assign owner" = set the chosen
+  membership's role to `owner`. Consider a small shared "make this member the owner" action so the
+  deletion flow and a future admin transfer-owner action share one code path.
+- **Open downstream consideration (not a beta blocker):** the assigned successor doesn't consent
+  in-flow. Decide later whether to notify them and/or let them decline-back-to-frozen afterward.
+
+#### Other deletion notes
+- Soft delete vs hard delete: `User` uses `SoftDeletes` (`withTrashed` used in admin). The Privacy
+  Policy must describe retention honestly (e.g. "deactivated immediately, purged after N days").
+  A business frozen-and-ownerless for N days → purge is the matching business-side retention rule
+  to state.
+- A true "erase my data" request may need a manual/admin path beyond the self-serve button for
+  Alpha. Document the request path.
 
 ---
 
@@ -204,20 +273,37 @@ starts changing hands.
 
 ## Execution phases (suggested order)
 
-- **Phase 0 — Decisions:** confirm legal entity name, contact email (privacy@ vs support@),
-  whether es ships day-one or fast-follow, and whether you'll have a lawyer review or use a
-  generator. *(Blocks final prose, not the scaffolding.)*
+- **Phase 0 — Decisions (real-world, not code):**
+  - **Legal entity name + state** — load-bearing: it appears verbatim in ToS/Privacy and must
+    later match the Stripe account exactly. Grep found **no entity name anywhere in config** today,
+    so this is unconfirmed. If the LLC doesn't formally exist yet, that gates the prose more than
+    any code does.
+  - **Published contact email must be a real, monitored inbox** — Resend is **send-only** and won't
+    receive. A Privacy Policy promising a 30-day response to `privacy@balloonventory.com` is a
+    compliance liability if nobody receives/watches that address. Provision + monitor whatever you
+    publish before it goes in the prose.
+  - Decide `privacy@` vs `support@`, whether es ships day-one or fast-follow, and whether you'll
+    have a lawyer review or use a generator. *(Blocks final prose, not the scaffolding.)*
 - **Phase 1 — Plumbing:** `config/legal.php`, `LegalController`, routes, `Legal/Show.vue`,
   placeholder Markdown for all five docs (lorem/skeleton headings), `legal.php` lang files.
   Test: every route returns 200 and is reachable while logged out.
 - **Phase 2 — Surfacing:** `LegalFooter` + `CookieNotice` components; wire into GuestLayout,
   Welcome, AuthenticatedLayout; add Account hub row; update `index.html` footer.
-- **Phase 3 — Consent:** migration + Register checkbox + backend recording. Tests: registration
-  rejected without acceptance; `terms_accepted_at`/`terms_version` persisted.
+- **Phase 3 — Consent:** migration + Register checkbox + backend recording + **acceptance
+  interstitial** (catches invited/magic-link users with null `terms_accepted_at` and stale-version
+  re-acceptance). ⚠️ Don't run against placeholder prose — see the ordering guard in the Consent
+  section. Tests: registration rejected without acceptance; `terms_accepted_at`/`terms_version`
+  persisted; invited user with null acceptance is forced through the interstitial; stale
+  `terms_version` triggers re-acceptance.
 - **Phase 4 — Content:** drop in real (lawyer-reviewed) prose for Terms, Privacy, Cookies,
   incl. trademark + data-source disclaimers. Spanish translations.
-- **Phase 5 — Data rights audit:** audit `profile.destroy` (soft/hard, last-owner case);
-  document export/deletion request path in Privacy Policy. (Self-serve export = later.)
+- **Phase 5 — Data rights + owner-handoff on deletion (⚠️ pre-beta):** implement the owner-handoff
+  flow (successor-picker → assign, or decline → freeze; solo → freeze) per the Phase 5 spec, reusing
+  the existing `frozen_at` machinery; confirm soft-delete retention wording; document
+  export/deletion request path in the Privacy Policy. (Self-serve export = later.) The owner-handoff
+  fix should ship before beta even if the rest of Phase 5 slips. Tests: sole-owner + other members
+  → handoff required and assigns owner; declined/solo → business frozen + user deleted; existing
+  co-owner → plain delete.
 - **Phase 6 — Billing-time (deferred):** fill the `/refunds` stub and add affiliate terms when
   payments/affiliate features ship.
 

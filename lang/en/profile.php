@@ -59,5 +59,10 @@ return [
         'password_placeholder' => 'Your password',
         'cancel' => 'Cancel',
         'submit' => 'Delete my account',
+        'handoff_heading' => 'Businesses you own',
+        'handoff_intro' => 'You are the only owner of the business(es) below. You can nominate a member to take over — they will be invited to accept ownership. Until someone accepts, the business is frozen, and it stays frozen if no one is nominated or the invitation is declined. A frozen business can be restored later by contacting support.',
+        'handoff_assign_label' => 'Nominate someone to take over :business',
+        'handoff_freeze_option' => 'No one — freeze this business',
+        'handoff_no_members' => ':business has no other members, so it will be frozen when you delete your account.',
     ],
 ];

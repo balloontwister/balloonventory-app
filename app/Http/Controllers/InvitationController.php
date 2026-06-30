@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BusinessFrozenReason;
 use App\Models\Business;
 use App\Models\BusinessInvitation;
 use App\Models\Membership;
@@ -118,6 +119,23 @@ class InvitationController extends Controller
             ->first();
 
         $justJoined = ! $existingMembership;
+
+        // Ownership transfer: the invitee is already a member being promoted to
+        // owner (the previous sole owner deleted their account). Promote them and
+        // lift the freeze that was holding the business while they decided.
+        if ($existingMembership && $invitation->role === 'owner' && $existingMembership->role !== 'owner') {
+            $existingMembership->update(['role' => 'owner']);
+
+            if ($business->frozen_reason === BusinessFrozenReason::OwnershipTransfer) {
+                $business->thaw();
+            }
+
+            $invitedUser->notify(new BusinessAccessGranted(
+                $business->id,
+                $business->name,
+                $this->roleLabel('owner'),
+            ));
+        }
 
         if (! $existingMembership) {
             // Restore a soft-deleted membership or create fresh.

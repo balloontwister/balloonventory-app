@@ -59,5 +59,10 @@ return [
         'password_placeholder' => 'Tu contraseña',
         'cancel' => 'Cancelar',
         'submit' => 'Eliminar mi cuenta',
+        'handoff_heading' => 'Negocios que posees',
+        'handoff_intro' => 'Eres el único propietario de los siguientes negocios. Puedes nominar a un miembro para que asuma el control: será invitado a aceptar la propiedad. Hasta que alguien acepte, el negocio quedará congelado, y seguirá congelado si no nominas a nadie o si la invitación es rechazada. Un negocio congelado puede restaurarse más tarde contactando con soporte.',
+        'handoff_assign_label' => 'Nominar a alguien para que asuma :business',
+        'handoff_freeze_option' => 'Nadie — congelar este negocio',
+        'handoff_no_members' => ':business no tiene otros miembros, por lo que se congelará cuando elimines tu cuenta.',
     ],
 ];

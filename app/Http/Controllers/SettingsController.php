@@ -55,6 +55,29 @@ class SettingsController extends Controller
         $business = Business::findOrFail(BusinessContext::currentId());
         $canManageMembers = Gate::allows('business.edit_settings', $business);
 
+        // The viewer's own membership in the current business. Drives "Leave this
+        // business": any member may leave, except a sole owner (who must transfer
+        // ownership or delete instead — the leave endpoint enforces this too).
+        $ownMembership = Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('business_id', $business->id)
+            ->where('user_id', $request->user()->id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        $canLeave = false;
+        if ($ownMembership) {
+            if ($ownMembership->role !== 'owner') {
+                $canLeave = true;
+            } else {
+                $ownerCount = Membership::withoutGlobalScope(BusinessScope::class)
+                    ->where('business_id', $business->id)
+                    ->where('role', 'owner')
+                    ->whereNull('deleted_at')
+                    ->count();
+                $canLeave = $ownerCount > 1;
+            }
+        }
+
         $members = [];
         $pendingInvitations = [];
 
@@ -134,10 +157,14 @@ class SettingsController extends Controller
             'countries' => Countries::all(),
             'members' => $members,
             'pendingInvitations' => $pendingInvitations,
+            'ownMembershipId' => $ownMembership?->id,
             'can' => [
                 'manageMembers' => $canManageMembers,
                 'invite' => Gate::allows('membership.invite', [$business, 'staff']),
                 'inviteOwner' => Gate::allows('membership.invite', [$business, 'owner']),
+                'leave' => $canLeave,
+                // Seam for membership-tier gating later; open to all users for now.
+                'createBusiness' => true,
             ],
         ]);
     }

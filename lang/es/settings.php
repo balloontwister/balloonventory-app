@@ -70,6 +70,19 @@ return [
             'subheading' => 'Vuelve a ejecutar la configuración guiada para actualizar el inventario inicial, los contenedores y las preferencias.',
             'button' => 'Configurar mi tienda otra vez',
         ],
+
+        'membership' => [
+            'heading' => 'Membresía',
+            'subheading' => 'Sal de este negocio o inicia uno propio por separado.',
+            'create_button' => 'Iniciar un negocio nuevo',
+            'leave_button' => 'Salir de este negocio',
+            'leave_confirm_title' => '¿Salir de este negocio?',
+            'leave_confirm_body' => 'Perderás el acceso a :business y a su inventario. Un propietario puede volver a invitarte más adelante.',
+            'leave_confirm_button' => 'Salir del negocio',
+            'create_confirm_title' => '¿Iniciar un negocio nuevo?',
+            'create_confirm_body' => 'Esto crea un negocio totalmente separado e independiente del que serás propietario; no comparte inventario, miembros ni configuración con el actual. Puedes cambiar entre ellos en cualquier momento. ¿Seguro que quieres continuar?',
+            'create_confirm_button' => 'Sí, iniciar un negocio nuevo',
+        ],
     ],
 
     'team' => [

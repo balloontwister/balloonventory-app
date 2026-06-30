@@ -17,14 +17,6 @@ const businesses = computed(() => page.props.businesses ?? []);
 const isAnyAdmin = computed(() => page.props.auth?.isAnyAdmin ?? false);
 const isFrozen = computed(() => page.props.auth?.isFrozen ?? false);
 
-const canManageBusiness = computed(() => {
-    const perms = page.props.permissions ?? [];
-    return (
-        perms.includes('business.edit_settings') ||
-        perms.includes('business.manage_logo')
-    );
-});
-
 const otherBusinesses = computed(() =>
     businesses.value.filter((biz) => biz.id !== business.value?.id),
 );
@@ -192,9 +184,11 @@ function leaveBusiness(biz) {
                     </svg>
                 </Link>
 
-                <!-- Business (gated) -->
+                <!-- My Business — the hub for the current business. Visible to
+                     every member (artists/guests included) so they can reach
+                     "Leave this business" and "Start a new business" there. -->
                 <Link
-                    v-if="canManageBusiness"
+                    v-if="business"
                     :href="route('settings.businesses')"
                     class="flex items-center gap-3 border-t border-border px-4 py-3 transition hover:bg-background"
                 >

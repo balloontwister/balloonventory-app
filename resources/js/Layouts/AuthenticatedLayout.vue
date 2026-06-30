@@ -17,7 +17,7 @@ import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
-const { businessColor } = useBusiness();
+const { business } = useBusiness();
 const page = usePage();
 
 // Render only the matching breakpoint's layout (Tailwind lg = 1024px). The page
@@ -116,8 +116,11 @@ const topNavItems = computed(() =>
 
 <template>
     <div class="min-h-screen bg-background">
-        <!-- 2px BusinessBadge color bar pinned above everything -->
-        <BusinessBadge :color="businessColor" />
+        <!-- 2px BusinessBadge color bar pinned above everything.
+             Bind the color directly to the prop (not a cached computed): after an
+             in-app business switch, Inertia's reused-component reactivity can leave
+             a chained computed stale, while a direct prop read re-renders fresh. -->
+        <BusinessBadge :color="business?.color ?? '#6D28D9'" />
 
         <!-- App-wide toast stack (teleports to body) -->
         <Toaster />

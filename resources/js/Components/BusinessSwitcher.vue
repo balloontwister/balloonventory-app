@@ -4,7 +4,7 @@ import { Link, router } from '@inertiajs/vue3';
 import RoleBadge from '@/Components/RoleBadge.vue';
 import { useBusiness } from '@/Composables/useBusiness';
 
-const { business, businesses, userRole, userRoleLabel, businessColor, businessLogoUrl } =
+const { business, businesses, userRoleLabel, businessLogoUrl } =
     useBusiness();
 
 const open = ref(false);
@@ -24,7 +24,7 @@ function switchBusiness(id) {
         <!-- trigger row: identity link + chevron toggle -->
         <div
             class="flex items-center rounded-md transition focus-within:ring-2 focus-within:ring-accent"
-            :style="{ borderLeft: `4px solid ${businessColor}` }"
+            :style="{ borderLeft: `4px solid ${business?.color ?? '#6D28D9'}` }"
         >
             <Link
                 :href="route('dashboard')"

@@ -20,7 +20,6 @@ export function useBusiness() {
     const businesses = computed(() => page.props.businesses ?? []);
     const membership = computed(() => page.props.membership ?? null);
 
-    const businessColor = computed(() => business.value?.color ?? '#6D28D9');
     const businessName = computed(() => business.value?.name ?? '');
     const businessLogoUrl = computed(() => business.value?.logoUrl ?? null);
     const userRole = computed(() => membership.value?.role ?? null);
@@ -36,7 +35,6 @@ export function useBusiness() {
         business,
         businesses,
         membership,
-        businessColor,
         businessName,
         businessLogoUrl,
         userRole,

@@ -29,10 +29,26 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
+            // Factory users have accepted the current terms by default, so they
+            // don't trip the acceptance interstitial. Use termsNotAccepted() to
+            // model a user who still needs to accept.
+            'terms_accepted_at' => now(),
+            'terms_version' => config('legal.terms_version'),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'admin_level' => null,
         ];
+    }
+
+    /**
+     * The user has never accepted the terms (e.g. an invited/magic-link user).
+     */
+    public function termsNotAccepted(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'terms_accepted_at' => null,
+            'terms_version' => null,
+        ]);
     }
 
     public function superAdmin(): static

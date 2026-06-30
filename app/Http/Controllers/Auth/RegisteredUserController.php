@@ -44,6 +44,9 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'terms' => ['accepted'],
+        ], [
+            'terms.accepted' => __('legal.consent.error'),
         ]);
 
         $code = $this->generateCode();
@@ -59,6 +62,13 @@ class RegisteredUserController extends Controller
             'email_verification_code' => $code,
             'email_verification_code_expires_at' => Carbon::now()->addMinutes(15),
         ]);
+
+        // Consent captured at sign-up (validated above). Set explicitly — the
+        // terms columns are deliberately not mass-assignable.
+        $user->forceFill([
+            'terms_accepted_at' => now(),
+            'terms_version' => config('legal.terms_version'),
+        ])->save();
 
         event(new Registered($user));
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Auth\TermsAcceptanceController;
 use App\Http\Controllers\BinController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DashboardController;
@@ -72,6 +73,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/onboarding/create-business', [BusinessController::class, 'store'])
         ->name('onboarding.store-business');
+});
+
+// ─── Terms acceptance interstitial (auth only — reachable before verify/business) ──
+Route::middleware('auth')->group(function () {
+    Route::get('/accept-terms', [TermsAcceptanceController::class, 'show'])->name('terms.show');
+    Route::post('/accept-terms', [TermsAcceptanceController::class, 'accept'])->name('terms.accept');
 });
 
 // ─── Business switcher ────────────────────────────────────────────────────────

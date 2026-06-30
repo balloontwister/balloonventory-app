@@ -1,4 +1,5 @@
 <script setup>
+import Checkbox from '@/Components/Checkbox.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -11,6 +12,7 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    terms: false,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 });
 
@@ -100,6 +102,31 @@ const submit = () => {
                     class="mt-2"
                     :message="form.errors.password_confirmation"
                 />
+            </div>
+
+            <div class="mt-4">
+                <label class="flex items-start gap-2">
+                    <Checkbox v-model:checked="form.terms" class="mt-0.5" />
+                    <span class="text-sm text-ink-secondary">
+                        {{ $t('legal.consent.prefix') }}
+                        <a
+                            :href="route('legal.terms')"
+                            target="_blank"
+                            class="text-accent underline"
+                        >
+                            {{ $t('legal.consent.terms_link') }}
+                        </a>
+                        {{ $t('legal.consent.and') }}
+                        <a
+                            :href="route('legal.privacy')"
+                            target="_blank"
+                            class="text-accent underline"
+                        >
+                            {{ $t('legal.consent.privacy_link') }}</a
+                        >.
+                    </span>
+                </label>
+                <InputError class="mt-2" :message="form.errors.terms" />
             </div>
 
             <div class="mt-4 flex items-center justify-end">

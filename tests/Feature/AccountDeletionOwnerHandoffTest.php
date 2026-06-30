@@ -239,6 +239,7 @@ class AccountDeletionOwnerHandoffTest extends TestCase
             'email' => 'reuse@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => true,
         ])->assertSessionHasNoErrors();
 
         $fresh = User::where('email', 'reuse@example.com')->whereNull('deleted_at')->first();

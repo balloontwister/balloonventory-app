@@ -50,4 +50,24 @@ return [
         'dismiss' => 'Entendido',
     ],
 
+    // La frase "Acepto los Términos y la Privacidad" — compartida por la casilla
+    // de registro y la pantalla de aceptación.
+    'consent' => [
+        'prefix' => 'Acepto los',
+        'terms_link' => 'Términos del servicio',
+        'and' => 'y la',
+        'privacy_link' => 'Política de privacidad',
+        'error' => 'Acepta los Términos del servicio y la Política de privacidad para continuar.',
+    ],
+
+    // La pantalla de aceptación (para usuarios que deben aceptar).
+    'accept' => [
+        'meta_title' => 'Revisa nuestros términos',
+        'heading' => 'Antes de continuar',
+        'intro_new' => 'Revisa y acepta nuestros Términos del servicio y nuestra Política de privacidad para empezar a usar Balloonventory.',
+        'intro_updated' => 'Hemos actualizado nuestros Términos del servicio y nuestra Política de privacidad. Revísalos y acéptalos para continuar.',
+        'submit' => 'Aceptar y continuar',
+        'logout' => 'Cerrar sesión',
+    ],
+
 ];

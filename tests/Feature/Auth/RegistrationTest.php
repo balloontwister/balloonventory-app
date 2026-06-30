@@ -28,6 +28,7 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => true,
         ]);
 
         $this->assertAuthenticated();
@@ -47,6 +48,7 @@ class RegistrationTest extends TestCase
             'email' => '  Foo.Bar@Example.COM ',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => true,
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -63,6 +65,7 @@ class RegistrationTest extends TestCase
             'email' => 'TAKEN@Example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => true,
         ])->assertSessionHasErrors('email');
 
         $this->assertGuest();
@@ -79,6 +82,7 @@ class RegistrationTest extends TestCase
             'email' => 'todd+test1@gmail.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => true,
         ])->assertSessionHasNoErrors();
 
         $this->post('/logout');
@@ -88,6 +92,7 @@ class RegistrationTest extends TestCase
             'email' => 'todd+test2@gmail.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+            'terms' => true,
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('users', ['email' => 'todd+test1@gmail.com']);

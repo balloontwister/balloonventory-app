@@ -31,6 +31,10 @@ class EnsureAccountActive
         'settings.preferences.update',
         'locale.switch',
         'logout',
+        // A frozen user who also hasn't accepted the terms must still be able to
+        // reach the acceptance interstitial (EnsureTermsAccepted runs first).
+        'terms.show',
+        'terms.accept',
         // Always let an admin exit an impersonation session, even if the
         // impersonated account happens to be frozen.
         'impersonate.stop',

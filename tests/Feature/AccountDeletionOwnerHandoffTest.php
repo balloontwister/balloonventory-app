@@ -209,6 +209,48 @@ class AccountDeletionOwnerHandoffTest extends TestCase
         $this->assertSame('owner', $this->membershipFor($coOwner)->role);
     }
 
+    public function test_deleting_an_account_frees_the_email_for_reregistration(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->create(['email' => 'reuse@example.com']);
+
+        $this->actingAs($user)
+            ->delete('/profile', ['password' => 'password'])
+            ->assertRedirect('/');
+
+        // The deleted row tombstones the address and preserves the original.
+        $deleted = User::withTrashed()->find($user->id);
+        $this->assertSame($user->id.'@deleted.invalid', $deleted->email);
+        $this->assertSame('reuse@example.com', $deleted->original_email);
+
+        // The freed address now registers cleanly (previously a duplicate-key 500).
+        $this->post('/register', [
+            'name' => 'Fresh Start',
+            'email' => 'reuse@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasNoErrors();
+
+        $fresh = User::where('email', 'reuse@example.com')->whereNull('deleted_at')->first();
+        $this->assertNotNull($fresh);
+        $this->assertNotSame($user->id, $fresh->id, 'Re-registration must create a brand-new account, not reactivate the old one.');
+    }
+
+    public function test_admin_force_delete_also_frees_the_email(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $user = User::factory()->create(['email' => 'gone@example.com']);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.users.destroy', $user))
+            ->assertSessionHasNoErrors();
+
+        $deleted = User::withTrashed()->find($user->id);
+        $this->assertSame($user->id.'@deleted.invalid', $deleted->email);
+        $this->assertSame('gone@example.com', $deleted->original_email);
+    }
+
     public function test_profile_page_exposes_sole_owner_handoff_data(): void
     {
         $business = Business::factory()->create(['name' => 'Balloon Co']);

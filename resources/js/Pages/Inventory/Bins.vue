@@ -388,7 +388,12 @@ function binSummaryLabel(bin) {
                                     "
                                     class="rounded-md px-1.5 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft"
                                 >
-                                    {{ $t('bins.show.open') }}
+                                    <span class="sm:hidden">
+                                        {{ $t('bins.show.open_short') }}
+                                    </span>
+                                    <span class="hidden sm:inline">
+                                        {{ $t('bins.show.open') }}
+                                    </span>
                                 </Link>
                                 <Link
                                     :href="route('scan.index', { bin: bin.id })"

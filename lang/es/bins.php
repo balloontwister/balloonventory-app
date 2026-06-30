@@ -98,6 +98,7 @@ return [
         'back' => 'Volver a contenedores',
         'back_manage' => 'Volver a administrar almacenamiento',
         'open' => 'Abrir contenedor',
+        'open_short' => 'Abrir',
         'items_heading' => 'Artículos en este contenedor',
         'empty' => 'Este contenedor está vacío. Agrega un artículo para empezar a registrar existencias aquí.',
         'full' => 'Llenas',

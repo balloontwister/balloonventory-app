@@ -114,6 +114,44 @@ TEXT,
                 'is_active' => true,
             ],
             [
+                'key' => 'ownership_transfer',
+                'label' => 'Ownership Transfer',
+                'trigger_description' => 'Sent to a member when the sole owner deletes their account and nominates them to take over the business. The business is frozen until they accept.',
+                'subject' => '{{inviter_name}} is handing {{business_name}} over to you',
+                'body_html' => <<<'HTML'
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;">Hi {{user_name}},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0A0A0A;"><strong>{{inviter_name}}</strong> is leaving Balloonventory and has asked you to take over <strong>{{business_name}}</strong>.</p>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#0A0A0A;">Until someone takes over, {{business_name}} is frozen. Accepting makes you the owner and restores full access for you and the rest of the team.</p>
+<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+        <td style="background:#6D28D9;border-radius:10px;">
+            <a href="{{accept_url}}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;">Accept ownership →</a>
+        </td>
+    </tr>
+</table>
+<p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:#71717A;">This link expires in 14 days. If you'd rather not take over, you can ignore this email — {{business_name}} will stay frozen until an owner is in place.</p>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#0A0A0A;">Here if you need anything,<br><strong>Tallie</strong><br><span style="font-size:13px;color:#A1A1AA;">at Balloonventory</span></p>
+HTML,
+                'body_text' => <<<'TEXT'
+Hi {{user_name}},
+
+{{inviter_name}} is leaving Balloonventory and has asked you to take over {{business_name}}.
+
+Until someone takes over, {{business_name}} is frozen. Accepting makes you the owner and restores full access for you and the rest of the team.
+
+Accept ownership:
+
+{{accept_url}}
+
+This link expires in 14 days. If you'd rather not take over, you can ignore this email — {{business_name}} will stay frozen until an owner is in place.
+
+Here if you need anything,
+Tallie
+at Balloonventory
+TEXT,
+                'is_active' => true,
+            ],
+            [
                 'key' => 'subscription_upgrade',
                 'label' => 'Subscription Upgrade Confirmation',
                 'trigger_description' => 'Sent when a user upgrades their subscription plan.',

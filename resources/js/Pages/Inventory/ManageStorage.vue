@@ -366,6 +366,8 @@ function printAll() {
         win.print();
     }, 150);
     setTimeout(cleanup, 60000);
+
+    closeModal();
 }
 </script>
 
@@ -426,27 +428,14 @@ function printAll() {
                 >
                     {{ $t('bins.manage.auto_number') }}
                 </AppButton>
-
-                <div
+                <AppButton
                     v-if="allBins.length > 0"
-                    class="ml-auto flex flex-wrap items-center gap-2"
+                    variant="secondary"
+                    size="sm"
+                    @click="modalType = 'print'"
                 >
-                    <select
-                        v-model="printFormatKey"
-                        class="rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none"
-                    >
-                        <option
-                            v-for="f in averyFormats"
-                            :key="f.key"
-                            :value="f.key"
-                        >
-                            {{ f.label }}
-                        </option>
-                    </select>
-                    <AppButton variant="secondary" size="sm" @click="printAll">
-                        {{ $t('bins.manage.print_all') }}
-                    </AppButton>
-                </div>
+                    {{ $t('bins.manage.print_all') }}
+                </AppButton>
             </div>
 
             <!-- Rearrange locations (page-level drag) -->
@@ -1098,6 +1087,56 @@ function printAll() {
                 <div class="flex justify-end">
                     <AppButton variant="ghost" size="sm" @click="closeModal">
                         {{ $t('bins.form.cancel') }}
+                    </AppButton>
+                </div>
+            </div>
+
+            <!-- Print all labels -->
+            <div
+                v-else-if="modalType === 'print'"
+                class="flex flex-col gap-4 p-6"
+            >
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
+                    {{ $t('bins.manage.print_all') }}
+                </h2>
+                <p class="font-sans text-[14px] text-ink-secondary">
+                    {{ $t('bins.manage.print_intro') }}
+                </p>
+
+                <div class="flex flex-col gap-1">
+                    <label
+                        for="print-format"
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('bins.label.size') }}
+                    </label>
+                    <select
+                        id="print-format"
+                        v-model="printFormatKey"
+                        class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    >
+                        <option
+                            v-for="f in averyFormats"
+                            :key="f.key"
+                            :value="f.key"
+                        >
+                            {{ f.label }}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <AppButton
+                        variant="secondary"
+                        size="sm"
+                        @click="closeModal"
+                    >
+                        {{ $t('bins.form.cancel') }}
+                    </AppButton>
+                    <AppButton variant="primary" size="sm" @click="printAll">
+                        {{ $t('bins.manage.print_action') }}
                     </AppButton>
                 </div>
             </div>

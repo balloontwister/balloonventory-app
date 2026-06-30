@@ -14,6 +14,11 @@ use Symfony\Component\HttpFoundation\Response;
  * both first-time acceptance (e.g. invited/magic-link users who never saw the
  * registration checkbox) and re-acceptance after a version bump.
  *
+ * ⚠️  This is a HARD gate. Bumping config('legal.terms_version') re-triggers it
+ * for EVERY user at once — a material, app-wide interruption. See the warning in
+ * config/legal.php before changing that value; edit prose without bumping it for
+ * minor changes.
+ *
  * Runs before EnsureAccountActive so terms acceptance is the outermost gate; the
  * interstitial routes are allowlisted there too, to avoid a redirect loop for a
  * user who is both frozen and unaccepted.

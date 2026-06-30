@@ -7,10 +7,29 @@ return [
     | Legal document version & dates
     |--------------------------------------------------------------------------
     |
-    | Bump 'terms_version' whenever the Terms or Privacy Policy materially
-    | change — it is the value recorded against a user when they accept (Phase 3),
-    | and a change is what triggers re-acceptance. 'effective_date' is shown as
-    | "Last updated" on the policy pages.
+    | 'terms_version' is the value recorded against a user when they accept. The
+    | EnsureTermsAccepted middleware compares it to each user's stored version on
+    | every request.
+    |
+    | ⚠️  CHANGING 'terms_version' FORCES EVERY USER TO RE-ACCEPT.
+    |
+    |     The moment this value differs from a user's stored terms_version, they
+    |     are HARD-REDIRECTED to the /accept-terms interstitial on their next
+    |     request and cannot use the app until they tick the box and accept again.
+    |     This applies to ALL users at once — a material, app-wide interruption.
+    |
+    |     So:
+    |       • Material change (new data uses, billing terms, liability, etc.)
+    |         → bump this version. Re-consent is legally required and intended.
+    |       • Typo / formatting / minor wording fix
+    |         → DO NOT bump. Just edit the Markdown in resources/legal/**; it goes
+    |           live on the next deploy with NObody re-prompted.
+    |
+    |     Editing the prose alone never triggers re-acceptance — only changing
+    |     this value does. Set it to the new effective date when you bump.
+    |
+    | 'effective_date' is shown as "Last updated" on the policy pages (display
+    | only; it does not affect the re-acceptance gate).
     |
     */
 

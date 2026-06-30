@@ -52,6 +52,8 @@ return [
         'empty' => 'Esta ubicación aún no tiene contenedores.',
         'show_contents' => 'Mostrar contenido',
         'hide_contents' => 'Ocultar contenido',
+        'lock_info_title' => 'Bloquear la posición de una ubicación',
+        'lock_info_body' => 'Cuando la posición de una ubicación está bloqueada, no se puede arrastrar al reordenar, y las demás no pueden moverse más allá de ella — se queda en su lugar. Útil para una ubicación que siempre va primero, como tu estudio principal.',
     ],
 
     'bin' => [
@@ -156,6 +158,8 @@ return [
         'rearrange_done' => 'Listo',
         'rearrange_hint' => 'Arrastra los contenedores al orden en que están físicamente. Los bloqueados se quedan en su lugar.',
         'rearrange_save' => 'Guardar orden',
+        'rearrange_locations' => 'Reordenar ubicaciones',
+        'rearrange_locations_hint' => 'Arrastra las ubicaciones al orden en que están físicamente. Las bloqueadas se quedan en su lugar.',
     ],
 
     'lock' => [
@@ -175,6 +179,7 @@ return [
     'flash' => [
         'auto_numbered' => ':count contenedores numerados.',
         'reordered' => 'Orden de contenedores guardado.',
+        'locations_reordered' => 'Orden de ubicaciones guardado.',
         'location_created' => 'Ubicación creada.',
         'location_updated' => 'Ubicación actualizada.',
         'location_deleted' => 'Ubicación eliminada.',

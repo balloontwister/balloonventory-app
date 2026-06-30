@@ -134,6 +134,7 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
     Route::patch('/inventory/bins/{bin}', [BinController::class, 'update'])->name('inventory.bins.update');
     Route::delete('/inventory/bins/{bin}', [BinController::class, 'destroy'])->name('inventory.bins.destroy');
     Route::post('/inventory/locations', [LocationController::class, 'store'])->name('inventory.locations.store');
+    Route::post('/inventory/locations/reorder', [LocationController::class, 'reorder'])->name('inventory.locations.reorder');
     Route::patch('/inventory/locations/{location}', [LocationController::class, 'update'])->name('inventory.locations.update');
     Route::delete('/inventory/locations/{location}', [LocationController::class, 'destroy'])->name('inventory.locations.destroy');
     // The "By List" tab on the Inventory page.

@@ -48,9 +48,7 @@ class BinController extends Controller
                             ->orWhere('open_bags', '>', 0)),
                     ]);
             }])
-            ->orderByDesc('is_default')
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->orderedForDisplay()
             ->get();
 
         return Inertia::render('Inventory/Bins', [
@@ -71,10 +69,8 @@ class BinController extends Controller
 
         $locations = Location::query()
             ->with(['bins' => fn ($query) => $query->orderedForDisplay()])
-            ->orderByDesc('is_default')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'description', 'is_default', 'sort_order']);
+            ->orderedForDisplay()
+            ->get(['id', 'name', 'description', 'is_default', 'sort_order', 'position_locked']);
 
         return Inertia::render('Inventory/ManageStorage', [
             'locations' => $locations,
@@ -105,9 +101,7 @@ class BinController extends Controller
         // Ordered the same way the views present bins, so numbers track layout.
         $orderedBins = Location::query()
             ->with(['bins' => fn ($q) => $q->orderedForDisplay()])
-            ->orderByDesc('is_default')
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->orderedForDisplay()
             ->get()
             ->flatMap->bins;
 
@@ -298,10 +292,7 @@ class BinController extends Controller
             'items' => $items,
             'bins' => $this->binsForSelector(),
             // Locations for the "edit bin" form's location picker.
-            'locations' => Location::orderByDesc('is_default')
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get(['id', 'name']),
+            'locations' => Location::orderedForDisplay()->get(['id', 'name']),
             'fullBagsTotal' => (int) $levels->sum('full_bags'),
             'openBagsTotal' => (int) $levels->sum('open_bags'),
             // Where the user arrived from, so the back link can return there

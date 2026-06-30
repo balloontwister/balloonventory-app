@@ -53,13 +53,18 @@ function closeModal() {
 
 // ── Location form ─────────────────────────────────────────────────────────────
 const editingLocationId = ref(null);
-const locationForm = useForm({ name: '', description: '' });
+const locationForm = useForm({
+    name: '',
+    description: '',
+    position_locked: false,
+});
 
 function openCreateLocation() {
     editingLocationId.value = null;
     locationForm.clearErrors();
     locationForm.name = '';
     locationForm.description = '';
+    locationForm.position_locked = false;
     modalType.value = 'location';
 }
 
@@ -68,7 +73,36 @@ function openEditLocation(location) {
     locationForm.clearErrors();
     locationForm.name = location.name;
     locationForm.description = location.description ?? '';
+    locationForm.position_locked = !!location.position_locked;
     modalType.value = 'location';
+}
+
+// ── Rearrange locations (page-level drag-reorder) ─────────────────────────────
+const rearrangingLocations = ref(false);
+const locationOrder = ref([]);
+const locationReorderForm = useForm({ location_ids: [] });
+
+function startRearrangeLocations() {
+    cancelRearrange();
+    rearrangingLocations.value = true;
+    locationOrder.value = [...props.locations];
+}
+
+function cancelRearrangeLocations() {
+    rearrangingLocations.value = false;
+    locationOrder.value = [];
+}
+
+function onLocationDragMove(event) {
+    return !event.relatedContext.element?.position_locked;
+}
+
+function saveRearrangeLocations() {
+    locationReorderForm.location_ids = locationOrder.value.map((l) => l.id);
+    locationReorderForm.post(route('inventory.locations.reorder'), {
+        preserveScroll: true,
+        onSuccess: cancelRearrangeLocations,
+    });
 }
 
 function submitLocation() {
@@ -366,7 +400,7 @@ function printAll() {
 
             <!-- Top actions -->
             <div
-                v-if="canManage"
+                v-if="canManage && !rearrangingLocations"
                 class="mb-6 flex flex-wrap items-center gap-2"
             >
                 <AppButton
@@ -375,6 +409,14 @@ function printAll() {
                     @click="openCreateLocation"
                 >
                     {{ $t('bins.add_location') }}
+                </AppButton>
+                <AppButton
+                    v-if="locations.length > 1"
+                    variant="secondary"
+                    size="sm"
+                    @click="startRearrangeLocations"
+                >
+                    {{ $t('bins.manage.rearrange_locations') }}
                 </AppButton>
                 <AppButton
                     v-if="allBins.length > 0"
@@ -407,8 +449,99 @@ function printAll() {
                 </div>
             </div>
 
+            <!-- Rearrange locations (page-level drag) -->
+            <div v-if="rearrangingLocations" class="flex flex-col gap-2">
+                <p class="font-sans text-[13px] text-ink-tertiary">
+                    {{ $t('bins.manage.rearrange_locations_hint') }}
+                </p>
+                <draggable
+                    v-model="locationOrder"
+                    item-key="id"
+                    handle=".loc-drag-handle"
+                    :move="onLocationDragMove"
+                    ghost-class="bg-accent-soft"
+                    class="flex flex-col gap-1.5"
+                >
+                    <template #item="{ element: location }">
+                        <div
+                            class="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2.5"
+                            :class="{
+                                'border-dashed bg-background':
+                                    location.position_locked,
+                            }"
+                        >
+                            <span
+                                v-if="!location.position_locked"
+                                class="loc-drag-handle shrink-0 cursor-grab touch-none text-ink-tertiary"
+                                :aria-label="
+                                    $t('bins.manage.rearrange_locations')
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    class="h-5 w-5"
+                                >
+                                    <path
+                                        d="M7 4a1 1 0 100 2 1 1 0 000-2zM7 9a1 1 0 100 2 1 1 0 000-2zM7 14a1 1 0 100 2 1 1 0 000-2zM13 4a1 1 0 100 2 1 1 0 000-2zM13 9a1 1 0 100 2 1 1 0 000-2zM13 14a1 1 0 100 2 1 1 0 000-2z"
+                                    />
+                                </svg>
+                            </span>
+                            <svg
+                                v-else
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 shrink-0 text-ink-tertiary"
+                                :aria-label="$t('bins.position_lock.label')"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            <span
+                                class="min-w-0 flex-1 truncate font-sans text-[15px] font-semibold text-ink-primary"
+                            >
+                                {{ location.name }}
+                            </span>
+                            <span
+                                v-if="location.is_default"
+                                class="shrink-0 rounded-pill bg-background px-1.5 py-0.5 font-sans text-[9px] font-medium uppercase tracking-eyebrow text-ink-tertiary"
+                            >
+                                {{ $t('bins.default_badge') }}
+                            </span>
+                            <span
+                                class="shrink-0 font-mono text-[12px] text-ink-tertiary"
+                            >
+                                {{ binsCountLabel(location) }}
+                            </span>
+                        </div>
+                    </template>
+                </draggable>
+                <div class="mt-1 flex items-center gap-2">
+                    <AppButton
+                        variant="primary"
+                        size="sm"
+                        :disabled="locationReorderForm.processing"
+                        @click="saveRearrangeLocations"
+                    >
+                        {{ $t('bins.manage.rearrange_save') }}
+                    </AppButton>
+                    <AppButton
+                        variant="ghost"
+                        size="sm"
+                        @click="cancelRearrangeLocations"
+                    >
+                        {{ $t('bins.form.cancel') }}
+                    </AppButton>
+                </div>
+            </div>
+
             <!-- Locations + bins (condensed) -->
-            <div class="flex flex-col gap-6">
+            <div v-else class="flex flex-col gap-6">
                 <section
                     v-for="location in locations"
                     :key="location.id"
@@ -709,6 +842,25 @@ function printAll() {
                         {{ locationForm.errors.description }}
                     </p>
                 </div>
+
+                <!-- Position lock -->
+                <label
+                    class="flex items-center gap-2 font-sans text-[13px] text-ink-primary"
+                >
+                    <input
+                        v-model="locationForm.position_locked"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-border-strong text-accent focus:ring-accent-soft"
+                    />
+                    <span>{{ $t('bins.position_lock.label') }}</span>
+                    <span class="text-ink-tertiary">·</span>
+                    <span class="text-ink-tertiary">{{
+                        $t('bins.position_lock.hint')
+                    }}</span>
+                    <InfoButton :title="$t('bins.location.lock_info_title')">
+                        <p>{{ $t('bins.location.lock_info_body') }}</p>
+                    </InfoButton>
+                </label>
 
                 <div class="flex justify-end gap-2">
                     <AppButton

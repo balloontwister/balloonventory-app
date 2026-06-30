@@ -79,17 +79,46 @@ class BinController extends Controller
             ])
             ->get();
 
-        $items = $levels->map(fn (StockLevel $level) => [
-            'sku_id' => $level->sku_id,
-            'name' => $level->sku?->computed_name ?? $level->sku?->name,
-            'brand' => $level->sku?->brand?->abbreviation,
-            'size' => $level->sku?->balloonSize?->name,
-            'color_hex' => $level->sku?->color?->color_hex,
-            'full_bags' => $level->full_bags,
-            'open_bags' => $level->open_bags,
-        ])->values();
+        $items = $levels->map(fn (StockLevel $level) => $this->stockItemPayload($level))->values();
 
         return response()->json(['items' => $items]);
+    }
+
+    /**
+     * Bulk bin contents for the wall's "show all / show this location" toggles —
+     * the SKUs every requested bin holds, keyed by bin id, in ONE query instead
+     * of N per-card fetches. Optionally narrowed to a single location. The
+     * BelongsToBusiness scope on StockLevel keeps it tenant-scoped, so an id from
+     * another business simply returns no rows.
+     */
+    public function bulkContents(Request $request): JsonResponse
+    {
+        Gate::authorize('inventory.view_counts', Business::findOrFail(BusinessContext::currentId()));
+
+        $data = $request->validate([
+            'location' => ['nullable', 'uuid'],
+        ]);
+
+        $query = StockLevel::where(fn (Builder $q) => $q->where('full_bags', '>', 0)->orWhere('open_bags', '>', 0))
+            ->with([
+                'sku' => fn ($q) => $q->with([
+                    'brand:id,abbreviation',
+                    'balloonSize:id,name',
+                    'color:id,color_hex',
+                ]),
+            ]);
+
+        if (! empty($data['location'])) {
+            $query->whereHas('bin', fn (Builder $q) => $q->where('location_id', $data['location']));
+        }
+
+        $contents = $query->get()
+            ->groupBy('bin_id')
+            ->map(fn ($levels) => $levels
+                ->map(fn (StockLevel $level) => $this->stockItemPayload($level))
+                ->values());
+
+        return response()->json(['contents' => $contents]);
     }
 
     /**
@@ -115,15 +144,7 @@ class BinController extends Controller
             ])
             ->get();
 
-        $items = $levels->map(fn (StockLevel $level) => [
-            'sku_id' => $level->sku_id,
-            'name' => $level->sku?->computed_name ?? $level->sku?->name,
-            'brand' => $level->sku?->brand?->abbreviation,
-            'size' => $level->sku?->balloonSize?->name,
-            'color_hex' => $level->sku?->color?->color_hex,
-            'full_bags' => $level->full_bags,
-            'open_bags' => $level->open_bags,
-        ])->values();
+        $items = $levels->map(fn (StockLevel $level) => $this->stockItemPayload($level))->values();
 
         return Inertia::render('Inventory/BinShow', [
             'bin' => [
@@ -279,6 +300,25 @@ class BinController extends Controller
             ->where('business_id', $businessId)
             ->where('location_id', $locationId)
             ->max('sort_order') + 1;
+    }
+
+    /**
+     * The compact per-bin item shape shared by the single-bin, bulk, and detail
+     * payloads — keeps the three contents readers from drifting.
+     *
+     * @return array<string,mixed>
+     */
+    private function stockItemPayload(StockLevel $level): array
+    {
+        return [
+            'sku_id' => $level->sku_id,
+            'name' => $level->sku?->computed_name ?? $level->sku?->name,
+            'brand' => $level->sku?->brand?->abbreviation,
+            'size' => $level->sku?->balloonSize?->name,
+            'color_hex' => $level->sku?->color?->color_hex,
+            'full_bags' => $level->full_bags,
+            'open_bags' => $level->open_bags,
+        ];
     }
 
     /**

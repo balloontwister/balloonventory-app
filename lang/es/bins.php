@@ -16,6 +16,8 @@ return [
     'view_label' => 'Ver etiqueta',
     'print_all' => 'Imprimir todas las etiquetas',
     'print_title' => 'Etiquetas de contenedores',
+    'contents_show_all' => 'Mostrar todo el contenido',
+    'contents_hide_all' => 'Ocultar todo el contenido',
 
     'label' => [
         'view_title' => 'Etiqueta del contenedor',
@@ -39,6 +41,8 @@ return [
         'bins_count_singular' => ':count contenedor',
         'bins_count_plural' => ':count contenedores',
         'empty' => 'Esta ubicación aún no tiene contenedores.',
+        'show_contents' => 'Mostrar contenido',
+        'hide_contents' => 'Ocultar contenido',
     ],
 
     'bin' => [

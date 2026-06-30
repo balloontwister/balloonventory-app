@@ -16,6 +16,8 @@ return [
     'view_label' => 'View label',
     'print_all' => 'Print all labels',
     'print_title' => 'Bin labels',
+    'contents_show_all' => 'Show all contents',
+    'contents_hide_all' => 'Hide all contents',
 
     'label' => [
         'view_title' => 'Bin label',
@@ -39,6 +41,8 @@ return [
         'bins_count_singular' => ':count bin',
         'bins_count_plural' => ':count bins',
         'empty' => 'This location has no bins yet.',
+        'show_contents' => 'Show contents',
+        'hide_contents' => 'Hide contents',
     ],
 
     'bin' => [

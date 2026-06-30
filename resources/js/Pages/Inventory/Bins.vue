@@ -72,20 +72,43 @@ function printAll() {
     setTimeout(cleanup, 60000);
 }
 
-// ── Expandable bin contents (lazy-loaded per card) ───────────────────────────
-// binContents[binId] = { loading: bool, items: array | null }
+// ── Expandable bin contents ──────────────────────────────────────────────────
+// binContents[binId] = { open: bool, loading: bool, items: array | null }
+// A single card peek fetches just that bin; the "show all" / per-location
+// toggles fetch every requested bin in ONE bulk request and cache it, so a
+// 100-bin account never fires 100 requests. Once a bin's items are cached,
+// every later toggle is an instant open/close flip.
 const binContents = reactive({});
+const contentsLoading = ref(false);
 
+function isOpen(binId) {
+    return !!binContents[binId]?.open;
+}
+
+function isLoaded(binId) {
+    return Array.isArray(binContents[binId]?.items);
+}
+
+function setItems(binId, items) {
+    const entry = binContents[binId];
+    binContents[binId] = {
+        open: entry?.open ?? false,
+        loading: false,
+        items: items ?? [],
+    };
+}
+
+// Single-bin peek (the per-card "Show contents" button).
 async function toggleBin(bin) {
     const entry = binContents[bin.id];
 
-    if (entry && entry.open) {
+    if (entry?.open) {
         entry.open = false;
         return;
     }
 
-    if (entry && entry.items !== null) {
-        entry.open = true;
+    if (isLoaded(bin.id)) {
+        binContents[bin.id].open = true;
         return;
     }
 
@@ -95,18 +118,74 @@ async function toggleBin(bin) {
         const { data } = await window.axios.get(
             route('inventory.bins.contents', { bin: bin.id }),
         );
-        binContents[bin.id] = {
-            open: true,
-            loading: false,
-            items: data.items,
-        };
+        binContents[bin.id] = { open: true, loading: false, items: data.items };
     } catch {
         binContents[bin.id] = { open: true, loading: false, items: [] };
     }
 }
 
-function isOpen(binId) {
-    return !!binContents[binId]?.open;
+// Fetch contents for many bins at once (optionally one location), caching each.
+async function loadContents(bins, locationId = null) {
+    const missing = bins.filter((bin) => !isLoaded(bin.id));
+    if (missing.length === 0) {
+        return;
+    }
+    contentsLoading.value = true;
+    try {
+        const { data } = await window.axios.get(
+            route('inventory.bins.bulk-contents'),
+            locationId ? { params: { location: locationId } } : undefined,
+        );
+        for (const bin of bins) {
+            setItems(bin.id, data.contents[bin.id] ?? []);
+        }
+    } catch {
+        // Leave unloaded bins as-is; the per-card peek can retry individually.
+    } finally {
+        contentsLoading.value = false;
+    }
+}
+
+function setOpen(bins, open) {
+    for (const bin of bins) {
+        if (binContents[bin.id]) {
+            binContents[bin.id].open = open;
+        } else if (open) {
+            binContents[bin.id] = { open: true, loading: false, items: [] };
+        }
+    }
+}
+
+// ── Show / hide all contents (top toolbar) ────────────────────────────────────
+const allBinsOpen = computed(
+    () =>
+        allBins.value.length > 0 &&
+        allBins.value.every((bin) => isOpen(bin.id)),
+);
+
+async function toggleAllContents() {
+    if (allBinsOpen.value) {
+        setOpen(allBins.value, false);
+        return;
+    }
+    await loadContents(allBins.value);
+    setOpen(allBins.value, true);
+}
+
+// ── Show / hide a single location's contents (location header) ────────────────
+function locationOpen(location) {
+    return (
+        location.bins.length > 0 && location.bins.every((bin) => isOpen(bin.id))
+    );
+}
+
+async function toggleLocationContents(location) {
+    if (locationOpen(location)) {
+        setOpen(location.bins, false);
+        return;
+    }
+    await loadContents(location.bins, location.id);
+    setOpen(location.bins, true);
 }
 
 // ── Add/edit modal ────────────────────────────────────────────────────────────
@@ -238,32 +317,52 @@ function binSummaryLabel(bin) {
             </div>
         </template>
 
-        <div class="flex items-center justify-end gap-2">
-            <select
-                v-if="allBins.length > 0"
-                v-model="printFormatKey"
-                class="rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none"
-            >
-                <option v-for="f in averyFormats" :key="f.key" :value="f.key">
-                    {{ f.label }}
-                </option>
-            </select>
+        <div class="flex flex-wrap items-center gap-2">
             <AppButton
                 v-if="allBins.length > 0"
                 variant="secondary"
                 size="sm"
-                @click="printAll"
+                :disabled="contentsLoading"
+                @click="toggleAllContents"
             >
-                {{ $t('bins.print_all') }}
+                {{
+                    allBinsOpen
+                        ? $t('bins.contents_hide_all')
+                        : $t('bins.contents_show_all')
+                }}
             </AppButton>
-            <AppButton
-                v-if="canManageBins"
-                variant="primary"
-                size="sm"
-                @click="openCreateLocation"
-            >
-                {{ $t('bins.add_location') }}
-            </AppButton>
+
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+                <select
+                    v-if="allBins.length > 0"
+                    v-model="printFormatKey"
+                    class="rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none"
+                >
+                    <option
+                        v-for="f in averyFormats"
+                        :key="f.key"
+                        :value="f.key"
+                    >
+                        {{ f.label }}
+                    </option>
+                </select>
+                <AppButton
+                    v-if="allBins.length > 0"
+                    variant="secondary"
+                    size="sm"
+                    @click="printAll"
+                >
+                    {{ $t('bins.print_all') }}
+                </AppButton>
+                <AppButton
+                    v-if="canManageBins"
+                    variant="primary"
+                    size="sm"
+                    @click="openCreateLocation"
+                >
+                    {{ $t('bins.add_location') }}
+                </AppButton>
+            </div>
         </div>
 
         <!-- Empty state -->
@@ -286,7 +385,7 @@ function binSummaryLabel(bin) {
                 :key="location.id"
                 class="flex flex-col gap-3"
             >
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <h2
                         class="font-display text-[18px] font-semibold text-ink-primary"
                     >
@@ -301,6 +400,19 @@ function binSummaryLabel(bin) {
                     <span class="font-mono text-[12px] text-ink-tertiary">
                         {{ binsCountLabel(location) }}
                     </span>
+                    <button
+                        v-if="location.bins.length > 0"
+                        type="button"
+                        class="rounded-md px-2 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft disabled:opacity-50"
+                        :disabled="contentsLoading"
+                        @click="toggleLocationContents(location)"
+                    >
+                        {{
+                            locationOpen(location)
+                                ? $t('bins.location.hide_contents')
+                                : $t('bins.location.show_contents')
+                        }}
+                    </button>
 
                     <div
                         v-if="canManageBins"
@@ -340,12 +452,13 @@ function binSummaryLabel(bin) {
 
                 <div
                     v-else
-                    class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                    class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4"
                 >
                     <div
                         v-for="bin in location.bins"
                         :key="bin.id"
                         class="flex flex-col rounded-lg border border-border bg-surface"
+                        :class="{ 'col-span-full': isOpen(bin.id) }"
                     >
                         <!-- Card header -->
                         <div class="flex items-start gap-2 p-4">
@@ -422,21 +535,24 @@ function binSummaryLabel(bin) {
                             >
                                 {{ $t('bins.bin.empty') }}
                             </p>
-                            <ul v-else class="flex flex-col gap-1.5">
+                            <ul
+                                v-else
+                                class="grid grid-cols-1 gap-x-8 gap-y-1.5 sm:grid-cols-2 xl:grid-cols-3"
+                            >
                                 <li
                                     v-for="item in binContents[bin.id].items"
                                     :key="item.sku_id"
-                                    class="flex items-center gap-2"
+                                    class="flex items-start gap-2"
                                 >
                                     <span
                                         v-if="item.color_hex"
-                                        class="h-3 w-3 shrink-0 rounded-full border border-border"
+                                        class="mt-1 h-3 w-3 shrink-0 rounded-full border border-border"
                                         :style="{
                                             backgroundColor: item.color_hex,
                                         }"
                                     />
                                     <span
-                                        class="min-w-0 flex-1 truncate font-sans text-[13px] text-ink-primary"
+                                        class="min-w-0 flex-1 break-words font-sans text-[13px] text-ink-primary"
                                     >
                                         <span
                                             v-if="item.brand"
@@ -457,7 +573,7 @@ function binSummaryLabel(bin) {
 
                         <!-- Card actions -->
                         <div
-                            class="mt-auto flex items-center gap-1 border-t border-border px-3 py-2"
+                            class="mt-auto flex flex-wrap items-center justify-between gap-x-1 gap-y-0.5 border-t border-border px-3 py-2"
                         >
                             <Link
                                 :href="

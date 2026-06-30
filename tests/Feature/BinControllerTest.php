@@ -11,6 +11,7 @@ use App\Models\StockLevel;
 use App\Models\User;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,6 +30,7 @@ class BinControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(PermissionSeeder::class);
 
         $this->owner = User::factory()->create(['email_verified_at' => now()]);
         $this->business = Business::factory()->create();
@@ -320,5 +322,65 @@ class BinControllerTest extends TestCase
         $this->actingAs($this->owner)
             ->delete(route('inventory.bins.destroy', ['bin' => $otherBin->id]))
             ->assertNotFound();
+    }
+
+    // ── permission gating (guests can't manage bins) ─────────────────────────────
+
+    private function guestMember(): User
+    {
+        $guest = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $guest->id,
+            'business_id' => $this->business->id,
+            'role' => 'guest',
+            'joined_at' => now(),
+        ]);
+
+        return $guest;
+    }
+
+    public function test_store_is_denied_without_manage_permission(): void
+    {
+        $this->actingAs($this->guestMember())
+            ->post(route('inventory.bins.store'), [
+                'location_id' => $this->location->id,
+                'name' => 'Sneaky bin',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('bins', ['name' => 'Sneaky bin']);
+    }
+
+    public function test_update_is_denied_without_manage_permission(): void
+    {
+        $bin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $this->location->id,
+            'name' => 'Shelf',
+        ]);
+
+        $this->actingAs($this->guestMember())
+            ->patch(route('inventory.bins.update', $bin), [
+                'location_id' => $this->location->id,
+                'name' => 'Renamed',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame('Shelf', $bin->refresh()->name);
+    }
+
+    public function test_destroy_is_denied_without_manage_permission(): void
+    {
+        $bin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $this->location->id,
+            'name' => 'Shelf',
+        ]);
+
+        $this->actingAs($this->guestMember())
+            ->delete(route('inventory.bins.destroy', $bin))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('bins', ['id' => $bin->id, 'deleted_at' => null]);
     }
 }

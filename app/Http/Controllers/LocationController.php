@@ -15,12 +15,13 @@ class LocationController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
+        $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
         ]);
-
-        $businessId = BusinessContext::currentId();
 
         Location::withoutGlobalScope(BusinessScope::class)->create([
             'business_id' => $businessId,
@@ -34,6 +35,8 @@ class LocationController extends Controller
 
     public function update(Request $request, Location $location): RedirectResponse
     {
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail(BusinessContext::currentId()));
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -84,6 +87,8 @@ class LocationController extends Controller
 
     public function destroy(Location $location): RedirectResponse
     {
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail(BusinessContext::currentId()));
+
         if ($location->is_default) {
             return back()->with('error', __('bins.flash.location_default_protected'));
         }

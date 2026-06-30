@@ -26,6 +26,7 @@ class LocationControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(PermissionSeeder::class);
 
         $this->owner = User::factory()->create(['email_verified_at' => now()]);
         $this->business = Business::factory()->create();
@@ -186,7 +187,6 @@ class LocationControllerTest extends TestCase
 
     public function test_reorder_writes_sort_order_by_submitted_order(): void
     {
-        $this->seed(PermissionSeeder::class);
         $a = $this->makeLocation('A', 0);
         $b = $this->makeLocation('B', 1);
         $c = $this->makeLocation('C', 2);
@@ -205,7 +205,6 @@ class LocationControllerTest extends TestCase
 
     public function test_reorder_ignores_a_location_from_another_business(): void
     {
-        $this->seed(PermissionSeeder::class);
         $a = $this->makeLocation('A', 0);
 
         $otherBusiness = Business::factory()->create();
@@ -227,7 +226,6 @@ class LocationControllerTest extends TestCase
 
     public function test_reorder_is_denied_without_manage_permission(): void
     {
-        $this->seed(PermissionSeeder::class);
         $guest = User::factory()->create(['email_verified_at' => now()]);
         Membership::create([
             'user_id' => $guest->id,
@@ -241,5 +239,49 @@ class LocationControllerTest extends TestCase
                 'location_ids' => [$this->defaultLocation->id],
             ])
             ->assertForbidden();
+    }
+
+    private function guestMember(): User
+    {
+        $guest = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $guest->id,
+            'business_id' => $this->business->id,
+            'role' => 'guest',
+            'joined_at' => now(),
+        ]);
+
+        return $guest;
+    }
+
+    public function test_store_is_denied_without_manage_permission(): void
+    {
+        $this->actingAs($this->guestMember())
+            ->post(route('inventory.locations.store'), ['name' => 'Sneaky location'])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('locations', ['name' => 'Sneaky location']);
+    }
+
+    public function test_update_is_denied_without_manage_permission(): void
+    {
+        $location = $this->makeLocation('Studio', 1);
+
+        $this->actingAs($this->guestMember())
+            ->patch(route('inventory.locations.update', $location), ['name' => 'Renamed'])
+            ->assertForbidden();
+
+        $this->assertSame('Studio', $location->refresh()->name);
+    }
+
+    public function test_destroy_is_denied_without_manage_permission(): void
+    {
+        $location = $this->makeLocation('Studio', 1);
+
+        $this->actingAs($this->guestMember())
+            ->delete(route('inventory.locations.destroy', $location))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('locations', ['id' => $location->id, 'deleted_at' => null]);
     }
 }

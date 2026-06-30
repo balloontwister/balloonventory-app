@@ -98,6 +98,7 @@ return [
         'back' => 'Back to bins',
         'back_manage' => 'Back to manage storage',
         'open' => 'Open bin',
+        'open_short' => 'Open',
         'items_heading' => 'Items in this bin',
         'empty' => 'This bin is empty. Add an item to start tracking stock here.',
         'full' => 'Full',

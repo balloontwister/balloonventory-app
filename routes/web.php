@@ -122,6 +122,8 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
 
     // ── Bins & locations (the "By Bin" view + management) ─────────────────────
     Route::get('/inventory/bins', [BinController::class, 'index'])->name('inventory.bins.index');
+    Route::get('/inventory/storage', [BinController::class, 'manage'])->name('inventory.storage');
+    Route::post('/inventory/bins/auto-number', [BinController::class, 'autoNumber'])->name('inventory.bins.auto-number');
     Route::get('/inventory/bins/{bin}', [BinController::class, 'show'])->name('inventory.bins.show');
     Route::get('/inventory/bins-contents', [BinController::class, 'bulkContents'])->name('inventory.bins.bulk-contents');
     Route::get('/inventory/bins/{bin}/contents', [BinController::class, 'contents'])->name('inventory.bins.contents');

@@ -18,6 +18,14 @@ return [
     'print_title' => 'Bin labels',
     'contents_show_all' => 'Show all contents',
     'contents_hide_all' => 'Hide all contents',
+    'manage_storage' => 'Manage storage',
+
+    'info' => [
+        'title' => 'Locations & bins',
+        'body_location' => 'A location is a place — a room, a vehicle, a shelf unit (e.g. Studio, Garage, Storage Van).',
+        'body_bin' => 'A bin is a container inside a location — a box, tote, or shelf where balloons actually live (e.g. Bin #9, the green tote).',
+        'body_how' => 'You store and scan balloons into bins. Locations just group your bins so they’re easy to find.',
+    ],
 
     'label' => [
         'view_title' => 'Bin label',
@@ -121,7 +129,36 @@ return [
         'move_submit' => 'Move',
     ],
 
+    'manage' => [
+        'meta_title' => 'Manage storage',
+        'heading' => 'Manage storage',
+        'back' => 'Back to bins',
+        'subtitle' => 'Add, edit, and organize your locations and bins. Print labels and number bins here.',
+        'auto_number' => 'Auto-number bins',
+        'print_all' => 'Print all labels',
+        'open' => 'Open',
+        'show_label' => 'Show label',
+        'edit' => 'Edit',
+        'no_bins' => 'No bins here yet.',
+        'auto_number_title' => 'Auto-number bins',
+        'auto_number_intro' => 'Give your bins sequential numbers automatically. Choose how:',
+        'auto_number_fill' => 'Number unnumbered bins',
+        'auto_number_fill_hint' => 'Only assigns numbers to bins that don’t have one yet. Existing numbers are left alone. Safe to run anytime.',
+        'auto_number_renumber' => 'Renumber all bins',
+        'auto_number_renumber_hint' => 'Reassigns sequential numbers to every bin in order. Locked bins keep their number.',
+        'auto_number_renumber_confirm' => 'Renumber all bins? This changes existing bin numbers (except locked ones) and may no longer match labels you’ve already printed.',
+        'auto_number_locked_note' => 'Tip: lock a bin’s number from its Edit screen to protect a label you’ve already printed.',
+    ],
+
+    'lock' => [
+        'label' => 'Lock this number',
+        'hint' => 'Protect it from auto-numbering',
+        'info_title' => 'Locking a bin’s number',
+        'info_body' => 'When a number is locked, this bin keeps it even if you auto-number or renumber your bins. Lock a bin once its physical label is printed so the number can’t drift away from the label.',
+    ],
+
     'flash' => [
+        'auto_numbered' => 'Numbered :count bins.',
         'location_created' => 'Location created.',
         'location_updated' => 'Location updated.',
         'location_deleted' => 'Location deleted.',

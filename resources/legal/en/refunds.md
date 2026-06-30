@@ -1,5 +1,3 @@
-> **DRAFT — placeholder, not legal advice.** This skeleton exists so the page and
-> route are in place. It will be completed when paid plans launch (Phase 6).
 
 ## Coming soon
 

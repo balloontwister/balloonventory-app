@@ -1,6 +1,3 @@
-> **DRAFT — placeholder, not legal advice.** This skeleton exists so the page,
-> routes, and structure are in place. Lawyer-reviewed prose replaces it before
-> public launch (Phase 4).
 
 ## 1. Acceptance of these terms
 

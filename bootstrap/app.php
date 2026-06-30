@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\EnsureBusinessActive;
 use App\Http\Middleware\EnsureHasBusiness;
+use App\Http\Middleware\EnsureTermsAccepted;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetUserLocale;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetBusinessContext::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            EnsureTermsAccepted::class,
             EnsureAccountActive::class,
         ]);
 

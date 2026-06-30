@@ -50,4 +50,24 @@ return [
         'dismiss' => 'Got it',
     ],
 
+    // The "I agree to the Terms and Privacy" line — shared by the registration
+    // checkbox and the acceptance interstitial.
+    'consent' => [
+        'prefix' => 'I agree to the',
+        'terms_link' => 'Terms of Service',
+        'and' => 'and',
+        'privacy_link' => 'Privacy Policy',
+        'error' => 'Please accept the Terms of Service and Privacy Policy to continue.',
+    ],
+
+    // The acceptance interstitial (shown to logged-in users who must accept).
+    'accept' => [
+        'meta_title' => 'Review our terms',
+        'heading' => 'Before you continue',
+        'intro_new' => 'Please review and accept our Terms of Service and Privacy Policy to start using Balloonventory.',
+        'intro_updated' => 'We’ve updated our Terms of Service and Privacy Policy. Please review and accept them to continue.',
+        'submit' => 'Accept and continue',
+        'logout' => 'Log out instead',
+    ],
+
 ];

@@ -29,6 +29,7 @@ class Business extends Model
         'created_by_user_id',
         'plan',
         'logo_path',
+        'color',
         'business_type',
         'onboarding_answers',
         'onboarding_completed_at',

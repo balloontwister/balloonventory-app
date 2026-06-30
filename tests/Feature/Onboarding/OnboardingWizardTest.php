@@ -81,13 +81,9 @@ class OnboardingWizardTest extends TestCase
         $this->assertNotNull($business->onboarding_completed_at);
         $this->assertSame('twister', $business->onboarding_answers['role']);
 
-        // Owner preferences + badge color applied.
+        // Owner preferences + business accent color applied.
         $this->assertSame('es', $user->refresh()->locale);
-        $this->assertDatabaseHas('memberships', [
-            'business_id' => $business->id,
-            'user_id' => $user->id,
-            'business_badge_color' => '#FF8800',
-        ]);
+        $this->assertSame('#FF8800', $business->refresh()->color);
 
         // Sample stock seeded as real inventory, flagged is_sample.
         $levels = StockLevel::withoutGlobalScope(BusinessScope::class)

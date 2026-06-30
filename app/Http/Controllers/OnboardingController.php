@@ -4,11 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use App\Models\Business;
-use App\Models\Membership;
 use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
-use App\Scopes\BusinessScope;
 use App\Services\ImageAttachmentService;
 use App\Services\OnboardingSeeder;
 use App\Support\BusinessContext;
@@ -47,11 +45,6 @@ class OnboardingController extends Controller
                 'seedable' => $seedableBrandNames->contains($brand->id),
             ]);
 
-        $membership = Membership::withoutGlobalScope(BusinessScope::class)
-            ->where('business_id', $business->id)
-            ->where('user_id', $user->id)
-            ->first();
-
         return Inertia::render('Onboarding/Wizard', [
             'business' => [
                 'id' => $business->id,
@@ -65,7 +58,7 @@ class OnboardingController extends Controller
             'preferences' => [
                 'locale' => $user->locale ?? 'en',
                 'timezone' => $user->timezone,
-                'badge_color' => $membership?->business_badge_color,
+                'badge_color' => $business->color,
             ],
             'answers' => $business->onboarding_answers,
             'alreadyCompleted' => $business->onboarding_completed_at !== null,

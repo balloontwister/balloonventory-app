@@ -142,6 +142,7 @@ class SettingsController extends Controller
                 'name' => $business->name,
                 'slug' => $business->slug,
                 'logoUrl' => $this->images->url($business, 'logo'),
+                'color' => $business->color,
                 'phone' => $business->phone,
                 'address_line1' => $business->address_line1,
                 'address_line2' => $business->address_line2,
@@ -186,6 +187,26 @@ class SettingsController extends Controller
         }
 
         return back()->with('success', __('flash.settings.business_logo_updated'));
+    }
+
+    /**
+     * Update the business's accent color. This is a business-level property that
+     * every member sees (and which changes as the user switches businesses), so
+     * it is gated by business.edit_settings like the rest of the business profile.
+     */
+    public function updateBusinessColor(Request $request): RedirectResponse
+    {
+        $business = Business::findOrFail(BusinessContext::currentId());
+
+        Gate::authorize('business.edit_settings', $business);
+
+        $validated = $request->validate([
+            'color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+
+        $business->update(['color' => $validated['color']]);
+
+        return back()->with('success', __('flash.settings.business_color_updated'));
     }
 
     public function updateBusiness(UpdateBusinessRequest $request): RedirectResponse

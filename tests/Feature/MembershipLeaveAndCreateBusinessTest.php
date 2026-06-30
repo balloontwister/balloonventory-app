@@ -156,6 +156,48 @@ class MembershipLeaveAndCreateBusinessTest extends TestCase
         $this->assertSame(2, $ownerships);
     }
 
+    public function test_an_owner_can_update_the_business_accent_color(): void
+    {
+        [$owner, $business] = $this->makeBusinessWithOwner();
+        BusinessContext::set($business->id);
+
+        $this->actingAs($owner)
+            ->from(route('settings.businesses'))
+            ->patch(route('settings.businesses.color.update'), [
+                'color' => '#FF8800',
+            ])
+            ->assertRedirect(route('settings.businesses'))
+            ->assertSessionHas('success');
+
+        $this->assertSame('#FF8800', $business->fresh()->color);
+    }
+
+    public function test_a_staff_member_cannot_change_the_business_accent_color(): void
+    {
+        [, $business] = $this->makeBusinessWithOwner();
+        [$artist] = $this->addMember($business, 'staff');
+        BusinessContext::set($business->id);
+
+        $this->actingAs($artist)
+            ->patch(route('settings.businesses.color.update'), ['color' => '#FF8800'])
+            ->assertForbidden();
+
+        $this->assertNotSame('#FF8800', $business->fresh()->color);
+    }
+
+    public function test_business_accent_color_rejects_a_non_hex_value(): void
+    {
+        [$owner, $business] = $this->makeBusinessWithOwner();
+        BusinessContext::set($business->id);
+
+        $this->actingAs($owner)
+            ->from(route('settings.businesses'))
+            ->patch(route('settings.businesses.color.update'), [
+                'color' => 'orange',
+            ])
+            ->assertSessionHasErrors('color');
+    }
+
     protected function tearDown(): void
     {
         BusinessContext::clear();

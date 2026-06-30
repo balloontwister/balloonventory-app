@@ -183,6 +183,15 @@ const submitLogo = () =>
         forceFormData: true,
     });
 
+// Business accent color (business-level; everyone in the business sees it).
+const colorForm = useForm({
+    color: props.business.color ?? '#6366F1',
+});
+const submitColor = () =>
+    colorForm.patch(route('settings.businesses.color.update'), {
+        preserveScroll: true,
+    });
+
 const distributorForm = useForm({
     distributor_ids: props.distributors
         .filter((d) => d.enabled)
@@ -610,6 +619,64 @@ const submitDistributors = () =>
                         </p>
                     </div>
                 </div>
+            </div>
+
+            <!-- ── Accent color (personal, per-member) ───────────────────── -->
+            <div
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('settings.businesses.color.heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('settings.businesses.color.subheading') }}
+                </p>
+
+                <div class="mt-5 flex flex-wrap items-center gap-4">
+                    <input
+                        v-model="colorForm.color"
+                        type="color"
+                        :disabled="!canEditSettings"
+                        :aria-label="$t('settings.businesses.color.label')"
+                        class="h-10 w-14 cursor-pointer rounded-md border border-border-strong bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <span
+                        class="font-mono text-[13px] uppercase text-ink-secondary"
+                    >
+                        {{ colorForm.color }}
+                    </span>
+                    <button
+                        type="button"
+                        :disabled="colorForm.processing || !canEditSettings"
+                        class="rounded-md bg-accent px-4 py-2 font-sans text-[14px] font-semibold text-accent-on transition hover:bg-accent-hover disabled:opacity-40"
+                        @click="submitColor"
+                    >
+                        {{ $t('settings.businesses.color.submit') }}
+                    </button>
+
+                    <Transition
+                        enter-active-class="transition-opacity duration-200"
+                        enter-from-class="opacity-0"
+                        leave-active-class="transition-opacity duration-200"
+                        leave-to-class="opacity-0"
+                    >
+                        <span
+                            v-if="colorForm.recentlySuccessful"
+                            class="rounded-md border border-success bg-success-soft px-3 py-1.5 font-sans text-[13px] text-ink-primary"
+                        >
+                            {{ $t('settings.businesses.color.saved') }}
+                        </span>
+                    </Transition>
+                </div>
+
+                <p
+                    v-if="!canEditSettings"
+                    class="mt-3 font-sans text-[12px] text-ink-tertiary"
+                >
+                    {{ $t('settings.businesses.color.no_permission') }}
+                </p>
             </div>
 
             <!-- ── Team members ──────────────────────────────────────────── -->

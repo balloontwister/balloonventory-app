@@ -41,6 +41,14 @@ return [
             'no_permission' => 'Only the business owner can change the logo.',
             'preview_alt' => 'Business logo preview',
         ],
+        'color' => [
+            'heading' => 'Accent color',
+            'subheading' => "This business's color in the menu and switcher. Everyone on the team sees it, and it helps you tell businesses apart when you switch.",
+            'label' => 'Accent color',
+            'submit' => 'Save color',
+            'saved' => 'Color updated.',
+            'no_permission' => 'Only the business owner can change the accent color.',
+        ],
         'subscription' => [
             'heading' => 'Subscription',
             'subheading' => 'Manage your Balloonventory plan and billing.',

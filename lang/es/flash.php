@@ -5,6 +5,7 @@ return [
         'preferences_updated' => 'Preferencias actualizadas.',
         'business_name_updated' => 'Nombre del negocio actualizado.',
         'business_logo_updated' => 'Logo del negocio actualizado.',
+        'business_color_updated' => 'Color de acento actualizado.',
     ],
 
     'profile' => [

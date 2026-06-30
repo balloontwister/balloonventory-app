@@ -41,6 +41,14 @@ return [
             'no_permission' => 'Solo el dueño del negocio puede cambiar el logo.',
             'preview_alt' => 'Vista previa del logo del negocio',
         ],
+        'color' => [
+            'heading' => 'Color de acento',
+            'subheading' => 'El color de este negocio en el menú y el selector. Todo el equipo lo ve y te ayuda a distinguir los negocios al cambiar.',
+            'label' => 'Color de acento',
+            'submit' => 'Guardar color',
+            'saved' => 'Color actualizado.',
+            'no_permission' => 'Solo el dueño del negocio puede cambiar el color de acento.',
+        ],
         'subscription' => [
             'heading' => 'Suscripción',
             'subheading' => 'Gestiona tu plan de Balloonventory y facturación.',

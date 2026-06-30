@@ -191,6 +191,8 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
     Route::get('/settings/businesses', [SettingsController::class, 'businesses'])->name('settings.businesses');
     Route::patch('/settings/businesses', [SettingsController::class, 'updateBusiness'])->name('settings.businesses.update');
     Route::post('/settings/businesses/logo', [SettingsController::class, 'updateBusinessLogo'])->name('settings.businesses.logo.update');
+    // Business accent color (business-level; owners/managers, like other settings).
+    Route::patch('/settings/businesses/color', [SettingsController::class, 'updateBusinessColor'])->name('settings.businesses.color.update');
     Route::post('/settings/distributors', [SettingsController::class, 'updateDistributors'])->name('settings.distributors.update');
 
     // ─── Membership management (invite, role change, remove, revoke invite) ──────

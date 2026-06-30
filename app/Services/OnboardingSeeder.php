@@ -6,7 +6,6 @@ use App\Enums\StockDirection;
 use App\Models\Bin;
 use App\Models\Business;
 use App\Models\Location;
-use App\Models\Membership;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Models\User;
@@ -79,10 +78,7 @@ class OnboardingSeeder
             return;
         }
 
-        Membership::withoutGlobalScope(BusinessScope::class)
-            ->where('business_id', $business->id)
-            ->where('user_id', $owner->id)
-            ->update(['business_badge_color' => $input['badge_color']]);
+        $business->update(['color' => $input['badge_color']]);
     }
 
     /**

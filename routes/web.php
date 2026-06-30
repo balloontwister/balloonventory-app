@@ -122,7 +122,10 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
 
     // ── Bins & locations (the "By Bin" view + management) ─────────────────────
     Route::get('/inventory/bins', [BinController::class, 'index'])->name('inventory.bins.index');
+    Route::get('/inventory/bins/{bin}', [BinController::class, 'show'])->name('inventory.bins.show');
     Route::get('/inventory/bins/{bin}/contents', [BinController::class, 'contents'])->name('inventory.bins.contents');
+    Route::get('/inventory/bins/{bin}/search-items', [BinController::class, 'searchItems'])->name('inventory.bins.search-items');
+    Route::post('/inventory/bins/{bin}/items', [InventoryController::class, 'addItemToBin'])->name('inventory.bins.add-item');
     Route::post('/inventory/bins', [BinController::class, 'store'])->name('inventory.bins.store');
     Route::patch('/inventory/bins/{bin}', [BinController::class, 'update'])->name('inventory.bins.update');
     Route::delete('/inventory/bins/{bin}', [BinController::class, 'destroy'])->name('inventory.bins.destroy');

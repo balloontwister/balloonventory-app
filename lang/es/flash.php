@@ -92,6 +92,8 @@ return [
         'transfer_nothing' => 'Ingresa al menos una bolsa para transferir.',
         'transfer_insufficient' => 'No hay suficientes existencias en el contenedor de origen. Disponible: :full llenas / :open abiertas.',
         'stock_adjusted' => 'Existencias actualizadas.',
+        'item_added_to_bin' => 'Artículo agregado a este contenedor.',
+        'item_not_available' => 'Ese artículo no está disponible para este negocio.',
         'bin_removed' => 'Contenedor eliminado para este artículo.',
         'bin_not_empty' => 'Ese contenedor aún tiene existencias — vacíalo antes de eliminarlo.',
         'feedback_submitted' => '¡Gracias! Tus comentarios se enviaron a nuestro equipo.',

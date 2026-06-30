@@ -518,10 +518,79 @@ class InventoryController extends Controller
         $business = Business::findOrFail($businessId);
         $bin = $this->binResolver->resolveSelectedBin($business, $data['bin_id']);
 
-        $targetFull = (int) $data['full_bags'];
-        $targetOpen = (int) $data['open_bags'];
+        $this->applyBinAdjustment(
+            $businessId,
+            $sku,
+            $bin,
+            (int) $data['full_bags'],
+            (int) $data['open_bags'],
+            $request->user()->id,
+        );
 
-        DB::transaction(function () use ($businessId, $sku, $bin, $targetFull, $targetOpen, $request) {
+        return back()->with('success', __('flash.inventory.stock_adjusted'));
+    }
+
+    /**
+     * Add an item directly to a specific bin from the bin detail page. Unlike
+     * {@see self::adjust()}, the SKU need NOT already be in this business's
+     * inventory — it only has to be visible (shared catalog or owned by this
+     * business). Seeds the bin's stock level to the supplied counts, recording
+     * the seed as one `adjusted` movement (same path as a manual recount). The
+     * {@see Bin} is implicit-bound and scoped to the current business, so a
+     * foreign bin 404s before this runs.
+     */
+    public function addItemToBin(Request $request, Bin $bin): RedirectResponse
+    {
+        $businessId = BusinessContext::currentId();
+        Gate::authorize('inventory.manual_adjust', Business::findOrFail($businessId));
+
+        $data = $request->validate([
+            'sku_id' => ['required', 'uuid'],
+            'full_bags' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'open_bags' => ['required', 'integer', 'min:0', 'max:1000000'],
+        ]);
+
+        // Resolve under the catalog visibility rule (shared OR owned by this
+        // business). MUST NOT use `exists:skus,id`, which would let a foreign
+        // business's private SKU — or a soft-deleted one — into inventory.
+        $sku = Sku::visibleTo($businessId)->find($data['sku_id']);
+
+        if ($sku === null) {
+            throw ValidationException::withMessages([
+                'sku_id' => __('flash.inventory.item_not_available'),
+            ]);
+        }
+
+        $this->applyBinAdjustment(
+            $businessId,
+            $sku,
+            $bin,
+            (int) $data['full_bags'],
+            (int) $data['open_bags'],
+            $request->user()->id,
+        );
+
+        return back()->with('success', __('flash.inventory.item_added_to_bin'));
+    }
+
+    /**
+     * Set the on-hand counts for a single (SKU, bin) pair to absolute values,
+     * recording the net change as one `adjusted` StockMovement. Shared by the
+     * SKU-detail per-bin steppers ({@see self::adjust()}) and the bin-detail
+     * "add item" flow ({@see self::addItemToBin()}) so the two can't drift. The
+     * stock-level row is created if absent, so a brand-new (SKU, bin) pairing is
+     * seeded in place. The non-sample movement it writes also promotes any
+     * onboarding sample stock for this SKU to real on the next sample cleanup.
+     */
+    private function applyBinAdjustment(
+        string $businessId,
+        Sku $sku,
+        Bin $bin,
+        int $targetFull,
+        int $targetOpen,
+        string $userId,
+    ): void {
+        DB::transaction(function () use ($businessId, $sku, $bin, $targetFull, $targetOpen, $userId) {
             $level = StockLevel::where('business_id', $businessId)
                 ->where('sku_id', $sku->id)
                 ->where('bin_id', $bin->id)
@@ -553,14 +622,12 @@ class InventoryController extends Controller
                 'business_id' => $businessId,
                 'sku_id' => $sku->id,
                 'bin_id' => $bin->id,
-                'user_id' => $request->user()->id,
+                'user_id' => $userId,
                 'direction' => StockDirection::Adjusted,
                 'full_bags_change' => $fullChange,
                 'open_bags_change' => $openChange,
             ]);
         });
-
-        return back()->with('success', __('flash.inventory.stock_adjusted'));
     }
 
     /**

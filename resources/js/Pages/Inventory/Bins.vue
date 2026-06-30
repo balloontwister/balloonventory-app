@@ -4,7 +4,7 @@ import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 import InventoryTabs from '@/Components/InventoryTabs.vue';
 import Modal from '@/Components/Modal.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';
 import { useBusiness } from '@/Composables/useBusiness.js';
@@ -46,8 +46,14 @@ const copyState = ref(''); // '' | 'copied' | 'error'
 const labelDims = computed(() => {
     if (sizeKey.value === 'custom') {
         return {
-            widthIn: Math.min(Math.max(Number(customWidthIn.value) || 0, 0.5), 8),
-            heightIn: Math.min(Math.max(Number(customHeightIn.value) || 0, 0.25), 11),
+            widthIn: Math.min(
+                Math.max(Number(customWidthIn.value) || 0, 0.5),
+                8,
+            ),
+            heightIn: Math.min(
+                Math.max(Number(customHeightIn.value) || 0, 0.25),
+                11,
+            ),
         };
     }
     const preset = LABEL_PRESETS.find((p) => p.key === sizeKey.value);
@@ -361,7 +367,12 @@ function binSummaryLabel(bin) {
             >
                 {{ $t('bins.print_all') }}
             </AppButton>
-            <AppButton v-if="canManageBins" variant="primary" size="sm" @click="openCreateLocation">
+            <AppButton
+                v-if="canManageBins"
+                variant="primary"
+                size="sm"
+                @click="openCreateLocation"
+            >
                 {{ $t('bins.add_location') }}
             </AppButton>
         </div>
@@ -402,7 +413,10 @@ function binSummaryLabel(bin) {
                         {{ binsCountLabel(location) }}
                     </span>
 
-                    <div v-if="canManageBins" class="ml-auto flex items-center gap-1">
+                    <div
+                        v-if="canManageBins"
+                        class="ml-auto flex items-center gap-1"
+                    >
                         <button
                             type="button"
                             class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
@@ -458,11 +472,16 @@ function binSummaryLabel(bin) {
                                             })
                                         }}
                                     </span>
-                                    <h3
-                                        class="truncate font-sans text-[15px] font-semibold text-ink-primary"
+                                    <Link
+                                        :href="
+                                            route('inventory.bins.show', {
+                                                bin: bin.id,
+                                            })
+                                        "
+                                        class="truncate font-sans text-[15px] font-semibold text-ink-primary hover:text-accent hover:underline"
                                     >
                                         {{ bin.name }}
-                                    </h3>
+                                    </Link>
                                     <span
                                         v-if="bin.is_default"
                                         class="rounded-pill bg-background px-2 py-0.5 font-sans text-[10px] font-medium uppercase tracking-eyebrow text-ink-secondary"
@@ -551,9 +570,19 @@ function binSummaryLabel(bin) {
                         <div
                             class="mt-auto flex items-center gap-1 border-t border-border px-3 py-2"
                         >
+                            <Link
+                                :href="
+                                    route('inventory.bins.show', {
+                                        bin: bin.id,
+                                    })
+                                "
+                                class="rounded-md px-2 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft"
+                            >
+                                {{ $t('bins.show.open') }}
+                            </Link>
                             <button
                                 type="button"
-                                class="rounded-md px-2 py-1 font-sans text-[13px] text-accent hover:bg-accent-soft"
+                                class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
                                 @click="toggleBin(bin)"
                             >
                                 {{
@@ -864,7 +893,11 @@ function binSummaryLabel(bin) {
                     >
                         {{ $t('bins.label.download_png') }}
                     </AppButton>
-                    <AppButton variant="primary" size="sm" @click="copyLabelImage">
+                    <AppButton
+                        variant="primary"
+                        size="sm"
+                        @click="copyLabelImage"
+                    >
                         {{ $t('bins.label.copy') }}
                     </AppButton>
                 </div>

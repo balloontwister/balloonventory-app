@@ -35,7 +35,7 @@ class ProposalResolver
             return $this->none();
         }
 
-        $match = $this->matcher->match($member['attributes'], $config);
+        $match = $this->matcher->match($member['attributes'], $config, $member['distributor_id'] ?? null);
         $brand = $match['brand']['model'];
         $size = $match['balloon_size']['model'];
         $color = $match['color']['model'];

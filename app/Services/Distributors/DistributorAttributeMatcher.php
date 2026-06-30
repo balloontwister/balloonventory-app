@@ -35,6 +35,8 @@ use Illuminate\Support\Collection;
  */
 class DistributorAttributeMatcher
 {
+    public function __construct(private DistributorLearnedAliasStore $aliasStore) {}
+
     private const MAX_CANDIDATES = 3;
 
     /**
@@ -75,13 +77,18 @@ class DistributorAttributeMatcher
     /** @var array{brands: Collection, balloonSizes: Collection, colors: Collection, packagingTypes: Collection}|null */
     private ?array $data = null;
 
+    /** The distributor whose learned aliases apply to the current match() call. */
+    private ?string $distributorId = null;
+
     /**
      * @param  array<string, array<int, string>>  $attributes  label → value(s) from the distributor table
      * @param  array<string, mixed>  $config  the distributor's config (`attribute_aliases`, `extraction.label_map`)
+     * @param  string|null  $distributorId  whose learned aliases to consult (null skips the learned tier)
      * @return array{brand: AttributeMatch, balloon_size: AttributeMatch, color: AttributeMatch, packaging: AttributeMatch, count: int|null}
      */
-    public function match(array $attributes, array $config = []): array
+    public function match(array $attributes, array $config = [], ?string $distributorId = null): array
     {
+        $this->distributorId = $distributorId;
         $aliases = $config['attribute_aliases'] ?? [];
         $labels = array_merge(self::DEFAULT_LABELS, $config['extraction']['label_map'] ?? []);
 
@@ -112,11 +119,7 @@ class DistributorAttributeMatcher
                     $aliases,
                 )
                 : $this->none(),
-            'packaging' => $this->matchAliased(
-                $this->value($attributes, $labels['packaging']),
-                $this->data()['packagingTypes'],
-                $aliases['packaging'] ?? [],
-            ),
+            'packaging' => $this->matchPackaging($this->value($attributes, $labels['packaging']), $aliases),
             'count' => $this->parseCount($this->value($attributes, $labels['count'])),
         ];
     }
@@ -127,7 +130,83 @@ class DistributorAttributeMatcher
      */
     private function matchBrand(?string $value, array $aliases): array
     {
-        return $this->matchAliased($value, $this->data()['brands'], $aliases['brand'] ?? []);
+        return $this->learned('brand', $value, null, $this->data()['brands'])
+            ?? $this->matchAliased($value, $this->data()['brands'], $aliases['brand'] ?? []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $aliases
+     * @return AttributeMatch
+     */
+    private function matchPackaging(?string $value, array $aliases): array
+    {
+        return $this->learned('packaging', $value, null, $this->data()['packagingTypes'])
+            ?? $this->matchAliased($value, $this->data()['packagingTypes'], $aliases['packaging'] ?? []);
+    }
+
+    /**
+     * The learned-alias tier: a value an admin previously corrected resolves
+     * straight to the catalog row they chose, ahead of every heuristic. It runs
+     * FIRST (not merely before the fuzzy fallback) so a human decision overrides
+     * even a spurious exact match — e.g. a distributor "Color: Yellow / Gold"
+     * whose "Yellow" part exact-matches our generic Yellow, when the admin has
+     * said this listing is really a specific shade. An alias pointing at a row
+     * that's since been deleted is ignored, falling through to the heuristics.
+     *
+     * @param  Collection<string, Model>  $pool  the candidate reference rows for this attribute/brand
+     * @return AttributeMatch|null
+     */
+    private function learned(string $attribute, ?string $rawValue, ?string $brandId, Collection $pool): ?array
+    {
+        if ($rawValue === null || $this->distributorId === null) {
+            return null;
+        }
+
+        $catalogId = $this->aliasStore->lookup($this->distributorId, $attribute, $brandId, $rawValue);
+
+        if ($catalogId === null) {
+            return null;
+        }
+
+        $model = $pool->first(fn (Model $m) => (string) $m->getKey() === $catalogId);
+
+        if ($model === null) {
+            return null;
+        }
+
+        return [
+            'model' => $model,
+            'value' => $rawValue,
+            'quality' => 'exact',
+            'candidates' => $this->candidates(collect([$model])),
+        ];
+    }
+
+    /**
+     * The raw distributor value the matcher reads for a canonical attribute, using
+     * the same label resolution match() does (default label + per-distributor
+     * `extraction.label_map` override). Shared with the review service so a learned
+     * alias is captured under exactly the key the matcher will later look up.
+     *
+     * @param  array<string, array<int, string>>  $attributes
+     * @param  array<string, mixed>  $config
+     */
+    public static function rawAttributeValue(array $attributes, array $config, string $attribute): ?string
+    {
+        $labels = array_merge(self::DEFAULT_LABELS, $config['extraction']['label_map'] ?? []);
+        $label = $labels[$attribute] ?? null;
+
+        if ($label === null) {
+            return null;
+        }
+
+        foreach ($attributes as $key => $values) {
+            if (strcasecmp($key, $label) === 0) {
+                return $values[0] ?? null;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -169,6 +248,10 @@ class DistributorAttributeMatcher
         }
 
         $sizes = $this->data()['balloonSizes']->get($brand->id, collect());
+
+        if (($learned = $this->learned('size', $value, $brand->id, $sizes)) !== null) {
+            return $learned;
+        }
 
         // Tier 1 — core-key equality. "350 / 360" style combined values: try each
         // part's core key in turn.
@@ -310,6 +393,13 @@ class DistributorAttributeMatcher
     {
         $colors = $this->data()['colors']->get($brand->id, collect());
         $aliasMap = $aliases['color'] ?? [];
+
+        // A learned alias is keyed on the raw colour value the distributor sent
+        // (the same field the admin saw when correcting it), so it's consulted on
+        // $value before the finish recompose / structured / title heuristics.
+        if (($learned = $this->learned('color', $value, $brand->id, $colors)) !== null) {
+            return $learned;
+        }
 
         if ($value !== null && $finish !== null && trim($finish) !== '') {
             $combined = $this->matchAliased(trim($finish).' '.trim($value), $colors, $aliasMap);

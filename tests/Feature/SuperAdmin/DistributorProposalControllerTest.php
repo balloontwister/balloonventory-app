@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
+use App\Models\DistributorLearnedAlias;
 use App\Models\DistributorProduct;
 use App\Models\PackagingType;
 use App\Models\Sku;
@@ -573,6 +574,40 @@ class DistributorProposalControllerTest extends TestCase
         $this->assertSame($balloonSize->id, $proposal->proposed_balloon_size_id);
         $this->assertSame(100, $proposal->proposed_count);
         $this->assertSame($this->admin->id, $proposal->reviewed_by);
+    }
+
+    public function test_update_saves_a_reviewer_note_and_learns_an_alias(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $color = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Fashion Red']);
+        $distributor = Distributor::factory()->create();
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => 'Kalisan 260 modeling balloons',
+                'attributes' => ['Brand' => ['Kalisan'], 'Color' => ['Red Fashion']],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), [
+                'proposed_brand_id' => $brand->id,
+                'proposed_color_id' => $color->id,
+                'note' => 'Word order is reversed for this distributor.',
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame('Word order is reversed for this distributor.', $proposal->fresh()->note);
+
+        $alias = DistributorLearnedAlias::query()
+            ->where('distributor_id', $distributor->id)
+            ->where('attribute', 'color')
+            ->first();
+
+        $this->assertNotNull($alias);
+        $this->assertSame($color->id, $alias->catalog_id);
+        $this->assertSame('Word order is reversed for this distributor.', $alias->note);
     }
 
     public function test_non_admin_cannot_reach_the_review_queue(): void

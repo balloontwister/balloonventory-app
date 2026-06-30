@@ -108,7 +108,7 @@ class DistributorClusterEngine
 
         return collect($byUpc)->map(fn (array $members, string $upc) => [
             'upc' => $upc,
-            'normalized_sku' => $this->representativeNormalizedSku($members),
+            'normalized_sku' => $this->consensusWarehouseSku($members),
             'product_type' => $this->representativeProductType($members),
             'members' => $members,
         ])->values();
@@ -493,17 +493,55 @@ class DistributorClusterEngine
     }
 
     /**
+     * The warehouse SKU for a cluster: the manufacturer item number its members
+     * most agree on. Each barcode-confirmed member contributes its normalized SKU,
+     * and the value shared by the most DISTINCT distributors wins — so a single
+     * store whose listing carries an internal / UPC-derived id (e.g. Larocks'
+     * "3062551508") can't override the real item number three other stores agree
+     * on ("51508"). Because clustering is UPC-gated, every member is already
+     * confirmed to be the same physical product, so the modal SKU is the item
+     * number by definition. Ties break to the shorter candidate (a bare item
+     * number is shorter than a decorated / internal id), then to first-seen order
+     * for stability.
+     *
+     * Public so the recompute-warehouse-skus command can re-derive it from a
+     * proposal's stored evidence without re-crawling.
+     *
      * @param  array<int, array<string, mixed>>  $members
      */
-    private function representativeNormalizedSku(array $members): ?string
+    public function consensusWarehouseSku(array $members): ?string
     {
+        /** @var array<string, array<string, bool>> $distributorsByCandidate */
+        $distributorsByCandidate = [];
+
         foreach ($members as $member) {
-            if ($member['normalized_sku'] !== null && $member['normalized_sku'] !== '') {
-                return $member['normalized_sku'];
+            $sku = $member['normalized_sku'] ?? null;
+
+            if ($sku === null || $sku === '') {
+                continue;
+            }
+
+            $distributorsByCandidate[(string) $sku][(string) ($member['distributor_id'] ?? '')] = true;
+        }
+
+        if ($distributorsByCandidate === []) {
+            return null;
+        }
+
+        $best = null;
+        $bestScore = null;
+
+        foreach ($distributorsByCandidate as $sku => $distributors) {
+            // Most distributors agreeing first; on a tie, prefer the shorter SKU.
+            $score = [count($distributors), -strlen((string) $sku)];
+
+            if ($bestScore === null || $score > $bestScore) {
+                $bestScore = $score;
+                $best = (string) $sku;
             }
         }
 
-        return null;
+        return $best;
     }
 
     /**

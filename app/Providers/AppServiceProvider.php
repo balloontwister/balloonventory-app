@@ -19,6 +19,7 @@ use App\Policies\MembershipPolicy;
 use App\Policies\PendingUpcScanPolicy;
 use App\Policies\SkuErrorReportPolicy;
 use App\Policies\SkuPolicy;
+use App\Services\Distributors\DistributorLearnedAliasStore;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -27,7 +28,13 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        // Shared so a learned-alias capture during a proposal edit invalidates the
+        // cache the matcher reads when it re-stamps affected proposals in the same
+        // request.
+        $this->app->singleton(DistributorLearnedAliasStore::class);
+    }
 
     public function boot(): void
     {

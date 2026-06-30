@@ -282,6 +282,48 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertCount(3, $proposal->evidence);
     }
 
+    public function test_warehouse_sku_is_the_consensus_across_distributors(): void
+    {
+        $larocks = Distributor::factory()->bigcommerce()->create(['slug' => 'larocks']);
+        $shared = [
+            'upc' => '030625515085',
+            'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => ['Brand' => ['Sempertex']]],
+        ];
+
+        // Three stores agree the manufacturer item number is 51508.
+        $this->stage($this->bargain, ['external_id' => 'b', 'raw_sku' => 'BL-51508', 'normalized_sku' => '51508'] + $shared);
+        $this->stage($this->laballoons, ['external_id' => 'l', 'raw_sku' => '51508-B', 'normalized_sku' => '51508'] + $shared);
+        $this->stage($this->havin, ['external_id' => 'h', 'raw_sku' => '51508', 'normalized_sku' => '51508'] + $shared);
+        // A fourth store reports a UPC-derived internal id — the outlier that used
+        // to win just by being first.
+        $this->stage($larocks, ['external_id' => 'la', 'raw_sku' => '3062551508', 'normalized_sku' => '3062551508'] + $shared);
+
+        $this->engine->run(execute: true);
+
+        $proposal = DistributorCatalogProposal::sole();
+        $this->assertSame('51508', $proposal->normalized_sku);
+        $this->assertSame('51508', $proposal->proposed_warehouse_sku);
+    }
+
+    public function test_warehouse_sku_breaks_a_tie_toward_the_shorter_item_number(): void
+    {
+        $larocks = Distributor::factory()->bigcommerce()->create(['slug' => 'larocks']);
+        $shared = [
+            'upc' => '030625515085',
+            'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => ['Brand' => ['Sempertex']]],
+        ];
+
+        // One vote each — the shorter bare item number wins over the long internal id.
+        $this->stage($this->bargain, ['external_id' => 'b', 'raw_sku' => 'BL-51508', 'normalized_sku' => '51508'] + $shared);
+        $this->stage($larocks, ['external_id' => 'la', 'raw_sku' => '3062551508', 'normalized_sku' => '3062551508'] + $shared);
+
+        $this->engine->run(execute: true);
+
+        $this->assertSame('51508', DistributorCatalogProposal::sole()->proposed_warehouse_sku);
+    }
+
     public function test_run_stamps_resolution_for_grouping(): void
     {
         $brand = Brand::factory()->create(['name' => 'Sempertex']);

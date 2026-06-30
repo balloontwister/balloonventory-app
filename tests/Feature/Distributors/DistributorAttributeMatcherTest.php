@@ -5,7 +5,9 @@ namespace Tests\Feature\Distributors;
 use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
+use App\Models\Distributor;
 use App\Services\Distributors\DistributorAttributeMatcher;
+use App\Services\Distributors\DistributorLearnedAliasStore;
 use Database\Seeders\PackagingTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -75,6 +77,67 @@ class DistributorAttributeMatcherTest extends TestCase
 
         $this->assertSame($this->kalisan->id, $result['brand']['model']->id);
         $this->assertSame($size->id, $result['balloon_size']['model']->id);
+    }
+
+    public function test_learned_alias_resolves_a_reversed_word_order_color(): void
+    {
+        $distributor = Distributor::factory()->create();
+        $fashionRed = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Fashion Red']);
+        // The decoy our fuzzy "contains" match would otherwise pick for "Red Fashion".
+        Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Red']);
+
+        app(DistributorLearnedAliasStore::class)
+            ->record($distributor->id, 'color', $this->kalisan->id, 'Red Fashion', $fashionRed->id, null, null);
+
+        $result = $this->matcher->match(
+            ['Brand' => ['Kalisan'], 'Color' => ['Red Fashion']],
+            [],
+            $distributor->id,
+        );
+
+        $this->assertSame($fashionRed->id, $result['color']['model']->id);
+        $this->assertSame('exact', $result['color']['quality']);
+    }
+
+    public function test_learned_alias_beats_an_exact_match_on_a_family_part(): void
+    {
+        $distributor = Distributor::factory()->create();
+        // "Yellow / Gold" splits and exact-matches our generic "Yellow" — which a
+        // learned alias must override when the admin says it's really a shade.
+        Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Yellow']);
+        $pastelIvory = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Pastel Ivory']);
+
+        app(DistributorLearnedAliasStore::class)
+            ->record($distributor->id, 'color', $this->kalisan->id, 'Yellow / Gold', $pastelIvory->id, null, null);
+
+        $result = $this->matcher->match(
+            ['Brand' => ['Kalisan'], 'Color' => ['Yellow / Gold']],
+            [],
+            $distributor->id,
+        );
+
+        $this->assertSame($pastelIvory->id, $result['color']['model']->id);
+    }
+
+    public function test_learned_alias_is_scoped_to_its_distributor(): void
+    {
+        $taught = Distributor::factory()->create();
+        $other = Distributor::factory()->create();
+        $fashionRed = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Fashion Red']);
+        Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Red']);
+
+        app(DistributorLearnedAliasStore::class)
+            ->record($taught->id, 'color', $this->kalisan->id, 'Red Fashion', $fashionRed->id, null, null);
+
+        // A different distributor sending the same raw value has no learned alias,
+        // so it falls through to the fuzzy "Red".
+        $result = $this->matcher->match(
+            ['Brand' => ['Kalisan'], 'Color' => ['Red Fashion']],
+            [],
+            $other->id,
+        );
+
+        $this->assertSame('Red', $result['color']['model']->name);
     }
 
     public function test_ambiguous_size_returns_candidates_and_fuzzy_quality(): void

@@ -105,7 +105,7 @@ class DistributorCatalogPromoter
             }
 
             $config = Distributor::find($member['distributor_id'])?->config ?? [];
-            $match = $this->matcher->match($member['attributes'], $config);
+            $match = $this->matcher->match($member['attributes'], $config, $member['distributor_id']);
 
             $resolvedPerDistributor[$member['distributor_id']] = [
                 'brand' => $match['brand']['model']?->id,
@@ -376,7 +376,7 @@ class DistributorCatalogPromoter
 
         $config = Distributor::find($member['distributor_id'])?->config ?? [];
 
-        return $this->matcher->match($member['attributes'], $config);
+        return $this->matcher->match($member['attributes'], $config, $member['distributor_id'] ?? null);
     }
 
     /**

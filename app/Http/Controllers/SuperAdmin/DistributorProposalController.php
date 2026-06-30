@@ -88,6 +88,7 @@ class DistributorProposalController extends Controller
             'proposed_packaging_id' => ['nullable', 'string', 'exists:packaging_types,id'],
             'proposed_count' => ['nullable', 'integer', 'min:1'],
             'proposed_warehouse_sku' => ['nullable', 'string', 'max:191'],
+            'note' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $this->service->edit($proposal, $data, $request->user()->id);

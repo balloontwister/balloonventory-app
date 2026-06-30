@@ -85,6 +85,7 @@ const editForm = ref({
     proposed_packaging_id: null,
     proposed_count: null,
     proposed_warehouse_sku: '',
+    note: '',
 });
 const editProcessing = ref(false);
 
@@ -100,6 +101,7 @@ function openEdit(proposal) {
         proposed_packaging_id: proposal.proposed_packaging_id ?? guess?.packaging?.selected?.id ?? null,
         proposed_count: proposal.proposed_count ?? guess?.count ?? null,
         proposed_warehouse_sku: proposal.proposed_warehouse_sku ?? '',
+        note: proposal.note ?? '',
     };
 }
 
@@ -1025,6 +1027,20 @@ function formatPrice(price) {
                                         class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                                     />
                                 </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
+                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_note') }}
+                                </label>
+                                <textarea
+                                    v-model="editForm.note"
+                                    rows="2"
+                                    :placeholder="$t('super_admin.dashboard.distributors.proposals.edit_note_placeholder')"
+                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                />
+                                <p class="mt-1 font-sans text-[12px] text-ink-secondary">
+                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_note_hint') }}
+                                </p>
                             </div>
                         </div>
 

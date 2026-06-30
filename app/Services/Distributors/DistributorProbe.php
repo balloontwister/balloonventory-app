@@ -55,7 +55,7 @@ class DistributorProbe
         $extraction = isset($config['extraction']['title_attributes'])
             ? $this->titleExtractor->extract($parsed, $config)
             : $this->extractor->extract($html, $config);
-        $match = $this->matcher->match($extraction['attributes'], $config);
+        $match = $this->matcher->match($extraction['attributes'], $config, $distributor->id);
 
         return [
             'url' => $url,

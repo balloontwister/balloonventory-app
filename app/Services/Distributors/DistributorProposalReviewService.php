@@ -41,6 +41,8 @@ class DistributorProposalReviewService
         private IdenticalSkuFinder $identicalFinder,
         private BarcodeLinker $barcodeLinker,
         private CatalogAttributeResolver $resolver,
+        private DistributorLearnedAliasStore $aliasStore,
+        private ProposalResolver $proposalResolver,
     ) {}
 
     /**
@@ -229,6 +231,10 @@ class DistributorProposalReviewService
             'reviewed_at' => now(),
         ])->save();
 
+        // Bank any manual mappings carried on the proposal as learned aliases
+        // before promoting (a no-op when approval rode the matcher's own guess).
+        $this->learnFromProposal($proposal, $reviewerId);
+
         // promoteForReview reads the (now approved) proposal; the promoter keeps
         // the approved status when it creates the Sku.
         return $this->promoter->promoteForReview($proposal->refresh());
@@ -304,8 +310,191 @@ class DistributorProposalReviewService
             'proposed_packaging_id' => $attributes['proposed_packaging_id'] ?? null,
             'proposed_count' => $attributes['proposed_count'] ?? null,
             'proposed_warehouse_sku' => $attributes['proposed_warehouse_sku'] ?? null,
+            'note' => $attributes['note'] ?? null,
             'reviewed_by' => $reviewerId,
         ])->save();
+
+        $this->learnFromProposal($proposal, $reviewerId);
+    }
+
+    /**
+     * Turn the admin's manual mappings on a proposal into learned aliases (so the
+     * same raw distributor value resolves itself next time) and refresh the stored
+     * resolution of every pending proposal those aliases now flip — keeping the
+     * queue's facet counts honest without a re-cluster. A no-op when no reference
+     * attribute was mapped.
+     */
+    private function learnFromProposal(DistributorCatalogProposal $proposal, string $reviewerId): void
+    {
+        $captures = $this->captureLearnedAliases($proposal, $reviewerId);
+
+        if ($captures !== []) {
+            $this->restampForCaptures($proposal, $captures);
+        }
+    }
+
+    /**
+     * Record a learned alias for each reference attribute the admin mapped, scoped
+     * per-distributor (and per-brand for the brand-scoped size/colour). The raw
+     * value is read from each contributing evidence member with the same label
+     * resolution the matcher uses, so the alias is keyed exactly how the matcher
+     * will look it up.
+     *
+     * @return array<int, array{distributor_id: string, attribute: string, scope: ?string, raw: string}>
+     */
+    private function captureLearnedAliases(DistributorCatalogProposal $proposal, string $reviewerId): array
+    {
+        $brandId = $proposal->proposed_brand_id ?? $proposal->resolved_brand_id;
+
+        $mappings = [
+            'brand' => ['id' => $proposal->proposed_brand_id, 'scope' => null],
+            'size' => ['id' => $proposal->proposed_balloon_size_id, 'scope' => $brandId],
+            'color' => ['id' => $proposal->proposed_color_id, 'scope' => $brandId],
+            'packaging' => ['id' => $proposal->proposed_packaging_id, 'scope' => null],
+        ];
+
+        $members = collect($proposal->evidence ?? [])->filter(fn (array $m) => ! empty($m['attributes']));
+
+        if ($members->isEmpty()) {
+            return [];
+        }
+
+        $configs = $this->distributorConfigs($members->pluck('distributor_id')->filter()->unique());
+
+        $captured = [];
+
+        foreach ($mappings as $attribute => $spec) {
+            // Nothing mapped, or a brand-scoped attribute with no brand to scope it
+            // to — can't learn a key for it.
+            if ($spec['id'] === null || (in_array($attribute, ['size', 'color'], true) && $spec['scope'] === null)) {
+                continue;
+            }
+
+            foreach ($members as $member) {
+                $distributorId = $member['distributor_id'] ?? null;
+                $raw = $distributorId === null
+                    ? null
+                    : DistributorAttributeMatcher::rawAttributeValue($member['attributes'], $configs[$distributorId] ?? [], $attribute);
+
+                if ($raw === null || trim($raw) === '') {
+                    continue;
+                }
+
+                $this->aliasStore->record($distributorId, $attribute, $spec['scope'], $raw, $spec['id'], $proposal->note, $reviewerId);
+
+                $captured[] = [
+                    'distributor_id' => $distributorId,
+                    'attribute' => $attribute,
+                    'scope' => $spec['scope'],
+                    'raw' => DistributorLearnedAliasStore::normalize($raw),
+                ];
+            }
+        }
+
+        return $captured;
+    }
+
+    /**
+     * Re-stamp the edited proposal plus every other pending proposal whose
+     * representative attributed member carries one of the just-learned raw values
+     * (and, for a brand-scoped capture, sits under that brand).
+     *
+     * @param  array<int, array{distributor_id: string, attribute: string, scope: ?string, raw: string}>  $captures
+     */
+    private function restampForCaptures(DistributorCatalogProposal $edited, array $captures): void
+    {
+        $affected = collect([$edited])->concat(
+            DistributorCatalogProposal::pending()->where('id', '!=', $edited->id)->get(),
+        );
+
+        $configs = $this->distributorConfigs(
+            $affected->flatMap(fn (DistributorCatalogProposal $p) => collect($p->evidence ?? [])->pluck('distributor_id'))
+                ->filter()->unique(),
+        );
+
+        foreach ($affected as $proposal) {
+            if ($proposal->id === $edited->id || $this->matchesAnyCapture($proposal, $captures, $configs)) {
+                $this->restamp($proposal, $configs);
+            }
+        }
+    }
+
+    /**
+     * Whether a proposal's representative attributed member carries a raw value a
+     * capture just learned an alias for.
+     *
+     * @param  array<int, array{distributor_id: string, attribute: string, scope: ?string, raw: string}>  $captures
+     * @param  array<string, array<string, mixed>>  $configs  distributor id → config
+     */
+    private function matchesAnyCapture(DistributorCatalogProposal $proposal, array $captures, array $configs): bool
+    {
+        $member = collect($proposal->evidence ?? [])->first(fn (array $m) => ! empty($m['attributes']));
+
+        if ($member === null) {
+            return false;
+        }
+
+        $distributorId = $member['distributor_id'] ?? null;
+        $proposalBrand = $proposal->proposed_brand_id ?? $proposal->resolved_brand_id;
+
+        foreach ($captures as $capture) {
+            if ($capture['distributor_id'] !== $distributorId) {
+                continue;
+            }
+
+            // A brand-scoped alias only flips proposals resolved to that brand.
+            if ($capture['scope'] !== null && $proposalBrand !== $capture['scope']) {
+                continue;
+            }
+
+            $raw = DistributorAttributeMatcher::rawAttributeValue($member['attributes'], $configs[$distributorId] ?? [], $capture['attribute']);
+
+            if ($raw !== null && DistributorLearnedAliasStore::normalize($raw) === $capture['raw']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Recompute and persist the denormalised resolution columns (the facet
+     * columns the queue sorts/counts by) for a single proposal, the same way the
+     * cluster engine stamps them. Leaves the human-set proposed_* mappings alone.
+     *
+     * @param  array<string, array<string, mixed>>  $configs  distributor id → config
+     */
+    private function restamp(DistributorCatalogProposal $proposal, array $configs): void
+    {
+        $members = $proposal->evidence ?? [];
+        $member = collect($members)->first(fn (array $m) => ! empty($m['attributes']));
+        $config = $member !== null ? ($configs[$member['distributor_id'] ?? ''] ?? []) : [];
+
+        $resolution = $this->proposalResolver->resolve($members, $config);
+
+        $proposal->forceFill([
+            'resolved_brand_id' => $resolution['brand_id'],
+            'resolved_brand_name' => $resolution['brand_name'],
+            'resolution_state' => $resolution['state'],
+            'resolution' => $resolution['detail'],
+        ])->save();
+    }
+
+    /**
+     * Distributor configs keyed by id, for label resolution / re-stamping.
+     *
+     * @param  Collection<int, mixed>  $ids
+     * @return array<string, array<string, mixed>>
+     */
+    private function distributorConfigs(Collection $ids): array
+    {
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return Distributor::whereIn('id', $ids)->get(['id', 'config'])
+            ->mapWithKeys(fn (Distributor $d) => [$d->id => $d->config ?? []])
+            ->all();
     }
 
     /**
@@ -369,6 +558,7 @@ class DistributorProposalReviewService
             'resolved_brand_name' => $proposal->resolved_brand_name,
             'resolution_state' => $proposal->resolution_state,
             'proposed_name' => $proposal->proposed_name,
+            'note' => $proposal->note,
             'proposed_count' => $proposal->proposed_count,
             'proposed_warehouse_sku' => $proposal->proposed_warehouse_sku,
             'proposed_brand_id' => $proposal->proposed_brand_id,
@@ -444,7 +634,7 @@ class DistributorProposalReviewService
         }
 
         $config = $distributors->get($member['distributor_id'])?->config ?? [];
-        $match = $this->matcher->match($member['attributes'], $config);
+        $match = $this->matcher->match($member['attributes'], $config, $member['distributor_id'] ?? null);
         $brand = $match['brand']['model'];
 
         return [

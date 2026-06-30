@@ -250,20 +250,41 @@ for similar US-importer stores:
   - So colour really is split (base + finish), exactly the recompose case — handled
     by the matcher change (`feat/matcher-finish-combined-color`).
 
+## Status note (updated 2026-06-30)
+Much of this runbook was written 2026-06-25, before BargainBalloons and Havin' A
+Party shipped. Corrections to the rest of the doc:
+- **FOUR distributors are now live**, not the one/two implied above: Larocks,
+  BargainBalloons, LA Balloons, Havin' A Party (table-less BigCommerce — JSON-LD
+  breadcrumb + title recipe). See `project-distributor-havinaparty` memory.
+- The **BargainBalloons recipe** in the "Worked example" section below is no longer
+  "PLANNED" — it's **built, configured, and live** (Shopify accordion `attribute_list`
+  extractor mode, Betallatex→Sempertex alias, BL-/-B affix strip, finish+colour
+  recompose). Read it as a worked reference, not a TODO.
+- **Texture/Finish matching is BUILT** — `DistributorAttributeMatcher` recomposes a
+  split finish+colour (`Latex Finish: Fashion` + `Yellow` → `Fashion Yellow`) via the
+  `texture` label; exact brand-texture first.
+- **Attribute-accuracy gate is BUILT** — `Gs1BrandRegistry` + `DistributorCatalogPromoter::canPromote()`
+  (multi-source attribute agreement + GS1-prefix→brand check), enforced by
+  `promote --execute`; human-approved proposals bypass the gate.
+
 ## Standing gaps / future (so a session doesn't rediscover them)
-- **Texture/Finish matching is unbuilt.** The matcher resolves brand/size/colour/
-  packaging/count but NOT texture. Planned rule (above): exact brand-texture →
-  texture-family; used to disambiguate/complete the colour.
+- **Alias-learning from admin edits is IN PROGRESS** (Todd's working-tree branch):
+  `DistributorLearnedAlias` model + `DistributorLearnedAliasStore` wired into the
+  matcher/review service so admin corrections become reusable distributor→catalog
+  aliases. Not finalized/committed at time of writing.
 - **App SKU search affix-strip (separate from distributor matching):** when a SKU
   search returns no match, retry after stripping known affixes (`BL-`, `-B`) so a
   Betallic-coded lookup finds the Sempertex SKU.
-- **Attribute-accuracy gate is unbuilt** (see policy above): multi-source agreement
-  check, GS1-prefix→brand check, title↔structured size/count corroboration. Until
-  built, single-source clusters are review-only, not auto-create.
 - **2nd attribute source** is the real unlock for trustworthy auto-create — for
   Shopify stores that's the targeted page-enrichment (not just `products.json`).
-  Shopify products need **classification** (from their page table or tags) before they
-  self-propose.
+  Shopify products still need **classification** (from their page table or tags)
+  before they self-propose — that classification step remains unbuilt for Shopify.
+- **New e-commerce platform = new adapter.** Only Shopify + BigCommerce adapters
+  exist; an existing-platform store is just a config recipe.
+- **`firstOrCreate` prod gotcha:** the seeder won't update an existing distributor
+  row, so every config tweak must be set on prod by hand via tinker.
+- **Crawls are run manually** (`nohup … catalog:crawl-distributor`); no scheduled
+  refresh cadence is wired yet.
 - `distributor_sku_urls` aren't retired when a staged product is removed (removal
   detection covers staging only).
 - The whole thing is session-driven today; the Admin Dashboard UI for onboarding +

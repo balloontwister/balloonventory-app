@@ -308,6 +308,9 @@ return [
                 'edit_color_placeholder' => 'Select color…',
                 'edit_count' => 'Count per bag',
                 'edit_warehouse_sku' => 'Warehouse SKU',
+                'edit_note' => 'Reviewer note',
+                'edit_note_placeholder' => 'e.g. for this distributor, Color is a coarse family — prefer the title shade.',
+                'edit_note_hint' => 'Banked with this correction to teach future matches. Optional.',
 
                 'unknown_brand' => 'Unknown',
                 'empty' => 'No proposals match your filters.',

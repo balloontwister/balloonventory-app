@@ -51,6 +51,7 @@ class DistributorCatalogProposal extends Model
         'proposed_count',
         'proposed_name',
         'proposed_warehouse_sku',
+        'note',
         'evidence',
         'resulting_sku_id',
         'reviewed_by',

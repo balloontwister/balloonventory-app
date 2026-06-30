@@ -76,6 +76,7 @@ return [
         'notice' => ':inviter te invitó a unirte a :business como :role.',
         'accept' => 'Aceptar',
         'decline' => 'Rechazar',
+        'former_owner' => 'Un propietario anterior',
     ],
 
     'notifications' => [

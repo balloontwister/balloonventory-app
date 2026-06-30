@@ -11,6 +11,10 @@ defineProps({
     mustVerifyEmail: { type: Boolean },
     status: { type: String },
     countries: { type: Object, default: () => ({}) },
+    accountDeletion: {
+        type: Object,
+        default: () => ({ soleOwnerBusinesses: [] }),
+    },
 });
 
 const page = usePage();
@@ -117,7 +121,9 @@ const submitAvatar = () =>
             <div
                 class="rounded-lg border border-border bg-surface p-6 shadow-pop"
             >
-                <DeleteUserForm />
+                <DeleteUserForm
+                    :sole-owner-businesses="accountDeletion.soleOwnerBusinesses"
+                />
             </div>
         </div>
     </AuthenticatedLayout>

@@ -76,6 +76,7 @@ return [
         'notice' => ':inviter invited you to join :business as :role.',
         'accept' => 'Accept',
         'decline' => 'Decline',
+        'former_owner' => 'A former owner',
     ],
 
     'notifications' => [

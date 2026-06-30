@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BusinessFrozenReason;
 use App\Enums\BusinessPlan;
 use App\Scopes\BusinessScope;
 use Database\Factories\BusinessFactory;
@@ -50,6 +51,7 @@ class Business extends Model
             'onboarding_answers' => 'array',
             'onboarding_completed_at' => 'datetime',
             'frozen_at' => 'datetime',
+            'frozen_reason' => BusinessFrozenReason::class,
         ];
     }
 
@@ -139,6 +141,33 @@ class Business extends Model
     public function isFrozen(): bool
     {
         return $this->frozen_at !== null;
+    }
+
+    /**
+     * Freeze the business with a reason, unless it is already frozen (the first
+     * reason wins — e.g. an admin suspension is not silently relabelled).
+     */
+    public function freeze(BusinessFrozenReason $reason): void
+    {
+        if ($this->isFrozen()) {
+            return;
+        }
+
+        $this->forceFill([
+            'frozen_at' => now(),
+            'frozen_reason' => $reason,
+        ])->save();
+    }
+
+    /**
+     * Lift the freeze and clear the reason.
+     */
+    public function thaw(): void
+    {
+        $this->forceFill([
+            'frozen_at' => null,
+            'frozen_reason' => null,
+        ])->save();
     }
 
     /**

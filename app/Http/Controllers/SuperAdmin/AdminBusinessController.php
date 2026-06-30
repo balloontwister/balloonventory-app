@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\SuperAdmin;
 
+use App\Enums\BusinessFrozenReason;
 use App\Http\Controllers\Controller;
 use App\Models\Bin;
 use App\Models\Business;
@@ -260,8 +261,13 @@ class AdminBusinessController extends Controller
      */
     public function suspend(Request $request, Business $business): RedirectResponse
     {
-        $business->frozen_at = now();
-        $business->save();
+        // Admin intent always wins: stamp the reason even if the business was
+        // already frozen awaiting an ownership transfer, so accepting that
+        // transfer later won't silently lift an admin suspension.
+        $business->forceFill([
+            'frozen_at' => now(),
+            'frozen_reason' => BusinessFrozenReason::Suspended,
+        ])->save();
 
         foreach ($this->owners($business) as $owner) {
             $owner->notify(new BusinessFrozen($business));
@@ -275,8 +281,7 @@ class AdminBusinessController extends Controller
      */
     public function thaw(Business $business): RedirectResponse
     {
-        $business->frozen_at = null;
-        $business->save();
+        $business->thaw();
 
         foreach ($this->owners($business) as $owner) {
             $owner->notify(new BusinessThawed($business));

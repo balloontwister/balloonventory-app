@@ -23,7 +23,7 @@ class AccountHubTest extends TestCase
 
         $this->actingAs($user)
             ->get('/account')
-            ->assertRedirect(route('onboarding.create-business'));
+            ->assertRedirect(route('onboarding.welcome'));
     }
 
     public function test_user_with_business_can_view_account_hub(): void

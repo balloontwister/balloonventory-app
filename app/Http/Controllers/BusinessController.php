@@ -9,6 +9,7 @@ use App\Models\Location;
 use App\Models\Membership;
 use App\Scopes\BusinessScope;
 use App\Support\BusinessContext;
+use App\Support\PendingInvitations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -17,6 +18,30 @@ use Inertia\Response;
 
 class BusinessController extends Controller
 {
+    /**
+     * Neutral "no business yet" landing for a verified user who isn't a member of
+     * any business. Offers creating their own shop or accepting a pending team
+     * invitation. Self-correcting: once they have any membership (e.g. just
+     * accepted an invite), send them on to the dashboard.
+     */
+    public function welcome(Request $request): Response|RedirectResponse
+    {
+        $user = $request->user();
+
+        $hasMembership = Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($hasMembership) {
+            return redirect()->route('dashboard');
+        }
+
+        return Inertia::render('Onboarding/Welcome', [
+            'pendingInvitations' => PendingInvitations::for($user),
+        ]);
+    }
+
     public function create(): Response
     {
         return Inertia::render('Onboarding/CreateBusiness');

@@ -75,6 +75,17 @@ Route::middleware('auth')->group(function () {
         ->name('onboarding.store-business');
 });
 
+// ─── No-business landing + in-app invitation responses (auth + verified, no business) ──
+// A verified user with no membership lands here instead of being forced to create a
+// business. Accept/decline live outside the business gate so a no-business invitee can
+// act on a pending invite; the dashboard reuses the same routes.
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/welcome', [BusinessController::class, 'welcome'])->name('onboarding.welcome');
+
+    Route::post('/invitations/accept-in-app', [InvitationController::class, 'acceptInApp'])->name('invitations.accept-in-app');
+    Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
+});
+
 // ─── Terms acceptance interstitial (auth only — reachable before verify/business) ──
 Route::middleware('auth')->group(function () {
     Route::get('/accept-terms', [TermsAcceptanceController::class, 'show'])->name('terms.show');
@@ -182,9 +193,8 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
     Route::delete('/memberships/{membership}/leave', [MembershipController::class, 'leave'])->name('memberships.leave');
     Route::delete('/memberships/invitations/{invitation}/revoke', [MembershipController::class, 'revokeInvite'])->name('memberships.invitations.revoke');
 
-    // ─── Invitation in-app paths (accept/decline/acknowledge from dashboard) ─────
-    Route::post('/invitations/accept-in-app', [InvitationController::class, 'acceptInApp'])->name('invitations.accept-in-app');
-    Route::post('/invitations/decline', [InvitationController::class, 'decline'])->name('invitations.decline');
+    // Invitation accept/decline live in the no-business group above so a member-less
+    // invitee can respond from the welcome page; the dashboard reuses those routes.
 
     // ─── Notifications (unified notice feed) ─────────────────────────────────────
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

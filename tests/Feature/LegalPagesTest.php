@@ -40,16 +40,39 @@ class LegalPagesTest extends TestCase
         );
     }
 
-    public function test_missing_locale_falls_back_to_english(): void
+    public function test_spanish_locale_is_served_when_a_translation_exists(): void
     {
-        // A Spanish-locale user with no es Markdown file still gets English prose.
         $user = User::factory()->create(['locale' => 'es']);
 
         $this->actingAs($user)
             ->get('/terms')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('html', fn (string $html) => str_contains($html, 'Acceptance of these terms'))
+                ->where('html', fn (string $html) => str_contains($html, 'términos'))
+            );
+    }
+
+    public function test_untranslated_locale_falls_back_to_english(): void
+    {
+        // Capture the default (English) render… (full closure so the by-reference
+        // capture propagates — an arrow fn would capture $englishHtml by value).
+        $englishHtml = null;
+        $this->get('/terms')->assertInertia(function (Assert $page) use (&$englishHtml) {
+            return $page->where('html', function (string $html) use (&$englishHtml) {
+                $englishHtml = $html;
+
+                return true;
+            });
+        });
+
+        // …a locale with no Markdown files (e.g. fr) renders identical English prose.
+        $user = User::factory()->create(['locale' => 'fr']);
+
+        $this->actingAs($user)
+            ->get('/terms')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('html', fn (string $html) => $html === $englishHtml)
             );
     }
 

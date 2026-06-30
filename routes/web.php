@@ -8,6 +8,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\JobsController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ListsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\LocationController;
@@ -51,6 +52,15 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+
+// ─── Legal / policy pages (public — readable before sign-up, no auth) ─────────
+// Controller routes with ->defaults() so route:cache/optimize stays valid.
+Route::get('/legal', [LegalController::class, 'index'])->name('legal.index');
+Route::get('/terms', [LegalController::class, 'show'])->defaults('doc', 'terms')->name('legal.terms');
+Route::get('/privacy', [LegalController::class, 'show'])->defaults('doc', 'privacy')->name('legal.privacy');
+Route::get('/cookies', [LegalController::class, 'show'])->defaults('doc', 'cookies')->name('legal.cookies');
+Route::get('/acceptable-use', [LegalController::class, 'show'])->defaults('doc', 'acceptable-use')->name('legal.acceptable-use');
+Route::get('/refunds', [LegalController::class, 'show'])->defaults('doc', 'refunds')->name('legal.refunds');
 
 // ─── Locale ────────────────────────────────────────────────────────────────────
 Route::post('/locale/switch', [LocaleController::class, 'switch'])->name('locale.switch');

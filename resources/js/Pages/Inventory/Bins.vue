@@ -377,22 +377,22 @@ function binSummaryLabel(bin) {
 
                         <!-- Card actions -->
                         <div
-                            class="mt-auto flex flex-wrap items-center justify-between gap-x-1 gap-y-0.5 border-t border-border px-3 py-2"
+                            class="mt-auto flex flex-wrap items-center justify-between gap-x-0.5 gap-y-0.5 border-t border-border px-2 py-2"
                         >
-                            <div class="flex items-center gap-x-1">
+                            <div class="flex items-center gap-x-0.5">
                                 <Link
                                     :href="
                                         route('inventory.bins.show', {
                                             bin: bin.id,
                                         })
                                     "
-                                    class="rounded-md px-2 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft"
+                                    class="rounded-md px-1.5 py-1 font-sans text-[13px] font-medium text-accent hover:bg-accent-soft"
                                 >
                                     {{ $t('bins.show.open') }}
                                 </Link>
                                 <Link
                                     :href="route('scan.index', { bin: bin.id })"
-                                    class="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-background hover:text-accent"
+                                    class="flex h-7 w-6 items-center justify-center rounded-md text-ink-secondary transition hover:bg-background hover:text-accent"
                                     :title="$t('bins.scan_into')"
                                     :aria-label="$t('bins.scan_into')"
                                 >
@@ -419,7 +419,7 @@ function binSummaryLabel(bin) {
                             </div>
                             <button
                                 type="button"
-                                class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
+                                class="rounded-md px-1.5 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
                                 @click="toggleBin(bin)"
                             >
                                 {{

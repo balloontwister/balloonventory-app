@@ -3,6 +3,10 @@ import { useForm } from '@inertiajs/vue3';
 import { Head } from '@inertiajs/vue3';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
+defineProps({
+    hasExistingBusiness: { type: Boolean, default: false },
+});
+
 const form = useForm({
     name: '',
 });
@@ -25,7 +29,11 @@ function submit() {
                     {{ $t('onboarding.wordmark') }}
                 </p>
                 <p class="mt-2 font-sans text-[15px] text-ink-secondary">
-                    {{ $t('onboarding.lead') }}
+                    {{
+                        hasExistingBusiness
+                            ? $t('onboarding.lead_additional')
+                            : $t('onboarding.lead')
+                    }}
                 </p>
             </div>
 
@@ -33,10 +41,18 @@ function submit() {
                 <h1
                     class="mb-1 font-display text-[22px] font-semibold text-ink-primary"
                 >
-                    {{ $t('onboarding.heading') }}
+                    {{
+                        hasExistingBusiness
+                            ? $t('onboarding.heading_additional')
+                            : $t('onboarding.heading')
+                    }}
                 </h1>
                 <p class="mb-6 font-sans text-[14px] text-ink-secondary">
-                    {{ $t('onboarding.subheading') }}
+                    {{
+                        hasExistingBusiness
+                            ? $t('onboarding.subheading_additional')
+                            : $t('onboarding.subheading')
+                    }}
                 </p>
 
                 <form @submit.prevent="submit" class="space-y-5">

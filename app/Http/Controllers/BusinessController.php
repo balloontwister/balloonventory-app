@@ -42,9 +42,16 @@ class BusinessController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Onboarding/CreateBusiness');
+        $hasExistingBusiness = Membership::withoutGlobalScope(BusinessScope::class)
+            ->where('user_id', $request->user()->id)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        return Inertia::render('Onboarding/CreateBusiness', [
+            'hasExistingBusiness' => $hasExistingBusiness,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

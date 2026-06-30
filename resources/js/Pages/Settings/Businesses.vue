@@ -8,7 +8,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Modal from '@/Components/Modal.vue';
 import AppButton from '@/Components/AppButton.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -18,8 +18,23 @@ const props = defineProps({
     members: { type: Array, default: () => [] },
     pendingInvitations: { type: Array, default: () => [] },
     distributors: { type: Array, default: () => [] },
+    ownMembershipId: { type: String, default: null },
     can: { type: Object, default: () => ({}) },
 });
+
+// Leave this business / start a new one (bottom of the hub).
+const showLeaveConfirm = ref(false);
+const showCreateConfirm = ref(false);
+
+function confirmLeave() {
+    useForm({}).delete(
+        route('memberships.leave', { membership: props.ownMembershipId }),
+    );
+}
+
+function goCreateBusiness() {
+    router.visit(route('onboarding.create-business'));
+}
 
 const page = usePage();
 const canEditSettings = computed(() =>
@@ -40,7 +55,11 @@ function doSubmitInvite() {
 
 function submitInvite() {
     if (inviteForm.role === 'owner') {
-        ownerWarningPending.value = { type: 'invite_owner', direction: 'add', personLabel: inviteForm.email };
+        ownerWarningPending.value = {
+            type: 'invite_owner',
+            direction: 'add',
+            personLabel: inviteForm.email,
+        };
         return;
     }
     doSubmitInvite();
@@ -68,36 +87,67 @@ const selectResetKey = ref(0);
 function handleRoleChange(membershipId, newRole, currentRole) {
     const member = props.members.find((m) => m.id === membershipId);
     if (currentRole === 'owner') {
-        ownerWarningPending.value = { type: 'role_change', direction: 'remove', membershipId, newRole, memberName: member?.name ?? '' };
+        ownerWarningPending.value = {
+            type: 'role_change',
+            direction: 'remove',
+            membershipId,
+            newRole,
+            memberName: member?.name ?? '',
+        };
         return;
     }
     if (newRole === 'owner') {
-        ownerWarningPending.value = { type: 'promote', direction: 'add', membershipId, newRole, personLabel: member?.name ?? '' };
+        ownerWarningPending.value = {
+            type: 'promote',
+            direction: 'add',
+            membershipId,
+            newRole,
+            personLabel: member?.name ?? '',
+        };
         return;
     }
-    useForm({ role: newRole }).patch(route('memberships.update-role', membershipId), { preserveScroll: true });
+    useForm({ role: newRole }).patch(
+        route('memberships.update-role', membershipId),
+        { preserveScroll: true },
+    );
 }
 
 function revokeMember(membershipId, currentRole) {
     if (currentRole === 'owner') {
         const member = props.members.find((m) => m.id === membershipId);
-        ownerWarningPending.value = { type: 'revoke', direction: 'remove', membershipId, memberName: member?.name ?? '' };
+        ownerWarningPending.value = {
+            type: 'revoke',
+            direction: 'remove',
+            membershipId,
+            memberName: member?.name ?? '',
+        };
         return;
     }
-    if (!confirm(trans('settings.team.confirm_remove'))) { return; }
-    useForm({}).delete(route('memberships.destroy', membershipId), { preserveScroll: true });
+    if (!confirm(trans('settings.team.confirm_remove'))) {
+        return;
+    }
+    useForm({}).delete(route('memberships.destroy', membershipId), {
+        preserveScroll: true,
+    });
 }
 
 function confirmOwnerWarning() {
     const pending = ownerWarningPending.value;
     ownerWarningPending.value = null;
-    if (!pending) { return; }
+    if (!pending) {
+        return;
+    }
     if (pending.type === 'role_change' || pending.type === 'promote') {
-        useForm({ role: pending.newRole }).patch(route('memberships.update-role', pending.membershipId), { preserveScroll: true });
+        useForm({ role: pending.newRole }).patch(
+            route('memberships.update-role', pending.membershipId),
+            { preserveScroll: true },
+        );
     } else if (pending.type === 'invite_owner') {
         doSubmitInvite();
     } else {
-        useForm({}).delete(route('memberships.destroy', pending.membershipId), { preserveScroll: true });
+        useForm({}).delete(route('memberships.destroy', pending.membershipId), {
+            preserveScroll: true,
+        });
     }
 }
 
@@ -134,7 +184,9 @@ const submitLogo = () =>
     });
 
 const distributorForm = useForm({
-    distributor_ids: props.distributors.filter((d) => d.enabled).map((d) => d.id),
+    distributor_ids: props.distributors
+        .filter((d) => d.enabled)
+        .map((d) => d.id),
 });
 function toggleDistributor(id, checked) {
     const set = new Set(distributorForm.distributor_ids);
@@ -248,7 +300,9 @@ const submitDistributors = () =>
                     <div>
                         <InputLabel
                             for="biz_contact_email"
-                            :value="$t('settings.businesses.contact.contact_email')"
+                            :value="
+                                $t('settings.businesses.contact.contact_email')
+                            "
                         />
                         <TextInput
                             id="biz_contact_email"
@@ -257,7 +311,10 @@ const submitDistributors = () =>
                             class="mt-1 block w-full max-w-sm"
                             :disabled="!canEditSettings"
                         />
-                        <InputError class="mt-1" :message="form.errors.contact_email" />
+                        <InputError
+                            class="mt-1"
+                            :message="form.errors.contact_email"
+                        />
                     </div>
 
                     <div>
@@ -278,7 +335,9 @@ const submitDistributors = () =>
                     <div>
                         <InputLabel
                             for="biz_address_line1"
-                            :value="$t('settings.businesses.contact.address_line1')"
+                            :value="
+                                $t('settings.businesses.contact.address_line1')
+                            "
                         />
                         <TextInput
                             id="biz_address_line1"
@@ -287,13 +346,18 @@ const submitDistributors = () =>
                             class="mt-1 block w-full max-w-sm"
                             :disabled="!canEditSettings"
                         />
-                        <InputError class="mt-1" :message="form.errors.address_line1" />
+                        <InputError
+                            class="mt-1"
+                            :message="form.errors.address_line1"
+                        />
                     </div>
 
                     <div>
                         <InputLabel
                             for="biz_address_line2"
-                            :value="$t('settings.businesses.contact.address_line2')"
+                            :value="
+                                $t('settings.businesses.contact.address_line2')
+                            "
                         />
                         <TextInput
                             id="biz_address_line2"
@@ -302,7 +366,10 @@ const submitDistributors = () =>
                             class="mt-1 block w-full max-w-sm"
                             :disabled="!canEditSettings"
                         />
-                        <InputError class="mt-1" :message="form.errors.address_line2" />
+                        <InputError
+                            class="mt-1"
+                            :message="form.errors.address_line2"
+                        />
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -318,12 +385,19 @@ const submitDistributors = () =>
                                 class="mt-1 block w-full"
                                 :disabled="!canEditSettings"
                             />
-                            <InputError class="mt-1" :message="form.errors.city" />
+                            <InputError
+                                class="mt-1"
+                                :message="form.errors.city"
+                            />
                         </div>
                         <div>
                             <InputLabel
                                 for="biz_state_region"
-                                :value="$t('settings.businesses.contact.state_region')"
+                                :value="
+                                    $t(
+                                        'settings.businesses.contact.state_region',
+                                    )
+                                "
                             />
                             <TextInput
                                 id="biz_state_region"
@@ -332,12 +406,19 @@ const submitDistributors = () =>
                                 class="mt-1 block w-full"
                                 :disabled="!canEditSettings"
                             />
-                            <InputError class="mt-1" :message="form.errors.state_region" />
+                            <InputError
+                                class="mt-1"
+                                :message="form.errors.state_region"
+                            />
                         </div>
                         <div>
                             <InputLabel
                                 for="biz_postal_code"
-                                :value="$t('settings.businesses.contact.postal_code')"
+                                :value="
+                                    $t(
+                                        'settings.businesses.contact.postal_code',
+                                    )
+                                "
                             />
                             <TextInput
                                 id="biz_postal_code"
@@ -346,7 +427,10 @@ const submitDistributors = () =>
                                 class="mt-1 block w-full"
                                 :disabled="!canEditSettings"
                             />
-                            <InputError class="mt-1" :message="form.errors.postal_code" />
+                            <InputError
+                                class="mt-1"
+                                :message="form.errors.postal_code"
+                            />
                         </div>
                     </div>
 
@@ -359,16 +443,25 @@ const submitDistributors = () =>
                             id="biz_country"
                             v-model="form.country"
                             :countries="countries"
-                            :placeholder="$t('settings.businesses.contact.country_placeholder')"
+                            :placeholder="
+                                $t(
+                                    'settings.businesses.contact.country_placeholder',
+                                )
+                            "
                             :disabled="!canEditSettings"
                         />
-                        <InputError class="mt-1" :message="form.errors.country" />
+                        <InputError
+                            class="mt-1"
+                            :message="form.errors.country"
+                        />
                     </div>
 
                     <div>
                         <InputLabel
                             for="biz_website_url"
-                            :value="$t('settings.businesses.contact.website_url')"
+                            :value="
+                                $t('settings.businesses.contact.website_url')
+                            "
                         />
                         <TextInput
                             id="biz_website_url"
@@ -378,13 +471,18 @@ const submitDistributors = () =>
                             :disabled="!canEditSettings"
                             placeholder="https://balloonventory.com"
                         />
-                        <InputError class="mt-1" :message="form.errors.website_url" />
+                        <InputError
+                            class="mt-1"
+                            :message="form.errors.website_url"
+                        />
                     </div>
 
                     <div>
                         <InputLabel
                             for="biz_website_url_2"
-                            :value="$t('settings.businesses.contact.website_url_2')"
+                            :value="
+                                $t('settings.businesses.contact.website_url_2')
+                            "
                         />
                         <TextInput
                             id="biz_website_url_2"
@@ -394,7 +492,10 @@ const submitDistributors = () =>
                             :disabled="!canEditSettings"
                             placeholder="https://instagram.com/balloonventory"
                         />
-                        <InputError class="mt-1" :message="form.errors.website_url_2" />
+                        <InputError
+                            class="mt-1"
+                            :message="form.errors.website_url_2"
+                        />
                     </div>
 
                     <div class="flex items-center gap-4 pt-1">
@@ -533,11 +634,19 @@ const submitDistributors = () =>
                         class="flex items-center gap-3 py-3"
                     >
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-sans text-[14px] font-medium text-ink-primary">
+                            <p
+                                class="truncate font-sans text-[14px] font-medium text-ink-primary"
+                            >
                                 {{ member.name }}
-                                <span v-if="member.is_self" class="ml-1 font-sans text-[12px] text-ink-tertiary">({{ $t('settings.team.you') }})</span>
+                                <span
+                                    v-if="member.is_self"
+                                    class="ml-1 font-sans text-[12px] text-ink-tertiary"
+                                    >({{ $t('settings.team.you') }})</span
+                                >
                             </p>
-                            <p class="truncate font-sans text-[12px] text-ink-tertiary">
+                            <p
+                                class="truncate font-sans text-[12px] text-ink-tertiary"
+                            >
                                 {{ member.email }}
                             </p>
                         </div>
@@ -546,7 +655,14 @@ const submitDistributors = () =>
                             :value="member.role"
                             :disabled="member.is_self"
                             class="rounded-md border border-border bg-background px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none disabled:opacity-50"
-                            @change="(e) => handleRoleChange(member.id, e.target.value, member.role)"
+                            @change="
+                                (e) =>
+                                    handleRoleChange(
+                                        member.id,
+                                        e.target.value,
+                                        member.role,
+                                    )
+                            "
                         >
                             <option
                                 v-for="opt in roleOptions(can.inviteOwner)"
@@ -569,7 +685,9 @@ const submitDistributors = () =>
 
                 <!-- Pending invitations -->
                 <div v-if="pendingInvitations.length" class="mt-4">
-                    <p class="font-sans text-[12px] font-semibold uppercase tracking-widest text-ink-tertiary">
+                    <p
+                        class="font-sans text-[12px] font-semibold uppercase tracking-widest text-ink-tertiary"
+                    >
                         {{ $t('settings.team.pending_heading') }}
                     </p>
                     <div class="mt-2 divide-y divide-border">
@@ -579,11 +697,22 @@ const submitDistributors = () =>
                             class="flex items-center gap-3 py-2.5"
                         >
                             <div class="min-w-0 flex-1">
-                                <p class="truncate font-sans text-[13px] text-ink-primary">
+                                <p
+                                    class="truncate font-sans text-[13px] text-ink-primary"
+                                >
                                     {{ inv.invited_email }}
                                 </p>
-                                <p class="font-sans text-[12px] text-ink-tertiary">
-                                    {{ $t('settings.team.pending_role', { role: roleOptions(true).find(r => r.value === inv.role)?.label ?? inv.role }) }}
+                                <p
+                                    class="font-sans text-[12px] text-ink-tertiary"
+                                >
+                                    {{
+                                        $t('settings.team.pending_role', {
+                                            role:
+                                                roleOptions(true).find(
+                                                    (r) => r.value === inv.role,
+                                                )?.label ?? inv.role,
+                                        })
+                                    }}
                                 </p>
                             </div>
                             <button
@@ -599,24 +728,40 @@ const submitDistributors = () =>
 
                 <!-- Invite form -->
                 <div v-if="can.invite" class="mt-5 border-t border-border pt-5">
-                    <p class="font-display text-[14px] font-semibold text-ink-primary">
+                    <p
+                        class="font-display text-[14px] font-semibold text-ink-primary"
+                    >
                         {{ $t('settings.team.invite_heading') }}
                     </p>
-                    <form class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="submitInvite">
+                    <form
+                        class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
+                        @submit.prevent="submitInvite"
+                    >
                         <div class="flex-1">
-                            <InputLabel for="invite_email" :value="$t('settings.team.invite_email')" />
+                            <InputLabel
+                                for="invite_email"
+                                :value="$t('settings.team.invite_email')"
+                            />
                             <TextInput
                                 id="invite_email"
                                 v-model="inviteForm.email"
                                 type="email"
                                 class="mt-1 block w-full"
-                                :placeholder="$t('settings.team.invite_email_placeholder')"
+                                :placeholder="
+                                    $t('settings.team.invite_email_placeholder')
+                                "
                                 required
                             />
-                            <InputError class="mt-1" :message="inviteForm.errors.email" />
+                            <InputError
+                                class="mt-1"
+                                :message="inviteForm.errors.email"
+                            />
                         </div>
                         <div>
-                            <InputLabel for="invite_role" :value="$t('settings.team.invite_role')" />
+                            <InputLabel
+                                for="invite_role"
+                                :value="$t('settings.team.invite_role')"
+                            />
                             <select
                                 id="invite_role"
                                 v-model="inviteForm.role"
@@ -672,8 +817,18 @@ const submitDistributors = () =>
                         <input
                             type="checkbox"
                             class="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-                            :checked="distributorForm.distributor_ids.includes(distributor.id)"
-                            @change="(e) => toggleDistributor(distributor.id, e.target.checked)"
+                            :checked="
+                                distributorForm.distributor_ids.includes(
+                                    distributor.id,
+                                )
+                            "
+                            @change="
+                                (e) =>
+                                    toggleDistributor(
+                                        distributor.id,
+                                        e.target.checked,
+                                    )
+                            "
                         />
                         <span class="font-sans text-[14px] text-ink-primary">
                             {{ distributor.name }}
@@ -737,42 +892,173 @@ const submitDistributors = () =>
                     {{ $t('settings.businesses.setup_again.button') }}
                 </Link>
             </div>
+
+            <!-- ── Membership: leave / start a new business ──────────────── -->
+            <div
+                v-if="can.leave || can.createBusiness"
+                class="rounded-lg border border-border bg-surface p-6 shadow-pop"
+            >
+                <h2
+                    class="font-display text-[17px] font-semibold tracking-h3 text-ink-primary"
+                >
+                    {{ $t('settings.businesses.membership.heading') }}
+                </h2>
+                <p class="mt-1 font-sans text-[13px] text-ink-secondary">
+                    {{ $t('settings.businesses.membership.subheading') }}
+                </p>
+
+                <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button
+                        v-if="can.createBusiness"
+                        type="button"
+                        class="rounded-md border border-border-strong bg-surface px-4 py-2 font-sans text-[14px] font-semibold text-ink-primary transition hover:bg-background"
+                        @click="showCreateConfirm = true"
+                    >
+                        {{ $t('settings.businesses.membership.create_button') }}
+                    </button>
+                    <button
+                        v-if="can.leave"
+                        type="button"
+                        class="border-danger/40 rounded-md border px-4 py-2 font-sans text-[14px] font-semibold text-danger transition hover:bg-danger-soft"
+                        @click="showLeaveConfirm = true"
+                    >
+                        {{ $t('settings.businesses.membership.leave_button') }}
+                    </button>
+                </div>
+            </div>
         </div>
         <!-- Owner access warning modal -->
         <Modal :show="!!ownerWarningPending" @close="cancelOwnerWarning">
             <div class="p-6">
                 <template v-if="ownerWarningPending?.direction === 'add'">
-                    <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                    <h2
+                        class="font-display text-[18px] font-semibold text-ink-primary"
+                    >
                         {{ $t('settings.team.owner_promote_title') }}
                     </h2>
                     <p class="mt-2 font-sans text-[14px] text-ink-secondary">
-                        {{ $t('settings.team.owner_promote_body', { person: ownerWarningPending?.personLabel ?? '' }) }}
+                        {{
+                            $t('settings.team.owner_promote_body', {
+                                person: ownerWarningPending?.personLabel ?? '',
+                            })
+                        }}
                     </p>
                     <div class="mt-6 flex justify-end gap-2">
-                        <AppButton variant="secondary" @click="cancelOwnerWarning">
+                        <AppButton
+                            variant="secondary"
+                            @click="cancelOwnerWarning"
+                        >
                             {{ $t('common.cancel') }}
                         </AppButton>
-                        <AppButton variant="primary" @click="confirmOwnerWarning">
+                        <AppButton
+                            variant="primary"
+                            @click="confirmOwnerWarning"
+                        >
                             {{ $t('settings.team.owner_promote_confirm') }}
                         </AppButton>
                     </div>
                 </template>
                 <template v-else>
-                    <h2 class="font-display text-[18px] font-semibold text-ink-primary">
+                    <h2
+                        class="font-display text-[18px] font-semibold text-ink-primary"
+                    >
                         {{ $t('settings.team.owner_warning_title') }}
                     </h2>
                     <p class="mt-2 font-sans text-[14px] text-ink-secondary">
-                        {{ $t('settings.team.owner_warning_body', { name: ownerWarningPending?.memberName ?? '' }) }}
+                        {{
+                            $t('settings.team.owner_warning_body', {
+                                name: ownerWarningPending?.memberName ?? '',
+                            })
+                        }}
                     </p>
                     <div class="mt-6 flex justify-end gap-2">
-                        <AppButton variant="secondary" @click="cancelOwnerWarning">
+                        <AppButton
+                            variant="secondary"
+                            @click="cancelOwnerWarning"
+                        >
                             {{ $t('common.cancel') }}
                         </AppButton>
-                        <AppButton variant="danger" @click="confirmOwnerWarning">
+                        <AppButton
+                            variant="danger"
+                            @click="confirmOwnerWarning"
+                        >
                             {{ $t('settings.team.owner_warning_confirm') }}
                         </AppButton>
                     </div>
                 </template>
+            </div>
+        </Modal>
+
+        <!-- Leave this business confirmation -->
+        <Modal :show="showLeaveConfirm" @close="showLeaveConfirm = false">
+            <div class="p-6">
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
+                    {{
+                        $t('settings.businesses.membership.leave_confirm_title')
+                    }}
+                </h2>
+                <p class="mt-2 font-sans text-[14px] text-ink-secondary">
+                    {{
+                        $t(
+                            'settings.businesses.membership.leave_confirm_body',
+                            {
+                                business: business.name,
+                            },
+                        )
+                    }}
+                </p>
+                <div class="mt-6 flex justify-end gap-2">
+                    <AppButton
+                        variant="secondary"
+                        @click="showLeaveConfirm = false"
+                    >
+                        {{ $t('common.cancel') }}
+                    </AppButton>
+                    <AppButton variant="danger" @click="confirmLeave">
+                        {{
+                            $t(
+                                'settings.businesses.membership.leave_confirm_button',
+                            )
+                        }}
+                    </AppButton>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Start a new (independent) business confirmation -->
+        <Modal :show="showCreateConfirm" @close="showCreateConfirm = false">
+            <div class="p-6">
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
+                    {{
+                        $t(
+                            'settings.businesses.membership.create_confirm_title',
+                        )
+                    }}
+                </h2>
+                <p class="mt-2 font-sans text-[14px] text-ink-secondary">
+                    {{
+                        $t('settings.businesses.membership.create_confirm_body')
+                    }}
+                </p>
+                <div class="mt-6 flex justify-end gap-2">
+                    <AppButton
+                        variant="secondary"
+                        @click="showCreateConfirm = false"
+                    >
+                        {{ $t('common.cancel') }}
+                    </AppButton>
+                    <AppButton variant="primary" @click="goCreateBusiness">
+                        {{
+                            $t(
+                                'settings.businesses.membership.create_confirm_button',
+                            )
+                        }}
+                    </AppButton>
+                </div>
             </div>
         </Modal>
     </AuthenticatedLayout>

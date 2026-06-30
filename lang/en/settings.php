@@ -70,6 +70,19 @@ return [
             'subheading' => 'Re-run the guided setup to refresh starter inventory, bins, and preferences.',
             'button' => 'Set up my shop again',
         ],
+
+        'membership' => [
+            'heading' => 'Membership',
+            'subheading' => 'Leave this business, or start a separate one of your own.',
+            'create_button' => 'Start a new business',
+            'leave_button' => 'Leave this business',
+            'leave_confirm_title' => 'Leave this business?',
+            'leave_confirm_body' => 'You will lose access to :business and its inventory. An owner can invite you back later.',
+            'leave_confirm_button' => 'Leave business',
+            'create_confirm_title' => 'Start a new business?',
+            'create_confirm_body' => 'This creates an entirely separate, independent business that you own — it does not share inventory, members, or settings with your current one. You can switch between them anytime. Are you sure you want to continue?',
+            'create_confirm_button' => 'Yes, start a new business',
+        ],
     ],
 
     'team' => [

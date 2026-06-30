@@ -321,6 +321,53 @@ class BinDetailTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_bin_show_passes_the_manage_origin_for_the_back_link(): void
+    {
+        $this->actingAs($this->owner)
+            ->get(route('inventory.bins.show', ['bin' => $this->bin, 'from' => 'manage']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Inventory/BinShow')
+                ->where('from', 'manage'));
+    }
+
+    public function test_sku_show_back_links_to_the_origin_bin(): void
+    {
+        $sku = Sku::factory()->create();
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', [
+                'sku' => $sku->id,
+                'from' => 'bin',
+                'bin' => $this->bin->id,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Inventory/Show')
+                ->where('backBin.id', $this->bin->id));
+    }
+
+    public function test_sku_show_ignores_a_foreign_bin_for_the_back_link(): void
+    {
+        $sku = Sku::factory()->create();
+        $otherBusiness = Business::factory()->create();
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'name' => 'Default', 'is_default' => true,
+        ]);
+        $foreignBin = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $otherBusiness->id, 'location_id' => $otherLocation->id, 'name' => 'Foreign',
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('inventory.sku.show', [
+                'sku' => $sku->id,
+                'from' => 'bin',
+                'bin' => $foreignBin->id,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('backBin', null));
+    }
+
     public function test_bulk_contents_groups_stocked_items_by_bin(): void
     {
         $skuA = Sku::factory()->create();

@@ -56,6 +56,7 @@ return [
 
     'show' => [
         'back' => 'Back to inventory',
+        'back_to_bin' => 'Back to :bin',
         'section_stock' => 'Stock',
         'section_details' => 'Details',
         'section_override' => 'Your customizations',

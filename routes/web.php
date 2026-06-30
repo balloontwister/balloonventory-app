@@ -124,6 +124,7 @@ Route::middleware(['auth', 'verified', 'ensure.business', 'ensure.business.activ
     Route::get('/inventory/bins', [BinController::class, 'index'])->name('inventory.bins.index');
     Route::get('/inventory/storage', [BinController::class, 'manage'])->name('inventory.storage');
     Route::post('/inventory/bins/auto-number', [BinController::class, 'autoNumber'])->name('inventory.bins.auto-number');
+    Route::post('/inventory/bins/reorder', [BinController::class, 'reorder'])->name('inventory.bins.reorder');
     Route::get('/inventory/bins/{bin}', [BinController::class, 'show'])->name('inventory.bins.show');
     Route::get('/inventory/bins-contents', [BinController::class, 'bulkContents'])->name('inventory.bins.bulk-contents');
     Route::get('/inventory/bins/{bin}/contents', [BinController::class, 'contents'])->name('inventory.bins.contents');

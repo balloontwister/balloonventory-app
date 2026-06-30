@@ -152,6 +152,10 @@ return [
         'auto_number_renumber_hint' => 'Reassigns sequential numbers to every bin in order. Locked bins keep their number.',
         'auto_number_renumber_confirm' => 'Renumber all bins? This changes existing bin numbers (except locked ones) and may no longer match labels you’ve already printed.',
         'auto_number_locked_note' => 'Tip: lock a bin’s number from its Edit screen to protect a label you’ve already printed.',
+        'rearrange' => 'Rearrange',
+        'rearrange_done' => 'Done',
+        'rearrange_hint' => 'Drag bins into the order they’re in physically. Locked bins stay put.',
+        'rearrange_save' => 'Save order',
     ],
 
     'lock' => [
@@ -161,8 +165,16 @@ return [
         'info_body' => 'When a number is locked, this bin keeps it even if you auto-number or renumber your bins. Lock a bin once its physical label is printed so the number can’t drift away from the label.',
     ],
 
+    'position_lock' => [
+        'label' => 'Lock position',
+        'hint' => 'Keep it from being moved',
+        'info_title' => 'Locking a bin’s position',
+        'info_body' => 'When a position is locked, this bin can’t be dragged when you rearrange, and other bins can’t be moved past it — it stays put. Handy for a bin that’s always in the same spot, like your main or default bin.',
+    ],
+
     'flash' => [
         'auto_numbered' => 'Numbered :count bins.',
+        'reordered' => 'Bin order saved.',
         'location_created' => 'Location created.',
         'location_updated' => 'Location updated.',
         'location_deleted' => 'Location deleted.',

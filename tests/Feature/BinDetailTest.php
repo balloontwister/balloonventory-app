@@ -306,6 +306,89 @@ class BinDetailTest extends TestCase
         $this->assertSame(2, $c->refresh()->number);
     }
 
+    public function test_update_persists_the_position_lock(): void
+    {
+        $this->actingAs($this->owner)
+            ->patch(route('inventory.bins.update', $this->bin), [
+                'location_id' => $this->location->id,
+                'name' => $this->bin->name,
+                'number' => 3,
+                'position_locked' => true,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('bins', [
+            'id' => $this->bin->id,
+            'position_locked' => true,
+        ]);
+    }
+
+    public function test_reorder_writes_sort_order_by_submitted_order(): void
+    {
+        $this->bin->forceDelete();
+        $a = $this->makeBin('A', number: null, sort: 0);
+        $b = $this->makeBin('B', number: null, sort: 1);
+        $c = $this->makeBin('C', number: null, sort: 2);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.bins.reorder'), [
+                'location_id' => $this->location->id,
+                'bin_ids' => [$c->id, $a->id, $b->id],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertSame(0, $c->refresh()->sort_order);
+        $this->assertSame(1, $a->refresh()->sort_order);
+        $this->assertSame(2, $b->refresh()->sort_order);
+    }
+
+    public function test_reorder_ignores_bins_outside_the_given_location(): void
+    {
+        $this->bin->forceDelete();
+        $a = $this->makeBin('A', number: null, sort: 5);
+
+        $otherLocation = Location::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'name' => 'Warehouse',
+        ]);
+        $foreign = Bin::withoutGlobalScope(BusinessScope::class)->create([
+            'business_id' => $this->business->id,
+            'location_id' => $otherLocation->id,
+            'name' => 'Elsewhere',
+            'sort_order' => 9,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->post(route('inventory.bins.reorder'), [
+                'location_id' => $this->location->id,
+                'bin_ids' => [$foreign->id, $a->id],
+            ])
+            ->assertRedirect();
+
+        // Only the in-location bin is repositioned; the other location is untouched.
+        $this->assertSame(0, $a->refresh()->sort_order);
+        $this->assertSame(9, $foreign->refresh()->sort_order);
+    }
+
+    public function test_reorder_is_denied_without_manage_permission(): void
+    {
+        $guest = User::factory()->create(['email_verified_at' => now()]);
+        Membership::create([
+            'user_id' => $guest->id,
+            'business_id' => $this->business->id,
+            'role' => 'guest',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($guest)
+            ->post(route('inventory.bins.reorder'), [
+                'location_id' => $this->location->id,
+                'bin_ids' => [$this->bin->id],
+            ])
+            ->assertForbidden();
+    }
+
     public function test_auto_number_is_denied_without_manage_permission(): void
     {
         $guest = User::factory()->create(['email_verified_at' => now()]);

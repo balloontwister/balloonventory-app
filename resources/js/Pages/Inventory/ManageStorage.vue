@@ -5,6 +5,7 @@ import AppInput from '@/Components/AppInput.vue';
 import BackLink from '@/Components/BackLink.vue';
 import InfoButton from '@/Components/InfoButton.vue';
 import Modal from '@/Components/Modal.vue';
+import draggable from 'vuedraggable';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -94,13 +95,14 @@ function deleteLocation(location) {
     );
 }
 
-// ── Bin form (add / edit, incl. number lock) ──────────────────────────────────
+// ── Bin form (add / edit, incl. number + position locks) ──────────────────────
 const editingBinId = ref(null);
 const binForm = useForm({
     location_id: '',
     name: '',
     number: '',
     number_locked: false,
+    position_locked: false,
     description: '',
 });
 
@@ -111,6 +113,7 @@ function openCreateBin(location) {
     binForm.name = '';
     binForm.number = '';
     binForm.number_locked = false;
+    binForm.position_locked = false;
     binForm.description = '';
     modalType.value = 'bin';
 }
@@ -122,8 +125,39 @@ function openEditBin(bin) {
     binForm.name = bin.name;
     binForm.number = bin.number ?? '';
     binForm.number_locked = !!bin.number_locked;
+    binForm.position_locked = !!bin.position_locked;
     binForm.description = bin.description ?? '';
     modalType.value = 'bin';
+}
+
+// ── Rearrange (drag-reorder a location's bins) ────────────────────────────────
+const rearrangingLocationId = ref(null);
+const rearrangeBins = ref([]);
+const reorderForm = useForm({ location_id: '', bin_ids: [] });
+
+function startRearrange(location) {
+    rearrangingLocationId.value = location.id;
+    rearrangeBins.value = [...location.bins];
+}
+
+function cancelRearrange() {
+    rearrangingLocationId.value = null;
+    rearrangeBins.value = [];
+}
+
+// Block dropping across a position-locked bin so it stays put (locked bins also
+// have no drag handle, so they can't be picked up in the first place).
+function onDragMove(event) {
+    return !event.relatedContext.element?.position_locked;
+}
+
+function saveRearrange() {
+    reorderForm.location_id = rearrangingLocationId.value;
+    reorderForm.bin_ids = rearrangeBins.value.map((bin) => bin.id);
+    reorderForm.post(route('inventory.bins.reorder'), {
+        preserveScroll: true,
+        onSuccess: cancelRearrange,
+    });
 }
 
 function submitBin() {
@@ -400,6 +434,21 @@ function printAll() {
                             v-if="canManage"
                             class="ml-auto flex items-center gap-1.5 font-sans text-[13px]"
                         >
+                            <template
+                                v-if="
+                                    location.bins.length > 1 &&
+                                    rearrangingLocationId !== location.id
+                                "
+                            >
+                                <button
+                                    type="button"
+                                    class="text-accent hover:underline"
+                                    @click="startRearrange(location)"
+                                >
+                                    {{ $t('bins.manage.rearrange') }}
+                                </button>
+                                <span class="text-ink-tertiary">|</span>
+                            </template>
                             <button
                                 type="button"
                                 class="text-ink-secondary hover:text-ink-primary hover:underline"
@@ -434,6 +483,102 @@ function printAll() {
                     >
                         {{ $t('bins.manage.no_bins') }}
                     </p>
+
+                    <!-- Rearrange mode: drag bins into physical order -->
+                    <template v-else-if="rearrangingLocationId === location.id">
+                        <p class="font-sans text-[13px] text-ink-tertiary">
+                            {{ $t('bins.manage.rearrange_hint') }}
+                        </p>
+                        <draggable
+                            v-model="rearrangeBins"
+                            item-key="id"
+                            handle=".drag-handle"
+                            :move="onDragMove"
+                            ghost-class="bg-accent-soft"
+                            class="flex flex-col gap-1.5"
+                        >
+                            <template #item="{ element: bin }">
+                                <div
+                                    class="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2"
+                                    :class="{
+                                        'border-dashed bg-background':
+                                            bin.position_locked,
+                                    }"
+                                >
+                                    <!-- Drag handle, or a lock when pinned -->
+                                    <span
+                                        v-if="!bin.position_locked"
+                                        class="drag-handle shrink-0 cursor-grab touch-none text-ink-tertiary"
+                                        :aria-label="
+                                            $t('bins.manage.rearrange')
+                                        "
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                            class="h-5 w-5"
+                                        >
+                                            <path
+                                                d="M7 4a1 1 0 100 2 1 1 0 000-2zM7 9a1 1 0 100 2 1 1 0 000-2zM7 14a1 1 0 100 2 1 1 0 000-2zM13 4a1 1 0 100 2 1 1 0 000-2zM13 9a1 1 0 100 2 1 1 0 000-2zM13 14a1 1 0 100 2 1 1 0 000-2z"
+                                            />
+                                        </svg>
+                                    </span>
+                                    <svg
+                                        v-else
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                        class="h-4 w-4 shrink-0 text-ink-tertiary"
+                                        :aria-label="
+                                            $t('bins.position_lock.label')
+                                        "
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                                            clip-rule="evenodd"
+                                        />
+                                    </svg>
+
+                                    <span
+                                        v-if="bin.number != null"
+                                        class="shrink-0 rounded bg-background px-1.5 py-0.5 font-mono text-[12px] font-semibold text-ink-secondary"
+                                    >
+                                        #{{ bin.number }}
+                                    </span>
+                                    <span
+                                        class="min-w-0 flex-1 truncate font-sans text-[14px] font-medium text-ink-primary"
+                                    >
+                                        {{ bin.name }}
+                                    </span>
+                                    <span
+                                        v-if="bin.is_default"
+                                        class="shrink-0 rounded-pill bg-background px-1.5 py-0.5 font-sans text-[9px] font-medium uppercase tracking-eyebrow text-ink-tertiary"
+                                    >
+                                        {{ $t('bins.default_badge') }}
+                                    </span>
+                                </div>
+                            </template>
+                        </draggable>
+                        <div class="mt-1 flex items-center gap-2">
+                            <AppButton
+                                variant="primary"
+                                size="sm"
+                                :disabled="reorderForm.processing"
+                                @click="saveRearrange"
+                            >
+                                {{ $t('bins.manage.rearrange_save') }}
+                            </AppButton>
+                            <AppButton
+                                variant="ghost"
+                                size="sm"
+                                @click="cancelRearrange"
+                            >
+                                {{ $t('bins.form.cancel') }}
+                            </AppButton>
+                        </div>
+                    </template>
 
                     <div
                         v-else
@@ -672,6 +817,25 @@ function printAll() {
                     }}</span>
                     <InfoButton :title="$t('bins.lock.info_title')">
                         <p>{{ $t('bins.lock.info_body') }}</p>
+                    </InfoButton>
+                </label>
+
+                <!-- Position lock -->
+                <label
+                    class="flex items-center gap-2 font-sans text-[13px] text-ink-primary"
+                >
+                    <input
+                        v-model="binForm.position_locked"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-border-strong text-accent focus:ring-accent-soft"
+                    />
+                    <span>{{ $t('bins.position_lock.label') }}</span>
+                    <span class="text-ink-tertiary">·</span>
+                    <span class="text-ink-tertiary">{{
+                        $t('bins.position_lock.hint')
+                    }}</span>
+                    <InfoButton :title="$t('bins.position_lock.info_title')">
+                        <p>{{ $t('bins.position_lock.info_body') }}</p>
                     </InfoButton>
                 </label>
 

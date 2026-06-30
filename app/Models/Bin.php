@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusiness;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,7 @@ class Bin extends Model
         'scan_code',
         'is_default',
         'sort_order',
+        'position_locked',
     ];
 
     protected function casts(): array
@@ -37,6 +39,7 @@ class Bin extends Model
             'number_locked' => 'boolean',
             'is_default' => 'boolean',
             'sort_order' => 'integer',
+            'position_locked' => 'boolean',
         ];
     }
 
@@ -59,6 +62,21 @@ class Bin extends Model
                 throw new \RuntimeException('The Default bin cannot be deleted.');
             }
         });
+    }
+
+    /**
+     * The canonical display order for bins within a location: user-defined
+     * position (sort_order, set by drag-reorder), then numbered bins by number,
+     * then by name. The single source of truth so every surface — the wall,
+     * Manage storage, auto-number, and the bin pickers — stays consistent.
+     */
+    public function scopeOrderedForDisplay(Builder $query): Builder
+    {
+        return $query
+            ->orderBy('sort_order')
+            ->orderByRaw('`number` is null')
+            ->orderBy('number')
+            ->orderBy('name');
     }
 
     public function business(): BelongsTo

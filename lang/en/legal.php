@@ -44,4 +44,10 @@ return [
         'rights' => '© :year Balloonventory. All rights reserved.',
     ],
 
+    'cookie_notice' => [
+        'text' => 'We use only essential cookies to keep Balloonventory working. We don’t use tracking or advertising cookies.',
+        'learn_more' => 'Learn more',
+        'dismiss' => 'Got it',
+    ],
+
 ];

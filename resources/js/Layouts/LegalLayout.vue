@@ -1,14 +1,13 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
+import LegalFooter from '@/Components/LegalFooter.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import { Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 // Minimal standalone layout for the public legal/policy pages — wider than
 // GuestLayout (which is a narrow auth card) so long prose reads comfortably.
 // Renders for guests and logged-in users alike; no business context required.
-const year = computed(() => new Date().getFullYear());
 </script>
 
 <template>
@@ -31,33 +30,7 @@ const year = computed(() => new Date().getFullYear());
         </main>
 
         <footer class="border-t border-border px-4 py-6 sm:px-6">
-            <div
-                class="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left"
-            >
-                <nav class="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <Link
-                        :href="route('legal.terms')"
-                        class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
-                    >
-                        {{ $t('legal.footer.terms') }}
-                    </Link>
-                    <Link
-                        :href="route('legal.privacy')"
-                        class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
-                    >
-                        {{ $t('legal.footer.privacy') }}
-                    </Link>
-                    <Link
-                        :href="route('legal.cookies')"
-                        class="font-sans text-[13px] text-ink-secondary transition hover:text-ink-primary"
-                    >
-                        {{ $t('legal.footer.cookies') }}
-                    </Link>
-                </nav>
-                <p class="font-sans text-[12px] text-ink-tertiary">
-                    {{ $t('legal.footer.rights', { year }) }}
-                </p>
-            </div>
+            <LegalFooter />
         </footer>
     </div>
 </template>

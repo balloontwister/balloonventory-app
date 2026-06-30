@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bin;
 use App\Models\Business;
 use App\Models\Location;
+use App\Models\Sku;
 use App\Models\StockLevel;
 use App\Scopes\BusinessScope;
 use App\Services\BinResolver;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -85,6 +87,93 @@ class BinController extends Controller
             'color_hex' => $level->sku?->color?->color_hex,
             'full_bags' => $level->full_bags,
             'open_bags' => $level->open_bags,
+        ])->values();
+
+        return response()->json(['items' => $items]);
+    }
+
+    /**
+     * The bin detail page: the bin's identity plus the SKUs it currently holds,
+     * each with its per-bin bag counts. Backs the per-item adjust / move and the
+     * "add item to this bin" flows. Implicit binding + the global BusinessScope
+     * keep this scoped to the current business (404 for foreign bins).
+     */
+    public function show(Bin $bin): Response
+    {
+        Gate::authorize('inventory.view_counts', Business::findOrFail(BusinessContext::currentId()));
+
+        $bin->load('location:id,name');
+
+        $levels = StockLevel::where('bin_id', $bin->id)
+            ->where(fn (Builder $q) => $q->where('full_bags', '>', 0)->orWhere('open_bags', '>', 0))
+            ->with([
+                'sku' => fn ($q) => $q->with([
+                    'brand:id,abbreviation',
+                    'balloonSize:id,name',
+                    'color:id,color_hex',
+                ]),
+            ])
+            ->get();
+
+        $items = $levels->map(fn (StockLevel $level) => [
+            'sku_id' => $level->sku_id,
+            'name' => $level->sku?->computed_name ?? $level->sku?->name,
+            'brand' => $level->sku?->brand?->abbreviation,
+            'size' => $level->sku?->balloonSize?->name,
+            'color_hex' => $level->sku?->color?->color_hex,
+            'full_bags' => $level->full_bags,
+            'open_bags' => $level->open_bags,
+        ])->values();
+
+        return Inertia::render('Inventory/BinShow', [
+            'bin' => [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'number' => $bin->number,
+                'description' => $bin->description,
+                'scan_code' => $bin->scan_code,
+                'is_default' => $bin->is_default,
+                'location_name' => $bin->location?->name,
+            ],
+            'items' => $items,
+            'bins' => $this->binsForSelector(),
+            'fullBagsTotal' => (int) $levels->sum('full_bags'),
+            'openBagsTotal' => (int) $levels->sum('open_bags'),
+        ]);
+    }
+
+    /**
+     * Typeahead for the "add item to this bin" picker. Searches the catalog
+     * visible to the current business (shared OR owned), flagging SKUs already
+     * stocked in this bin so the picker can disable them.
+     */
+    public function searchItems(Request $request, Bin $bin): JsonResponse
+    {
+        Gate::authorize('inventory.view_counts', Business::findOrFail(BusinessContext::currentId()));
+
+        $data = $request->validate([
+            'q' => ['required', 'string', 'max:255'],
+        ]);
+
+        $inBinSkuIds = StockLevel::where('bin_id', $bin->id)->pluck('sku_id')->all();
+
+        $skus = Sku::visibleTo(BusinessContext::currentId())
+            ->matchesSearch($data['q'])
+            ->with([
+                'brand:id,abbreviation',
+                'balloonSize:id,name',
+                'color:id,color_hex',
+            ])
+            ->limit(20)
+            ->get();
+
+        $items = $skus->map(fn (Sku $sku) => [
+            'sku_id' => $sku->id,
+            'name' => $sku->computed_name ?? $sku->name,
+            'brand' => $sku->brand?->abbreviation,
+            'size' => $sku->balloonSize?->name,
+            'color_hex' => $sku->color?->color_hex,
+            'in_bin' => in_array($sku->id, $inBinSkuIds, true),
         ])->values();
 
         return response()->json(['items' => $items]);
@@ -181,5 +270,27 @@ class BinController extends Controller
             ->where('business_id', $businessId)
             ->where('location_id', $locationId)
             ->max('sort_order') + 1;
+    }
+
+    /**
+     * The business's bins for the move/transfer-destination picker, Default
+     * first. Mirrors the selector shape used on the SKU detail page.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function binsForSelector(): array
+    {
+        return Bin::with('location:id,name')
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Bin $bin) => [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'number' => $bin->number,
+                'location_name' => $bin->location?->name,
+            ])
+            ->all();
     }
 }

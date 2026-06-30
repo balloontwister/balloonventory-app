@@ -112,6 +112,8 @@ return [
         'transfer_nothing' => 'Enter at least one bag to transfer.',
         'transfer_insufficient' => 'Not enough stock in the source bin. Available: :full full / :open open bags.',
         'stock_adjusted' => 'Stock updated.',
+        'item_added_to_bin' => 'Item added to this bin.',
+        'item_not_available' => 'That item is not available for this business.',
         'bin_removed' => 'Bin removed for this item.',
         'bin_not_empty' => 'That bin still holds stock — empty it before removing.',
         'feedback_submitted' => 'Thanks! Your feedback has been sent to our team.',

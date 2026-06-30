@@ -1,13 +1,20 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import BackLink from '@/Components/BackLink.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import LegalFooter from '@/Components/LegalFooter.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 // Minimal standalone layout for the public legal/policy pages — wider than
 // GuestLayout (which is a narrow auth card) so long prose reads comfortably.
 // Renders for guests and logged-in users alike; no business context required.
+const page = usePage();
+
+// Logged-in visitors get a clear way back into the app; guests see the brand
+// logo linking to the marketing home.
+const isAuthenticated = computed(() => !!page.props.auth?.user);
 </script>
 
 <template>
@@ -17,7 +24,12 @@ import { Link } from '@inertiajs/vue3';
         <header
             class="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6"
         >
-            <Link href="/" class="flex items-center gap-2">
+            <BackLink
+                v-if="isAuthenticated"
+                :href="route('dashboard')"
+                :label="$t('nav.go_to_dashboard')"
+            />
+            <Link v-else href="/" class="flex items-center gap-2">
                 <ApplicationLogo class="h-8 w-auto" />
             </Link>
             <LocaleSwitcher

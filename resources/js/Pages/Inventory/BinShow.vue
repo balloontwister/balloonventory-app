@@ -20,6 +20,7 @@ const props = defineProps({
     bin: { type: Object, required: true },
     items: { type: Array, default: () => [] },
     bins: { type: Array, default: () => [] },
+    locations: { type: Array, default: () => [] },
     fullBagsTotal: { type: Number, default: 0 },
     openBagsTotal: { type: Number, default: 0 },
 });
@@ -125,12 +126,36 @@ function saveRow(row) {
     );
 }
 
-// ── Modal (a single dialog switches between add / move / label) ────────────────
+// ── Modal (a single dialog switches between add / move / edit / label) ─────────
 // One dialog at a time avoids stacked native-dialog backdrops trapping clicks.
-const modalType = ref(null); // null | 'add' | 'move' | 'label'
+const modalType = ref(null); // null | 'add' | 'move' | 'edit' | 'label'
 
 function closeModal() {
     modalType.value = null;
+}
+
+// ── Edit this bin (name / number / location / description) ─────────────────────
+const editForm = useForm({
+    location_id: '',
+    name: '',
+    number: '',
+    description: '',
+});
+
+function openEdit() {
+    editForm.clearErrors();
+    editForm.location_id = props.bin.location_id;
+    editForm.name = props.bin.name;
+    editForm.number = props.bin.number ?? '';
+    editForm.description = props.bin.description ?? '';
+    modalType.value = 'edit';
+}
+
+function submitEdit() {
+    editForm.patch(route('inventory.bins.update', { bin: props.bin.id }), {
+        preserveScroll: true,
+        onSuccess: closeModal,
+    });
 }
 
 // ── Move an item to another bin ───────────────────────────────────────────────
@@ -369,6 +394,14 @@ function downloadLabelSvg() {
                     />
                     <AppButton variant="secondary" size="sm" @click="openLabel">
                         {{ $t('bins.view_label') }}
+                    </AppButton>
+                    <AppButton
+                        v-if="canManage"
+                        variant="secondary"
+                        size="sm"
+                        @click="openEdit"
+                    >
+                        {{ $t('bins.form.edit') }}
                     </AppButton>
                 </div>
             </div>
@@ -909,6 +942,111 @@ function downloadLabelSvg() {
                         :disabled="moveForm.processing"
                     >
                         {{ $t('bins.show.move_submit') }}
+                    </AppButton>
+                </div>
+            </form>
+
+            <!-- Edit bin -->
+            <form
+                v-else-if="modalType === 'edit'"
+                class="flex flex-col gap-4 p-6"
+                @submit.prevent="submitEdit"
+            >
+                <h2
+                    class="font-display text-[18px] font-semibold text-ink-primary"
+                >
+                    {{ $t('bins.form.edit_bin_title') }}
+                </h2>
+
+                <div v-if="locations.length > 1" class="flex flex-col gap-1">
+                    <label
+                        for="edit-bin-location"
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('bins.form.bin_location') }}
+                    </label>
+                    <select
+                        id="edit-bin-location"
+                        v-model="editForm.location_id"
+                        class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    >
+                        <option
+                            v-for="loc in locations"
+                            :key="loc.id"
+                            :value="loc.id"
+                        >
+                            {{ loc.name }}
+                        </option>
+                    </select>
+                    <p
+                        v-if="editForm.errors.location_id"
+                        class="font-sans text-[13px] text-danger"
+                    >
+                        {{ editForm.errors.location_id }}
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <AppInput
+                            id="edit-bin-name"
+                            v-model="editForm.name"
+                            :label="$t('bins.form.bin_name')"
+                            :placeholder="$t('bins.form.bin_name_placeholder')"
+                            :error="editForm.errors.name"
+                            required
+                        />
+                    </div>
+                    <div class="w-28">
+                        <AppInput
+                            id="edit-bin-number"
+                            v-model="editForm.number"
+                            type="number"
+                            :label="$t('bins.form.bin_number')"
+                            :placeholder="
+                                $t('bins.form.bin_number_placeholder')
+                            "
+                            :error="editForm.errors.number"
+                        />
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label
+                        for="edit-bin-description"
+                        class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-secondary"
+                    >
+                        {{ $t('bins.form.description') }}
+                    </label>
+                    <textarea
+                        id="edit-bin-description"
+                        v-model="editForm.description"
+                        rows="2"
+                        :placeholder="$t('bins.form.description_placeholder')"
+                        class="w-full rounded-md border border-border-strong bg-surface px-3 py-[10px] font-sans text-[14px] text-ink-primary placeholder-ink-tertiary transition focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                    />
+                    <p
+                        v-if="editForm.errors.description"
+                        class="font-sans text-[13px] text-danger"
+                    >
+                        {{ editForm.errors.description }}
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <AppButton
+                        variant="secondary"
+                        type="button"
+                        @click="closeModal"
+                    >
+                        {{ $t('bins.form.cancel') }}
+                    </AppButton>
+                    <AppButton
+                        variant="primary"
+                        type="submit"
+                        :disabled="editForm.processing"
+                    >
+                        {{ $t('bins.form.save') }}
                     </AppButton>
                 </div>
             </form>

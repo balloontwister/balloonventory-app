@@ -94,6 +94,8 @@ class BinDetailTest extends TestCase
                 // Only rows that hold something are listed (the 0/0 row is hidden).
                 ->has('items', 1)
                 ->where('items.0.sku_id', $stocked->id)
+                // Locations are passed for the edit-bin form's location picker.
+                ->has('locations', 1)
             );
     }
 

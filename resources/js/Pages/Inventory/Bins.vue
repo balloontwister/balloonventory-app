@@ -280,17 +280,6 @@ function openCreateBin(location) {
     modalType.value = 'bin';
 }
 
-function openEditBin(bin) {
-    editingBinId.value = bin.id;
-    binForm.reset();
-    binForm.clearErrors();
-    binForm.location_id = bin.location_id;
-    binForm.name = bin.name;
-    binForm.number = bin.number ?? '';
-    binForm.description = bin.description ?? '';
-    modalType.value = 'bin';
-}
-
 function submitBin() {
     const options = {
         preserveScroll: true,
@@ -598,14 +587,6 @@ function binSummaryLabel(bin) {
                                     @click="openViewLabel(bin, location.name)"
                                 >
                                     {{ $t('bins.view_label') }}
-                                </button>
-                                <button
-                                    v-if="canManageBins"
-                                    type="button"
-                                    class="rounded-md px-2 py-1 font-sans text-[13px] text-ink-secondary hover:bg-background hover:text-ink-primary"
-                                    @click="openEditBin(bin)"
-                                >
-                                    {{ $t('bins.form.edit') }}
                                 </button>
                                 <button
                                     v-if="canManageBins && !bin.is_default"

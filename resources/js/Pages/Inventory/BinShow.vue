@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import AppButton from '@/Components/AppButton.vue';
 import AppInput from '@/Components/AppInput.vue';
 import BackLink from '@/Components/BackLink.vue';
+import InfoButton from '@/Components/InfoButton.vue';
 import Modal from '@/Components/Modal.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import StockBadge from '@/Components/StockBadge.vue';
@@ -139,6 +140,7 @@ const editForm = useForm({
     location_id: '',
     name: '',
     number: '',
+    number_locked: false,
     description: '',
 });
 
@@ -147,6 +149,7 @@ function openEdit() {
     editForm.location_id = props.bin.location_id;
     editForm.name = props.bin.name;
     editForm.number = props.bin.number ?? '';
+    editForm.number_locked = !!props.bin.number_locked;
     editForm.description = props.bin.description ?? '';
     modalType.value = 'edit';
 }
@@ -1028,6 +1031,25 @@ function downloadLabelSvg() {
                         />
                     </div>
                 </div>
+
+                <!-- Number lock -->
+                <label
+                    class="flex items-center gap-2 font-sans text-[13px] text-ink-primary"
+                >
+                    <input
+                        v-model="editForm.number_locked"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-border-strong text-accent focus:ring-accent-soft"
+                    />
+                    <span>{{ $t('bins.lock.label') }}</span>
+                    <span class="text-ink-tertiary">·</span>
+                    <span class="text-ink-tertiary">{{
+                        $t('bins.lock.hint')
+                    }}</span>
+                    <InfoButton :title="$t('bins.lock.info_title')">
+                        <p>{{ $t('bins.lock.info_body') }}</p>
+                    </InfoButton>
+                </label>
 
                 <div class="flex flex-col gap-1">
                     <label

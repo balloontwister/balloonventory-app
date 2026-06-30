@@ -18,6 +18,14 @@ return [
     'print_title' => 'Etiquetas de contenedores',
     'contents_show_all' => 'Mostrar todo el contenido',
     'contents_hide_all' => 'Ocultar todo el contenido',
+    'manage_storage' => 'Administrar almacenamiento',
+
+    'info' => [
+        'title' => 'Ubicaciones y contenedores',
+        'body_location' => 'Una ubicación es un lugar — una sala, un vehículo, un estante (p. ej. Estudio, Garaje, Camioneta).',
+        'body_bin' => 'Un contenedor es un recipiente dentro de una ubicación — una caja, tina o estante donde de verdad están los globos (p. ej. Contenedor #9, la tina verde).',
+        'body_how' => 'Guardas y escaneas globos en los contenedores. Las ubicaciones solo agrupan tus contenedores para encontrarlos fácilmente.',
+    ],
 
     'label' => [
         'view_title' => 'Etiqueta del contenedor',
@@ -121,7 +129,36 @@ return [
         'move_submit' => 'Mover',
     ],
 
+    'manage' => [
+        'meta_title' => 'Administrar almacenamiento',
+        'heading' => 'Administrar almacenamiento',
+        'back' => 'Volver a contenedores',
+        'subtitle' => 'Agrega, edita y organiza tus ubicaciones y contenedores. Imprime etiquetas y numera contenedores aquí.',
+        'auto_number' => 'Numerar contenedores',
+        'print_all' => 'Imprimir todas las etiquetas',
+        'open' => 'Abrir',
+        'show_label' => 'Ver etiqueta',
+        'edit' => 'Editar',
+        'no_bins' => 'Aún no hay contenedores aquí.',
+        'auto_number_title' => 'Numerar contenedores',
+        'auto_number_intro' => 'Asigna números secuenciales a tus contenedores automáticamente. Elige cómo:',
+        'auto_number_fill' => 'Numerar los contenedores sin número',
+        'auto_number_fill_hint' => 'Solo asigna números a los contenedores que aún no tienen uno. Los números existentes no se tocan. Seguro de usar en cualquier momento.',
+        'auto_number_renumber' => 'Renumerar todos los contenedores',
+        'auto_number_renumber_hint' => 'Reasigna números secuenciales a cada contenedor en orden. Los contenedores bloqueados conservan su número.',
+        'auto_number_renumber_confirm' => '¿Renumerar todos los contenedores? Esto cambia los números existentes (excepto los bloqueados) y puede dejar de coincidir con etiquetas ya impresas.',
+        'auto_number_locked_note' => 'Consejo: bloquea el número de un contenedor desde su pantalla de edición para proteger una etiqueta ya impresa.',
+    ],
+
+    'lock' => [
+        'label' => 'Bloquear este número',
+        'hint' => 'Protégelo de la numeración automática',
+        'info_title' => 'Bloquear el número de un contenedor',
+        'info_body' => 'Cuando un número está bloqueado, el contenedor lo conserva aunque numeres o renumeres tus contenedores. Bloquéalo una vez impresa su etiqueta física para que el número no deje de coincidir con la etiqueta.',
+    ],
+
     'flash' => [
+        'auto_numbered' => ':count contenedores numerados.',
         'location_created' => 'Ubicación creada.',
         'location_updated' => 'Ubicación actualizada.',
         'location_deleted' => 'Ubicación eliminada.',

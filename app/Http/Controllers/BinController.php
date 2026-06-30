@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -59,6 +60,112 @@ class BinController extends Controller
         return Inertia::render('Inventory/Bins', [
             'locations' => $locations,
         ]);
+    }
+
+    /**
+     * The "Manage storage" view: a condensed, structure-only list of locations
+     * and their bins (no contents/stock) for the occasional setup actions —
+     * add/edit/delete locations & bins, print labels, and auto-number. Kept off
+     * the daily "By Bin" wall so that view stays focused on contents.
+     */
+    public function manage(): Response
+    {
+        $business = Business::findOrFail(BusinessContext::currentId());
+        $this->binResolver->resolveDefault($business);
+
+        $locations = Location::query()
+            ->with(['bins' => function ($query) {
+                $query
+                    ->orderByDesc('is_default')
+                    ->orderBy('sort_order')
+                    ->orderByRaw('`number` is null')
+                    ->orderBy('number')
+                    ->orderBy('name');
+            }])
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'description', 'is_default', 'sort_order']);
+
+        return Inertia::render('Inventory/ManageStorage', [
+            'locations' => $locations,
+        ]);
+    }
+
+    /**
+     * Assign bin numbers automatically. Two modes:
+     *   - fill: only number bins that have none yet; existing numbers untouched.
+     *   - renumber: reassign sequential numbers to every bin, EXCEPT bins whose
+     *     number is locked — those keep their number, and it's reserved so no
+     *     other bin reuses it.
+     * Numbering is continuous business-wide, ordered location → bin sort order,
+     * and written in one transaction (bin.number has no DB unique index, so the
+     * rewrite is safe; uniqueness is maintained by the reserved-set bookkeeping).
+     */
+    public function autoNumber(Request $request): RedirectResponse
+    {
+        $business = Business::findOrFail(BusinessContext::currentId());
+        Gate::authorize('inventory.manual_adjust', $business);
+
+        $data = $request->validate([
+            'mode' => ['required', 'in:fill,renumber'],
+        ]);
+
+        $fill = $data['mode'] === 'fill';
+
+        // Ordered the same way the views present bins, so numbers track layout.
+        $orderedBins = Location::query()
+            ->with(['bins' => fn ($q) => $q
+                ->orderByDesc('is_default')
+                ->orderBy('sort_order')
+                ->orderByRaw('`number` is null')
+                ->orderBy('number')
+                ->orderBy('name')])
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->flatMap->bins;
+
+        // Numbers that must be preserved: locked bins always; in fill mode, every
+        // already-numbered bin too.
+        $used = [];
+        foreach ($orderedBins as $bin) {
+            $keep = $bin->number !== null && ($bin->number_locked || $fill);
+            if ($keep) {
+                $used[$bin->number] = true;
+            }
+        }
+
+        $assignments = [];
+        $next = 1;
+        foreach ($orderedBins as $bin) {
+            // Skip bins whose number is kept as-is.
+            if ($bin->number_locked && $bin->number !== null) {
+                continue;
+            }
+            if ($fill && $bin->number !== null) {
+                continue;
+            }
+
+            while (! empty($used[$next])) {
+                $next++;
+            }
+            $assignments[$bin->id] = $next;
+            $used[$next] = true;
+        }
+
+        if ($assignments !== []) {
+            DB::transaction(function () use ($assignments) {
+                foreach ($assignments as $id => $number) {
+                    Bin::where('id', $id)->update(['number' => $number]);
+                }
+            });
+        }
+
+        return back()->with('success', __('bins.flash.auto_numbered', [
+            'count' => count($assignments),
+        ]));
     }
 
     /**
@@ -154,6 +261,7 @@ class BinController extends Controller
                 'description' => $bin->description,
                 'scan_code' => $bin->scan_code,
                 'is_default' => $bin->is_default,
+                'number_locked' => $bin->number_locked,
                 'location_id' => $bin->location_id,
                 'location_name' => $bin->location?->name,
             ],
@@ -234,13 +342,14 @@ class BinController extends Controller
             'location_id' => $data['location_id'],
             'name' => $data['name'],
             'number' => $data['number'] ?? null,
+            'number_locked' => $data['number_locked'] ?? false,
             'description' => $data['description'] ?? null,
         ]);
 
         return back()->with('success', __('bins.flash.bin_updated'));
     }
 
-    public function destroy(Bin $bin): RedirectResponse
+    public function destroy(Request $request, Bin $bin): RedirectResponse
     {
         if ($bin->is_default) {
             return back()->with('error', __('bins.flash.bin_default_protected'));
@@ -261,14 +370,19 @@ class BinController extends Controller
 
         $bin->delete();
 
-        // Redirect to the wall rather than back() — delete is now triggered from
-        // the bin detail page, whose URL would 404 once the bin is gone.
-        return redirect()->route('inventory.bins.index')
+        // Can't back() — the caller's URL (the bin detail page, or implicitly the
+        // deleted row) is gone. Return to where the action came from: Manage
+        // storage when triggered there, otherwise the By-Bin wall.
+        $target = $request->input('from') === 'manage'
+            ? 'inventory.storage'
+            : 'inventory.bins.index';
+
+        return redirect()->route($target)
             ->with('success', __('bins.flash.bin_deleted'));
     }
 
     /**
-     * @return array{location_id:string,name:string,number:?int,description:?string}
+     * @return array{location_id:string,name:string,number:?int,number_locked?:bool,description:?string}
      */
     private function validateBin(Request $request, ?string $businessId, ?Bin $bin = null): array
     {
@@ -290,6 +404,7 @@ class BinController extends Controller
                     ->where(fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at'))
                     ->ignore($bin?->id),
             ],
+            'number_locked' => ['boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
         ]);
     }

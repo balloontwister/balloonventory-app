@@ -22,6 +22,7 @@ class Bin extends Model
         'business_id',
         'location_id',
         'number',
+        'number_locked',
         'name',
         'description',
         'scan_code',
@@ -33,6 +34,7 @@ class Bin extends Model
     {
         return [
             'number' => 'integer',
+            'number_locked' => 'boolean',
             'is_default' => 'boolean',
             'sort_order' => 'integer',
         ];

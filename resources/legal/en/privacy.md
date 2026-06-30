@@ -1,6 +1,3 @@
-> **DRAFT — placeholder, not legal advice.** This skeleton exists so the page,
-> routes, and structure are in place. Lawyer-reviewed prose replaces it before
-> public launch (Phase 4).
 
 ## 1. What we collect
 
@@ -9,7 +6,7 @@
 - **Contact details** — any phone, address, or website you choose to add.
 - **Business & inventory data** — businesses you create or join, locations, bins,
   stock levels, and movements.
-- **Activity data** — sign-in history (including IP address and device), emails we
+- **Activity data** — sign-in history, emails we
   send you, and any feedback or support requests you submit.
 
 ## 2. How we use it
@@ -33,8 +30,7 @@ We rely on a small number of service providers to operate Balloonventory:
 
 ## 5. Data sources
 
-Our product catalog is aggregated from manufacturer charts, distributor listings
-(such as BargainBalloons, LA Balloons, and Larocks), and legacy data. It is
+Our product catalog is aggregated from manufacturer charts, distributor listings, and legacy data. It is
 provided for identification, not as an authoritative source of pricing or
 availability.
 
@@ -62,6 +58,4 @@ See the [Cookie Policy](/cookies) for details.
 
 ## 9. Contact
 
-**Email:** privacy@balloonventory.com
-
-_(Phase 0: confirm this is a real, monitored inbox before launch.)_
+**Email:** support@balloonventory.com

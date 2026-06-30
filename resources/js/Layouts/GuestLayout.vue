@@ -1,6 +1,8 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import CookieNotice from '@/Components/CookieNotice.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
+import LegalFooter from '@/Components/LegalFooter.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -32,6 +34,10 @@ const isImpersonating = computed(() => !!page.props.impersonating);
             >
                 <slot />
             </div>
+
+            <LegalFooter />
         </div>
+
+        <CookieNotice />
     </div>
 </template>

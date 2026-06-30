@@ -22,6 +22,10 @@ return [
             'label' => 'Preferences',
             'subtext' => 'Language, timezone, and appearance',
         ],
+        'legal' => [
+            'label' => 'Legal & Policies',
+            'subtext' => 'Terms, privacy, and cookies',
+        ],
         'support' => [
             'label' => 'Help & Support',
             'subtext' => 'Contact the Balloonventory team',

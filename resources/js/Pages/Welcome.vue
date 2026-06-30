@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import LegalFooter from '@/Components/LegalFooter.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import logoLight from '../../images/balloonventory-logo-light.png';
 
@@ -103,10 +104,8 @@ defineProps({
             </div>
         </main>
 
-        <footer
-            class="py-6 text-center font-sans text-[13px] text-ink-tertiary"
-        >
-            &copy; {{ new Date().getFullYear() }} Balloonventory
+        <footer class="py-6">
+            <LegalFooter />
         </footer>
     </div>
 </template>

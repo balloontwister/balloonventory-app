@@ -38,10 +38,18 @@ function switchBusiness(id) {
 }
 
 function leaveBusiness(biz) {
-    if (!confirm(trans('account.other_businesses.leave_confirm', { business: biz.name }))) {
+    if (
+        !confirm(
+            trans('account.other_businesses.leave_confirm', {
+                business: biz.name,
+            }),
+        )
+    ) {
         return;
     }
-    useForm({}).delete(route('memberships.leave', { membership: biz.pivot.membership_id }));
+    useForm({}).delete(
+        route('memberships.leave', { membership: biz.pivot.membership_id }),
+    );
 }
 </script>
 
@@ -282,6 +290,53 @@ function leaveBusiness(biz) {
                     </svg>
                 </Link>
 
+                <!-- Legal & Policies -->
+                <Link
+                    :href="route('legal.index')"
+                    class="flex items-center gap-3 border-t border-border px-4 py-3 transition hover:bg-background"
+                >
+                    <span
+                        class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-4 w-4"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0010.878 2H4.5zM6.75 8.5a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h3.5a.75.75 0 000-1.5h-3.5z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p
+                            class="font-sans text-[14px] font-medium text-ink-primary"
+                        >
+                            {{ $t('account.rows.legal.label') }}
+                        </p>
+                        <p
+                            class="truncate font-sans text-[12px] text-ink-tertiary"
+                        >
+                            {{ $t('account.rows.legal.subtext') }}
+                        </p>
+                    </div>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        class="h-4 w-4 flex-shrink-0 text-ink-tertiary"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </Link>
+
                 <!-- Help & Support -->
                 <button
                     type="button"
@@ -412,7 +467,10 @@ function leaveBusiness(biz) {
                         >
                             {{ biz.name }}
                         </p>
-                        <RoleBadge :role="biz.pivot?.role ?? 'guest'" :frozen="biz.frozen" />
+                        <RoleBadge
+                            :role="biz.pivot?.role ?? 'guest'"
+                            :frozen="biz.frozen"
+                        />
                     </div>
                     <div class="flex flex-shrink-0 items-center gap-2">
                         <button

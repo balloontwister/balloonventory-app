@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import AdminMenu from '@/Components/AdminMenu.vue';
 import BusinessBadge from '@/Components/BusinessBadge.vue';
+import CookieNotice from '@/Components/CookieNotice.vue';
 import BusinessSwitcher from '@/Components/BusinessSwitcher.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import AdminBusinessBanner from '@/Components/AdminBusinessBanner.vue';
@@ -120,6 +121,9 @@ const topNavItems = computed(() =>
 
         <!-- App-wide toast stack (teleports to body) -->
         <Toaster />
+
+        <!-- One-time cookie notice (teleports to body; not a consent gate) -->
+        <CookieNotice />
 
         <!-- Persistent "viewing as user" banner while impersonating -->
         <ImpersonationBanner />

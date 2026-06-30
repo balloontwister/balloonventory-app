@@ -456,8 +456,6 @@ See the "Decisions deferred" sections of DATA.md and PERMISSIONS.md for the runn
 
 A short list of the most relevant ones a coding agent might bump into:
 
-- **No admin support view in v1.** Super Admin and Site Admin both need a `membership` to act in a business.
-- **No per-Guest custom permissions in v1.** All Guests get the default permission set.
 - **Cross-business stock transfer is manual.** A user with memberships in A and B does Check Out from A then Check In to B.
 - **No bulk operations.** No CSV import, no bulk stock adjustments. Will come, but not in v1.
 

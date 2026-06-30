@@ -57,7 +57,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Replies
 
-- Be concise in your explanations - focus on what's important rather than explaining obvious details.
+- Be concise in your explanations - focus on what's important rather than explaining obvious details. Feel free to push back if you disagree.
 
 === boost rules ===
 

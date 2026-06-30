@@ -20,7 +20,7 @@ return [
         ],
         'preferences' => [
             'label' => 'Preferencias',
-            'subtext' => 'Idioma y zona horaria',
+            'subtext' => 'Idioma, zona horaria y apariencia',
         ],
         'support' => [
             'label' => 'Ayuda y soporte',

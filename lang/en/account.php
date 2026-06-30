@@ -20,7 +20,7 @@ return [
         ],
         'preferences' => [
             'label' => 'Preferences',
-            'subtext' => 'Language and timezone',
+            'subtext' => 'Language, timezone, and appearance',
         ],
         'support' => [
             'label' => 'Help & Support',

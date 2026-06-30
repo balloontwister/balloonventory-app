@@ -8,6 +8,10 @@ import AdminBusinessBanner from '@/Components/AdminBusinessBanner.vue';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import Toaster from '@/Components/Toaster.vue';
 import { useBusiness } from '@/Composables/useBusiness';
+import {
+    useInventoryView,
+    INVENTORY_ROUTES,
+} from '@/Composables/useInventoryView.js';
 import logoLight from '../../images/balloonventory-logo-light.png';
 import logoDark from '../../images/balloonventory-logo-dark.png';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -79,6 +83,27 @@ function isActive(routeName) {
     } catch {
         return false;
     }
+}
+
+// The Inventory nav entry returns the user to whichever sub-view (By item / By
+// bin / By list) they last looked at, and highlights for any of the three.
+const { lastInventoryRoute } = useInventoryView();
+
+function isInventoryItem(item) {
+    return item.routeName === 'inventory.index';
+}
+
+function navHref(item) {
+    return isInventoryItem(item)
+        ? route(lastInventoryRoute.value)
+        : route(item.routeName);
+}
+
+function navActive(item) {
+    if (isInventoryItem(item)) {
+        return INVENTORY_ROUTES.some((name) => isActive(name));
+    }
+    return isActive(item.routeName);
 }
 
 // When the sidebar is collapsed, the main nav moves to a top bar. Account is
@@ -168,10 +193,10 @@ const topNavItems = computed(() =>
                     <Link
                         v-for="item in nav"
                         :key="item.routeName"
-                        :href="route(item.routeName)"
+                        :href="navHref(item)"
                         class="flex items-center gap-3 rounded-md px-3 py-2 font-sans text-[14px] transition"
                         :class="
-                            isActive(item.routeName)
+                            navActive(item)
                                 ? 'bg-accent-soft font-semibold text-accent'
                                 : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                         "
@@ -638,10 +663,10 @@ const topNavItems = computed(() =>
                     <Link
                         v-for="item in topNavItems"
                         :key="item.routeName"
-                        :href="route(item.routeName)"
+                        :href="navHref(item)"
                         class="rounded-md px-3 py-1.5 font-sans text-[14px] transition"
                         :class="
-                            isActive(item.routeName)
+                            navActive(item)
                                 ? 'bg-accent-soft font-semibold text-accent'
                                 : 'text-ink-secondary hover:bg-background hover:text-ink-primary'
                         "
@@ -768,10 +793,10 @@ const topNavItems = computed(() =>
             >
                 <!-- Inventory -->
                 <Link
-                    :href="route('inventory.index')"
+                    :href="route(lastInventoryRoute)"
                     class="flex flex-1 flex-col items-center justify-center gap-0.5 transition"
                     :class="
-                        isActive('inventory.index')
+                        INVENTORY_ROUTES.some((name) => isActive(name))
                             ? 'text-accent'
                             : 'text-ink-tertiary'
                     "

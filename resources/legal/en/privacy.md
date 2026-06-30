@@ -1,4 +1,7 @@
 
+ManagerSal LLC ("ManagerSal", "we", "us") operates Balloonventory and is the
+controller of the personal data described in this policy.
+
 ## 1. What we collect
 
 - **Account information** — your name, email, password (hashed), and language and

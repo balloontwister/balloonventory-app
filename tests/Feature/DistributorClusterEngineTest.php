@@ -324,6 +324,27 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertSame('51508', DistributorCatalogProposal::sole()->proposed_warehouse_sku);
     }
 
+    public function test_warehouse_sku_prefers_the_item_number_embedded_in_the_barcode(): void
+    {
+        $larocks = Distributor::factory()->bigcommerce()->create(['slug' => 'larocks']);
+        // A TufTex foil: the barcode "719784 36293 7" embeds item number 36293.
+        $shared = [
+            'upc' => '719784362937',
+            'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => ['Brand' => ['Tuftex']]],
+        ];
+
+        // Two stores share a bad SKU that is NOT in the barcode; one carries the
+        // real, barcode-embedded item number. Majority vote alone would pick 3693.
+        $this->stage($this->bargain, ['external_id' => 'b', 'raw_sku' => '3693', 'normalized_sku' => '3693'] + $shared);
+        $this->stage($this->laballoons, ['external_id' => 'l', 'raw_sku' => '3693', 'normalized_sku' => '3693'] + $shared);
+        $this->stage($larocks, ['external_id' => 'la', 'raw_sku' => '36293', 'normalized_sku' => '36293'] + $shared);
+
+        $this->engine->run(execute: true);
+
+        $this->assertSame('36293', DistributorCatalogProposal::sole()->proposed_warehouse_sku);
+    }
+
     public function test_run_stamps_resolution_for_grouping(): void
     {
         $brand = Brand::factory()->create(['name' => 'Sempertex']);

@@ -28,7 +28,7 @@ class RecomputeProposalWarehouseSkus extends Command
         $skippedManual = 0;
 
         foreach ($proposals as $proposal) {
-            $consensus = $engine->consensusWarehouseSku($proposal->evidence ?? []);
+            $consensus = $engine->consensusWarehouseSku($proposal->evidence ?? [], $proposal->upc);
 
             // Nothing to derive, or the stored value already is the consensus.
             if ($consensus === null || $consensus === $proposal->normalized_sku) {

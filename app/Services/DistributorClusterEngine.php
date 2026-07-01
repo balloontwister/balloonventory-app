@@ -30,6 +30,9 @@ use Illuminate\Support\Collection;
  */
 class DistributorClusterEngine
 {
+    /** Shortest run of digits a candidate SKU must have to count as embedded in a UPC (avoids coincidental tiny matches). */
+    private const MIN_ITEM_DIGITS = 4;
+
     /** @var Collection<string, Distributor> distributor configs, keyed by id, for resolution */
     private Collection $configs;
 
@@ -108,7 +111,7 @@ class DistributorClusterEngine
 
         return collect($byUpc)->map(fn (array $members, string $upc) => [
             'upc' => $upc,
-            'normalized_sku' => $this->consensusWarehouseSku($members),
+            'normalized_sku' => $this->consensusWarehouseSku($members, $upc),
             'product_type' => $this->representativeProductType($members),
             'members' => $members,
         ])->values();
@@ -493,23 +496,29 @@ class DistributorClusterEngine
     }
 
     /**
-     * The warehouse SKU for a cluster: the manufacturer item number its members
-     * most agree on. Each barcode-confirmed member contributes its normalized SKU,
-     * and the value shared by the most DISTINCT distributors wins — so a single
-     * store whose listing carries an internal / UPC-derived id (e.g. Larocks'
-     * "3062551508") can't override the real item number three other stores agree
-     * on ("51508"). Because clustering is UPC-gated, every member is already
-     * confirmed to be the same physical product, so the modal SKU is the item
-     * number by definition. Ties break to the shorter candidate (a bare item
-     * number is shorter than a decorated / internal id), then to first-seen order
-     * for stability.
+     * The warehouse SKU for a cluster: the manufacturer item number on the bag
+     * label. Each barcode-confirmed member contributes its normalized SKU, and the
+     * best candidate is chosen by, in order:
+     *  1. Embedded in the barcode. The manufacturer item number is part of the UPC
+     *     (Sempertex "…515085" carries item "51508"; TufTex "719784 36293 7"
+     *     carries "36293"), so a candidate that appears in the UPC digits is the
+     *     real item number — beating a store's own internal id even if more stores
+     *     report that id.
+     *  2. Most distributors agreeing. Among equally barcode-backed candidates, the
+     *     value the most DISTINCT distributors share wins, so a lone outlier (e.g.
+     *     Larocks' UPC-derived "3062551508") can't override the item number three
+     *     other stores agree on.
+     *  3. Shorter, then first-seen. A bare item number is shorter than a decorated
+     *     or internal id; first-seen order keeps it deterministic.
      *
-     * Public so the recompute-warehouse-skus command can re-derive it from a
-     * proposal's stored evidence without re-crawling.
+     * Because clustering is UPC-gated, every member is confirmed to be the same
+     * physical product, so this is a safe vote. Public so the
+     * recompute-proposal-warehouse-skus command can re-derive it from a proposal's
+     * stored evidence without re-crawling.
      *
      * @param  array<int, array<string, mixed>>  $members
      */
-    public function consensusWarehouseSku(array $members): ?string
+    public function consensusWarehouseSku(array $members, ?string $upc = null): ?string
     {
         /** @var array<string, array<string, bool>> $distributorsByCandidate */
         $distributorsByCandidate = [];
@@ -528,16 +537,23 @@ class DistributorClusterEngine
             return null;
         }
 
+        $upcDigits = $upc !== null ? (preg_replace('/\D/', '', $upc) ?? '') : '';
+
         $best = null;
         $bestScore = null;
 
         foreach ($distributorsByCandidate as $sku => $distributors) {
-            // Most distributors agreeing first; on a tie, prefer the shorter SKU.
-            $score = [count($distributors), -strlen((string) $sku)];
+            $sku = (string) $sku;
+
+            // A candidate of real length that appears in the barcode is the
+            // manufacturer item number; rank it above any store-internal id.
+            $inUpc = $upcDigits !== '' && strlen($sku) >= self::MIN_ITEM_DIGITS && str_contains($upcDigits, $sku);
+
+            $score = [$inUpc ? 1 : 0, count($distributors), -strlen($sku)];
 
             if ($bestScore === null || $score > $bestScore) {
                 $bestScore = $score;
-                $best = (string) $sku;
+                $best = $sku;
             }
         }
 

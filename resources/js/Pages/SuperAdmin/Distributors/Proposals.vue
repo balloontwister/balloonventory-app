@@ -1,16 +1,18 @@
 <script setup>
 import AdminBackLink from '@/Components/AdminBackLink.vue';
-import AppButton from '@/Components/AppButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps({
     proposals: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     references: { type: Object, required: true },
-    gaps: { type: Object, default: () => ({ brands: [], sizes: [], colors: [] }) },
+    gaps: {
+        type: Object,
+        default: () => ({ brands: [], sizes: [], colors: [] }),
+    },
     facets: { type: Object, default: () => ({ brands: [], states: {} }) },
     pendingCount: { type: Number, default: 0 },
 });
@@ -20,7 +22,10 @@ const NO_BRAND = '__none__';
 // ── Missing reference data (matcher gap report) ────────────────────────────────
 const showGaps = ref(false);
 const gapTotal = computed(
-    () => props.gaps.brands.length + props.gaps.sizes.length + props.gaps.colors.length,
+    () =>
+        props.gaps.brands.length +
+        props.gaps.sizes.length +
+        props.gaps.colors.length,
 );
 
 // ── Filters ───────────────────────────────────────────────────────────────────
@@ -69,177 +74,203 @@ function filterByBrand(name) {
 
 watch([statusFilter, confidenceFilter], applyFilters);
 
-// ── Evidence expander ─────────────────────────────────────────────────────────
-const expandedId = ref(null);
+// ── Per-card inline editing ─────────────────────────────────────────────────────
+// One editable form per visible proposal, seeded from the manual mapping if
+// present, else the matcher's guess — so the reviewer confirms rather than fills
+// from scratch. A row's Save enables once its form differs from that seed.
+const forms = reactive({});
+const snapshots = reactive({}); // id → JSON of the pristine form, for dirty detection
+const savingId = ref(null);
 
-function toggleEvidence(id) {
-    expandedId.value = expandedId.value === id ? null : id;
-}
-
-// ── Edit modal ────────────────────────────────────────────────────────────────
-const editingProposal = ref(null);
-const editForm = ref({
-    proposed_brand_id: null,
-    proposed_balloon_size_id: null,
-    proposed_color_id: null,
-    proposed_packaging_id: null,
-    proposed_count: null,
-    proposed_warehouse_sku: '',
-    note: '',
-});
-const editProcessing = ref(false);
-
-function openEdit(proposal) {
-    editingProposal.value = proposal;
-    const guess = proposal.guess?.available ? proposal.guess : null;
-    // Start from the manual mapping if one exists, otherwise from the matcher's
-    // guess, so the admin confirms rather than fills from scratch.
-    editForm.value = {
-        proposed_brand_id: proposal.proposed_brand_id ?? guess?.brand?.selected?.id ?? null,
-        proposed_balloon_size_id: proposal.proposed_balloon_size_id ?? guess?.balloon_size?.selected?.id ?? null,
-        proposed_color_id: proposal.proposed_color_id ?? guess?.color?.selected?.id ?? null,
-        proposed_packaging_id: proposal.proposed_packaging_id ?? guess?.packaging?.selected?.id ?? null,
-        proposed_count: proposal.proposed_count ?? guess?.count ?? null,
-        proposed_warehouse_sku: proposal.proposed_warehouse_sku ?? '',
-        note: proposal.note ?? '',
+function blankForm(item) {
+    const g = item.guess?.available ? item.guess : null;
+    return {
+        proposed_name: item.proposed_name ?? '',
+        proposed_brand_id:
+            item.proposed_brand_id ?? g?.brand?.selected?.id ?? null,
+        proposed_balloon_size_id:
+            item.proposed_balloon_size_id ??
+            g?.balloon_size?.selected?.id ??
+            null,
+        proposed_color_id:
+            item.proposed_color_id ?? g?.color?.selected?.id ?? null,
+        proposed_packaging_id:
+            item.proposed_packaging_id ?? g?.packaging?.selected?.id ?? null,
+        proposed_count: item.proposed_count ?? g?.count ?? null,
+        proposed_warehouse_sku: item.proposed_warehouse_sku ?? '',
+        note: item.note ?? '',
     };
 }
 
-function closeEdit() {
-    editingProposal.value = null;
-    editProcessing.value = false;
+function syncForms() {
+    const ids = new Set(props.proposals.data.map((i) => i.id));
+    Object.keys(forms).forEach((id) => {
+        if (!ids.has(id)) {
+            delete forms[id];
+            delete snapshots[id];
+        }
+    });
+    for (const item of props.proposals.data) {
+        const fresh = blankForm(item);
+        forms[item.id] = fresh;
+        snapshots[item.id] = JSON.stringify(fresh);
+    }
 }
 
-function submitEdit() {
-    if (!editingProposal.value) return;
-    editProcessing.value = true;
+syncForms();
+// Rebuild after every prop refresh (save, filter, pagination) so snapshots reset.
+watch(() => props.proposals.data, syncForms);
+
+function isDirty(id) {
+    return !!forms[id] && snapshots[id] !== JSON.stringify(forms[id]);
+}
+
+// Sizes / colours scoped to the row's chosen brand.
+function sizesFor(brandId) {
+    return brandId
+        ? props.references.balloonSizes.filter((s) => s.brand_id === brandId)
+        : props.references.balloonSizes;
+}
+function colorsFor(brandId) {
+    return brandId
+        ? props.references.colors.filter((c) => c.brand_id === brandId)
+        : props.references.colors;
+}
+
+// Changing the brand drops a size/colour that no longer belongs to it.
+function onBrandChange(id) {
+    const f = forms[id];
+    if (
+        f.proposed_balloon_size_id &&
+        !sizesFor(f.proposed_brand_id).some(
+            (s) => s.id === f.proposed_balloon_size_id,
+        )
+    ) {
+        f.proposed_balloon_size_id = null;
+    }
+    if (
+        f.proposed_color_id &&
+        !colorsFor(f.proposed_brand_id).some(
+            (c) => c.id === f.proposed_color_id,
+        )
+    ) {
+        f.proposed_color_id = null;
+    }
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function save(item) {
+    if (!isDirty(item.id) || savingId.value) return;
+    savingId.value = item.id;
     router.patch(
-        route('admin.distributors.proposals.update', editingProposal.value.id),
-        editForm.value,
+        route('admin.distributors.proposals.update', item.id),
+        forms[item.id],
         {
             preserveScroll: true,
-            onSuccess: () => closeEdit(),
-            onError: () => { editProcessing.value = false; },
+            onSuccess: () => {
+                savingId.value = null;
+            },
+            onError: () => {
+                savingId.value = null;
+            },
         },
     );
 }
 
-// Map this proposal to the existing barcode-less SKU instead of creating a
-// duplicate — backfills the barcode onto it and resolves the proposal.
-function mapToExisting() {
-    const exact = editCatalogMatch.value?.exact;
-    if (!editingProposal.value || !exact) return;
-    editProcessing.value = true;
+function approve(item) {
+    if (savingId.value) return;
+    // Persist any unsaved edits first, then approve — so one click applies the row
+    // exactly as shown rather than the last-saved state.
+    if (isDirty(item.id)) {
+        savingId.value = item.id;
+        router.patch(
+            route('admin.distributors.proposals.update', item.id),
+            forms[item.id],
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    savingId.value = null;
+                    router.post(
+                        route('admin.distributors.proposals.approve', item.id),
+                        {},
+                        { preserveScroll: true },
+                    );
+                },
+                onError: () => {
+                    savingId.value = null;
+                },
+            },
+        );
+        return;
+    }
     router.post(
-        route('admin.distributors.proposals.map-to-existing', editingProposal.value.id),
+        route('admin.distributors.proposals.approve', item.id),
+        {},
+        { preserveScroll: true },
+    );
+}
+
+function reject(item) {
+    if (
+        !confirm(
+            trans(
+                'super_admin.dashboard.distributors.proposals.reject_confirm',
+            ),
+        )
+    ) {
+        return;
+    }
+    router.post(
+        route('admin.distributors.proposals.reject', item.id),
+        {},
+        { preserveScroll: true },
+    );
+}
+
+// Map to the existing barcode-less SKU instead of creating a duplicate.
+function mapToExisting(item) {
+    const exact = item.catalog_match?.available
+        ? item.catalog_match.exact
+        : null;
+    if (!exact || savingId.value) return;
+    savingId.value = item.id;
+    router.post(
+        route('admin.distributors.proposals.map-to-existing', item.id),
         { sku_id: exact.id },
         {
             preserveScroll: true,
-            onSuccess: () => closeEdit(),
-            onError: () => { editProcessing.value = false; },
+            onSuccess: () => {
+                savingId.value = null;
+            },
+            onError: () => {
+                savingId.value = null;
+            },
         },
     );
 }
 
-// Sizes + colors scoped to the selected brand in the edit modal.
-const filteredSizes = computed(() => {
-    if (!editForm.value.proposed_brand_id) return props.references.balloonSizes;
-    return props.references.balloonSizes.filter(
-        (s) => s.brand_id === editForm.value.proposed_brand_id,
-    );
-});
-
-const filteredColors = computed(() => {
-    if (!editForm.value.proposed_brand_id) return props.references.colors;
-    return props.references.colors.filter(
-        (c) => c.brand_id === editForm.value.proposed_brand_id,
-    );
-});
-
-// When the brand changes, drop any size/colour that no longer belongs to it —
-// but keep ones that are still valid (so a pre-filled guess survives opening).
-watch(
-    () => editForm.value.proposed_brand_id,
-    () => {
-        if (
-            editForm.value.proposed_balloon_size_id &&
-            !filteredSizes.value.some((s) => s.id === editForm.value.proposed_balloon_size_id)
-        ) {
-            editForm.value.proposed_balloon_size_id = null;
-        }
-        if (
-            editForm.value.proposed_color_id &&
-            !filteredColors.value.some((c) => c.id === editForm.value.proposed_color_id)
-        ) {
-            editForm.value.proposed_color_id = null;
-        }
-    },
-);
-
-// ── Actions ───────────────────────────────────────────────────────────────────
-function approve(proposal) {
-    router.post(route('admin.distributors.proposals.approve', proposal.id), {}, {
-        preserveScroll: true,
-    });
-}
-
-function reject(proposal) {
-    if (!confirm(trans('super_admin.dashboard.distributors.proposals.reject_confirm'))) {
-        return;
-    }
-    router.post(route('admin.distributors.proposals.reject', proposal.id), {}, {
-        preserveScroll: true,
-    });
-}
-
-// ── Mapping display (manual edit, else the matcher's guess) ────────────────────
-const MANUAL_FIELD = {
-    brand: 'brand_name',
-    balloon_size: 'balloon_size_name',
-    color: 'color_name',
-    packaging: 'packaging_name',
-};
-
+// ── Match-quality dot (how confident the matcher's guess was) ──────────────────
 function guessAttr(item, attr) {
     return item.guess?.available ? item.guess[attr] : null;
 }
 
-function manualName(item, attr) {
-    return item[MANUAL_FIELD[attr]] ?? null;
-}
-
-function mappedName(item, attr) {
-    return manualName(item, attr) ?? guessAttr(item, attr)?.selected?.name ?? null;
-}
-
-// 'manual' | 'exact' | 'fuzzy' | 'none' — drives the quality dot colour.
-function mappedSource(item, attr) {
-    if (manualName(item, attr)) return 'manual';
+// 'exact' | 'fuzzy' | 'title' | 'none' — colours the dot beside each field so the
+// reviewer sees at a glance which guesses to trust vs check. 'title' means the
+// shade came from the product title rather than the structured field.
+function attrQuality(item, attr) {
     const g = guessAttr(item, attr);
-    return g?.selected ? g.quality : 'none';
+    if (!g?.selected) return 'none';
+    return g.source === 'title' ? 'title' : g.quality;
 }
 
-function dotClass(source) {
-    return {
-        manual: 'bg-accent',
-        exact: 'bg-success',
-        fuzzy: 'bg-warning',
-    }[source] ?? 'bg-border-strong';
-}
-
-function altCount(item, attr) {
-    const g = guessAttr(item, attr);
-    return g?.candidates ? Math.max(0, g.candidates.length - 1) : 0;
-}
-
-// Colour suggestions read from the product title (not the structured field) carry
-// source === 'title' — flag them so the reviewer knows where the shade came from.
-function titleSourced(item, attr) {
-    return !manualName(item, attr) && guessAttr(item, attr)?.source === 'title';
-}
-
-function displayCount(item) {
-    return item.proposed_count ?? guessAttr(item, 'count') ?? null;
+function dotClass(quality) {
+    return (
+        {
+            exact: 'bg-success',
+            fuzzy: 'bg-warning',
+            title: 'bg-warning',
+        }[quality] ?? 'bg-border-strong'
+    );
 }
 
 // ── Catalog match (what approving does against the existing catalog) ───────────
@@ -256,10 +287,6 @@ function exactNoBarcode(item) {
     return cm?.exact && !cm.exact.has_barcode ? cm.exact : null;
 }
 
-const editCatalogMatch = computed(() =>
-    editingProposal.value?.catalog_match?.available ? editingProposal.value.catalog_match : null,
-);
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function isActionable(status) {
     return status === 'pending' || status === 'auto_approved';
@@ -273,12 +300,14 @@ function canReject(status) {
 }
 
 function statusClass(status) {
-    return {
-        pending: 'bg-warning-soft text-warning',
-        auto_approved: 'bg-accent-soft text-accent',
-        approved: 'bg-success-soft text-success',
-        rejected: 'bg-background text-ink-tertiary',
-    }[status] ?? 'bg-background text-ink-tertiary';
+    return (
+        {
+            pending: 'bg-warning-soft text-warning',
+            auto_approved: 'bg-accent-soft text-accent',
+            approved: 'bg-success-soft text-success',
+            rejected: 'bg-background text-ink-tertiary',
+        }[status] ?? 'bg-background text-ink-tertiary'
+    );
 }
 
 function confidenceClass(confidence) {
@@ -286,15 +315,12 @@ function confidenceClass(confidence) {
         ? 'bg-success-soft text-success'
         : 'bg-warning-soft text-warning';
 }
-
-function formatPrice(price) {
-    if (price == null) return '—';
-    return `$${Number(price).toFixed(2)}`;
-}
 </script>
 
 <template>
-    <Head :title="$t('super_admin.dashboard.distributors.proposals.meta_title')" />
+    <Head
+        :title="$t('super_admin.dashboard.distributors.proposals.meta_title')"
+    />
 
     <AuthenticatedLayout>
         <template #header>
@@ -304,14 +330,25 @@ function formatPrice(price) {
                         :href="route('admin.distributors.index')"
                         :label="$t('super_admin.dashboard.nav.distributors')"
                     />
-                    <h1 class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary">
-                        {{ $t('super_admin.dashboard.distributors.proposals.heading') }}
+                    <h1
+                        class="font-display text-[22px] font-semibold tracking-h2 text-ink-primary"
+                    >
+                        {{
+                            $t(
+                                'super_admin.dashboard.distributors.proposals.heading',
+                            )
+                        }}
                     </h1>
                     <span
                         v-if="pendingCount > 0"
                         class="rounded-full bg-accent px-2 py-0.5 font-sans text-[12px] font-semibold text-white"
                     >
-                        {{ $t('super_admin.dashboard.distributors.proposals.pending_count', { count: pendingCount }) }}
+                        {{
+                            $t(
+                                'super_admin.dashboard.distributors.proposals.pending_count',
+                                { count: pendingCount },
+                            )
+                        }}
                     </span>
                 </div>
             </div>
@@ -319,24 +356,49 @@ function formatPrice(price) {
 
         <div class="py-2">
             <!-- Missing reference data — what the matcher couldn't resolve -->
-            <div v-if="gapTotal > 0" class="mb-3 rounded-lg border border-border bg-warning-soft">
+            <div
+                v-if="gapTotal > 0"
+                class="mb-3 rounded-lg border border-border bg-warning-soft"
+            >
                 <button
                     type="button"
                     class="flex w-full items-center justify-between px-4 py-3 text-left"
                     @click="showGaps = !showGaps"
                 >
-                    <span class="font-sans text-[13px] font-medium text-ink-primary">
-                        {{ $t('super_admin.dashboard.distributors.proposals.gaps_heading', { count: gapTotal }) }}
+                    <span
+                        class="font-sans text-[13px] font-medium text-ink-primary"
+                    >
+                        {{
+                            $t(
+                                'super_admin.dashboard.distributors.proposals.gaps_heading',
+                                { count: gapTotal },
+                            )
+                        }}
                     </span>
-                    <span class="font-sans text-[12px] text-ink-tertiary">{{ showGaps ? '▲' : '▼' }}</span>
+                    <span class="font-sans text-[12px] text-ink-tertiary">{{
+                        showGaps ? '▲' : '▼'
+                    }}</span>
                 </button>
-                <div v-if="showGaps" class="space-y-3 border-t border-border px-4 py-3">
+                <div
+                    v-if="showGaps"
+                    class="space-y-3 border-t border-border px-4 py-3"
+                >
                     <p class="font-sans text-[12px] text-ink-secondary">
-                        {{ $t('super_admin.dashboard.distributors.proposals.gaps_hint') }}
+                        {{
+                            $t(
+                                'super_admin.dashboard.distributors.proposals.gaps_hint',
+                            )
+                        }}
                     </p>
                     <div v-if="gaps.brands.length">
-                        <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
-                            {{ $t('super_admin.dashboard.distributors.proposals.gaps_brands') }}
+                        <p
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.gaps_brands',
+                                )
+                            }}
                         </p>
                         <div class="mt-1 flex flex-wrap gap-1.5">
                             <span
@@ -344,13 +406,22 @@ function formatPrice(price) {
                                 :key="g.value"
                                 class="rounded-md border border-border-strong bg-surface px-2 py-0.5 font-sans text-[12px] text-ink-secondary"
                             >
-                                {{ g.value }} <span class="text-ink-tertiary">×{{ g.count }}</span>
+                                {{ g.value }}
+                                <span class="text-ink-tertiary"
+                                    >×{{ g.count }}</span
+                                >
                             </span>
                         </div>
                     </div>
                     <div v-if="gaps.sizes.length">
-                        <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
-                            {{ $t('super_admin.dashboard.distributors.proposals.gaps_sizes') }}
+                        <p
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.gaps_sizes',
+                                )
+                            }}
                         </p>
                         <div class="mt-1 flex flex-wrap gap-1.5">
                             <span
@@ -359,13 +430,21 @@ function formatPrice(price) {
                                 class="rounded-md border border-border-strong bg-surface px-2 py-0.5 font-sans text-[12px] text-ink-secondary"
                             >
                                 {{ g.value }}
-                                <span class="text-ink-tertiary">· {{ g.brand }} ×{{ g.count }}</span>
+                                <span class="text-ink-tertiary"
+                                    >· {{ g.brand }} ×{{ g.count }}</span
+                                >
                             </span>
                         </div>
                     </div>
                     <div v-if="gaps.colors.length">
-                        <p class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
-                            {{ $t('super_admin.dashboard.distributors.proposals.gaps_colors') }}
+                        <p
+                            class="font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.gaps_colors',
+                                )
+                            }}
                         </p>
                         <div class="mt-1 flex flex-wrap gap-1.5">
                             <span
@@ -374,7 +453,9 @@ function formatPrice(price) {
                                 class="rounded-md border border-border-strong bg-surface px-2 py-0.5 font-sans text-[12px] text-ink-secondary"
                             >
                                 {{ g.value }}
-                                <span class="text-ink-tertiary">· {{ g.brand }} ×{{ g.count }}</span>
+                                <span class="text-ink-tertiary"
+                                    >· {{ g.brand }} ×{{ g.count }}</span
+                                >
                             </span>
                         </div>
                     </div>
@@ -385,55 +466,110 @@ function formatPrice(price) {
                 <!-- Filters -->
                 <div class="border-b border-border px-6 py-4">
                     <p class="font-sans text-[13px] text-ink-secondary">
-                        {{ $t('super_admin.dashboard.distributors.proposals.subheading') }}
+                        {{
+                            $t(
+                                'super_admin.dashboard.distributors.proposals.subheading',
+                            )
+                        }}
                     </p>
 
                     <!-- Brand facet: jump to a brand's group; counts come from the
                          resolution stamped at cluster time. -->
-                    <div v-if="facets.brands.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-                        <span class="mr-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary">
-                            {{ $t('super_admin.dashboard.distributors.proposals.facet_brand') }}
+                    <div
+                        v-if="facets.brands.length"
+                        class="mt-3 flex flex-wrap items-center gap-1.5"
+                    >
+                        <span
+                            class="mr-1 font-sans text-[11px] font-semibold uppercase tracking-eyebrow text-ink-tertiary"
+                        >
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.facet_brand',
+                                )
+                            }}
                         </span>
                         <button
                             type="button"
                             class="rounded-full px-2.5 py-1 font-sans text-[12px]"
-                            :class="!brandFilter ? 'bg-accent text-white' : 'border border-border-strong bg-surface text-ink-secondary hover:border-accent'"
+                            :class="
+                                !brandFilter
+                                    ? 'bg-accent text-white'
+                                    : 'border border-border-strong bg-surface text-ink-secondary hover:border-accent'
+                            "
                             @click="filterByBrand('')"
                         >
-                            {{ $t('super_admin.dashboard.distributors.proposals.facet_all') }}
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.facet_all',
+                                )
+                            }}
                         </button>
                         <button
                             v-for="b in facets.brands"
                             :key="b.name ?? NO_BRAND"
                             type="button"
                             class="rounded-full px-2.5 py-1 font-sans text-[12px]"
-                            :class="brandFilter === (b.name ?? NO_BRAND) ? 'bg-accent text-white' : 'border border-border-strong bg-surface text-ink-secondary hover:border-accent'"
+                            :class="
+                                brandFilter === (b.name ?? NO_BRAND)
+                                    ? 'bg-accent text-white'
+                                    : 'border border-border-strong bg-surface text-ink-secondary hover:border-accent'
+                            "
                             @click="filterByBrand(b.name ?? NO_BRAND)"
                         >
-                            {{ b.name ?? $t('super_admin.dashboard.distributors.proposals.facet_no_brand') }}
-                            <span :class="brandFilter === (b.name ?? NO_BRAND) ? 'text-white/75' : 'text-ink-tertiary'">{{ b.count }}</span>
+                            {{
+                                b.name ??
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.facet_no_brand',
+                                )
+                            }}
+                            <span
+                                :class="
+                                    brandFilter === (b.name ?? NO_BRAND)
+                                        ? 'text-white/75'
+                                        : 'text-ink-tertiary'
+                                "
+                                >{{ b.count }}</span
+                            >
                         </button>
                     </div>
 
                     <!-- Resolution split: how many of the pending are one-click vs need work. -->
-                    <div v-if="facets.brands.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+                    <div
+                        v-if="facets.brands.length"
+                        class="mt-2 flex flex-wrap items-center gap-1.5"
+                    >
                         <span
                             v-if="facets.states.full"
                             class="rounded-full bg-success-soft px-2 py-0.5 font-sans text-[11px] font-semibold text-success"
                         >
-                            {{ facets.states.full }} {{ $t('super_admin.dashboard.distributors.proposals.state_full') }}
+                            {{ facets.states.full }}
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.state_full',
+                                )
+                            }}
                         </span>
                         <span
                             v-if="facets.states.partial"
                             class="rounded-full bg-warning-soft px-2 py-0.5 font-sans text-[11px] font-semibold text-warning"
                         >
-                            {{ facets.states.partial }} {{ $t('super_admin.dashboard.distributors.proposals.state_partial') }}
+                            {{ facets.states.partial }}
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.state_partial',
+                                )
+                            }}
                         </span>
                         <span
                             v-if="facets.states.no_brand"
                             class="rounded-full border border-border-strong bg-surface px-2 py-0.5 font-sans text-[11px] font-semibold text-ink-tertiary"
                         >
-                            {{ facets.states.no_brand }} {{ $t('super_admin.dashboard.distributors.proposals.state_no_brand') }}
+                            {{ facets.states.no_brand }}
+                            {{
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.state_no_brand',
+                                )
+                            }}
                         </span>
                     </div>
 
@@ -447,14 +583,22 @@ function formatPrice(price) {
                                 :key="opt.value"
                                 :value="opt.value"
                             >
-                                {{ $t(`super_admin.dashboard.distributors.proposals.${opt.labelKey}`) }}
+                                {{
+                                    $t(
+                                        `super_admin.dashboard.distributors.proposals.${opt.labelKey}`,
+                                    )
+                                }}
                             </option>
                         </select>
 
                         <input
                             v-model="brandFilter"
                             type="search"
-                            :placeholder="$t('super_admin.dashboard.distributors.proposals.filter_brand_placeholder')"
+                            :placeholder="
+                                $t(
+                                    'super_admin.dashboard.distributors.proposals.filter_brand_placeholder',
+                                )
+                            "
                             class="w-64 max-w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary placeholder-ink-tertiary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
                         />
 
@@ -467,300 +611,427 @@ function formatPrice(price) {
                                 :key="opt.value"
                                 :value="opt.value"
                             >
-                                {{ $t(`super_admin.dashboard.distributors.proposals.${opt.labelKey}`) }}
+                                {{
+                                    $t(
+                                        `super_admin.dashboard.distributors.proposals.${opt.labelKey}`,
+                                    )
+                                }}
                             </option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full font-sans text-[13px]">
-                        <thead>
-                            <tr class="border-b border-border text-left text-ink-secondary">
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_upc') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_name') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_brand') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_count') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_confidence') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_status') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_distributors') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_evidence') }}
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.col_actions') }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
-                            <tr v-if="proposals.data.length === 0">
-                                <td
-                                    colspan="9"
-                                    class="px-6 py-10 text-center text-ink-tertiary"
+                <!-- Proposal cards -->
+                <div class="divide-y divide-border">
+                    <div
+                        v-if="proposals.data.length === 0"
+                        class="px-6 py-10 text-center text-ink-tertiary"
+                    >
+                        {{
+                            $t(
+                                'super_admin.dashboard.distributors.proposals.empty',
+                            )
+                        }}
+                    </div>
+
+                    <div
+                        v-for="item in proposals.data"
+                        :key="item.id"
+                        class="px-4 py-4 sm:px-6"
+                        :class="{ 'opacity-60': item.status === 'rejected' }"
+                    >
+                        <!-- Header: editable name + identity + badges -->
+                        <div class="flex items-start gap-3">
+                            <div class="min-w-0 flex-1">
+                                <input
+                                    v-model="forms[item.id].proposed_name"
+                                    type="text"
+                                    :placeholder="
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.col_name',
+                                        )
+                                    "
+                                    class="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 font-sans text-[15px] font-semibold text-ink-primary hover:border-border-strong focus:border-accent focus:bg-surface focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                />
+                                <div
+                                    class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 px-1.5 font-mono text-[11px] text-ink-tertiary"
                                 >
-                                    {{ $t('super_admin.dashboard.distributors.proposals.empty') }}
-                                </td>
-                            </tr>
-
-                            <template v-for="item in proposals.data" :key="item.id">
-                                <!-- Main row -->
-                                <tr
-                                    class="align-top text-ink-primary"
-                                    :class="{ 'opacity-60': item.status === 'rejected' }"
+                                    <Link
+                                        v-if="item.resulting_sku_id"
+                                        :href="
+                                            route(
+                                                'admin.catalog.skus.show',
+                                                item.resulting_sku_id,
+                                            )
+                                        "
+                                        class="text-accent hover:underline"
+                                    >
+                                        {{
+                                            item.upc ??
+                                            item.normalized_sku ??
+                                            '—'
+                                        }}
+                                    </Link>
+                                    <span v-else>{{
+                                        item.upc ?? item.normalized_sku ?? '—'
+                                    }}</span>
+                                    <span v-if="item.resulting_sku_name"
+                                        >· {{ item.resulting_sku_name }}</span
+                                    >
+                                </div>
+                            </div>
+                            <div
+                                class="flex flex-shrink-0 flex-col items-end gap-1"
+                            >
+                                <span
+                                    v-if="item.confidence"
+                                    class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                    :class="confidenceClass(item.confidence)"
                                 >
-                                    <!-- UPC -->
-                                    <td class="whitespace-nowrap px-4 py-3 font-mono text-[12px] text-ink-secondary">
-                                        <Link
-                                            v-if="item.resulting_sku_id"
-                                            :href="route('admin.catalog.skus.show', item.resulting_sku_id)"
-                                            class="text-accent hover:underline"
-                                        >
-                                            {{ item.upc ?? item.normalized_sku ?? '—' }}
-                                        </Link>
-                                        <span v-else>{{ item.upc ?? item.normalized_sku ?? '—' }}</span>
-                                        <span
-                                            v-if="item.resulting_sku_name"
-                                            class="block text-[11px] text-ink-tertiary"
-                                        >
-                                            {{ item.resulting_sku_name }}
-                                        </span>
-                                    </td>
+                                    {{
+                                        $t(
+                                            `super_admin.dashboard.distributors.proposals.confidence_${item.confidence}`,
+                                        )
+                                    }}
+                                </span>
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                    :class="statusClass(item.status)"
+                                >
+                                    {{
+                                        $t(
+                                            `super_admin.dashboard.distributors.proposals.status_${item.status}`,
+                                        )
+                                    }}
+                                </span>
+                            </div>
+                        </div>
 
-                                    <!-- Proposed name -->
-                                    <td class="px-4 py-3 text-ink-primary">
-                                        {{ item.proposed_name ?? '—' }}
-                                    </td>
-
-                                    <!-- Mapping (manual edit, else matcher guess) -->
-                                    <td class="px-4 py-3 align-top">
-                                        <div class="space-y-1">
-                                            <div
-                                                v-for="attr in ['brand', 'balloon_size', 'color', 'packaging']"
-                                                :key="attr"
-                                                class="flex items-center gap-1.5"
-                                            >
-                                                <span
-                                                    class="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                                                    :class="dotClass(mappedSource(item, attr))"
-                                                    :title="mappedSource(item, attr)"
-                                                />
-                                                <span
-                                                    class="text-[12px]"
-                                                    :class="mappedName(item, attr) ? 'text-ink-primary' : 'text-ink-tertiary'"
-                                                >
-                                                    {{ mappedName(item, attr) ?? '—' }}
-                                                </span>
-                                                <span
-                                                    v-if="titleSourced(item, attr)"
-                                                    class="rounded bg-border-subtle px-1 text-[9px] font-semibold uppercase tracking-wide text-ink-tertiary"
-                                                    :title="$t('super_admin.dashboard.distributors.proposals.from_title')"
-                                                >
-                                                    name
-                                                </span>
-                                                <button
-                                                    v-if="altCount(item, attr) > 0"
-                                                    type="button"
-                                                    class="text-[10px] text-accent hover:underline"
-                                                    :title="$t('super_admin.dashboard.distributors.proposals.alt_candidates')"
-                                                    @click="openEdit(item)"
-                                                >
-                                                    +{{ altCount(item, attr) }}
-                                                </button>
-                                            </div>
-                                            <div
-                                                v-if="siblingCount(item) || exactNoBarcode(item)"
-                                                class="flex flex-wrap gap-1 pt-0.5"
-                                            >
-                                                <span
-                                                    v-if="siblingCount(item)"
-                                                    class="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent"
-                                                    :title="$t('super_admin.dashboard.distributors.proposals.links_pack_sizes')"
-                                                >
-                                                    ↔ {{ siblingCount(item) }}
-                                                </span>
-                                                <span
-                                                    v-if="exactNoBarcode(item)"
-                                                    class="rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning"
-                                                    :title="$t('super_admin.dashboard.distributors.proposals.maybe_exists')"
-                                                >
-                                                    ⚠
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- Count -->
-                                    <td class="whitespace-nowrap px-4 py-3 text-ink-secondary">
-                                        {{ displayCount(item) ?? '—' }}
-                                    </td>
-
-                                    <!-- Confidence badge -->
-                                    <td class="whitespace-nowrap px-4 py-3">
-                                        <span
-                                            v-if="item.confidence"
-                                            class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                                            :class="confidenceClass(item.confidence)"
-                                        >
-                                            {{ $t(`super_admin.dashboard.distributors.proposals.confidence_${item.confidence}`) }}
-                                        </span>
-                                        <span v-else class="text-ink-tertiary">—</span>
-                                    </td>
-
-                                    <!-- Status badge -->
-                                    <td class="whitespace-nowrap px-4 py-3">
-                                        <span
-                                            class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                                            :class="statusClass(item.status)"
-                                        >
-                                            {{ $t(`super_admin.dashboard.distributors.proposals.status_${item.status}`) }}
-                                        </span>
-                                    </td>
-
-                                    <!-- Distributor count -->
-                                    <td class="whitespace-nowrap px-4 py-3 text-center text-ink-secondary">
-                                        {{ item.distributor_count }}
-                                    </td>
-
-                                    <!-- Evidence toggle -->
-                                    <td class="whitespace-nowrap px-4 py-3">
-                                        <button
-                                            v-if="item.evidence?.length"
-                                            type="button"
-                                            class="rounded-md border border-border-strong px-2 py-1 font-sans text-[12px] text-ink-secondary transition hover:bg-background"
-                                            @click="toggleEvidence(item.id)"
-                                        >
-                                            {{
-                                                expandedId === item.id
-                                                    ? $t('super_admin.dashboard.distributors.proposals.evidence_toggle_hide')
-                                                    : $t('super_admin.dashboard.distributors.proposals.evidence_toggle_show')
-                                            }}
-                                            ({{ item.evidence.length }})
-                                        </button>
-                                    </td>
-
-                                    <!-- Actions -->
-                                    <td class="whitespace-nowrap px-4 py-3 text-right">
-                                        <div v-if="isActionable(item.status)" class="flex justify-end gap-2">
-                                            <button
-                                                type="button"
-                                                class="rounded-md bg-accent px-3 py-1.5 font-sans text-[12px] font-semibold text-white transition hover:opacity-90"
-                                                @click="approve(item)"
-                                            >
-                                                {{ $t('super_admin.dashboard.distributors.proposals.action_approve') }}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[12px] text-ink-secondary transition hover:bg-background"
-                                                @click="openEdit(item)"
-                                            >
-                                                {{ $t('super_admin.dashboard.distributors.proposals.action_edit') }}
-                                            </button>
-                                            <button
-                                                v-if="canReject(item.status)"
-                                                type="button"
-                                                class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[12px] text-danger transition hover:bg-background"
-                                                @click="reject(item)"
-                                            >
-                                                {{ $t('super_admin.dashboard.distributors.proposals.action_reject') }}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <!-- Evidence slide-down row -->
-                                <tr v-if="expandedId === item.id" class="bg-background/60">
-                                    <td colspan="9" class="px-6 py-4">
-                                        <div class="overflow-x-auto rounded-md border border-border">
-                                            <table class="min-w-full divide-y divide-border text-[12px]">
-                                                <thead class="bg-surface">
-                                                    <tr class="text-left text-ink-tertiary">
-                                                        <th class="px-3 py-2 font-medium">
-                                                            {{ $t('super_admin.dashboard.distributors.proposals.evidence_col_distributor') }}
-                                                        </th>
-                                                        <th class="px-3 py-2 font-medium">
-                                                            {{ $t('super_admin.dashboard.distributors.proposals.evidence_col_raw_sku') }}
-                                                        </th>
-                                                        <th class="px-3 py-2 font-medium">
-                                                            {{ $t('super_admin.dashboard.distributors.proposals.evidence_col_title') }}
-                                                        </th>
-                                                        <th class="px-3 py-2 font-medium">
-                                                            {{ $t('super_admin.dashboard.distributors.proposals.evidence_col_price') }}
-                                                        </th>
-                                                        <th class="px-3 py-2 font-medium">
-                                                            {{ $t('super_admin.dashboard.distributors.proposals.evidence_col_stock') }}
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="divide-y divide-border">
-                                                    <tr
-                                                        v-for="(ev, ei) in item.evidence"
-                                                        :key="ei"
-                                                        class="text-ink-secondary"
-                                                    >
-                                                        <td class="whitespace-nowrap px-3 py-2 font-medium text-ink-primary">
-                                                            {{ ev.distributor_name ?? ev.distributor_id ?? '—' }}
-                                                        </td>
-                                                        <td class="whitespace-nowrap px-3 py-2 font-mono text-[11px]">
-                                                            {{ ev.raw_sku ?? '—' }}
-                                                        </td>
-                                                        <td class="px-3 py-2">
-                                                            <a
-                                                                v-if="ev.url"
-                                                                :href="ev.url"
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                class="text-accent hover:underline"
-                                                            >{{ ev.title ?? ev.url }}</a>
-                                                            <span v-else>{{ ev.title ?? '—' }}</span>
-                                                            <span
-                                                                v-if="ev.inherited_upc"
-                                                                class="ml-1 inline-flex rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning"
-                                                            >
-                                                                {{ $t('super_admin.dashboard.distributors.proposals.evidence_inherited_upc') }}
-                                                            </span>
-                                                        </td>
-                                                        <td class="whitespace-nowrap px-3 py-2">
-                                                            {{ formatPrice(ev.price) }}
-                                                        </td>
-                                                        <td class="whitespace-nowrap px-3 py-2">
-                                                            <span v-if="ev.stock != null">{{ ev.stock }}</span>
-                                                            <span
-                                                                v-else-if="ev.in_stock != null"
-                                                                class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                                                                :class="ev.in_stock ? 'bg-success-soft text-success' : 'bg-background text-ink-tertiary'"
-                                                            >
-                                                                {{
-                                                                    ev.in_stock
-                                                                        ? $t('super_admin.dashboard.distributors.proposals.evidence_in_stock')
-                                                                        : $t('super_admin.dashboard.distributors.proposals.evidence_out_of_stock')
-                                                                }}
-                                                            </span>
-                                                            <span v-else>—</span>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </td>
-                                </tr>
+                        <!-- Evidence: SKU + link per distributor (opens new tab) -->
+                        <div
+                            v-if="item.evidence?.length"
+                            class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1.5 text-[12px]"
+                        >
+                            <template
+                                v-for="(ev, ei) in item.evidence"
+                                :key="ei"
+                            >
+                                <a
+                                    v-if="ev.url"
+                                    :href="ev.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-1.5 text-ink-secondary transition hover:text-accent"
+                                >
+                                    <span
+                                        class="font-medium text-ink-primary"
+                                        >{{
+                                            ev.distributor_name ??
+                                            ev.distributor_id
+                                        }}</span
+                                    >
+                                    <span class="font-mono text-[11px]">{{
+                                        ev.raw_sku ?? '—'
+                                    }}</span>
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center gap-1.5 text-ink-secondary"
+                                >
+                                    <span
+                                        class="font-medium text-ink-primary"
+                                        >{{
+                                            ev.distributor_name ??
+                                            ev.distributor_id
+                                        }}</span
+                                    >
+                                    <span class="font-mono text-[11px]">{{
+                                        ev.raw_sku ?? '—'
+                                    }}</span>
+                                </span>
                             </template>
-                        </tbody>
-                    </table>
+                        </div>
+
+                        <!-- Dense editable attributes -->
+                        <div
+                            class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6"
+                        >
+                            <div>
+                                <div
+                                    class="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                >
+                                    <span
+                                        class="h-1.5 w-1.5 rounded-full"
+                                        :class="
+                                            dotClass(attrQuality(item, 'brand'))
+                                        "
+                                    />
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.col_brand',
+                                        )
+                                    }}
+                                </div>
+                                <select
+                                    v-model="forms[item.id].proposed_brand_id"
+                                    class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                    @change="onBrandChange(item.id)"
+                                >
+                                    <option :value="null">—</option>
+                                    <option
+                                        v-for="b in references.brands"
+                                        :key="b.id"
+                                        :value="b.id"
+                                    >
+                                        {{ b.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <div
+                                    class="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                >
+                                    <span
+                                        class="h-1.5 w-1.5 rounded-full"
+                                        :class="
+                                            dotClass(
+                                                attrQuality(
+                                                    item,
+                                                    'balloon_size',
+                                                ),
+                                            )
+                                        "
+                                    />
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.edit_size',
+                                        )
+                                    }}
+                                </div>
+                                <select
+                                    v-model="
+                                        forms[item.id].proposed_balloon_size_id
+                                    "
+                                    class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                >
+                                    <option :value="null">—</option>
+                                    <option
+                                        v-for="s in sizesFor(
+                                            forms[item.id].proposed_brand_id,
+                                        )"
+                                        :key="s.id"
+                                        :value="s.id"
+                                    >
+                                        {{ s.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <div
+                                    class="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                >
+                                    <span
+                                        class="h-1.5 w-1.5 rounded-full"
+                                        :class="
+                                            dotClass(attrQuality(item, 'color'))
+                                        "
+                                    />
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.edit_color',
+                                        )
+                                    }}
+                                </div>
+                                <select
+                                    v-model="forms[item.id].proposed_color_id"
+                                    class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                >
+                                    <option :value="null">—</option>
+                                    <option
+                                        v-for="c in colorsFor(
+                                            forms[item.id].proposed_brand_id,
+                                        )"
+                                        :key="c.id"
+                                        :value="c.id"
+                                    >
+                                        {{ c.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <div
+                                    class="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                >
+                                    <span
+                                        class="h-1.5 w-1.5 rounded-full"
+                                        :class="
+                                            dotClass(
+                                                attrQuality(item, 'packaging'),
+                                            )
+                                        "
+                                    />
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.edit_packaging',
+                                        )
+                                    }}
+                                </div>
+                                <select
+                                    v-model="
+                                        forms[item.id].proposed_packaging_id
+                                    "
+                                    class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                >
+                                    <option :value="null">—</option>
+                                    <option
+                                        v-for="p in references.packagingTypes"
+                                        :key="p.id"
+                                        :value="p.id"
+                                    >
+                                        {{ p.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <div
+                                    class="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.col_count',
+                                        )
+                                    }}
+                                </div>
+                                <input
+                                    v-model.number="
+                                        forms[item.id].proposed_count
+                                    "
+                                    type="number"
+                                    min="1"
+                                    class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                />
+                            </div>
+                            <div>
+                                <div
+                                    class="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.edit_warehouse_sku',
+                                        )
+                                    }}
+                                </div>
+                                <input
+                                    v-model="
+                                        forms[item.id].proposed_warehouse_sku
+                                    "
+                                    type="text"
+                                    class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-mono text-[12px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Catalog-match hint -->
+                        <div
+                            v-if="exactNoBarcode(item) || siblingCount(item)"
+                            class="mt-2 flex flex-wrap items-center gap-2 px-1.5 text-[12px]"
+                        >
+                            <span
+                                v-if="siblingCount(item)"
+                                class="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent"
+                                :title="
+                                    $t(
+                                        'super_admin.dashboard.distributors.proposals.links_pack_sizes',
+                                    )
+                                "
+                            >
+                                ↔ {{ siblingCount(item) }}
+                            </span>
+                            <template v-if="exactNoBarcode(item)">
+                                <span class="text-warning">
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.maybe_exists_detail',
+                                            { name: exactNoBarcode(item).name },
+                                        )
+                                    }}
+                                </span>
+                                <button
+                                    type="button"
+                                    class="rounded-md border border-warning px-2 py-0.5 font-sans text-[11px] font-semibold text-warning transition hover:bg-warning-soft disabled:opacity-50"
+                                    :disabled="savingId === item.id"
+                                    @click="mapToExisting(item)"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.map_to_existing',
+                                        )
+                                    }}
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- Note + actions -->
+                        <div
+                            class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center"
+                        >
+                            <input
+                                v-model="forms[item.id].note"
+                                type="text"
+                                :placeholder="
+                                    $t(
+                                        'super_admin.dashboard.distributors.proposals.edit_note',
+                                    )
+                                "
+                                class="min-w-0 flex-1 rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[12px] text-ink-secondary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                            />
+                            <div
+                                v-if="isActionable(item.status)"
+                                class="flex flex-shrink-0 gap-2"
+                            >
+                                <button
+                                    type="button"
+                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[12px] font-semibold text-ink-secondary transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
+                                    :disabled="
+                                        !isDirty(item.id) ||
+                                        savingId === item.id
+                                    "
+                                    @click="save(item)"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.action_edit_save',
+                                        )
+                                    }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-md bg-accent px-3 py-1.5 font-sans text-[12px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                                    :disabled="savingId === item.id"
+                                    @click="approve(item)"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.action_approve',
+                                        )
+                                    }}
+                                </button>
+                                <button
+                                    v-if="canReject(item.status)"
+                                    type="button"
+                                    class="rounded-md border border-border-strong px-3 py-1.5 font-sans text-[12px] text-danger transition hover:bg-background"
+                                    @click="reject(item)"
+                                >
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.action_reject',
+                                        )
+                                    }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Pagination -->
@@ -792,291 +1063,5 @@ function formatPrice(price) {
                 </div>
             </div>
         </div>
-
-        <!-- Edit modal -->
-        <Teleport to="body">
-            <template v-if="editingProposal">
-                <div
-                    class="fixed inset-0 z-40 bg-black/40"
-                    @click="closeEdit"
-                />
-                <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div
-                        class="w-full max-w-md rounded-lg border border-border bg-surface shadow-xl"
-                        @click.stop
-                    >
-                        <div class="border-b border-border px-6 py-4">
-                            <h2 class="font-display text-[16px] font-semibold text-ink-primary">
-                                {{ $t('super_admin.dashboard.distributors.proposals.edit_modal_title') }}
-                            </h2>
-                            <p class="mt-0.5 font-sans text-[13px] text-ink-tertiary">
-                                {{ editingProposal.proposed_name }}
-                            </p>
-                        </div>
-
-                        <div class="space-y-4 px-6 py-5">
-                            <!-- What approving will do against the catalog -->
-                            <div class="rounded-md border border-border bg-background px-3 py-2">
-                                <p class="font-sans text-[12px] font-medium text-ink-primary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.creates_new') }}
-                                </p>
-                                <template v-if="editCatalogMatch && editCatalogMatch.exact && !editCatalogMatch.exact.has_barcode">
-                                    <p class="mt-1 font-sans text-[12px] text-warning">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.maybe_exists_detail', { name: editCatalogMatch.exact.name }) }}
-                                    </p>
-                                    <a
-                                        :href="route('admin.catalog.skus.show', editCatalogMatch.exact.id)"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="mt-1 inline-block font-sans text-[12px] font-medium text-accent underline underline-offset-2 hover:opacity-80"
-                                    >
-                                        {{ $t('super_admin.dashboard.distributors.proposals.view_match') }}
-                                    </a>
-                                    <button
-                                        type="button"
-                                        class="mt-2 block rounded-md border border-warning px-3 py-1.5 font-sans text-[12px] font-semibold text-warning transition hover:bg-warning-soft disabled:opacity-50"
-                                        :disabled="editProcessing"
-                                        @click="mapToExisting"
-                                    >
-                                        {{ $t('super_admin.dashboard.distributors.proposals.map_to_existing') }}
-                                    </button>
-                                </template>
-                                <p
-                                    v-if="editCatalogMatch && editCatalogMatch.siblings.length"
-                                    class="mt-1 font-sans text-[12px] text-ink-secondary"
-                                >
-                                    {{ $t('super_admin.dashboard.distributors.proposals.links_pack_sizes') }}:
-                                    <span class="font-medium text-ink-primary">
-                                        {{ editCatalogMatch.siblings.map((s) => (s.count ? s.count + 'ct' : '?')).join(', ') }}
-                                    </span>
-                                </p>
-                            </div>
-
-                            <!-- Brand -->
-                            <div>
-                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_brand') }}
-                                </label>
-                                <select
-                                    v-model="editForm.proposed_brand_id"
-                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                >
-                                    <option :value="null">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_brand_placeholder') }}
-                                    </option>
-                                    <option
-                                        v-for="brand in references.brands"
-                                        :key="brand.id"
-                                        :value="brand.id"
-                                    >
-                                        {{ brand.name }}
-                                    </option>
-                                </select>
-                                <div
-                                    v-if="editingProposal.guess?.brand?.candidates?.length"
-                                    class="mt-1.5 flex flex-wrap items-center gap-1"
-                                >
-                                    <span class="text-[11px] text-ink-tertiary">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
-                                    </span>
-                                    <button
-                                        v-for="c in editingProposal.guess.brand.candidates"
-                                        :key="c.id"
-                                        type="button"
-                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
-                                        :class="editForm.proposed_brand_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
-                                        @click="editForm.proposed_brand_id = c.id"
-                                    >
-                                        {{ c.name }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Balloon size -->
-                            <div>
-                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_size') }}
-                                </label>
-                                <select
-                                    v-model="editForm.proposed_balloon_size_id"
-                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                >
-                                    <option :value="null">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_size_placeholder') }}
-                                    </option>
-                                    <option
-                                        v-for="size in filteredSizes"
-                                        :key="size.id"
-                                        :value="size.id"
-                                    >
-                                        {{ size.name }}
-                                    </option>
-                                </select>
-                                <div
-                                    v-if="editingProposal.guess?.balloon_size?.candidates?.length"
-                                    class="mt-1.5 flex flex-wrap items-center gap-1"
-                                >
-                                    <span class="text-[11px] text-ink-tertiary">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
-                                    </span>
-                                    <button
-                                        v-for="c in editingProposal.guess.balloon_size.candidates"
-                                        :key="c.id"
-                                        type="button"
-                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
-                                        :class="editForm.proposed_balloon_size_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
-                                        @click="editForm.proposed_balloon_size_id = c.id"
-                                    >
-                                        {{ c.name }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Color -->
-                            <div>
-                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_color') }}
-                                </label>
-                                <select
-                                    v-model="editForm.proposed_color_id"
-                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                >
-                                    <option :value="null">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_color_placeholder') }}
-                                    </option>
-                                    <option
-                                        v-for="color in filteredColors"
-                                        :key="color.id"
-                                        :value="color.id"
-                                    >
-                                        {{ color.name }}
-                                    </option>
-                                </select>
-                                <div
-                                    v-if="editingProposal.guess?.color?.candidates?.length"
-                                    class="mt-1.5 flex flex-wrap items-center gap-1"
-                                >
-                                    <span class="text-[11px] text-ink-tertiary">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
-                                    </span>
-                                    <button
-                                        v-for="c in editingProposal.guess.color.candidates"
-                                        :key="c.id"
-                                        type="button"
-                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
-                                        :class="editForm.proposed_color_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
-                                        @click="editForm.proposed_color_id = c.id"
-                                    >
-                                        {{ c.name }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Packaging (global, not brand-scoped) -->
-                            <div>
-                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_packaging') }}
-                                </label>
-                                <select
-                                    v-model="editForm.proposed_packaging_id"
-                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                >
-                                    <option :value="null">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_packaging_placeholder') }}
-                                    </option>
-                                    <option
-                                        v-for="pkg in references.packagingTypes"
-                                        :key="pkg.id"
-                                        :value="pkg.id"
-                                    >
-                                        {{ pkg.name }}
-                                    </option>
-                                </select>
-                                <div
-                                    v-if="editingProposal.guess?.packaging?.candidates?.length"
-                                    class="mt-1.5 flex flex-wrap items-center gap-1"
-                                >
-                                    <span class="text-[11px] text-ink-tertiary">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.suggested') }}
-                                    </span>
-                                    <button
-                                        v-for="c in editingProposal.guess.packaging.candidates"
-                                        :key="c.id"
-                                        type="button"
-                                        class="rounded-full border px-2 py-0.5 text-[11px] transition"
-                                        :class="editForm.proposed_packaging_id === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-border-strong text-ink-secondary hover:bg-background'"
-                                        @click="editForm.proposed_packaging_id = c.id"
-                                    >
-                                        {{ c.name }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Count + warehouse SKU -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_count') }}
-                                    </label>
-                                    <input
-                                        v-model.number="editForm.proposed_count"
-                                        type="number"
-                                        min="1"
-                                        class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                    />
-                                </div>
-                                <div>
-                                    <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                        {{ $t('super_admin.dashboard.distributors.proposals.edit_warehouse_sku') }}
-                                    </label>
-                                    <input
-                                        v-model="editForm.proposed_warehouse_sku"
-                                        type="text"
-                                        class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                    />
-                                </div>
-                            </div>
-                            <div class="mt-4">
-                                <label class="block font-sans text-[13px] font-medium text-ink-primary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_note') }}
-                                </label>
-                                <textarea
-                                    v-model="editForm.note"
-                                    rows="2"
-                                    :placeholder="$t('super_admin.dashboard.distributors.proposals.edit_note_placeholder')"
-                                    class="mt-1 block w-full rounded-md border border-border-strong bg-surface px-3 py-2 font-sans text-[14px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
-                                />
-                                <p class="mt-1 font-sans text-[12px] text-ink-secondary">
-                                    {{ $t('super_admin.dashboard.distributors.proposals.edit_note_hint') }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 border-t border-border px-6 py-4">
-                            <button
-                                type="button"
-                                class="rounded-md border border-border-strong px-4 py-2 font-sans text-[13px] text-ink-secondary transition hover:bg-background"
-                                :disabled="editProcessing"
-                                @click="closeEdit"
-                            >
-                                {{ $t('super_admin.dashboard.distributors.proposals.action_edit_cancel') }}
-                            </button>
-                            <button
-                                type="button"
-                                class="rounded-md bg-accent px-4 py-2 font-sans text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                                :disabled="editProcessing"
-                                @click="submitEdit"
-                            >
-                                {{
-                                    editProcessing
-                                        ? $t('super_admin.dashboard.distributors.proposals.action_edit_saving')
-                                        : $t('super_admin.dashboard.distributors.proposals.action_edit_save')
-                                }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </Teleport>
     </AuthenticatedLayout>
 </template>

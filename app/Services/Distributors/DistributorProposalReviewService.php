@@ -304,6 +304,7 @@ class DistributorProposalReviewService
     public function edit(DistributorCatalogProposal $proposal, array $attributes, string $reviewerId): void
     {
         $proposal->forceFill([
+            'proposed_name' => $attributes['proposed_name'] ?? $proposal->proposed_name,
             'proposed_brand_id' => $attributes['proposed_brand_id'] ?? null,
             'proposed_balloon_size_id' => $attributes['proposed_balloon_size_id'] ?? null,
             'proposed_color_id' => $attributes['proposed_color_id'] ?? null,

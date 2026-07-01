@@ -576,6 +576,32 @@ class DistributorProposalControllerTest extends TestCase
         $this->assertSame($this->admin->id, $proposal->reviewed_by);
     }
 
+    public function test_update_persists_an_edited_proposed_name(): void
+    {
+        $proposal = DistributorCatalogProposal::factory()->create(['proposed_name' => 'Original name']);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), [
+                'proposed_name' => 'Edited name',
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame('Edited name', $proposal->fresh()->proposed_name);
+    }
+
+    public function test_update_without_a_name_keeps_the_existing_one(): void
+    {
+        $proposal = DistributorCatalogProposal::factory()->create(['proposed_name' => 'Keep me']);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), [
+                'proposed_count' => 25,
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame('Keep me', $proposal->fresh()->proposed_name);
+    }
+
     public function test_update_saves_a_reviewer_note_and_learns_an_alias(): void
     {
         $brand = Brand::factory()->create(['name' => 'Kalisan']);

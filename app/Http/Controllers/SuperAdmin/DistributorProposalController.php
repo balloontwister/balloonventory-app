@@ -82,6 +82,7 @@ class DistributorProposalController extends Controller
     public function update(Request $request, DistributorCatalogProposal $proposal): RedirectResponse
     {
         $data = $request->validate([
+            'proposed_name' => ['nullable', 'string', 'max:255'],
             'proposed_brand_id' => ['nullable', 'string', 'exists:brands,id'],
             'proposed_balloon_size_id' => ['nullable', 'string', 'exists:balloon_sizes,id'],
             'proposed_color_id' => ['nullable', 'string', 'exists:colors,id'],

@@ -10,6 +10,7 @@ class PlatformFactory
     private const MAP = [
         'shopify' => ShopifyAdapter::class,
         'bigcommerce' => BigCommerceAdapter::class,
+        'magento' => MagentoAdapter::class,
     ];
 
     public function make(Distributor $distributor): DistributorPlatformAdapter

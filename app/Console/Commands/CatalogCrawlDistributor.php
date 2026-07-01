@@ -43,11 +43,13 @@ class CatalogCrawlDistributor extends Command
             return Command::FAILURE;
         }
 
-        if ($distributor->platform_type !== 'bigcommerce') {
-            $this->error("{$distributor->name} is not a BigCommerce store. Use catalog:ingest-distributor for Shopify distributors.");
+        if (! in_array($distributor->platform_type, ['bigcommerce', 'magento'], true)) {
+            $this->error("{$distributor->name} is not a crawlable store (BigCommerce or Magento). Use catalog:ingest-distributor for Shopify distributors.");
 
             return Command::FAILURE;
         }
+
+        $isMagento = $distributor->platform_type === 'magento';
 
         $this->newLine();
         $this->info("{$distributor->name} ({$distributor->platform_type})");
@@ -160,7 +162,9 @@ class CatalogCrawlDistributor extends Command
             $remaining = $maxRetries;
 
             do {
-                $parsed = $ingestor->crawlBigCommercePage($distributor, $url, $externalId, $config, $execute);
+                $parsed = $isMagento
+                    ? $ingestor->crawlMagentoPage($distributor, $url, $externalId, $config, $execute)
+                    : $ingestor->crawlBigCommercePage($distributor, $url, $externalId, $config, $execute);
 
                 if ($parsed !== null) {
                     break;

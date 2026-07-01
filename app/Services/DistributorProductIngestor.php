@@ -7,6 +7,7 @@ use App\Models\DistributorProduct;
 use App\Models\Sku;
 use App\Services\DistributorPlatforms\BigCommerceProductPageParser;
 use App\Services\DistributorPlatforms\Concerns\InspectsHttpResponses;
+use App\Services\DistributorPlatforms\MagentoProductPageParser;
 use App\Services\DistributorPlatforms\PlatformFactory;
 use App\Services\Distributors\DistributorProductClassifier;
 use App\Services\Distributors\JsonLdAvailabilityParser;
@@ -807,6 +808,87 @@ class DistributorProductIngestor
         }
 
         return $parsed;
+    }
+
+    /**
+     * Magento single-page fetch: HTTP GET → MagentoProductPageParser (JSON-LD) →
+     * upsert. Magento exposes NO barcode, so these listings never cluster or
+     * propose; their value is the barcode-less rescue tier, which needs only the
+     * item number (reduced to its bare core) + the canonical brand for scoping.
+     * Returns the parsed row (for the crawl command's stats), or null on a failed
+     * fetch / a page with no usable JSON-LD product.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>|null
+     */
+    public function crawlMagentoPage(
+        Distributor $distributor,
+        string $url,
+        string $externalId,
+        array $config,
+        bool $execute,
+    ): ?array {
+        $parser = app(MagentoProductPageParser::class);
+
+        $response = Http::timeout(self::TIMEOUT)
+            ->withUserAgent(self::USER_AGENT)
+            ->get($url);
+
+        if ($this->classifyResponse($response) !== null) {
+            return null;
+        }
+
+        $parsed = $parser->parse($response->body());
+
+        if ($parsed === null || ($parsed['raw_sku'] ?? '') === '') {
+            return null;
+        }
+
+        // The Magento sku is the manufacturer item number. Reduce it to the bare
+        // core (strip the Betallic "B" suffix etc.) so it meets our catalog
+        // warehouse_sku / mfg_no in the barcode-less rescue tier.
+        $parsed['normalized_sku'] = $this->normalizer->normalize($parsed['raw_sku'], $config);
+
+        // Map the store's manufacturer name to our canonical brand (BETALLIC INC →
+        // Sempertex, PIONEER BALLOON → Qualatex) so the rescue tier's brand scope
+        // resolves it. Stored under the "Brand" attribute the cluster engine reads.
+        $brand = $this->canonicalBrand($parsed['brand'] ?? null, $config);
+        $parsed['attributes'] = $brand !== null ? ['Brand' => [$brand]] : [];
+
+        // We harvest only solid-latex category pages and, with no barcode, these
+        // never cluster or self-propose — so no per-page classification is needed.
+        // Leave the type unset; the rescue attaches Reorder links regardless of type.
+        $parsed['product_type'] = null;
+        $parsed['in_stock'] = $this->availabilityParser->parse($response->body());
+        $parsed['stock'] = null;
+        $parsed['extraction'] = ['ok' => false, 'row_count' => 0, 'missing_required' => []];
+
+        if ($execute) {
+            $this->upsertPage($distributor->id, $externalId, $url, $parsed);
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * Map a distributor's manufacturer name to our canonical brand via the config
+     * `attribute_aliases.brand` map (case-insensitive), else return it unchanged.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function canonicalBrand(?string $brand, array $config): ?string
+    {
+        if ($brand === null || $brand === '') {
+            return null;
+        }
+
+        foreach (($config['attribute_aliases']['brand'] ?? []) as $from => $to) {
+            if (mb_strtolower((string) $from) === mb_strtolower($brand)) {
+                return (string) $to;
+            }
+        }
+
+        return $brand;
     }
 
     /**

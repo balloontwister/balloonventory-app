@@ -36,7 +36,7 @@ class DistributorClusterEngine
     /** @var Collection<string, Distributor> distributor configs, keyed by id, for resolution */
     private Collection $configs;
 
-    /** @var Collection<string, array<int, array{sku_id: string, brand_id: ?string}>>|null memoised warehouse_sku index */
+    /** @var Collection<string, array<int, array{sku_id: string, brand_id: ?string}>>|null memoised item-number index (warehouse_sku ∪ mfg_no) */
     private ?Collection $warehouseSkuIndex = null;
 
     /** @var Collection<string, string>|null memoised lowercased-brand-name => brand_id */
@@ -273,19 +273,40 @@ class DistributorClusterEngine
     }
 
     /**
-     * warehouse_sku => list of {sku_id, brand_id} for every catalog SKU that has
-     * one. Memoised for the run.
+     * item number => list of {sku_id, brand_id} for every catalog SKU that carries
+     * one. Manufacturers' item numbers live in EITHER `warehouse_sku` (Sempertex,
+     * Qualatex, Kalisan, Gemar) OR `mfg_no` (TufTex) depending on the brand's import,
+     * so both columns are unioned into one index — a distributor's bare on-page SKU
+     * can match whichever column our catalog happens to use. Brand-scoping and the
+     * single-match guard in {@see matchWarehouseSku()} keep a code that collides
+     * across columns/brands from attaching to the wrong SKU. Memoised for the run.
      *
      * @return Collection<string, array<int, array{sku_id: string, brand_id: ?string}>>
      */
     private function warehouseSkuIndex(): Collection
     {
-        return $this->warehouseSkuIndex ??= Sku::whereNotNull('warehouse_sku')
-            ->get(['id', 'warehouse_sku', 'brand_id'])
-            ->groupBy('warehouse_sku')
-            ->map(fn (Collection $group) => $group
-                ->map(fn (Sku $sku) => ['sku_id' => $sku->id, 'brand_id' => $sku->brand_id])
-                ->all());
+        if ($this->warehouseSkuIndex !== null) {
+            return $this->warehouseSkuIndex;
+        }
+
+        $index = [];
+
+        Sku::where(fn ($query) => $query->whereNotNull('warehouse_sku')->orWhereNotNull('mfg_no'))
+            ->get(['id', 'warehouse_sku', 'mfg_no', 'brand_id'])
+            ->each(function (Sku $sku) use (&$index): void {
+                foreach ([$sku->warehouse_sku, $sku->mfg_no] as $key) {
+                    if ($key === null || $key === '') {
+                        continue;
+                    }
+
+                    // Key the inner list by sku_id so a SKU whose warehouse_sku and
+                    // mfg_no are equal is listed once per code, not twice.
+                    $index[$key][$sku->id] = ['sku_id' => $sku->id, 'brand_id' => $sku->brand_id];
+                }
+            });
+
+        return $this->warehouseSkuIndex = collect($index)
+            ->map(fn (array $group) => array_values($group));
     }
 
     /**

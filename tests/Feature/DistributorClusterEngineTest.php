@@ -226,6 +226,38 @@ class DistributorClusterEngineTest extends TestCase
             ->where('distributor_id', $this->havin->id)->count());
     }
 
+    public function test_barcodeless_listing_matches_catalog_by_mfg_no_and_attaches_a_url(): void
+    {
+        // TufTex stores the manufacturer item number in `mfg_no`, not
+        // `warehouse_sku` (Rainbow exposes it bare in the URL: 10021 = Baby Blue).
+        $brand = Brand::factory()->create(['name' => 'TufTex']);
+        $sku = Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => null, 'mfg_no' => '10021', 'upc' => null]);
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true]]);
+
+        $this->stageHavinSku('10021', 'TufTex');
+
+        $stats = $this->engine->run(execute: true);
+
+        $this->assertSame(1, $stats['matched_by_warehouse_sku']);
+        $this->assertSame(0, $stats['proposals']); // attaches to an existing SKU, never creates
+        $this->assertSame(1, DistributorSkuUrl::where('sku_id', $sku->id)
+            ->where('distributor_id', $this->havin->id)->count());
+    }
+
+    public function test_a_code_colliding_across_warehouse_sku_and_mfg_no_is_ambiguous(): void
+    {
+        // Same brand, same bare code, but one SKU carries it as warehouse_sku and
+        // another as mfg_no → two candidates → the single-match guard rejects both.
+        $brand = Brand::factory()->create(['name' => 'TufTex']);
+        Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => '10021', 'mfg_no' => null]);
+        Sku::factory()->create(['brand_id' => $brand->id, 'warehouse_sku' => null, 'mfg_no' => '10021']);
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true]]);
+
+        $this->stageHavinSku('10021', 'TufTex');
+
+        $this->assertSame(0, $this->engine->run(execute: true)['matched_by_warehouse_sku']);
+    }
+
     public function test_warehouse_sku_match_requires_the_config_flag(): void
     {
         $brand = Brand::factory()->create(['name' => 'Kalisan']);

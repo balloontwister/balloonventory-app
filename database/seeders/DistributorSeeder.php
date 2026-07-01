@@ -289,11 +289,15 @@ class DistributorSeeder extends Seeder
                     // Solid latex only. Product URLs are flat (/{slug}-{id}.html) so the
                     // sitemap can't be path-filtered — harvest product links from these
                     // brand-scoped solid-latex category listings (paginated) instead.
+                    // Only brands we hold SKU data for → reconcilable into Reorder
+                    // links. Rainbow also carries solid-anagram-latex and
+                    // funsational-latex, but we hold 0 SKUs for those brands, so
+                    // crawling them stages rows that can never match. Re-add a
+                    // category here (one line) once we seed that brand's SKUs.
                     'category_urls' => [
                         'https://rainbowballoons.com/latex/solid-qualatex-latex.html',
                         'https://rainbowballoons.com/latex/solid-betallatex-latex.html',
                         'https://rainbowballoons.com/latex/solid-tuftex-latex.html',
-                        'https://rainbowballoons.com/latex/solid-anagram-latex.html',
                     ],
                     // ~100 KB pages behind Cloudflare → slow, jittered crawl.
                     'request_delay_ms' => 1500,

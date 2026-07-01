@@ -31,14 +31,14 @@ class RenormalizeStagedSkus extends Command
             ->where(fn ($q) => $q->whereNull('normalized_sku')->orWhere('normalized_sku', ''))
             ->chunkById(500, function ($products) use ($normalizer, $configs, $dryRun, &$changed, &$samples) {
                 foreach ($products as $product) {
-                    $fresh = $normalizer->normalize((string) $product->raw_sku, $configs[$product->distributor_id] ?? []);
-
-                    // A warehouse SKU is a short item number, never the barcode that
-                    // some distributors put in raw_sku.
-                    $barcode = $product->upc !== null ? (preg_replace('/\D/', '', $product->upc) ?? '') : '';
-                    if ($fresh !== null && (strlen($fresh) >= 11 || ($barcode !== '' && $fresh === $barcode))) {
-                        $fresh = null;
-                    }
+                    // Only recover the case the old normalizer actually dropped: an
+                    // alphanumeric item code (e.g. 56360P2). See
+                    // RecomputeProposalWarehouseSkus::recoverItemNumber.
+                    $fresh = RecomputeProposalWarehouseSkus::recoverItemNumber(
+                        (string) $product->raw_sku,
+                        $normalizer,
+                        $configs[$product->distributor_id] ?? [],
+                    );
 
                     if ($fresh === null) {
                         continue;

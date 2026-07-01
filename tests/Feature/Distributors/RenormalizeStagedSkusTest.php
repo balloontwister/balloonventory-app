@@ -67,6 +67,24 @@ class RenormalizeStagedSkusTest extends TestCase
         $this->assertSame('31230032', $product->fresh()->normalized_sku);
     }
 
+    public function test_a_pure_numeric_null_is_left_alone(): void
+    {
+        $distributor = Distributor::factory()->create();
+        // A pure-numeric raw_sku was never dropped by the old normalizer, so its
+        // null normalized_sku means the item number came from another field —
+        // recovering it from raw_sku would be a guess. Leave it null.
+        $product = DistributorProduct::factory()->forDistributor($distributor)->create([
+            'raw_sku' => '1978436278',
+            'normalized_sku' => null,
+        ]);
+
+        $this->artisan('catalog:renormalize-staged-skus --execute')
+            ->expectsOutputToContain('Nothing to do')
+            ->assertSuccessful();
+
+        $this->assertNull($product->fresh()->normalized_sku);
+    }
+
     public function test_a_barcode_in_raw_sku_is_not_turned_into_an_item_number(): void
     {
         $distributor = Distributor::factory()->create();

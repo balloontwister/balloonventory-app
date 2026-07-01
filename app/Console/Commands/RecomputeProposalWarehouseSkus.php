@@ -96,34 +96,27 @@ class RecomputeProposalWarehouseSkus extends Command
             }
 
             $config = $this->configs[$member['distributor_id'] ?? ''] ?? [];
-            $member['normalized_sku'] = $this->recoverItemNumber((string) ($member['raw_sku'] ?? ''), $member['raw_upc'] ?? null, $normalizer, $config);
+            $member['normalized_sku'] = self::recoverItemNumber((string) ($member['raw_sku'] ?? ''), $normalizer, $config);
 
             return $member;
         })->all();
     }
 
     /**
-     * Normalize a raw SKU to an item number, but reject anything that's really the
-     * product's barcode (raw_sku is the EAN for some distributors) — a warehouse
-     * SKU is a short item number, never a 11+ digit barcode.
+     * Recover an item number the old normalizer dropped — and ONLY that case: an
+     * ALPHANUMERIC code like "56360P2" (a pack/variant marker made it non-numeric).
+     * A pure-numeric raw_sku was never dropped by the old normalizer, so a
+     * pure-numeric null means the item number lived in a different field (mpn) than
+     * raw_sku — recovering it from raw_sku (often the barcode) would be wrong, so
+     * we leave it null.
      *
      * @param  array<string, mixed>  $config
      */
-    private function recoverItemNumber(string $rawSku, ?string $rawUpc, DistributorSkuNormalizer $normalizer, array $config): ?string
+    public static function recoverItemNumber(string $rawSku, DistributorSkuNormalizer $normalizer, array $config): ?string
     {
         $value = $normalizer->normalize($rawSku, $config);
 
-        if ($value === null) {
-            return null;
-        }
-
-        $barcode = $rawUpc !== null ? (preg_replace('/\D/', '', $rawUpc) ?? '') : '';
-
-        if (strlen($value) >= 11 || ($barcode !== '' && $value === $barcode)) {
-            return null;
-        }
-
-        return $value;
+        return $value !== null && preg_match('/[A-Z]/', $value) ? $value : null;
     }
 
     /**

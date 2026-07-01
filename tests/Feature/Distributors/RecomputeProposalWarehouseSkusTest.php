@@ -69,6 +69,43 @@ class RecomputeProposalWarehouseSkusTest extends TestCase
         $this->assertSame('56360P2', $proposal->fresh()->proposed_warehouse_sku);
     }
 
+    public function test_it_does_not_overwrite_a_member_with_a_stored_normalized_sku(): void
+    {
+        // A larocks-style member: raw_sku is the barcode, but its normalized_sku
+        // came from a different field (mpn) at ingest — re-normalizing raw_sku
+        // would corrupt it, so a stored value must be left alone.
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'upc' => '08693296864306',
+            'normalized_sku' => '31230032',
+            'proposed_warehouse_sku' => '31230032',
+            'evidence' => [
+                ['distributor_id' => 'larocks', 'raw_sku' => '8693296864306', 'normalized_sku' => '31230032'],
+            ],
+        ]);
+
+        $this->artisan('catalog:recompute-proposal-warehouse-skus --execute')->assertSuccessful();
+
+        $this->assertSame('31230032', $proposal->fresh()->proposed_warehouse_sku);
+    }
+
+    public function test_it_does_not_recover_a_barcode_only_raw_sku(): void
+    {
+        // The only member's normalized_sku is null and its raw_sku is just the
+        // barcode — recovery must not stamp the barcode as a warehouse SKU.
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'upc' => '08693296864306',
+            'normalized_sku' => null,
+            'proposed_warehouse_sku' => null,
+            'evidence' => [
+                ['distributor_id' => 'larocks', 'raw_sku' => '8693296864306', 'normalized_sku' => null, 'raw_upc' => '8693296864306'],
+            ],
+        ]);
+
+        $this->artisan('catalog:recompute-proposal-warehouse-skus --execute')->assertSuccessful();
+
+        $this->assertNull($proposal->fresh()->proposed_warehouse_sku);
+    }
+
     public function test_dry_run_reports_but_does_not_write(): void
     {
         $proposal = DistributorCatalogProposal::factory()->create([

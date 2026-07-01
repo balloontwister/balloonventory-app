@@ -51,4 +51,33 @@ class RenormalizeStagedSkusTest extends TestCase
             ->expectsOutputToContain('Nothing to do')
             ->assertSuccessful();
     }
+
+    public function test_an_existing_normalized_sku_is_never_overwritten(): void
+    {
+        $distributor = Distributor::factory()->create();
+        // raw_sku is the barcode, but normalized_sku came from mpn at ingest — the
+        // command must not re-derive (and corrupt) it from raw_sku.
+        $product = DistributorProduct::factory()->forDistributor($distributor)->create([
+            'raw_sku' => '8693296864306',
+            'normalized_sku' => '31230032',
+        ]);
+
+        $this->artisan('catalog:renormalize-staged-skus --execute')->assertSuccessful();
+
+        $this->assertSame('31230032', $product->fresh()->normalized_sku);
+    }
+
+    public function test_a_barcode_in_raw_sku_is_not_turned_into_an_item_number(): void
+    {
+        $distributor = Distributor::factory()->create();
+        $product = DistributorProduct::factory()->forDistributor($distributor)->create([
+            'raw_sku' => '8693296864306', // 13-digit EAN, no real item number to recover
+            'upc' => '8693296864306',
+            'normalized_sku' => null,
+        ]);
+
+        $this->artisan('catalog:renormalize-staged-skus --execute')->assertSuccessful();
+
+        $this->assertNull($product->fresh()->normalized_sku);
+    }
 }

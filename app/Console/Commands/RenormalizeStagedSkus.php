@@ -12,7 +12,7 @@ class RenormalizeStagedSkus extends Command
     protected $signature = 'catalog:renormalize-staged-skus
                             {--execute : Write the refreshed normalized SKUs (omit for dry-run)}';
 
-    protected $description = 'Re-derive normalized_sku for every staged distributor product from its stored raw_sku using the current normalizer + distributor config. Run after a normalizer fix or a new strip rule so the next re-cluster produces correct warehouse SKUs without a re-crawl.';
+    protected $description = 'RECOVER a normalized_sku for staged distributor products the old normalizer left null (e.g. alphanumeric codes like 56360P2), re-normalizing the stored raw_sku with the current normalizer + config. Only fills nulls — never overwrites an existing value (which for some distributors came from a field other than raw_sku) — and drops barcodes. Run after a normalizer fix / new strip rule so the next re-cluster produces correct warehouse SKUs without a re-crawl.';
 
     public function handle(DistributorSkuNormalizer $normalizer): int
     {
@@ -25,25 +25,36 @@ class RenormalizeStagedSkus extends Command
         $changed = 0;
         $samples = [];
 
-        DistributorProduct::query()->chunkById(500, function ($products) use ($normalizer, $configs, $dryRun, &$changed, &$samples) {
-            foreach ($products as $product) {
-                $fresh = $normalizer->normalize((string) $product->raw_sku, $configs[$product->distributor_id] ?? []);
+        // Only products with no normalized_sku yet — an existing value is
+        // authoritative and must not be re-derived from raw_sku.
+        DistributorProduct::query()
+            ->where(fn ($q) => $q->whereNull('normalized_sku')->orWhere('normalized_sku', ''))
+            ->chunkById(500, function ($products) use ($normalizer, $configs, $dryRun, &$changed, &$samples) {
+                foreach ($products as $product) {
+                    $fresh = $normalizer->normalize((string) $product->raw_sku, $configs[$product->distributor_id] ?? []);
 
-                if ($fresh === $product->normalized_sku) {
-                    continue;
+                    // A warehouse SKU is a short item number, never the barcode that
+                    // some distributors put in raw_sku.
+                    $barcode = $product->upc !== null ? (preg_replace('/\D/', '', $product->upc) ?? '') : '';
+                    if ($fresh !== null && (strlen($fresh) >= 11 || ($barcode !== '' && $fresh === $barcode))) {
+                        $fresh = null;
+                    }
+
+                    if ($fresh === null) {
+                        continue;
+                    }
+
+                    $changed++;
+
+                    if (count($samples) < 20) {
+                        $samples[] = [$product->raw_sku, '∅', $fresh];
+                    }
+
+                    if (! $dryRun) {
+                        $product->forceFill(['normalized_sku' => $fresh])->save();
+                    }
                 }
-
-                $changed++;
-
-                if (count($samples) < 20) {
-                    $samples[] = [$product->raw_sku, $product->normalized_sku ?? '∅', $fresh ?? '∅'];
-                }
-
-                if (! $dryRun) {
-                    $product->forceFill(['normalized_sku' => $fresh])->save();
-                }
-            }
-        });
+            });
 
         if ($changed === 0) {
             $this->info('All staged products already carry the current normalization. Nothing to do.');

@@ -76,21 +76,54 @@ class RecomputeProposalWarehouseSkus extends Command
     }
 
     /**
-     * The proposal's evidence members with each `normalized_sku` re-derived from
-     * the stored `raw_sku` using the current normalizer + that distributor's
-     * config — so a normalizer fix or a newly-added strip rule takes effect here
-     * without re-crawling the distributor.
+     * The proposal's evidence members, with a normalized SKU RECOVERED for any
+     * member the old normalizer left null (e.g. an alphanumeric code like
+     * "56360P2" it used to discard). A member that already has a stored
+     * normalized SKU keeps it untouched — the stored value is authoritative and,
+     * for some distributors, was derived from a field (mpn) other than raw_sku, so
+     * re-normalizing raw_sku would corrupt it. A recovered value that is really a
+     * barcode is dropped, never used as a warehouse SKU.
      *
      * @return array<int, array<string, mixed>>
      */
     private function renormalizedMembers(DistributorCatalogProposal $proposal, DistributorSkuNormalizer $normalizer): array
     {
         return collect($proposal->evidence ?? [])->map(function (array $member) use ($normalizer) {
+            $stored = $member['normalized_sku'] ?? null;
+
+            if ($stored !== null && $stored !== '') {
+                return $member;
+            }
+
             $config = $this->configs[$member['distributor_id'] ?? ''] ?? [];
-            $member['normalized_sku'] = $normalizer->normalize((string) ($member['raw_sku'] ?? ''), $config);
+            $member['normalized_sku'] = $this->recoverItemNumber((string) ($member['raw_sku'] ?? ''), $member['raw_upc'] ?? null, $normalizer, $config);
 
             return $member;
         })->all();
+    }
+
+    /**
+     * Normalize a raw SKU to an item number, but reject anything that's really the
+     * product's barcode (raw_sku is the EAN for some distributors) — a warehouse
+     * SKU is a short item number, never a 11+ digit barcode.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function recoverItemNumber(string $rawSku, ?string $rawUpc, DistributorSkuNormalizer $normalizer, array $config): ?string
+    {
+        $value = $normalizer->normalize($rawSku, $config);
+
+        if ($value === null) {
+            return null;
+        }
+
+        $barcode = $rawUpc !== null ? (preg_replace('/\D/', '', $rawUpc) ?? '') : '';
+
+        if (strlen($value) >= 11 || ($barcode !== '' && $value === $barcode)) {
+            return null;
+        }
+
+        return $value;
     }
 
     /**

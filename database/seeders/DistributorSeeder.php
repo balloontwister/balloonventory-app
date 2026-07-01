@@ -257,6 +257,13 @@ class DistributorSeeder extends Seeder
                     'size_number_aliases' => ['Sempertex' => ['11' => '12']],
                     // "BT-53011" (Betallic remnant) → bare manufacturer item number.
                     'sku_strip_prefixes' => ['BT-'],
+                    // Joker's Gemar products carry no attribute table but DO expose an
+                    // on-page SKU whose core matches our catalog warehouse_sku. Rescue
+                    // barcode-less listings by that SKU. Our Gemar warehouse_skus are
+                    // "G"-prefixed (G110005) while the distributor core is bare
+                    // (110005), so also try that prefix (brand-scoped, so it's safe).
+                    'match_by_warehouse_sku' => true,
+                    'warehouse_sku_prefixes' => ['G'],
                 ],
                 'is_active' => true,
                 'sort_order' => 4,

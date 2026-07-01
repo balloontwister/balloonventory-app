@@ -49,6 +49,9 @@ class DistributorSeederTest extends TestCase
         );
         $this->assertSame('Quantity', $distributor->config['extraction']['label_map']['count']);
         $this->assertSame(['BT-'], $distributor->config['sku_strip_prefixes']);
+        // Rescue barcode-less (Gemar) listings by SKU, bridging our "G" prefix.
+        $this->assertTrue($distributor->config['match_by_warehouse_sku']);
+        $this->assertSame(['G'], $distributor->config['warehouse_sku_prefixes']);
     }
 
     public function test_seeder_is_idempotent(): void

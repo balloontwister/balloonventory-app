@@ -263,6 +263,37 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertSame(0, $this->engine->run(execute: true)['matched_by_warehouse_sku']);
     }
 
+    public function test_warehouse_sku_prefix_bridges_a_prefixed_catalog_code(): void
+    {
+        // Our Gemar warehouse_skus are "G"-prefixed (G110005) while the distributor
+        // exposes the bare core (110005). The configured prefix lets them meet.
+        $gemar = Brand::factory()->create(['name' => 'Gemar']);
+        $sku = Sku::factory()->create(['brand_id' => $gemar->id, 'warehouse_sku' => 'G110005', 'upc' => null]);
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true, 'warehouse_sku_prefixes' => ['G']]]);
+
+        $this->stageHavinSku('110005', 'Gemar');
+
+        $stats = $this->engine->run(execute: true);
+
+        $this->assertSame(1, $stats['matched_by_warehouse_sku']);
+        $this->assertSame(1, DistributorSkuUrl::where('sku_id', $sku->id)
+            ->where('distributor_id', $this->havin->id)->count());
+    }
+
+    public function test_warehouse_sku_prefix_stays_brand_scoped(): void
+    {
+        // A Sempertex listing whose bare core, once "G"-prefixed, collides with a
+        // Gemar catalog code must NOT attach — the brand filter rejects it.
+        $gemar = Brand::factory()->create(['name' => 'Gemar']);
+        Brand::factory()->create(['name' => 'Sempertex']);
+        Sku::factory()->create(['brand_id' => $gemar->id, 'warehouse_sku' => 'G53011', 'upc' => null]);
+        $this->havin->update(['config' => ['match_by_warehouse_sku' => true, 'warehouse_sku_prefixes' => ['G']]]);
+
+        $this->stageHavinSku('53011', 'Sempertex');
+
+        $this->assertSame(0, $this->engine->run(execute: true)['matched_by_warehouse_sku']);
+    }
+
     public function test_run_writes_a_pending_proposal_for_a_new_product(): void
     {
         $this->the100ctTrio();

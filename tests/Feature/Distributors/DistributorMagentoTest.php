@@ -121,6 +121,9 @@ class DistributorMagentoTest extends TestCase
 
         $this->assertSame('57102B', $parsed['raw_sku']);
         $this->assertSame('57102', $parsed['normalized_sku']); // Betallic "B" stripped → meets our warehouse_sku
+        // A successful JSON-LD read is the health signal (no attribute table to grade)
+        // — otherwise the crawl command's drift guard aborts the whole run.
+        $this->assertTrue($parsed['extraction']['ok']);
 
         $staged = DistributorProduct::where('distributor_id', $distributor->id)->sole();
         $this->assertSame('57102B', $staged->raw_sku);

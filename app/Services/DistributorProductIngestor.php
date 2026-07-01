@@ -861,7 +861,13 @@ class DistributorProductIngestor
         $parsed['product_type'] = null;
         $parsed['in_stock'] = $this->availabilityParser->parse($response->body());
         $parsed['stock'] = null;
-        $parsed['extraction'] = ['ok' => false, 'row_count' => 0, 'missing_required' => []];
+        // For the lean Magento path the "extraction" success signal is simply that
+        // we read the JSON-LD product (we got here with a raw_sku) — there's no
+        // attribute table to grade. Marking it ok keeps the crawl command's
+        // extraction-drift guard (built for BigCommerce tables) from mistaking
+        // every page for a broken template and aborting the run. A genuine template
+        // break drops the JSON-LD → parse returns null earlier → counted as failed.
+        $parsed['extraction'] = ['ok' => true, 'row_count' => 1, 'missing_required' => []];
 
         if ($execute) {
             $this->upsertPage($distributor->id, $externalId, $url, $parsed);

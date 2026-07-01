@@ -15,6 +15,36 @@ to write. For long crawls run detached: `nohup … < /dev/null > log 2>&1 &`.
 
 ---
 
+## Lessons from Joker Party Supply (2026-06-30) — apply to the next distributor
+Joker was a Shopify store; onboarding it added reusable capabilities + gotchas. Details in the `project-distributor-joker` memory.
+
+**Shopify now has THREE enrich sources — pick by where the store keeps its attributes:**
+- **page HTML accordion** (`extraction.attribute_list`, `section_marker`) — BargainBalloons.
+- **products.json tags** (`extraction.tag_attributes`) — LA Balloons (no page fetch; barcode from per-product `.json`).
+- **per-product `.json` `body_html` table** (`enrich_from_product_json: true` + `extraction.attribute_rows`) — Joker. One light JSON fetch yields the barcode (variant) AND the spec table (body_html), no heavy HTML page.
+- (BigCommerce still = page crawl: Larocks two-cell table / havinaparty title+breadcrumb.)
+
+**New extractor mode `attribute_rows`** — a plain two-column `<tr><td>Label</td><td>Value</td></tr>` table (no CSS classes), `section_marker`-anchored, skips the `<th>` header. Alongside `attribute_table` / `attribute_list`.
+
+**`auto-info` / body_html-vs-page gotcha:** some Shopify products have a narrative `body_html` (no table) while the SAME table is still rendered on the PAGE (from metafields). `enrichShopifyFromProductJson` falls back to the page when body_html has no table. Expect a slice (~8% at Joker) to need it. ⚠️ The **Probe button does NOT cover the product-JSON path** — validate a new product-JSON recipe with `catalog:ingest-distributor {slug} --enrich --execute --limit=N` then inspect staged rows.
+
+**Table-less-but-barcoded brands still work:** a brand a store renders with no attribute table classifies as `unknown`, but if it has a UPC it still clusters, corroborates, and attaches a Reorder link (type only gates *self-proposing* new SKUs). Don't panic at a high `unknown` count — check whether those brands are (a) ones we don't carry (correct park) or (b) carried-but-table-less (recoverable, below).
+
+**`warehouse_sku_prefixes` (new) bridges a prefixed catalog code:** when a store exposes a bare SKU core (`110005`) but our catalog `warehouse_sku` for that brand is prefixed (`G110005` for Gemar), set `match_by_warehouse_sku: true` + `warehouse_sku_prefixes: ['G']`. The rescue tier tries `prefix+core`, brand-scoped + single-match-guarded, and attaches barcode-less listings as Reorder links (never creates SKUs). Recovered ~156 Joker Gemar this way.
+
+**Throttle:** Shopify default 500ms **rate-escalates under sustained/repeated bursts** (429s). Use `request_delay_ms: 800` + `request_jitter_ms: 400` for a full crawl. Failed fetches are harmless — they return null before upsert (data intact) and re-run is idempotent (skips already-enriched-fresh). Scope the crawl with `collection_handle` (e.g. `latex`) to the slice you support.
+
+**Full post-import command sequence (in order):**
+1. `catalog:ingest-distributor {slug} --enrich` (dry) → `--execute` (detached for a full catalog).
+2. `catalog:cluster-distributors` (dry) → `--execute`. (This already stamps each open proposal's consensus warehouse SKU.)
+3. `catalog:promote-distributor-proposals` (dry) → `--execute`. Adding a new corroborating source is exactly when the accuracy gate auto-creates more (Joker unlocked 17). **Spot-check the created SKUs' counts** — `default_count_per_bag` vs the evidence titles (proposed_count from Quantity can occasionally be wrong).
+4. `catalog:audit-promoted-warehouse-skus` (read-only) — **run this after adding a new distributor**: new evidence can shift the consensus warehouse SKU on *already-promoted* catalog SKUs, which re-clustering does NOT touch. `--execute` to correct (skips manually-edited).
+5. `catalog:recompute-proposal-warehouse-skus` — redundant *immediately* after a full re-cluster (cluster already recomputed open proposals), but the go-to when fixing proposals without a re-cluster.
+
+**New-brand intake capture:** when a distributor carries brands we don't hold, dump them from staging (authoritative — real SKUs + UPCs) to `intake/{brand}/{brand}_latex_from_{slug}.json` for later seeding. `intake/` is gitignored (local-only). Did this for Belbal + Balloonia from Joker.
+
+---
+
 ## Pipeline in one picture
 
 ```

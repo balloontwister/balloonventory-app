@@ -38,6 +38,13 @@ class DistributorFactory extends Factory
         ]);
     }
 
+    public function magento(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'platform_type' => 'magento',
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [

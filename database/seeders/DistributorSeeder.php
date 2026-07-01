@@ -268,6 +268,81 @@ class DistributorSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 4,
             ],
+            [
+                'name' => 'Rainbow Balloons',
+                'slug' => 'rainbow_balloons',
+                'platform_type' => 'magento',
+                'base_url' => 'https://rainbowballoons.com',
+                // Magento 2 store (Rootways theme), Cloudflare-fronted. NEW platform:
+                // no Shopify products.json feed, and — critically — NO barcode/UPC
+                // anywhere on the product page. So Rainbow can neither seed nor
+                // corroborate UPC clusters and can never auto-create a SKU. Its value
+                // is Reorder links (+ price + stock) for products we ALREADY carry:
+                // the JSON-LD `sku` IS the manufacturer item number (== our
+                // warehouse_sku), matched brand-scoped + single-match-guarded, exactly
+                // like Joker's Gemar rescue. Lands cleanly for Qualatex (full
+                // warehouse_sku coverage); TufTex/Anagram/Betallatex depend on our
+                // catalog carrying the matching item number.
+                'config' => [
+                    // Sitemap lives at a non-standard path (declared in robots.txt).
+                    'sitemap_url' => 'https://rainbowballoons.com/media/sitemap.xml',
+                    // Solid latex only. Product URLs are flat (/{slug}-{id}.html) so the
+                    // sitemap can't be path-filtered — harvest product links from these
+                    // brand-scoped solid-latex category listings (paginated) instead.
+                    'category_urls' => [
+                        'https://rainbowballoons.com/latex/solid-qualatex-latex.html',
+                        'https://rainbowballoons.com/latex/solid-betallatex-latex.html',
+                        'https://rainbowballoons.com/latex/solid-tuftex-latex.html',
+                        'https://rainbowballoons.com/latex/solid-anagram-latex.html',
+                    ],
+                    // ~100 KB pages behind Cloudflare → slow, jittered crawl.
+                    'request_delay_ms' => 1500,
+                    'request_jitter_ms' => 1000,
+                    // No barcode; on-page SKU == manufacturer item number == our
+                    // warehouse_sku → attach Reorder links by that key (brand-scoped).
+                    'match_by_warehouse_sku' => true,
+                    // Rainbow renders a Magento "additional-attributes" table
+                    // (<tr><th class="col label">Label</th><td class="col data">Value</td></tr>)
+                    // plus JSON-LD (name/sku/brand/price/availability). Needs a NEW
+                    // `attribute_th_rows` extractor mode (existing attribute_rows requires
+                    // two <td>s and skips the <th> label). Attribute resolution is only
+                    // needed if Rainbow ever helps propose SKUs — not for Reorder links.
+                    'extraction' => [
+                        'attribute_th_rows' => ['table_class' => 'additional-attributes'],
+                        'required_labels' => ['Manufacturers', 'Color'],
+                        'min_rows' => 3,
+                        'label_map' => [
+                            'brand' => 'Manufacturers',
+                            'color' => 'Color',
+                        ],
+                    ],
+                    // Rainbow's JSON-LD brand is the manufacturer's full name, not our
+                    // short brand — map each to our canonical brand (case-insensitive).
+                    // Confirmed against the live site. Aliasing BETALLIC INC is safe
+                    // because we crawl ONLY the solid-latex categories (Betallic's own
+                    // foils aren't crawled).
+                    'attribute_aliases' => [
+                        'brand' => [
+                            'PIONEER BALLOON' => 'Qualatex',   // Pioneer Balloon Co. makes Qualatex
+                            'BETALLIC INC' => 'Sempertex',     // Betallic's latex is Sempertex
+                            'TUFTEX BALLOONS' => 'TufTex',
+                            'Betallatex' => 'Sempertex',       // category-name fallbacks
+                            'BETALLATEX' => 'Sempertex',
+                        ],
+                    ],
+                    // Item numbers carry a trailing brand marker: Betallic/Sempertex "B"
+                    // (sku "57102B" → warehouse_sku 57102) and some TufTex "T" (sku
+                    // "36282T" → mfg_no 36282). Qualatex numbers are bare, so stripping
+                    // is a no-op for them. Confirmed against the live site.
+                    'sku_strip_suffixes' => ['B', 'T'],
+                    // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
+                    'size_number_aliases' => ['Sempertex' => ['11' => '12']],
+                ],
+                // Inactive until the Magento adapter is built — platform_type=magento
+                // isn't wired, so Probe/Sync would throw while active.
+                'is_active' => false,
+                'sort_order' => 5,
+            ],
         ];
 
         foreach ($distributors as $data) {

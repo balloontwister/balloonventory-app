@@ -824,9 +824,17 @@ function formatPrice(price) {
                                     <p class="mt-1 font-sans text-[12px] text-warning">
                                         {{ $t('super_admin.dashboard.distributors.proposals.maybe_exists_detail', { name: editCatalogMatch.exact.name }) }}
                                     </p>
+                                    <a
+                                        :href="route('admin.catalog.skus.show', editCatalogMatch.exact.id)"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="mt-1 inline-block font-sans text-[12px] font-medium text-accent underline underline-offset-2 hover:opacity-80"
+                                    >
+                                        {{ $t('super_admin.dashboard.distributors.proposals.view_match') }}
+                                    </a>
                                     <button
                                         type="button"
-                                        class="mt-2 rounded-md border border-warning px-3 py-1.5 font-sans text-[12px] font-semibold text-warning transition hover:bg-warning-soft disabled:opacity-50"
+                                        class="mt-2 block rounded-md border border-warning px-3 py-1.5 font-sans text-[12px] font-semibold text-warning transition hover:bg-warning-soft disabled:opacity-50"
                                         :disabled="editProcessing"
                                         @click="mapToExisting"
                                     >

@@ -30,7 +30,7 @@ Joker was a Shopify store; onboarding it added reusable capabilities + gotchas. 
 
 **Table-less-but-barcoded brands still work:** a brand a store renders with no attribute table classifies as `unknown`, but if it has a UPC it still clusters, corroborates, and attaches a Reorder link (type only gates *self-proposing* new SKUs). Don't panic at a high `unknown` count — check whether those brands are (a) ones we don't carry (correct park) or (b) carried-but-table-less (recoverable, below).
 
-**`warehouse_sku_prefixes` (new) bridges a prefixed catalog code:** when a store exposes a bare SKU core (`110005`) but our catalog `warehouse_sku` for that brand is prefixed (`G110005` for Gemar), set `match_by_warehouse_sku: true` + `warehouse_sku_prefixes: ['G']`. The rescue tier tries `prefix+core`, brand-scoped + single-match-guarded, and attaches barcode-less listings as Reorder links (never creates SKUs). Recovered ~156 Joker Gemar this way.
+**`warehouse_sku_prefixes` (new) bridges a prefixed catalog code:** when a store exposes a bare SKU core (`110005`) but our catalog `warehouse_sku` for that brand is prefixed (`G110005` for Gemar), set `match_by_warehouse_sku: true` + `warehouse_sku_prefixes: ['G']`. The rescue tier tries `prefix+core`, brand-scoped + single-match-guarded, and attaches barcode-less listings as Reorder links (never creates SKUs). Recovered ~156 Joker Gemar this way. **Update (Rainbow, 2026-07-01): the rescue index now unions `warehouse_sku` + `mfg_no`** — some brands store the item number in `mfg_no` (TufTex), so a bare on-page SKU matches whichever column our catalog uses.
 
 **Throttle:** Shopify default 500ms **rate-escalates under sustained/repeated bursts** (429s). Use `request_delay_ms: 800` + `request_jitter_ms: 400` for a full crawl. Failed fetches are harmless — they return null before upsert (data intact) and re-run is idempotent (skips already-enriched-fresh). Scope the crawl with `collection_handle` (e.g. `latex`) to the slice you support.
 
@@ -42,6 +42,31 @@ Joker was a Shopify store; onboarding it added reusable capabilities + gotchas. 
 5. `catalog:recompute-proposal-warehouse-skus` — redundant *immediately* after a full re-cluster (cluster already recomputed open proposals), but the go-to when fixing proposals without a re-cluster.
 
 **New-brand intake capture:** when a distributor carries brands we don't hold, dump them from staging (authoritative — real SKUs + UPCs) to `intake/{brand}/{brand}_latex_from_{slug}.json` for later seeding. `intake/` is gitignored (local-only). Did this for Belbal + Balloonia from Joker.
+
+---
+
+## Lessons from Rainbow Balloons (2026-07-01) — the Magento / BARCODE-LESS archetype
+Rainbow is our first **Magento 2** store AND first **barcode-less** distributor — a genuinely new archetype. Everything above assumes the store exposes a UPC; Rainbow exposes **none**. Full detail in the `project-distributor-rainbow` memory. Handle a barcode-less store very differently.
+
+**Third platform: Magento** (`platform_type: 'magento'`, `MagentoAdapter`). No bulk feed, and the sitemap is a flat, **brand-blind** list of `.html` product URLs — so you CANNOT path-filter it to the slice you support. Instead the adapter **harvests product links from configured category pages** (`config.category_urls`) following `?p=N` pagination. `catalog:crawl-distributor {slug}` accepts magento (same command as BigCommerce); per-page parse = **JSON-LD Product** (`MagentoProductPageParser`: name/sku/brand/price) + `JsonLdAvailabilityParser` for stock.
+
+**NO barcode ⇒ Reorder-links-only, NOT the UPC pipeline.** A barcode-less store can never cluster, corroborate, self-propose, or auto-create (all UPC-gated). Its ONLY value is **attaching Reorder links (+price+stock) to SKUs we ALREADY carry**, via the `match_by_warehouse_sku` rescue. So the flow is crawl → `cluster-distributors --execute` (cluster is what attaches the rescue links) → **NEVER `promote`** (no-op). No proposals appear in the review queue from this store.
+
+**Join key = the manufacturer item number, in EITHER `warehouse_sku` OR `mfg_no`.** The rescue index now unions BOTH columns (Sempertex/Qualatex/Kalisan/Gemar use `warehouse_sku`; **TufTex uses `mfg_no`**). ⚠️ When measuring a barcode-less store, check catalog coverage in BOTH columns — reading only `warehouse_sku` under-counts (it hid TufTex's 465 mfg_no on the first pass and made TufTex look un-reconcilable).
+
+**MEASURE RECONCILIATION POTENTIAL BEFORE BUILDING.** Read-only spot check FIRST: pull the store's item numbers per brand, count how many hit our `warehouse_sku`/`mfg_no` (brand-scoped). ~0 coverage for a brand ⇒ no links ⇒ don't crawl it. Rainbow: Sempertex 12% (we lack its 24" premium finishes), TufTex 86%, Qualatex 30% — all correct, all known before the full crawl.
+
+**Only crawl brands we hold SKU data for.** A brand with 0 catalog SKUs (Anagram, Funsational at Rainbow) stages rows that can never match — dead weight. Scope `category_urls` to reconcilable brands; re-add a category (one line) once that brand is seeded.
+
+**Cross-brand item-number collisions are real — the match MUST stay brand-scoped.** Bare item numbers aren't namespaced across manufacturers (Sempertex #57100 collides with a Funsational #57100). The rescue's brand scope + single-match guard handle it. ⚠️ Corollary: NEVER validate a match by grepping the sitemap for a bare number brand-blind — you'll get false hits. Confirm the product's brand.
+
+**JSON-LD brand is the manufacturer's FULL legal name; item numbers carry a per-brand letter suffix.** Rainbow's brand strings were `PIONEER BALLOON`(→Qualatex), `BETALLIC INC`(→Sempertex), `TUFTEX BALLOONS`(→TufTex) — alias each in `attribute_aliases.brand` (matched case-insensitively). SKUs carry a Betallic `B` (57102B→57102) and some TufTex `T` (36282T→36282) — put BOTH in `sku_strip_suffixes`. Don't assume the short brand name or a single suffix; read the live JSON-LD.
+
+**Lean build for barcode-less.** Since it can never propose, SKIP the attribute-table extractor (size/color parsing) — you only need sku + brand + price + stock from JSON-LD. Rainbow's Magento `attribute_th_rows` table extractor was deliberately NOT built.
+
+**⚠️ Crawl health-guard gotcha for ANY table-less/lean path.** `catalog:crawl-distributor`'s drift guard aborts the run + marks the distributor `broken` when `extractionOk/pagesParsed < 0.2`. A lean path has no attribute table to grade, so it MUST mark `extraction.ok = true` on a successful parse (as `crawlMagentoPage` does) — otherwise the crawl self-aborts at ~10 pages with a false `broken` health flag. (Cost the first Rainbow run.)
+
+**Onboarding sequence for a barcode-less store:** measure potential → build/config (scope to reconcilable brands) → **dry-run crawl** (confirm harvest count) → **small `--execute` batch** + a **live end-to-end smoke test** of the parse chain (⚠️ the Probe button does NOT cover Magento) → **full crawl detached** → `cluster-distributors --execute` (attaches links; NO promote) → **spot-check matches** (our SKU name vs the distributor title) → **flip `is_active=true` LAST** so it goes live already populated. Validating against the LIVE site caught two config bugs mocked tests couldn't (the full brand strings + the TufTex `T` suffix) — do it every time.
 
 ---
 
@@ -64,6 +89,10 @@ Key model facts:
 - Staging + proposals live on the relocatable **`distributors`** DB connection.
 - Clustering is **UPC-gated**: a cluster's identity is a canonical GTIN-14, so it
   forms only when ≥1 distributor exposes a barcode.
+- **Barcode-less stores bypass clustering entirely** (e.g. Rainbow/Magento — no UPC
+  anywhere): the `match_by_warehouse_sku` rescue attaches Reorder links to SKUs we
+  already carry, matched by item number (`warehouse_sku` ∪ `mfg_no`), brand-scoped +
+  single-match-guarded. No proposals, no promote. See the Rainbow lessons above.
 - Only **`solid_latex`** is proposed today; other types park in staging (no re-crawl
   needed to enable later).
 - **Confidence** = `high` only when **≥2 distributors** share the UPC **and** a count
@@ -75,9 +104,14 @@ Key model facts:
 
 ## 1) Onboard a new distributor + set up matching
 
-1. **Identify the platform.** BigCommerce (sitemap + product-page scrape, e.g.
-   Larocks, havinaparty) or Shopify (`products.json`, e.g. BargainBalloons). Set
-   `platform_type` accordingly.
+1. **Identify the platform AND whether it exposes a barcode.** BigCommerce (sitemap +
+   product-page scrape, e.g. Larocks, havinaparty), Shopify (`products.json`, e.g.
+   BargainBalloons), or **Magento** (category-page harvest + JSON-LD, e.g. Rainbow —
+   see the Rainbow lessons). Set `platform_type`. ⚠️ **Check up front whether the store
+   exposes a UPC anywhere.** A barcode-less store (Rainbow) skips the whole
+   UPC/cluster/propose/promote pipeline and is a **Reorder-links-only** build — follow
+   the Rainbow section instead of the steps below, and **measure reconciliation
+   potential first** (catalog `warehouse_sku`+`mfg_no` coverage for its brands).
 2. **Create the distributor** (admin UI `/admin/distributors`, or `DistributorSeeder`
    for repeatability): `name`, `slug`, `platform_type`, `base_url`, `config` (below),
    `is_active`.
@@ -129,6 +163,12 @@ Key model facts:
   attribute table** — so Shopify products don't classify or self-propose yet (they
   still upgrade a shared-UPC cluster's confidence). "Shopify-side classification" is
   unbuilt future work.
+- **Magento crawl:** `catalog:crawl-distributor {slug} --execute --limit N` (same
+  command as BigCommerce). Harvests product links from `config.category_urls`
+  (`?p=N` pagination), fetches each page, parses JSON-LD. Barcode-less → stages
+  sku/brand/price/stock only; the cluster step attaches Reorder links via the
+  item-number rescue. ⚠️ Set a high `--limit` (default 100) to cover the catalog in
+  one pass; run detached. See the Rainbow lessons for the health-guard gotcha.
 - **After any crawl/ingest:** `catalog:cluster-distributors --execute` to (re)build
   proposals + attach Reorder URLs + re-stamp resolution. Idempotent; preserves
   human-reviewed proposals (refreshes their evidence/resolution only). Dry-run first
@@ -177,7 +217,11 @@ Review queue (`/admin/distributors/proposals`):
 
 ---
 
-## Accuracy & auto-create policy (REQUIRED for every distributor)
+## Accuracy & auto-create policy (REQUIRED for every UPC-bearing distributor)
+
+> **Barcode-less stores (Rainbow/Magento) are exempt** — they never cluster or
+> auto-create; they only attach Reorder links to SKUs we already carry. This whole
+> policy applies only to distributors that expose a UPC.
 
 "High confidence" today confirms **identity**, not attributes: it means ≥2
 distributors share the UPC **and** a count parsed. The resolved brand/size/colour
@@ -280,12 +324,14 @@ for similar US-importer stores:
   - So colour really is split (base + finish), exactly the recompose case — handled
     by the matcher change (`feat/matcher-finish-combined-color`).
 
-## Status note (updated 2026-06-30)
-Much of this runbook was written 2026-06-25, before BargainBalloons and Havin' A
-Party shipped. Corrections to the rest of the doc:
-- **FOUR distributors are now live**, not the one/two implied above: Larocks,
+## Status note (updated 2026-07-01)
+Much of this runbook was written 2026-06-25, before later distributors shipped.
+Corrections to the rest of the doc:
+- **SIX distributors are now live**, not the one/two implied above: Larocks,
   BargainBalloons, LA Balloons, Havin' A Party (table-less BigCommerce — JSON-LD
-  breadcrumb + title recipe). See `project-distributor-havinaparty` memory.
+  breadcrumb + title recipe), Joker Party Supply (Shopify product-JSON table), and
+  **Rainbow Balloons (Magento, barcode-less — Reorder-links-only)**. See the
+  `project-distributor-havinaparty` / `-joker` / `-rainbow` memories.
 - The **BargainBalloons recipe** in the "Worked example" section below is no longer
   "PLANNED" — it's **built, configured, and live** (Shopify accordion `attribute_list`
   extractor mode, Betallatex→Sempertex alias, BL-/-B affix strip, finish+colour
@@ -309,8 +355,9 @@ Party shipped. Corrections to the rest of the doc:
   Shopify stores that's the targeted page-enrichment (not just `products.json`).
   Shopify products still need **classification** (from their page table or tags)
   before they self-propose — that classification step remains unbuilt for Shopify.
-- **New e-commerce platform = new adapter.** Only Shopify + BigCommerce adapters
-  exist; an existing-platform store is just a config recipe.
+- **New e-commerce platform = new adapter.** Shopify + BigCommerce + **Magento**
+  adapters exist; a store on one of those is just a config recipe. A genuinely new
+  platform (WooCommerce, etc.) still needs a new adapter + page parser.
 - **`firstOrCreate` prod gotcha:** the seeder won't update an existing distributor
   row, so every config tweak must be set on prod by hand via tinker.
 - **Crawls are run manually** (`nohup … catalog:crawl-distributor`); no scheduled

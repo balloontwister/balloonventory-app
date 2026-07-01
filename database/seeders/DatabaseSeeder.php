@@ -45,6 +45,9 @@ class DatabaseSeeder extends Seeder
             ElitexColorSeeder::class,
             BritetexTextureSeeder::class,
             BritetexColorSeeder::class,
+            FunsationalTextureSeeder::class,
+            FunsationalBalloonSizeSeeder::class,
+            FunsationalColorSeeder::class,
             DistributorSeeder::class,
         ]);
     }

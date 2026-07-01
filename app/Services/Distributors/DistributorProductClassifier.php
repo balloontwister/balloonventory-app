@@ -43,7 +43,8 @@ class DistributorProductClassifier
 
         $attributes = $extraction['attributes'] ?? [];
         $industry = strtolower($this->first($attributes, 'Industry') ?? '');
-        $material = strtolower($this->first($attributes, 'Balloon Material') ?? '');
+        // Larocks labels it "Balloon Material"; Joker Party Supply just "Material".
+        $material = strtolower($this->first($attributes, 'Balloon Material') ?? $this->first($attributes, 'Material') ?? '');
         $color = strtolower($this->first($attributes, 'Color') ?? '');
         $theme = $this->first($attributes, 'Occasion / Theme');
 

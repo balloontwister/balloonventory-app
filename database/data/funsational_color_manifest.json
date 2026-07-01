@@ -1,0 +1,673 @@
+{
+  "brand": "Funsational",
+  "source": "distributor staging (Larocks/LA/Joker), names-only; hex approximated",
+  "count": 74,
+  "colors": [
+    {
+      "name": "Assortment",
+      "base_color": "Assortment",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 5
+    },
+    {
+      "name": "Baby Blue",
+      "base_color": "Baby Blue",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blues",
+      "hex": "#9CC7E8",
+      "sort_order": 10
+    },
+    {
+      "name": "Black",
+      "base_color": "Black",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blacks",
+      "hex": "#1A1A1E",
+      "sort_order": 15
+    },
+    {
+      "name": "Bright Pink",
+      "base_color": "Bright Pink",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Pinks",
+      "hex": "#F0559B",
+      "sort_order": 20
+    },
+    {
+      "name": "Burgundy",
+      "base_color": "Burgundy",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Reds",
+      "hex": "#6E2233",
+      "sort_order": 25
+    },
+    {
+      "name": "Cactus",
+      "base_color": "Cactus",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#5E8C5A",
+      "sort_order": 30
+    },
+    {
+      "name": "Cashmere",
+      "base_color": "Cashmere",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Browns",
+      "hex": "#D8C3A5",
+      "sort_order": 35
+    },
+    {
+      "name": "Cocoa Brown",
+      "base_color": "Cocoa Brown",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Browns",
+      "hex": "#4A2E22",
+      "sort_order": 40
+    },
+    {
+      "name": "Green",
+      "base_color": "Green",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#2E9E4F",
+      "sort_order": 45
+    },
+    {
+      "name": "Hot Pink",
+      "base_color": "Hot Pink",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Pinks",
+      "hex": "#E83E8C",
+      "sort_order": 50
+    },
+    {
+      "name": "Hunter Green",
+      "base_color": "Hunter Green",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#255E45",
+      "sort_order": 55
+    },
+    {
+      "name": "Lilac",
+      "base_color": "Lilac",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Purples",
+      "hex": "#B98FD1",
+      "sort_order": 60
+    },
+    {
+      "name": "Lime Green",
+      "base_color": "Lime Green",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#8CC63F",
+      "sort_order": 65
+    },
+    {
+      "name": "Mint Green",
+      "base_color": "Mint Green",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#9BD7B0",
+      "sort_order": 70
+    },
+    {
+      "name": "Multi-Color",
+      "base_color": "Multi-Color",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 75
+    },
+    {
+      "name": "Navy",
+      "base_color": "Navy",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blues",
+      "hex": "#1E2A5A",
+      "sort_order": 80
+    },
+    {
+      "name": "Neutrals",
+      "base_color": "Neutrals",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Browns",
+      "hex": "#D9CBB8",
+      "sort_order": 85
+    },
+    {
+      "name": "Ocean Blue",
+      "base_color": "Ocean Blue",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blues",
+      "hex": "#1C6FA6",
+      "sort_order": 90
+    },
+    {
+      "name": "Orange",
+      "base_color": "Orange",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Oranges",
+      "hex": "#F4811F",
+      "sort_order": 95
+    },
+    {
+      "name": "Patriotic Assortment",
+      "base_color": "Patriotic Assortment",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 100
+    },
+    {
+      "name": "Pink",
+      "base_color": "Pink",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Pinks",
+      "hex": "#F39FBB",
+      "sort_order": 105
+    },
+    {
+      "name": "Primary Assortment",
+      "base_color": "Primary Assortment",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 110
+    },
+    {
+      "name": "Primary Assortment W/ White",
+      "base_color": "Primary Assortment W/ White",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Assortment",
+      "hex": "#F4F4F4",
+      "sort_order": 115
+    },
+    {
+      "name": "Purple",
+      "base_color": "Purple",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Purples",
+      "hex": "#8E4FC0",
+      "sort_order": 120
+    },
+    {
+      "name": "Quartz Purple",
+      "base_color": "Quartz Purple",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Purples",
+      "hex": "#8A6FA8",
+      "sort_order": 125
+    },
+    {
+      "name": "Red",
+      "base_color": "Red",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Reds",
+      "hex": "#E0202C",
+      "sort_order": 130
+    },
+    {
+      "name": "Red / White",
+      "base_color": "Red / White",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Whites",
+      "hex": "#F4F4F4",
+      "sort_order": 135
+    },
+    {
+      "name": "Robin’s Egg Blue",
+      "base_color": "Robin’s Egg Blue",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blues",
+      "hex": "#5FB8C4",
+      "sort_order": 140
+    },
+    {
+      "name": "Royal Blue",
+      "base_color": "Royal Blue",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blues",
+      "hex": "#154BD1",
+      "sort_order": 145
+    },
+    {
+      "name": "Soccer Ball White",
+      "base_color": "Soccer Ball White",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Whites",
+      "hex": "#F4F4F4",
+      "sort_order": 150
+    },
+    {
+      "name": "Turquoise",
+      "base_color": "Turquoise",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#40C4C4",
+      "sort_order": 155
+    },
+    {
+      "name": "Vintage Coral",
+      "base_color": "Vintage Coral",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Oranges",
+      "hex": "#F17A5B",
+      "sort_order": 160
+    },
+    {
+      "name": "Vintage Mocha",
+      "base_color": "Vintage Mocha",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Browns",
+      "hex": "#7A5A46",
+      "sort_order": 165
+    },
+    {
+      "name": "Vintage Muted Merlot",
+      "base_color": "Vintage Muted Merlot",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Reds",
+      "hex": "#5E2130",
+      "sort_order": 170
+    },
+    {
+      "name": "Vintage Olive",
+      "base_color": "Vintage Olive",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Greens",
+      "hex": "#7A7B2E",
+      "sort_order": 175
+    },
+    {
+      "name": "Vintage Slate Blue",
+      "base_color": "Vintage Slate Blue",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Blues",
+      "hex": "#5C7099",
+      "sort_order": 180
+    },
+    {
+      "name": "White",
+      "base_color": "White",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Whites",
+      "hex": "#F4F4F4",
+      "sort_order": 185
+    },
+    {
+      "name": "Yellow",
+      "base_color": "Yellow",
+      "texture": "Standard (F)",
+      "finish": "Standard",
+      "family": "Yellows",
+      "hex": "#F4D03F",
+      "sort_order": 190
+    },
+    {
+      "name": "Pearl Assortment",
+      "base_color": "Assortment",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 195
+    },
+    {
+      "name": "Pearl Baby Blue",
+      "base_color": "Baby Blue",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Blues",
+      "hex": "#9CC7E8",
+      "sort_order": 200
+    },
+    {
+      "name": "Pearl Black",
+      "base_color": "Black",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Blacks",
+      "hex": "#1A1A1E",
+      "sort_order": 205
+    },
+    {
+      "name": "Pearl Blue",
+      "base_color": "Blue",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Blues",
+      "hex": "#2D6FBF",
+      "sort_order": 210
+    },
+    {
+      "name": "Pearl Gold",
+      "base_color": "Gold",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Golds",
+      "hex": "#D4AF37",
+      "sort_order": 215
+    },
+    {
+      "name": "Pearl Gray / Silver",
+      "base_color": "Gray / Silver",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Silvers",
+      "hex": "#C8CACC",
+      "sort_order": 220
+    },
+    {
+      "name": "Pearl Green",
+      "base_color": "Green",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Greens",
+      "hex": "#2E9E4F",
+      "sort_order": 225
+    },
+    {
+      "name": "Pearl Ivory",
+      "base_color": "Ivory",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Whites",
+      "hex": "#F3ECD8",
+      "sort_order": 230
+    },
+    {
+      "name": "Pearl Lilac",
+      "base_color": "Lilac",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Purples",
+      "hex": "#B98FD1",
+      "sort_order": 235
+    },
+    {
+      "name": "Pearl Mint Green",
+      "base_color": "Mint Green",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Greens",
+      "hex": "#9BD7B0",
+      "sort_order": 240
+    },
+    {
+      "name": "Pearl Pink",
+      "base_color": "Pink",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Pinks",
+      "hex": "#F39FBB",
+      "sort_order": 245
+    },
+    {
+      "name": "Pearl Purple",
+      "base_color": "Purple",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Purples",
+      "hex": "#8E4FC0",
+      "sort_order": 250
+    },
+    {
+      "name": "Pearl Red",
+      "base_color": "Red",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Reds",
+      "hex": "#E0202C",
+      "sort_order": 255
+    },
+    {
+      "name": "Pearl Silver",
+      "base_color": "Silver",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Silvers",
+      "hex": "#C8CACC",
+      "sort_order": 260
+    },
+    {
+      "name": "Pearl White",
+      "base_color": "White",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Whites",
+      "hex": "#F4F4F4",
+      "sort_order": 265
+    },
+    {
+      "name": "Pearl Yellow",
+      "base_color": "Yellow",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Yellows",
+      "hex": "#F4D03F",
+      "sort_order": 270
+    },
+    {
+      "name": "Pearl Yellow / Gold",
+      "base_color": "Yellow / Gold",
+      "texture": "Pearl (F)",
+      "finish": "Pearl",
+      "family": "Golds",
+      "hex": "#F4D03F",
+      "sort_order": 275
+    },
+    {
+      "name": "Crystal Assortment",
+      "base_color": "Assortment",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 280
+    },
+    {
+      "name": "Crystal Blue",
+      "base_color": "Blue",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Blues",
+      "hex": "#2D6FBF",
+      "sort_order": 285
+    },
+    {
+      "name": "Crystal Burgundy",
+      "base_color": "Burgundy",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Reds",
+      "hex": "#6E2233",
+      "sort_order": 290
+    },
+    {
+      "name": "Crystal Clear",
+      "base_color": "Clear",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Clears",
+      "hex": "#E8EEF2",
+      "sort_order": 295
+    },
+    {
+      "name": "Crystal Diamond Clear",
+      "base_color": "Diamond Clear",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Clears",
+      "hex": "#E8EEF2",
+      "sort_order": 300
+    },
+    {
+      "name": "Crystal Fuchsia",
+      "base_color": "Fuchsia",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Pinks",
+      "hex": "#C8418B",
+      "sort_order": 305
+    },
+    {
+      "name": "Crystal Green",
+      "base_color": "Green",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Greens",
+      "hex": "#2E9E4F",
+      "sort_order": 310
+    },
+    {
+      "name": "Crystal Purple",
+      "base_color": "Purple",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Purples",
+      "hex": "#8E4FC0",
+      "sort_order": 315
+    },
+    {
+      "name": "Crystal Red",
+      "base_color": "Red",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Reds",
+      "hex": "#E0202C",
+      "sort_order": 320
+    },
+    {
+      "name": "Crystal Yellow",
+      "base_color": "Yellow",
+      "texture": "Crystal (F)",
+      "finish": "Crystal",
+      "family": "Yellows",
+      "hex": "#F4D03F",
+      "sort_order": 325
+    },
+    {
+      "name": "Pastel Assortment",
+      "base_color": "Assortment",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 330
+    },
+    {
+      "name": "Pastel Chalk Assortment",
+      "base_color": "Chalk Assortment",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Assortment",
+      "hex": null,
+      "sort_order": 335
+    },
+    {
+      "name": "Pastel Chalk Blue",
+      "base_color": "Chalk Blue",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Blues",
+      "hex": "#2D6FBF",
+      "sort_order": 340
+    },
+    {
+      "name": "Pastel Chalk Peach",
+      "base_color": "Chalk Peach",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Oranges",
+      "hex": "#F6C1A0",
+      "sort_order": 345
+    },
+    {
+      "name": "Pastel Chalk Pink",
+      "base_color": "Chalk Pink",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Pinks",
+      "hex": "#F39FBB",
+      "sort_order": 350
+    },
+    {
+      "name": "Pastel Chalk Purple",
+      "base_color": "Chalk Purple",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Purples",
+      "hex": "#8E4FC0",
+      "sort_order": 355
+    },
+    {
+      "name": "Pastel Chalk Teal",
+      "base_color": "Chalk Teal",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Greens",
+      "hex": "#1F8A8A",
+      "sort_order": 360
+    },
+    {
+      "name": "Pastel Chalk Yellow",
+      "base_color": "Chalk Yellow",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Yellows",
+      "hex": "#F4D03F",
+      "sort_order": 365
+    },
+    {
+      "name": "Pastel Turquoise",
+      "base_color": "Turquoise",
+      "texture": "Pastel (F)",
+      "finish": "Pastel",
+      "family": "Greens",
+      "hex": "#40C4C4",
+      "sort_order": 370
+    }
+  ]
+}

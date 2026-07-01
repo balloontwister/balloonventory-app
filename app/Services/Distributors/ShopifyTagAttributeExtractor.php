@@ -29,6 +29,9 @@ namespace App\Services\Distributors;
  *       ],
  *       // product_type substring => Balloon Material value (drives classification)
  *       'product_type_map' => ['latex' => 'Latex', 'foil' => 'Foil', 'mylar' => 'Foil'],
+ *       // product_type substrings that mark a printed product (adds a Print row so
+ *       // the classifier parks it as printed rather than proposing it as solid)
+ *       'printed_type_keywords' => ['printed'],
  *       // words stripped from every tag value (e.g. "11\" Latex" => "11\"")
  *       'strip_words' => ['Latex', 'Foil', 'Mylar', 'Bubble'],
  *       'required_labels' => ['Color', 'Size'],
@@ -79,10 +82,19 @@ class ShopifyTagAttributeExtractor
         }
 
         // product_type → Balloon Material, so the shared classifier can read it.
-        $material = $this->materialFromProductType((string) ($product['product_type'] ?? ''), $recipe['product_type_map'] ?? []);
+        $productType = (string) ($product['product_type'] ?? '');
+        $material = $this->materialFromProductType($productType, $recipe['product_type_map'] ?? []);
 
         if ($material !== null) {
             $attributes['Balloon Material'] = [$material];
+        }
+
+        // A printed product_type ("Printed Latex Balloons") marks the product as
+        // printed via a Print row, so the classifier parks it rather than treating
+        // it as solid. Some printed products carry a Theme_ tag the classifier would
+        // catch anyway, but many don't — the product_type is the reliable signal.
+        if ($this->productTypeMatches($productType, $recipe['printed_type_keywords'] ?? [])) {
+            $attributes['Print'] = ['Printed'];
         }
 
         $rowCount = array_sum(array_map('count', $attributes));
@@ -134,6 +146,25 @@ class ShopifyTagAttributeExtractor
         }
 
         return null;
+    }
+
+    /**
+     * Does the product_type contain any of the given keywords (case-insensitive)?
+     * Used to flag printed product types.
+     *
+     * @param  array<int, string>  $keywords
+     */
+    private function productTypeMatches(string $productType, array $keywords): bool
+    {
+        $haystack = strtolower($productType);
+
+        foreach ($keywords as $keyword) {
+            if ($keyword !== '' && str_contains($haystack, strtolower((string) $keyword))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

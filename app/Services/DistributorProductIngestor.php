@@ -153,7 +153,7 @@ class DistributorProductIngestor
             // Cheap pre-filter: only latex looks worth the page fetch. The real
             // type classification still happens from the page, so a misfilter just
             // parks as a non-proposing type rather than creating a bad SKU.
-            if (! $this->looksSolidLatex($product)) {
+            if (! $this->looksSolidLatex($product, $config)) {
                 $skippedNonLatex++;
 
                 continue;
@@ -536,20 +536,35 @@ class DistributorProductIngestor
      * latex and must not look like foil / mylar / printed.
      *
      * @param  array<string, mixed>  $product
+     * @param  array<string, mixed>  $config  the distributor's config
      */
-    private function looksSolidLatex(array $product): bool
+    private function looksSolidLatex(array $product, array $config = []): bool
     {
         // When the store classifies its own products (LA Balloons' product_type),
         // trust that signal: only a latex product type qualifies. This keeps out
         // accessories/decor (conduit, glitter) that merely mention "latex" in a
         // tag. Stores that leave product_type empty (BargainBalloons) fall back to
         // the title/tags heuristic below.
+        //
+        // A store may name a latex family with a word other than "latex" — e.g. All
+        // American Balloons sells its modeling range as "Twisting Balloons" — so the
+        // set of latex-indicating keywords is configurable (`latex_type_keywords`),
+        // defaulting to ["latex"]. Foil/mylar are always excluded.
         $type = strtolower((string) ($product['product_type'] ?? ''));
+        $latexKeywords = (array) ($config['latex_type_keywords'] ?? ['latex']);
 
         if ($type !== '') {
-            return str_contains($type, 'latex')
-                && ! str_contains($type, 'foil')
-                && ! str_contains($type, 'mylar');
+            if (str_contains($type, 'foil') || str_contains($type, 'mylar')) {
+                return false;
+            }
+
+            foreach ($latexKeywords as $keyword) {
+                if ($keyword !== '' && str_contains($type, strtolower((string) $keyword))) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         $haystack = strtolower(

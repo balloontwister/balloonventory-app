@@ -226,4 +226,106 @@ class CatalogEnrichDistributorTagsTest extends TestCase
         $this->assertNull(DistributorProduct::first()->in_stock);
         Http::assertNotSent(fn ($r) => $r->url() === 'https://la-test.com/products/kalisan-magenta-24');
     }
+
+    /**
+     * All American Balloons variant of the tag path: latex_type_keywords adds
+     * "twisting" (its Sempertex modeling range) to the pre-filter, and
+     * printed_type_keywords parks printed latex.
+     */
+    private function allAmerican(): Distributor
+    {
+        return Distributor::factory()->shopify()->create([
+            'slug' => 'all-american-balloons',
+            'base_url' => 'https://aab-test.com',
+            'config' => [
+                'collection_handle' => 'all',
+                'has_json_api' => true,
+                'request_delay_ms' => 0,
+                'latex_type_keywords' => ['latex', 'twisting'],
+                'extraction' => [
+                    'tag_attributes' => [
+                        'tag_map' => ['Color_' => 'Color', 'Size_' => 'Size', 'Theme_' => 'Occasion / Theme'],
+                        'product_type_map' => ['latex' => 'Latex', 'twisting' => 'Latex', 'foil' => 'Foil', 'mylar' => 'Foil'],
+                        'printed_type_keywords' => ['printed'],
+                        'strip_words' => ['Latex', 'Foil', 'Mylar', 'Bubble'],
+                        'required_labels' => ['Color', 'Size'],
+                        'min_rows' => 2,
+                    ],
+                ],
+                'attribute_aliases' => ['brand' => ['Betallic' => 'Sempertex']],
+            ],
+        ]);
+    }
+
+    public function test_twisting_product_type_is_enriched_as_solid_latex(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = $this->allAmerican();
+        // A Sempertex modeling balloon: product_type "Twisting Balloons" (no "latex"
+        // word) would be skipped by the default pre-filter, but latex_type_keywords
+        // includes it.
+        $product = [
+            'handle' => '360s-sempertex-honey-yellow',
+            'title' => '360s Sempertex Deluxe Honey Yellow Twisting Balloons | 50 Count',
+            'vendor' => 'Betallic',
+            'product_type' => 'Twisting Balloons',
+            'tags' => ['Color_Honey Yellow', 'Size_360'],
+            'variants' => [['sku' => '57826']],
+        ];
+        Http::fake([
+            'https://aab-test.com/collections/all/products.json?limit=250&page=1' => Http::response(['products' => [$product]], 200),
+            'https://aab-test.com/collections/all/products.json?limit=250&page=2' => Http::response(['products' => []], 200),
+            'https://aab-test.com/products/'.$product['handle'].'.json' => Http::response([
+                'product' => ['variants' => [['sku' => '57826', 'barcode' => '030625578264']]],
+            ], 200),
+        ]);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $p = DistributorProduct::first();
+        $this->assertNotNull($p);
+        $this->assertSame('030625578264', $p->upc);
+        $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $p->product_type);
+        $this->assertSame(['Latex'], $p->raw_data['attributes']['Balloon Material']);
+    }
+
+    public function test_printed_latex_product_type_parks_as_printed(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = $this->allAmerican();
+        // "Printed Latex Balloons" passes the latex pre-filter (contains "latex"),
+        // but printed_type_keywords must flag it so it classifies as printed, not
+        // solid — even though it carries no Theme_ tag.
+        $product = [
+            'handle' => 'sempertex-soccer-24',
+            'title' => '24" Sempertex Soccer Printed Latex Balloons',
+            'vendor' => 'Betallic',
+            'product_type' => 'Printed Latex Balloons',
+            'tags' => ['Color_Black', 'Color_White', 'Size_24 Inch'],
+            'variants' => [['sku' => '50123']],
+        ];
+        Http::fake([
+            'https://aab-test.com/collections/all/products.json?limit=250&page=1' => Http::response(['products' => [$product]], 200),
+            'https://aab-test.com/collections/all/products.json?limit=250&page=2' => Http::response(['products' => []], 200),
+            'https://aab-test.com/products/'.$product['handle'].'.json' => Http::response([
+                'product' => ['variants' => [['sku' => '50123', 'barcode' => '030625501231']]],
+            ], 200),
+        ]);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $p = DistributorProduct::first();
+        $this->assertNotNull($p);
+        $this->assertSame(DistributorProductClassifier::PRINTED, $p->product_type);
+    }
 }

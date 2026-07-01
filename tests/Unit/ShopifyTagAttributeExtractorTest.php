@@ -112,4 +112,60 @@ class ShopifyTagAttributeExtractorTest extends TestCase
         $this->assertSame(['Pink'], $result['attributes']['Color']);
         $this->assertSame(['24"'], $result['attributes']['Size']);
     }
+
+    /**
+     * Config mirroring All American Balloons: a "Twisting Balloons" product_type is
+     * latex, and a printed product_type is flagged so the classifier parks it.
+     */
+    private array $aabConfig = [
+        'extraction' => [
+            'tag_attributes' => [
+                'tag_map' => ['Color_' => 'Color', 'Size_' => 'Size', 'Theme_' => 'Occasion / Theme'],
+                'product_type_map' => ['latex' => 'Latex', 'twisting' => 'Latex', 'foil' => 'Foil', 'mylar' => 'Foil'],
+                'printed_type_keywords' => ['printed'],
+                'strip_words' => ['Latex', 'Foil', 'Mylar', 'Bubble'],
+                'required_labels' => ['Color', 'Size'],
+                'min_rows' => 2,
+            ],
+        ],
+    ];
+
+    public function test_twisting_product_type_maps_to_latex_material(): void
+    {
+        $product = [
+            'vendor' => 'Betallic', 'product_type' => 'Twisting Balloons',
+            'tags' => ['Color_Honey Yellow', 'Size_360'],
+        ];
+
+        $result = (new ShopifyTagAttributeExtractor)->extract($product, $this->aabConfig);
+
+        $this->assertSame(['Latex'], $result['attributes']['Balloon Material']);
+        $this->assertArrayNotHasKey('Print', $result['attributes']);
+    }
+
+    public function test_printed_product_type_adds_a_print_row(): void
+    {
+        $product = [
+            'vendor' => 'Betallic', 'product_type' => 'Printed Latex Balloons',
+            'tags' => ['Color_Black', 'Size_24 Inch'],
+        ];
+
+        $result = (new ShopifyTagAttributeExtractor)->extract($product, $this->aabConfig);
+
+        // Still latex material, but the Print row tells the classifier it's printed.
+        $this->assertSame(['Latex'], $result['attributes']['Balloon Material']);
+        $this->assertSame(['Printed'], $result['attributes']['Print']);
+    }
+
+    public function test_solid_product_type_gets_no_print_row(): void
+    {
+        $product = [
+            'vendor' => 'Betallic', 'product_type' => 'Solid Latex Balloons',
+            'tags' => ['Color_Black', 'Size_24 Inch'],
+        ];
+
+        $result = (new ShopifyTagAttributeExtractor)->extract($product, $this->aabConfig);
+
+        $this->assertArrayNotHasKey('Print', $result['attributes']);
+    }
 }

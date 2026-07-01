@@ -61,4 +61,33 @@ class DistributorSeederTest extends TestCase
 
         $this->assertSame(1, Distributor::where('slug', 'havin-a-party')->count());
     }
+
+    public function test_it_seeds_all_american_balloons_with_the_tag_recipe(): void
+    {
+        $this->seed(DistributorSeeder::class);
+
+        $distributor = Distributor::where('slug', 'all-american-balloons')->first();
+
+        $this->assertNotNull($distributor);
+        $this->assertSame('All American Balloons', $distributor->name);
+        $this->assertSame('shopify', $distributor->platform_type);
+        $this->assertSame('https://www.allamericanballoons.net', $distributor->base_url);
+        $this->assertTrue($distributor->is_active);
+
+        // Tag-driven Shopify recipe (LA Balloons archetype) + per-product barcode.
+        $this->assertSame('all', $distributor->config['collection_handle']);
+        $this->assertTrue($distributor->config['stock_from_page']);
+        $this->assertSame(
+            ['Color_' => 'Color', 'Size_' => 'Size', 'Theme_' => 'Occasion / Theme'],
+            $distributor->config['extraction']['tag_attributes']['tag_map'],
+        );
+        // "Twisting Balloons" (Sempertex modeling) counts as latex.
+        $this->assertSame(['latex', 'twisting'], $distributor->config['latex_type_keywords']);
+        $this->assertSame('Latex', $distributor->config['extraction']['tag_attributes']['product_type_map']['twisting']);
+        $this->assertSame(['printed'], $distributor->config['extraction']['tag_attributes']['printed_type_keywords']);
+        // Vendor (manufacturer parent) → our brand.
+        $this->assertSame('Sempertex', $distributor->config['attribute_aliases']['brand']['Betallic']);
+        $this->assertSame(['11' => '12'], $distributor->config['size_number_aliases']['Sempertex']);
+        $this->assertTrue($distributor->config['match_by_warehouse_sku']);
+    }
 }

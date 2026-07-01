@@ -195,7 +195,7 @@ class DistributorClusterEngine
                 continue;
             }
 
-            $skuId = $this->matchWarehouseSku($product);
+            $skuId = $this->matchWarehouseSku($product, $config);
 
             if ($skuId === null) {
                 continue;
@@ -225,19 +225,34 @@ class DistributorClusterEngine
      * warehouse_sku, scoped to its brand so a bare item number can't collide
      * across manufacturers. Returns the sku_id only on a single unambiguous
      * match, else null.
+     *
+     * @param  array<string, mixed>  $config  the distributor's config
      */
-    private function matchWarehouseSku(DistributorProduct $product): ?string
+    private function matchWarehouseSku(DistributorProduct $product, array $config): ?string
     {
-        $sku = $product->normalized_sku ?: $product->raw_sku;
+        $keys = array_filter([$product->normalized_sku, $product->raw_sku], fn ($k) => $k !== null && $k !== '');
 
-        if ($sku === null || $sku === '') {
-            return null;
+        // Some catalog warehouse_skus carry a brand-prefix convention our SKU
+        // normalizer strips off (Gemar: catalog "G110005" vs the distributor's
+        // bare core "110005"). Try the configured prefixes against the normalized
+        // core so the two sides meet; brand-scoping below rejects any wrong hit.
+        if ($product->normalized_sku !== null && $product->normalized_sku !== '') {
+            foreach ((array) ($config['warehouse_sku_prefixes'] ?? []) as $prefix) {
+                $prefix = (string) $prefix;
+                if ($prefix !== '') {
+                    $keys[] = $prefix.$product->normalized_sku;
+                }
+            }
         }
 
-        $candidates = $this->warehouseSkuIndex()->get($sku)
-            ?? $this->warehouseSkuIndex()->get($product->raw_sku);
+        $candidates = [];
+        foreach (array_unique($keys) as $key) {
+            foreach ($this->warehouseSkuIndex()->get($key, []) as $candidate) {
+                $candidates[$candidate['sku_id']] = $candidate; // dedupe by sku_id
+            }
+        }
 
-        if (empty($candidates)) {
+        if ($candidates === []) {
             return null;
         }
 
@@ -247,14 +262,14 @@ class DistributorClusterEngine
             : null;
 
         if ($brandId !== null) {
-            $candidates = array_values(array_filter(
+            $candidates = array_filter(
                 $candidates,
                 fn (array $c) => $c['brand_id'] === $brandId,
-            ));
+            );
         }
 
         // Attach only on a single unambiguous match.
-        return count($candidates) === 1 ? $candidates[0]['sku_id'] : null;
+        return count($candidates) === 1 ? array_values($candidates)[0]['sku_id'] : null;
     }
 
     /**

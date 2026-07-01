@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Distributors;
 
+use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -42,6 +43,30 @@ class RecomputeProposalWarehouseSkusTest extends TestCase
         $proposal->refresh();
         $this->assertSame('51508', $proposal->normalized_sku);
         $this->assertSame('51508', $proposal->proposed_warehouse_sku);
+    }
+
+    public function test_it_fills_an_empty_alphanumeric_warehouse_sku_by_renormalizing(): void
+    {
+        // Two stores wrap the alphanumeric item code 56360P2 (LA "-B" suffix,
+        // Joker "BT-" prefix); the old normalizer discarded it, leaving the SKU
+        // null. Re-normalizing with their configs recovers it.
+        $la = Distributor::factory()->create(['config' => ['sku_strip_suffixes' => ['-B']]]);
+        $joker = Distributor::factory()->create(['config' => ['sku_strip_prefixes' => ['BT-']]]);
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'upc' => '00030625563604',
+            'normalized_sku' => null,
+            'proposed_warehouse_sku' => null,
+            'evidence' => [
+                ['distributor_id' => $la->id, 'raw_sku' => '56360P2-B', 'normalized_sku' => null],
+                ['distributor_id' => $joker->id, 'raw_sku' => 'BT-56360P2', 'normalized_sku' => null],
+            ],
+        ]);
+
+        $this->artisan('catalog:recompute-proposal-warehouse-skus --execute')
+            ->assertSuccessful();
+
+        $this->assertSame('56360P2', $proposal->fresh()->proposed_warehouse_sku);
     }
 
     public function test_dry_run_reports_but_does_not_write(): void

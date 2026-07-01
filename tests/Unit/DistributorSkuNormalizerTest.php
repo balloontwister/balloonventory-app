@@ -54,6 +54,21 @@ class DistributorSkuNormalizerTest extends TestCase
         $this->assertSame('53012', $this->normalizer->normalize('53012-B', $config));
     }
 
+    public function test_alphanumeric_item_number_is_preserved(): void
+    {
+        // Sempertex Deluxe/foil codes carry a pack marker ("P2" = 2-count) — the
+        // core is alphanumeric, not pure digits, but still a real item number.
+        $this->assertSame('56360P2', $this->normalizer->normalize('56360P2'));
+    }
+
+    public function test_affixed_alphanumeric_forms_collapse_to_one_core(): void
+    {
+        // The two forms Todd saw in the queue: LA Balloons' "-B" suffix and Joker's
+        // "BT-" prefix, both wrapping the alphanumeric core "56360P2".
+        $this->assertSame('56360P2', $this->normalizer->normalize('56360P2-B', ['sku_strip_suffixes' => ['-B']]));
+        $this->assertSame('56360P2', $this->normalizer->normalize('BT-56360P2', ['sku_strip_prefixes' => ['BT-']]));
+    }
+
     public function test_lossy_variant_collapse_is_documented(): void
     {
         // 53012-B-10 is a different (10-ct) product, but it shares the core

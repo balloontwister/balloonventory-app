@@ -6,7 +6,9 @@ namespace App\Services;
  * Reduces a distributor's SKU to the bare manufacturer item number used to
  * group the same product across stores. The same Sempertex/Betallic item shows
  * up as `53012` (havinaparty), `BL-53012` (BargainBalloons), and `53012-B`
- * (LA Balloons) — all of which normalize to `53012`.
+ * (LA Balloons) — all of which normalize to `53012`. Item numbers may carry a
+ * pack/variant marker (`56360P2`), so a clean alphanumeric core is kept too, not
+ * just pure-digit ones — `BT-56360P2` and `56360P2-B` both normalize to `56360P2`.
  *
  * This is only a GROUPING HINT. A shared core number proposes that two listings
  * might be the same product; identity is confirmed downstream by a matching UPC
@@ -34,9 +36,14 @@ class DistributorSkuNormalizer
 
         $sku = $this->stripConfiguredAffixes($sku, $config);
 
-        // If configured stripping left a clean numeric token, trust it.
+        // A single clean token (no separators left) that carries at least one digit
+        // is the item number — trust it whether it's pure digits ("53012") or an
+        // alphanumeric code with a pack/variant marker ("56360P2"). Requiring a
+        // digit keeps pure-letter SKUs ("MEGAGLU") out.
         $trimmed = trim($sku, " \t-_/.");
-        if ($trimmed !== '' && ctype_digit($trimmed) && strlen($trimmed) >= self::MIN_CORE_LENGTH) {
+        if (strlen($trimmed) >= self::MIN_CORE_LENGTH
+            && preg_match('/^[A-Z0-9]+$/', $trimmed)
+            && preg_match('/\d/', $trimmed)) {
             return $trimmed;
         }
 

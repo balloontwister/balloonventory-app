@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Services\DistributorClusterEngine;
+use App\Services\DistributorSkuNormalizer;
 use Illuminate\Console\Command;
 
 class RecomputeProposalWarehouseSkus extends Command
@@ -11,9 +13,12 @@ class RecomputeProposalWarehouseSkus extends Command
     protected $signature = 'catalog:recompute-proposal-warehouse-skus
                             {--execute : Write the corrected warehouse SKUs (omit for dry-run)}';
 
-    protected $description = 'Re-derive each open proposal\'s warehouse SKU as the consensus of its evidence (the item number the most distributors agree on), fixing rows that took a single outlier\'s internal/UPC-derived id. Skips proposals whose warehouse SKU was manually edited.';
+    protected $description = 'Re-derive each open proposal\'s warehouse SKU by re-normalizing its evidence raw SKUs with the current normalizer + distributor config, then taking the consensus (the item number the most distributors agree on). Picks up normalizer fixes and new strip rules without a re-crawl. Skips proposals whose warehouse SKU was manually edited.';
 
-    public function handle(DistributorClusterEngine $engine): int
+    /** @var array<string, array<string, mixed>> distributor id → config */
+    private array $configs = [];
+
+    public function handle(DistributorClusterEngine $engine, DistributorSkuNormalizer $normalizer): int
     {
         $dryRun = ! $this->option('execute');
 
@@ -24,11 +29,17 @@ class RecomputeProposalWarehouseSkus extends Command
             ->where('status', '!=', DistributorCatalogProposal::STATUS_REJECTED)
             ->get();
 
+        $this->configs = Distributor::whereIn(
+            'id',
+            $proposals->flatMap(fn (DistributorCatalogProposal $p) => collect($p->evidence ?? [])->pluck('distributor_id'))->filter()->unique(),
+        )->get(['id', 'config'])->mapWithKeys(fn (Distributor $d) => [$d->id => $d->config ?? []])->all();
+
         $changes = [];
         $skippedManual = 0;
 
         foreach ($proposals as $proposal) {
-            $consensus = $engine->consensusWarehouseSku($proposal->evidence ?? [], $proposal->upc);
+            $members = $this->renormalizedMembers($proposal, $normalizer);
+            $consensus = $engine->consensusWarehouseSku($members, $proposal->upc);
 
             // Nothing to derive, or the stored value already is the consensus.
             if ($consensus === null || $consensus === $proposal->normalized_sku) {
@@ -62,6 +73,24 @@ class RecomputeProposalWarehouseSkus extends Command
         }
 
         return $this->report($changes, $skippedManual, $dryRun);
+    }
+
+    /**
+     * The proposal's evidence members with each `normalized_sku` re-derived from
+     * the stored `raw_sku` using the current normalizer + that distributor's
+     * config — so a normalizer fix or a newly-added strip rule takes effect here
+     * without re-crawling the distributor.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function renormalizedMembers(DistributorCatalogProposal $proposal, DistributorSkuNormalizer $normalizer): array
+    {
+        return collect($proposal->evidence ?? [])->map(function (array $member) use ($normalizer) {
+            $config = $this->configs[$member['distributor_id'] ?? ''] ?? [];
+            $member['normalized_sku'] = $normalizer->normalize((string) ($member['raw_sku'] ?? ''), $config);
+
+            return $member;
+        })->all();
     }
 
     /**

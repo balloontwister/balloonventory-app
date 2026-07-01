@@ -367,6 +367,17 @@ class DistributorProductIngestor
             $product['barcode'] = $barcode;
         }
 
+        // Some products ("auto-info") have a narrative body_html with no spec table,
+        // but the rendered page still carries the same table (from metafields). When
+        // body_html yields no usable table, fall back to the page for those.
+        if (! ($extraction['ok'] ?? false)) {
+            $pageExtraction = $this->extractAttributesFromPage($product['url'], $config);
+
+            if ($pageExtraction !== null && ($pageExtraction['ok'] ?? false)) {
+                $extraction = $pageExtraction;
+            }
+        }
+
         // Brand (vendor) + synthesised shape, same as the HTML Shopify path.
         $extraction = $this->injectShopifyAttributes($extraction, $product, $config);
 
@@ -382,6 +393,27 @@ class DistributorProductIngestor
         $this->upsertEnrichedShopify($distributor->id, $externalId, $product['url'], $product, $extraction, $productType, $config);
 
         return $extraction;
+    }
+
+    /**
+     * Run the attribute extractor against a product's rendered page — the fallback
+     * for {@see enrichShopifyFromProductJson} when a product's body_html carries no
+     * spec table. Returns the extraction result, or null on a failed/blocked fetch.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>|null
+     */
+    private function extractAttributesFromPage(string $url, array $config): ?array
+    {
+        $response = Http::timeout(self::TIMEOUT)
+            ->withUserAgent(self::USER_AGENT)
+            ->get($url);
+
+        if ($this->classifyResponse($response) !== null) {
+            return null;
+        }
+
+        return $this->attributeExtractor->extract($response->body(), $config);
     }
 
     /**

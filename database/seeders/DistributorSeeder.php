@@ -233,6 +233,11 @@ class DistributorSeeder extends Seeder
                     'collection_handle' => 'latex',
                     'has_json_api' => true,
                     'enrich_from_product_json' => true,
+                    // Polite throttle: the enrich pass fetches a per-product .json for
+                    // every latex product (plus a page fallback for "auto-info" items),
+                    // so pace it to avoid Shopify rate-escalation over a full crawl.
+                    'request_delay_ms' => 800,
+                    'request_jitter_ms' => 400,
                     'extraction' => [
                         'attribute_rows' => ['section_marker' => 'Product Information'],
                         'required_labels' => ['Brand', 'Size', 'Material'],

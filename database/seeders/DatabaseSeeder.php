@@ -48,6 +48,7 @@ class DatabaseSeeder extends Seeder
             FunsationalTextureSeeder::class,
             FunsationalBalloonSizeSeeder::class,
             FunsationalColorSeeder::class,
+            FunsationalColorImageSeeder::class,
             DistributorSeeder::class,
         ]);
     }

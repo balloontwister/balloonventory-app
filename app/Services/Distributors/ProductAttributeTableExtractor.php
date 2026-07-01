@@ -15,10 +15,14 @@ namespace App\Services\Distributors;
  * when a site changes its template (a sudden drop in matched rows / required
  * labels) — see {@see extract()}'s returned `ok` / `missing_required`.
  *
- * Two recipe shapes are supported:
+ * Three recipe shapes are supported:
  *   - `attribute_table` (Larocks): adjacent label/value cells identified by CSS class.
  *   - `attribute_list` (BargainBalloons): a `<ul>` of `<li><span>Label: </span>Value</li>`,
  *     optionally anchored to a `section_marker` so only the spec list is read.
+ *   - `attribute_rows` (Joker Party Supply): a plain two-column `<table>` of
+ *     `<tr><td>Label</td><td>Value</td></tr>` rows (no CSS classes), optionally
+ *     anchored to a `section_marker` (e.g. the "Product Information" header) so only
+ *     the spec table is read. The `<thead>` uses `<th>`, so it's skipped naturally.
  *
  * Example recipe (Larocks):
  *   'extraction' => [
@@ -32,6 +36,13 @@ namespace App\Services\Distributors;
  *     'attribute_list' => ['section_marker' => 'Additional Product Details'],
  *     'required_labels' => ['Manufacturer Color', 'Latex Finish', 'Package Count'],
  *     'min_rows' => 5,
+ *   ]
+ *
+ * Example recipe (Joker Party Supply):
+ *   'extraction' => [
+ *     'attribute_rows' => ['section_marker' => 'Product Information'],
+ *     'required_labels' => ['Brand', 'Size', 'Material'],
+ *     'min_rows' => 4,
  *   ]
  *
  * @phpstan-type ExtractionResult array{
@@ -52,6 +63,7 @@ class ProductAttributeTableExtractor
     {
         $tableRecipe = $config['extraction']['attribute_table'] ?? null;
         $listRecipe = $config['extraction']['attribute_list'] ?? null;
+        $rowsRecipe = $config['extraction']['attribute_rows'] ?? null;
 
         if (is_array($tableRecipe)) {
             $attributes = $this->scan(
@@ -61,6 +73,8 @@ class ProductAttributeTableExtractor
             );
         } elseif (is_array($listRecipe)) {
             $attributes = $this->scanList($html, $listRecipe);
+        } elseif (is_array($rowsRecipe)) {
+            $attributes = $this->scanRows($html, $rowsRecipe);
         } else {
             return $this->emptyResult(hasRecipe: false);
         }
@@ -138,6 +152,52 @@ class ProductAttributeTableExtractor
         }
 
         if (! preg_match_all('#<li[^>]*>\s*<span[^>]*>(.*?)</span>(.*?)</li>#is', $html, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $attributes = [];
+
+        foreach ($matches as $match) {
+            $label = rtrim($this->clean($match[1]), ': ');
+            $value = $this->clean($match[2]);
+
+            if ($label === '' || $value === '') {
+                continue;
+            }
+
+            $attributes[$label][] = $value;
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Pull `<tr><td>Label</td><td>Value</td></tr>` pairs from a plain two-column
+     * table (Joker Party Supply's `body_html` "Product Information" table, which
+     * carries no CSS classes). An optional `section_marker` narrows scanning to the
+     * table that follows it (up to the next `</table>`) so unrelated tables in the
+     * body can't leak in. The header row uses `<th>`, so the `<td>` pattern skips it.
+     * Repeated labels are collected as a list, like {@see scan()}.
+     *
+     * @param  array<string, mixed>  $recipe
+     * @return array<string, array<int, string>>
+     */
+    private function scanRows(string $html, array $recipe): array
+    {
+        $marker = $recipe['section_marker'] ?? null;
+
+        if ($marker !== null) {
+            $start = stripos($html, (string) $marker);
+
+            if ($start === false) {
+                return [];
+            }
+
+            $end = stripos($html, '</table>', $start);
+            $html = substr($html, $start, $end !== false ? $end - $start : 5000);
+        }
+
+        if (! preg_match_all('#<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>#is', $html, $matches, PREG_SET_ORDER)) {
             return [];
         }
 

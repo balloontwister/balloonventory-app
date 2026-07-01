@@ -329,4 +329,131 @@ class CatalogEnrichDistributorTest extends TestCase
 
         return $this->pageHtml()."\n<script type=\"application/ld+json\">{$json}</script>";
     }
+
+    // ── Joker Party Supply: product-JSON enrichment ─────────────────────
+    // The attribute table is in the product's body_html and the barcode is on the
+    // variant — both in the light per-product .json, so no HTML page is fetched.
+
+    private function joker(): Distributor
+    {
+        return Distributor::factory()->shopify()->create([
+            'base_url' => 'https://joker-test.com',
+            'config' => [
+                'collection_handle' => 'latex',
+                'has_json_api' => true,
+                'request_delay_ms' => 0,
+                'enrich_from_product_json' => true,
+                'extraction' => [
+                    'attribute_rows' => ['section_marker' => 'Product Information'],
+                    'required_labels' => ['Brand', 'Size', 'Material'],
+                    'min_rows' => 4,
+                    'label_map' => [
+                        'brand' => 'Brand',
+                        'size' => 'Size',
+                        'color' => 'Color',
+                        'count' => 'Quantity',
+                    ],
+                ],
+                'sku_strip_prefixes' => ['BT-'],
+            ],
+        ]);
+    }
+
+    private function jokerBodyHtml(): string
+    {
+        return <<<'HTML'
+        <p>Great balloons.</p>
+        <table>
+        <thead><tr><th>Product Information</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr><td>Brand</td><td>Sempertex</td></tr>
+          <tr><td>Size</td><td>11 inches</td></tr>
+          <tr><td>Material</td><td>Latex</td></tr>
+          <tr><td>Color</td><td>Crystal Clear</td></tr>
+          <tr><td>UPC</td><td>030625530118</td></tr>
+          <tr><td>Vendor ID</td><td>53011</td></tr>
+          <tr><td>Quantity</td><td>100 balloons</td></tr>
+          <tr><td>Quantity per Box</td><td>10</td></tr>
+        </tbody>
+        </table>
+        HTML;
+    }
+
+    /** The collection feed omits barcode; the per-product .json carries it + body_html. */
+    private function fakeJoker(bool $variantBarcode = true): void
+    {
+        $collectionProduct = [
+            'handle' => 'crystal-clear',
+            'title' => '11in Sempertex Crystal Clear 100ct',
+            'vendor' => 'Sempertex',
+            'product_type' => 'Latex Balloons',
+            'tags' => ['11in Latex', 'Latex'],
+            'updated_at' => '2026-06-20T00:00:00Z',
+            'variants' => [['sku' => 'BT-53011', 'price' => '18.58']],
+        ];
+
+        $variant = ['sku' => 'BT-53011'];
+        if ($variantBarcode) {
+            $variant['barcode'] = '030625530118';
+        }
+
+        Http::fake([
+            'https://joker-test.com/collections/latex/products.json?limit=250&page=1' => Http::response(['products' => [$collectionProduct]], 200),
+            'https://joker-test.com/collections/latex/products.json?limit=250&page=2' => Http::response(['products' => []], 200),
+            'https://joker-test.com/products/crystal-clear.json' => Http::response([
+                'product' => ['body_html' => $this->jokerBodyHtml(), 'variants' => [$variant]],
+            ], 200),
+        ]);
+    }
+
+    public function test_enrich_stages_from_product_json_body_html_table(): void
+    {
+        Http::preventStrayRequests();
+
+        $distributor = $this->joker();
+        $this->fakeJoker();
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame(1, DistributorProduct::count());
+
+        $product = DistributorProduct::first();
+
+        $this->assertSame('BT-53011', $product->raw_sku);
+        $this->assertSame('53011', $product->normalized_sku);
+        $this->assertSame('030625530118', $product->upc);
+        $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $product->product_type);
+
+        // Table attributes read from body_html.
+        $this->assertSame(['Sempertex'], $product->raw_data['attributes']['Brand']);
+        $this->assertSame(['11 inches'], $product->raw_data['attributes']['Size']);
+        $this->assertSame(['Crystal Clear'], $product->raw_data['attributes']['Color']);
+        // Shape synthesised (the table omits it).
+        $this->assertSame(['Round'], $product->raw_data['attributes']['Balloon Type / Shape']);
+
+        // No heavy HTML product page was fetched — only the light .json.
+        Http::assertNotSent(fn ($request) => $request->url() === 'https://joker-test.com/products/crystal-clear');
+    }
+
+    public function test_enrich_reads_upc_from_body_html_when_variant_lacks_a_barcode(): void
+    {
+        Http::preventStrayRequests();
+
+        // Even if the per-product variant had no barcode, the body_html "UPC" row is
+        // the fallback so the product can still cluster (clustering is UPC-gated).
+        $distributor = $this->joker();
+        $this->fakeJoker(variantBarcode: false);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame('030625530118', DistributorProduct::first()->upc);
+    }
 }

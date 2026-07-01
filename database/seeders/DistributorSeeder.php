@@ -217,6 +217,45 @@ class DistributorSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 3,
             ],
+            [
+                'name' => 'Joker Party Supply',
+                'slug' => 'joker-party-supply',
+                'platform_type' => 'shopify',
+                'base_url' => 'https://www.jokerpartysupply.com',
+                // Shopify: the bulk collection products.json gives vendor/sku/price/
+                // tags but (like BargainBalloons) strips the barcode. Unlike BB, Joker
+                // renders its full attribute table inside the product's body_html AND
+                // carries the barcode on the variant — so a single per-product .json
+                // fetch yields everything, no heavy HTML page. enrich_from_product_json
+                // selects that path; attribute_rows reads the plain two-column
+                // "Product Information" table out of body_html.
+                'config' => [
+                    'collection_handle' => 'latex',
+                    'has_json_api' => true,
+                    'enrich_from_product_json' => true,
+                    'extraction' => [
+                        'attribute_rows' => ['section_marker' => 'Product Information'],
+                        'required_labels' => ['Brand', 'Size', 'Material'],
+                        'min_rows' => 4,
+                        // The store's labels → our canonical attribute keys. Brand is
+                        // in the table (and matches the JSON vendor); shape is absent
+                        // (default Round). No separate finish column — the finish is
+                        // part of the Color value ("Deluxe Almond White").
+                        'label_map' => [
+                            'brand' => 'Brand',
+                            'size' => 'Size',
+                            'color' => 'Color',
+                            'count' => 'Quantity',
+                        ],
+                    ],
+                    // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
+                    'size_number_aliases' => ['Sempertex' => ['11' => '12']],
+                    // "BT-53011" (Betallic remnant) → bare manufacturer item number.
+                    'sku_strip_prefixes' => ['BT-'],
+                ],
+                'is_active' => true,
+                'sort_order' => 4,
+            ],
         ];
 
         foreach ($distributors as $data) {

@@ -32,6 +32,19 @@ class DistributorProductClassifierTest extends TestCase
         $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $type);
     }
 
+    public function test_solid_latex_from_plain_material_label(): void
+    {
+        // Joker Party Supply labels the row "Material" (not Larocks' "Balloon
+        // Material") and carries no Industry/Theme/Print rows.
+        $type = (new DistributorProductClassifier)->classify($this->extraction([
+            'Brand' => ['Sempertex'], 'Size' => ['11 inches'],
+            'Material' => ['Latex'], 'Color' => ['Crystal Clear'],
+            'Quantity' => ['100 balloons'],
+        ]));
+
+        $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $type);
+    }
+
     public function test_foil_from_material(): void
     {
         $type = (new DistributorProductClassifier)->classify($this->extraction([

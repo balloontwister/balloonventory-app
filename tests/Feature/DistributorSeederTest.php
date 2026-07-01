@@ -29,6 +29,28 @@ class DistributorSeederTest extends TestCase
         $this->assertSame(['11' => '12'], $distributor->config['size_number_aliases']['Sempertex']);
     }
 
+    public function test_it_seeds_joker_party_supply_with_the_product_json_recipe(): void
+    {
+        $this->seed(DistributorSeeder::class);
+
+        $distributor = Distributor::where('slug', 'joker-party-supply')->first();
+
+        $this->assertNotNull($distributor);
+        $this->assertSame('Joker Party Supply', $distributor->name);
+        $this->assertSame('shopify', $distributor->platform_type);
+        $this->assertTrue($distributor->is_active);
+
+        // Enrich from the per-product JSON body_html, latex collection only.
+        $this->assertSame('latex', $distributor->config['collection_handle']);
+        $this->assertTrue($distributor->config['enrich_from_product_json']);
+        $this->assertSame(
+            ['section_marker' => 'Product Information'],
+            $distributor->config['extraction']['attribute_rows'],
+        );
+        $this->assertSame('Quantity', $distributor->config['extraction']['label_map']['count']);
+        $this->assertSame(['BT-'], $distributor->config['sku_strip_prefixes']);
+    }
+
     public function test_seeder_is_idempotent(): void
     {
         $this->seed(DistributorSeeder::class);

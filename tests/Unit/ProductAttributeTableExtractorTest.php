@@ -158,4 +158,70 @@ class ProductAttributeTableExtractorTest extends TestCase
         $this->assertArrayNotHasKey('Home', $result['attributes']);
         $this->assertArrayNotHasKey('Contact', $result['attributes']);
     }
+
+    private array $jokerConfig = [
+        'extraction' => [
+            'attribute_rows' => ['section_marker' => 'Product Information'],
+            'required_labels' => ['Brand', 'Size', 'Material'],
+            'min_rows' => 4,
+        ],
+    ];
+
+    /** Mirrors Joker Party Supply's body_html "Product Information" table. */
+    private function jokerRowsHtml(): string
+    {
+        return <<<'HTML'
+        <table><tbody>
+          <tr><td>Ships From</td><td>Warehouse</td></tr>
+        </tbody></table>
+        <table>
+        <thead><tr><th>Product Information</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr><td>Brand</td><td>Sempertex</td></tr>
+          <tr><td>Size</td><td>11 inches</td></tr>
+          <tr><td>Material</td><td>Latex</td></tr>
+          <tr><td>Color</td><td>Crystal Clear</td></tr>
+          <tr><td>UPC</td><td>030625530118</td></tr>
+          <tr><td>Vendor ID</td><td>53011</td></tr>
+          <tr><td>Quantity</td><td>100 balloons</td></tr>
+          <tr><td>Quantity per Box</td><td>10</td></tr>
+        </tbody>
+        </table>
+        <table><tbody>
+          <tr><td>Return Policy</td><td>30 days</td></tr>
+        </tbody></table>
+        HTML;
+    }
+
+    public function test_extracts_a_plain_two_column_row_table(): void
+    {
+        $result = (new ProductAttributeTableExtractor)->extract($this->jokerRowsHtml(), $this->jokerConfig);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame([], $result['missing_required']);
+        $this->assertSame(['Sempertex'], $result['attributes']['Brand']);
+        $this->assertSame(['11 inches'], $result['attributes']['Size']);
+        $this->assertSame(['Latex'], $result['attributes']['Material']);
+        $this->assertSame(['Crystal Clear'], $result['attributes']['Color']);
+        $this->assertSame(['030625530118'], $result['attributes']['UPC']);
+        $this->assertSame(['100 balloons'], $result['attributes']['Quantity']);
+    }
+
+    public function test_row_table_skips_the_thead_header_row(): void
+    {
+        $result = (new ProductAttributeTableExtractor)->extract($this->jokerRowsHtml(), $this->jokerConfig);
+
+        // The <th>Product Information</th> header is not a <td> pair → never a label.
+        $this->assertArrayNotHasKey('Product Information', $result['attributes']);
+    }
+
+    public function test_row_table_section_marker_excludes_other_tables(): void
+    {
+        $result = (new ProductAttributeTableExtractor)->extract($this->jokerRowsHtml(), $this->jokerConfig);
+
+        // Tables before ("Ships From") and after ("Return Policy") the marked one
+        // are outside the scanned range.
+        $this->assertArrayNotHasKey('Ships From', $result['attributes']);
+        $this->assertArrayNotHasKey('Return Policy', $result['attributes']);
+    }
 }

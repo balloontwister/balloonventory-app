@@ -184,12 +184,18 @@ class DistributorProductIngestor
                 $this->throttle($delayMs, $jitterMs);
             }
 
-            // Stores that expose their attributes as namespaced tags (LA Balloons)
-            // need no HTML page — read the tags and fetch only the barcode; others
-            // (BargainBalloons) parse the product page.
-            $parsed = isset($config['extraction']['tag_attributes'])
-                ? $this->enrichShopifyFromTags($distributor, $product, $config)
-                : $this->enrichShopifyPage($distributor, $product, $config);
+            // Where a Shopify store keeps its attributes decides the enrich source:
+            //  - namespaced tags (LA Balloons): read tags, fetch only the barcode;
+            //  - product body_html table (Joker Party Supply): one per-product .json
+            //    fetch yields both the table and the barcode — no heavy HTML page;
+            //  - product page HTML accordion (BargainBalloons): parse the page.
+            if (isset($config['extraction']['tag_attributes'])) {
+                $parsed = $this->enrichShopifyFromTags($distributor, $product, $config);
+            } elseif (($config['enrich_from_product_json'] ?? false) === true) {
+                $parsed = $this->enrichShopifyFromProductJson($distributor, $product, $config);
+            } else {
+                $parsed = $this->enrichShopifyPage($distributor, $product, $config);
+            }
 
             if ($parsed !== null) {
                 $enriched++;
@@ -323,6 +329,62 @@ class DistributorProductIngestor
     }
 
     /**
+     * Product-JSON enrichment (Joker Party Supply): the store renders its full
+     * structured attribute table inside the product's `body_html`, and the barcode
+     * lives on the variant — both carried by the light per-product `.json`. So a
+     * single JSON fetch (no heavy HTML page download) yields everything: read
+     * body_html through the `attribute_rows` recipe, take the barcode from the same
+     * response, inject brand (vendor) + a synthesised shape, classify, and upsert.
+     * Mirrors {@see enrichShopifyPage} without the page fetch.
+     *
+     * @param  array<string, mixed>  $product
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>|null
+     */
+    private function enrichShopifyFromProductJson(Distributor $distributor, array $product, array $config): ?array
+    {
+        $response = Http::timeout(self::TIMEOUT)
+            ->withUserAgent(self::USER_AGENT)
+            ->get($product['url'].'.json');
+
+        if ($this->classifyResponse($response) !== null) {
+            return null;
+        }
+
+        $bodyHtml = (string) ($response->json('product.body_html') ?? '');
+
+        $extraction = $this->attributeExtractor->extract($bodyHtml, $config);
+
+        if (! ($extraction['has_recipe'] ?? false)) {
+            return null;
+        }
+
+        // The bulk collection feed strips the barcode; the per-product .json variant
+        // carries it. Take it from the same fetch. (The body_html "UPC" row is a
+        // fallback that resolveEnrichedUpc already handles if the variant lacks one.)
+        $barcode = $this->variantBarcode($response->json('product.variants') ?? [], $product['identifier']);
+        if ($barcode !== null) {
+            $product['barcode'] = $barcode;
+        }
+
+        // Brand (vendor) + synthesised shape, same as the HTML Shopify path.
+        $extraction = $this->injectShopifyAttributes($extraction, $product, $config);
+
+        $productType = $this->classifier->classify($extraction);
+
+        $externalId = $product['identifier'];
+
+        // Drift guard: don't clobber good staged attributes with an empty extraction.
+        if (! ($extraction['ok'] ?? false) && $this->hasStagedAttributes($distributor->id, $externalId)) {
+            return $extraction;
+        }
+
+        $this->upsertEnrichedShopify($distributor->id, $externalId, $product['url'], $product, $extraction, $productType, $config);
+
+        return $extraction;
+    }
+
+    /**
      * Best-effort stock read from a product page's JSON-LD Offer.availability.
      * Returns null on a failed/blocked fetch or a page without availability, so a
      * page hiccup never blocks staging — the product just stays stock-unknown.
@@ -355,8 +417,18 @@ class DistributorProductIngestor
             return null;
         }
 
-        $variants = $response->json('product.variants') ?? [];
+        return $this->variantBarcode($response->json('product.variants') ?? [], $sku);
+    }
 
+    /**
+     * The barcode of the variant matching $sku (falling back to the first variant),
+     * from an already-fetched per-product `.json` variants array. Returns the bare
+     * value, or null when the variant has no barcode.
+     *
+     * @param  array<int, array<string, mixed>>  $variants
+     */
+    private function variantBarcode(array $variants, string $sku): ?string
+    {
         $match = collect($variants)->first(fn ($v) => ($v['sku'] ?? null) === $sku)
             ?? ($variants[0] ?? null);
 

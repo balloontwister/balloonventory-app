@@ -273,6 +273,7 @@ return [
                 'maybe_exists' => 'May already exist in the catalog without a barcode',
                 'maybe_exists_detail' => 'We may already carry this without a barcode: ":name". Approving would create a duplicate.',
                 'map_to_existing' => 'Map to that SKU instead (backfill barcode)',
+                'view_match' => 'View this SKU ↗',
                 'edit_packaging' => 'Packaging',
                 'edit_packaging_placeholder' => '— none —',
                 'gaps_heading' => 'Missing reference data ({count}) — add to unlock more proposals',

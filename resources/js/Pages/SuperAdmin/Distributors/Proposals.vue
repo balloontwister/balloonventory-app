@@ -719,6 +719,7 @@ function confidenceClass(confidence) {
                                 <a
                                     v-if="ev.url"
                                     :href="ev.url"
+                                    :title="ev.url"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     class="inline-flex items-center gap-1.5 text-ink-secondary transition hover:text-accent"

@@ -342,9 +342,7 @@ class DistributorSeeder extends Seeder
                     // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
                     'size_number_aliases' => ['Sempertex' => ['11' => '12']],
                 ],
-                // Inactive until the Magento adapter is built — platform_type=magento
-                // isn't wired, so Probe/Sync would throw while active.
-                'is_active' => false,
+                'is_active' => true,
                 'sort_order' => 5,
             ],
         ];

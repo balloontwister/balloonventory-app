@@ -456,4 +456,68 @@ class CatalogEnrichDistributorTest extends TestCase
 
         $this->assertSame('030625530118', DistributorProduct::first()->upc);
     }
+
+    /** The rendered page's "Product Information" table (same <tr><td> shape). */
+    private function jokerPageHtml(): string
+    {
+        return <<<'HTML'
+        <h1>11in Sempertex Deluxe Almond White 100ct</h1>
+        <h4><strong>Product Information:</strong></h4>
+        <table>
+          <tr><td><strong>Product Information</strong></td><td><strong>Details</strong></td></tr>
+          <tr><td>Brand</td><td>Sempertex</td></tr>
+          <tr><td>Size</td><td><span id="pi-size">11"</span></td></tr>
+          <tr><td>Material</td><td>Latex</td></tr>
+          <tr><td>Color</td><td><span id="pi-color">Deluxe Almond White</span></td></tr>
+          <tr><td>UPC</td><td><span id="pi-upc">030625536622</span></td></tr>
+          <tr><td>Quantity</td><td>100 balloons</td></tr>
+        </table>
+        HTML;
+    }
+
+    public function test_enrich_falls_back_to_the_page_when_body_html_has_no_table(): void
+    {
+        Http::preventStrayRequests();
+
+        // "auto-info" products carry a narrative body_html with no spec table, but
+        // the rendered page still has the table (from metafields).
+        $distributor = $this->joker();
+
+        Http::fake([
+            'https://joker-test.com/collections/latex/products.json?limit=250&page=1' => Http::response(['products' => [[
+                'handle' => 'almond-white',
+                'title' => '11in Sempertex Deluxe Almond White 100ct',
+                'vendor' => 'Sempertex',
+                'product_type' => 'Latex Balloons',
+                'tags' => ['11in Latex', 'auto-info'],
+                'updated_at' => '2026-06-20T00:00:00Z',
+                'variants' => [['sku' => 'BT-53662', 'barcode' => '030625536622', 'price' => '16.02']],
+            ]]], 200),
+            'https://joker-test.com/collections/latex/products.json?limit=250&page=2' => Http::response(['products' => []], 200),
+            // body_html: narrative marketing copy, no table.
+            'https://joker-test.com/products/almond-white.json' => Http::response([
+                'product' => [
+                    'body_html' => '<h2>About This Item</h2><p>A soft almond white latex balloon.</p>',
+                    'variants' => [['sku' => 'BT-53662', 'barcode' => '030625536622']],
+                ],
+            ], 200),
+            // the rendered page carries the table.
+            'https://joker-test.com/products/almond-white' => Http::response($this->jokerPageHtml(), 200),
+        ]);
+
+        $this->artisan('catalog:ingest-distributor', [
+            'slug' => $distributor->slug,
+            '--enrich' => true,
+            '--execute' => true,
+        ])->assertSuccessful();
+
+        $product = DistributorProduct::first();
+
+        // Resolved from the page fallback, not parked as unknown.
+        $this->assertSame(DistributorProductClassifier::SOLID_LATEX, $product->product_type);
+        $this->assertSame('030625536622', $product->upc);
+        $this->assertSame(['Sempertex'], $product->raw_data['attributes']['Brand']);
+        $this->assertSame(['11"'], $product->raw_data['attributes']['Size']);
+        $this->assertSame(['Deluxe Almond White'], $product->raw_data['attributes']['Color']);
+    }
 }

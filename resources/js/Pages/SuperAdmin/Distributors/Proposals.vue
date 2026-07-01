@@ -719,10 +719,9 @@ function confidenceClass(confidence) {
                                 <a
                                     v-if="ev.url"
                                     :href="ev.url"
-                                    :title="ev.url"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1.5 text-ink-secondary transition hover:text-accent"
+                                    class="group relative inline-flex items-center gap-1.5 text-ink-secondary transition hover:text-accent"
                                 >
                                     <span
                                         class="font-medium text-ink-primary"
@@ -735,6 +734,10 @@ function confidenceClass(confidence) {
                                         ev.raw_sku ?? '—'
                                     }}</span>
                                     <span aria-hidden="true">↗</span>
+                                    <span
+                                        class="pointer-events-none absolute left-0 top-full z-20 mt-1 hidden whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink-secondary shadow-md group-hover:block"
+                                        >{{ ev.url }}</span
+                                    >
                                 </a>
                                 <span
                                     v-else

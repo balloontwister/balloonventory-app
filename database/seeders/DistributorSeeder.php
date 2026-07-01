@@ -361,6 +361,11 @@ class DistributorSeeder extends Seeder
                 'config' => [
                     'collection_handle' => 'all',
                     'has_json_api' => true,
+                    // The enrich pass fetches a per-product .json (barcode) plus a
+                    // page (stock) for every latex product, so pace it — Shopify's
+                    // default 500ms rate-escalates under a sustained full crawl.
+                    'request_delay_ms' => 800,
+                    'request_jitter_ms' => 400,
                     // Its product pages render a reliable JSON-LD Offer.availability
                     // (verified live) — spend one extra page fetch per product for
                     // real stock on the Reorder page.

@@ -77,6 +77,9 @@ class DistributorSeederTest extends TestCase
         // Tag-driven Shopify recipe (LA Balloons archetype) + per-product barcode.
         $this->assertSame('all', $distributor->config['collection_handle']);
         $this->assertTrue($distributor->config['stock_from_page']);
+        // Paced full crawl (per-product .json + stock page for every latex product).
+        $this->assertSame(800, $distributor->config['request_delay_ms']);
+        $this->assertSame(400, $distributor->config['request_jitter_ms']);
         $this->assertSame(
             ['Color_' => 'Color', 'Size_' => 'Size', 'Theme_' => 'Occasion / Theme'],
             $distributor->config['extraction']['tag_attributes']['tag_map'],

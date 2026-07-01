@@ -345,6 +345,73 @@ class DistributorSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 5,
             ],
+            [
+                'name' => 'All American Balloons',
+                'slug' => 'all-american-balloons',
+                'platform_type' => 'shopify',
+                'base_url' => 'https://www.allamericanballoons.net',
+                // Shopify, LA Balloons archetype: attributes live in namespaced
+                // products.json tags (Color_/Size_/Theme_) + product_type — read by
+                // the tag extractor, NO HTML page needed. The bulk feed strips the
+                // barcode (like BB/Joker), so it's fetched from the light per-product
+                // .json. Brand is the JSON vendor (the manufacturer parent), aliased
+                // to our brand. The store sells its Sempertex modeling line under the
+                // "Twisting Balloons" product_type, so latex_type_keywords adds it to
+                // the enrich pre-filter, and product_type_map maps it to Latex.
+                'config' => [
+                    'collection_handle' => 'all',
+                    'has_json_api' => true,
+                    // Its product pages render a reliable JSON-LD Offer.availability
+                    // (verified live) — spend one extra page fetch per product for
+                    // real stock on the Reorder page.
+                    'stock_from_page' => true,
+                    // "Twisting Balloons" (Sempertex 160/260/360/660 modeling) is
+                    // latex — include it so the enrich pre-filter fetches its barcode.
+                    'latex_type_keywords' => ['latex', 'twisting'],
+                    'extraction' => [
+                        'tag_attributes' => [
+                            'tag_map' => [
+                                'Color_' => 'Color',
+                                'Size_' => 'Size',
+                                'Theme_' => 'Occasion / Theme',
+                            ],
+                            // product_type → Balloon Material (drives classification).
+                            // "Twisting Balloons" is latex modeling.
+                            'product_type_map' => [
+                                'latex' => 'Latex',
+                                'twisting' => 'Latex',
+                                'foil' => 'Foil',
+                                'mylar' => 'Foil',
+                            ],
+                            // "Printed Latex Balloons" → park as printed, not solid.
+                            'printed_type_keywords' => ['printed'],
+                            'strip_words' => ['Latex', 'Foil', 'Mylar', 'Bubble'],
+                            'required_labels' => ['Color', 'Size'],
+                            'min_rows' => 2,
+                        ],
+                    ],
+                    // The JSON vendor is the manufacturer parent, not our brand name:
+                    // Betallic makes the Sempertex/Betallatex latex; Pioneer makes
+                    // Qualatex. Only the latex slice is enriched, so aliasing Betallic
+                    // here never touches Betallic's own foils (never branded).
+                    'attribute_aliases' => [
+                        'brand' => [
+                            'Betallic' => 'Sempertex',
+                            'Betallatex' => 'Sempertex',
+                            'Pioneer Balloon Co.' => 'Qualatex',
+                        ],
+                    ],
+                    // Sempertex markets its code-12 / 30 cm rounds as "11 inch".
+                    'size_number_aliases' => ['Sempertex' => ['11' => '12']],
+                    // SKUs are bare manufacturer item numbers (54145, 36274) — no
+                    // affixes to strip. A barcode-less listing (a failed per-product
+                    // fetch) still reconciles by that item number against our
+                    // warehouse_sku / mfg_no, brand-scoped.
+                    'match_by_warehouse_sku' => true,
+                ],
+                'is_active' => true,
+                'sort_order' => 6,
+            ],
         ];
 
         foreach ($distributors as $data) {

@@ -6,6 +6,7 @@ use App\Models\BalloonSize;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Distributor;
+use App\Models\Shape;
 use App\Services\Distributors\DistributorAttributeMatcher;
 use App\Services\Distributors\DistributorLearnedAliasStore;
 use Database\Seeders\PackagingTypeSeeder;
@@ -165,6 +166,63 @@ class DistributorAttributeMatcherTest extends TestCase
         $this->assertSame($link->id, $result['balloon_size']['model']->id);
         $this->assertSame('exact', $result['balloon_size']['quality']);
         $this->assertNotSame($round->id, $result['balloon_size']['model']->id);
+    }
+
+    /**
+     * The reported bug: bargain-balloons' "Size (inches)" field reports a bare
+     * decimal ("5.0", "12.0", "18.0") — no inch mark, no word — which none of
+     * sizeKey()'s normalization rules recognised, so the size resolved to
+     * nothing at all rather than the wrong thing.
+     */
+    public function test_bare_decimal_size_value_resolves_to_the_inch_size(): void
+    {
+        $size = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '5-inch (K)']);
+
+        $result = $this->matcher->match(['Brand' => ['Kalisan'], 'Size' => ['5.0']]);
+
+        $this->assertSame($size->id, $result['balloon_size']['model']->id);
+        $this->assertSame('exact', $result['balloon_size']['quality']);
+    }
+
+    /**
+     * A modeling-balloon code ("260") is also a bare number in the catalog, but
+     * isn't an inch count — the bare-decimal rule must not touch it, or its own
+     * catalog name would stop matching a distributor sending the same code.
+     */
+    public function test_modeling_balloon_code_is_not_treated_as_an_inch_size(): void
+    {
+        $size = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '260']);
+
+        $result = $this->matcher->match(['Brand' => ['Kalisan'], 'Size' => ['260.0']]);
+
+        $this->assertSame($size->id, $result['balloon_size']['model']->id);
+        $this->assertSame('exact', $result['balloon_size']['quality']);
+    }
+
+    /**
+     * Kalisan's own "12-inch" (no "(K)" suffix) is a Heart, not a Round, despite
+     * the bare-sounding name — its shape isn't spelled out in the name text at
+     * all, so Tier 0's name-mention check alone would miss it. With a bare
+     * decimal size ("12.0") and a structured "Round" shape, the catalog's own
+     * shape relation must disambiguate it from the Heart with the same number.
+     */
+    public function test_bare_decimal_size_resolves_via_the_catalogs_actual_shape_relation(): void
+    {
+        $roundShape = Shape::factory()->create(['name' => 'Round']);
+        $heartShape = Shape::factory()->create(['name' => 'Heart']);
+
+        $round = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '12-inch (K)', 'shape_id' => $roundShape->id]);
+        $heart = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '12-inch', 'shape_id' => $heartShape->id]);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['12.0'],
+            'Balloon Type / Shape' => ['Round'],
+        ]);
+
+        $this->assertSame($round->id, $result['balloon_size']['model']->id);
+        $this->assertSame('exact', $result['balloon_size']['quality']);
+        $this->assertNotSame($heart->id, $result['balloon_size']['model']->id);
     }
 
     public function test_ambiguous_size_returns_candidates_and_fuzzy_quality(): void

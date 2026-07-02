@@ -263,11 +263,13 @@ class DistributorAttributeMatcher
         // — it doesn't know how to strip an arbitrary shape suffix like Kalisan's
         // "12" K-Link", so Tier 1 below would find ONLY the (wrong) round variant
         // as a confident, unambiguous match and never get a chance to reconsider.
-        // When the shape is known, look for a candidate whose OWN NAME mentions
-        // BOTH it and the raw number — this works for any brand's naming scheme
-        // (Sempertex's "{prefix}-{number}" convention, Kalisan's
-        // "{number}\" {letter}-{Shape}" convention, or anything else) without
-        // needing to teach sizeKey() every brand's decoration style.
+        // When the shape is known, look for a candidate whose own name mentions
+        // BOTH it and the raw number (Sempertex's "{prefix}-{number}" convention,
+        // Kalisan's "{number}\" {letter}-{Shape}" convention, ...) OR whose
+        // catalog shape record matches the shape word directly — plain names like
+        // "12-inch" carry no shape text at all (Kalisan's own "12-inch" is a
+        // Heart, not a Round, despite the bare-sounding name), so the name-text
+        // check alone would miss it.
         if ($shapeWord !== null) {
             foreach ($this->splitValue($value) as $part) {
                 if (! preg_match('/\d+/', $part, $m)) {
@@ -275,10 +277,12 @@ class DistributorAttributeMatcher
                 }
 
                 $shapeMatches = $sizes->filter(function (BalloonSize $bs) use ($m, $shapeWord) {
-                    $name = strtolower($bs->name);
+                    if (! ProductText::mentions(strtolower($bs->name), $m[0])) {
+                        return false;
+                    }
 
-                    return ProductText::mentions($name, strtolower($shapeWord))
-                        && ProductText::mentions($name, $m[0]);
+                    return ProductText::mentions(strtolower($bs->name), strtolower($shapeWord))
+                        || strtolower($bs->shape->name ?? '') === strtolower($shapeWord);
                 })->values();
 
                 if ($shapeMatches->count() === 1) {
@@ -535,6 +539,17 @@ class DistributorAttributeMatcher
         $s = ProductText::normalizeSizeTokens($s);
         $s = preg_replace('/\s+/', '', $s) ?? $s;
 
+        // A bare number, with or without a trailing ".0" (e.g. bargain-balloons'
+        // "Size (inches)" field reports "5.0", "12.0" — no inch mark, no word),
+        // carries no unit at all but the label already tells us it's inches.
+        // Capped under 100: modeling-balloon codes ("260", "350", "660") are
+        // also bare numbers in the catalog but aren't inch counts, and every
+        // real inch size tops out in the 30s. The ".0" is stripped either way so
+        // a modeling code sent as "260.0" still matches the catalog's own "260".
+        if (preg_match('/^(\d+)(?:\.0+)?$/', $s, $m)) {
+            return (int) $m[1] < 100 ? $m[1].'in' : $m[1];
+        }
+
         if (preg_match('/^(\d+)[a-z]$/', $s, $m)) {
             return $m[1];
         }
@@ -614,7 +629,7 @@ class DistributorAttributeMatcher
     {
         return $this->data ??= [
             'brands' => Brand::all()->keyBy(fn (Brand $b) => strtolower($b->name)),
-            'balloonSizes' => BalloonSize::all()->groupBy('brand_id'),
+            'balloonSizes' => BalloonSize::with('shape')->get()->groupBy('brand_id'),
             'colors' => Color::all()
                 ->groupBy('brand_id')
                 ->map(fn (Collection $group) => $group->keyBy(fn (Color $c) => strtolower($c->name))),

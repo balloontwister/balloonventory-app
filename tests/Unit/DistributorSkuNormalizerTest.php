@@ -69,6 +69,26 @@ class DistributorSkuNormalizerTest extends TestCase
         $this->assertSame('56360P2', $this->normalizer->normalize('BT-56360P2', ['sku_strip_prefixes' => ['BT-']]));
     }
 
+    public function test_layered_suffixes_are_stripped_repeatedly(): void
+    {
+        // LA Balloons' actual Sempertex format: an inner "TB" variant marker glued
+        // straight to the digits (no separator), then an outer "-B" pack marker.
+        // A single pass only strips the outer "-B" and leaves "53023TB" stuck —
+        // which the alphanumeric-preservation branch then wrongly keeps whole,
+        // silently creating a duplicate instead of matching the existing 53023.
+        $config = ['sku_strip_suffixes' => ['-KL', '-B', '-M', 'TB']];
+
+        $this->assertSame('53023', $this->normalizer->normalize('53023TB-B', $config));
+        $this->assertSame('55023', $this->normalizer->normalize('55023TB-B', $config));
+    }
+
+    public function test_layered_prefix_and_suffix_both_strip_in_one_call(): void
+    {
+        $config = ['sku_strip_prefixes' => ['BT-'], 'sku_strip_suffixes' => ['-B']];
+
+        $this->assertSame('53012', $this->normalizer->normalize('BT-53012-B', $config));
+    }
+
     public function test_lossy_variant_collapse_is_documented(): void
     {
         // 53012-B-10 is a different (10-ct) product, but it shares the core

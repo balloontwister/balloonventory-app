@@ -9,6 +9,9 @@ namespace App\Services;
  * (LA Balloons) — all of which normalize to `53012`. Item numbers may carry a
  * pack/variant marker (`56360P2`), so a clean alphanumeric core is kept too, not
  * just pure-digit ones — `BT-56360P2` and `56360P2-B` both normalize to `56360P2`.
+ * Configured affixes may be layered (LA Balloons' Sempertex codes are
+ * `{item}TB-B` — an inner "TB" marker glued to the digits, then an outer "-B"
+ * pack marker), so stripping repeats until nothing more matches.
  *
  * This is only a GROUPING HINT. A shared core number proposes that two listings
  * might be the same product; identity is confirmed downstream by a matching UPC
@@ -53,25 +56,37 @@ class DistributorSkuNormalizer
     }
 
     /**
+     * Strips configured prefixes/suffixes repeatedly until nothing more matches —
+     * some distributors layer more than one (LA Balloons' Sempertex codes are
+     * `{item}TB-B`: an inner "TB" variant marker glued directly to the digits,
+     * THEN an outer "-B" pack marker with its own separator). A single pass only
+     * ever removes the outermost layer and would leave "53023TB" stuck instead of
+     * reaching "53023".
+     *
      * @param  array<string, mixed>  $config
      */
     private function stripConfiguredAffixes(string $sku, array $config): string
     {
-        foreach ($this->stringList($config['sku_strip_prefixes'] ?? []) as $prefix) {
-            $prefix = strtoupper($prefix);
-            if ($prefix !== '' && str_starts_with($sku, $prefix)) {
-                $sku = substr($sku, strlen($prefix));
-                break;
-            }
-        }
+        $prefixes = array_map('strtoupper', $this->stringList($config['sku_strip_prefixes'] ?? []));
+        $suffixes = array_map('strtoupper', $this->stringList($config['sku_strip_suffixes'] ?? []));
 
-        foreach ($this->stringList($config['sku_strip_suffixes'] ?? []) as $suffix) {
-            $suffix = strtoupper($suffix);
-            if ($suffix !== '' && str_ends_with($sku, $suffix)) {
-                $sku = substr($sku, 0, -strlen($suffix));
-                break;
+        do {
+            $before = $sku;
+
+            foreach ($prefixes as $prefix) {
+                if ($prefix !== '' && str_starts_with($sku, $prefix)) {
+                    $sku = substr($sku, strlen($prefix));
+                    break;
+                }
             }
-        }
+
+            foreach ($suffixes as $suffix) {
+                if ($suffix !== '' && str_ends_with($sku, $suffix)) {
+                    $sku = substr($sku, 0, -strlen($suffix));
+                    break;
+                }
+            }
+        } while ($sku !== $before);
 
         return $sku;
     }

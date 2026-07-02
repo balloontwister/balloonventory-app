@@ -123,7 +123,10 @@ class DistributorSeeder extends Seeder
                         'Sempertex' => ['11' => '12'],
                     ],
                     // Brand-suffixed SKUs (Kalisan -KL, Betallic -B, TufTex -M).
-                    'sku_strip_suffixes' => ['-KL', '-B', '-M'],
+                    // Sempertex codes layer a second, separator-less "TB" variant
+                    // marker before that ("53023TB-B") — stripping repeats until
+                    // stable, so both come off, landing on the bare item number.
+                    'sku_strip_suffixes' => ['-KL', '-B', '-M', 'TB'],
                 ],
                 'is_active' => true,
                 'sort_order' => 2,

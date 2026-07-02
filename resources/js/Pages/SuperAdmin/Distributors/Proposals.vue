@@ -637,7 +637,7 @@ function confidenceClass(confidence) {
                     <div
                         v-for="item in proposals.data"
                         :key="item.id"
-                        class="px-4 py-4 sm:px-6"
+                        class="rounded-md px-4 py-4 transition focus-within:bg-background focus-within:shadow-sm focus-within:ring-1 focus-within:ring-border-strong hover:bg-background hover:shadow-sm hover:ring-1 hover:ring-border-strong sm:px-6"
                         :class="{ 'opacity-60': item.status === 'rejected' }"
                     >
                         <!-- Header: editable name + identity + badges -->

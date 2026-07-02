@@ -241,11 +241,13 @@ class TitleAttributeExtractor
 
     /**
      * The balloon shape, defaulting to Round for latex (havinaparty's latex is
-     * round unless the title names another shape via `shape_keywords`).
+     * round unless the title names another shape via `shape_keywords`). Public so
+     * a config fix (e.g. a missing shape_keywords entry) can be re-derived for
+     * already-staged products from their stored title, without a re-crawl.
      *
      * @param  array<string, mixed>  $recipe
      */
-    private function shape(string $title, array $recipe): string
+    public function shape(string $title, array $recipe): string
     {
         $haystack = strtolower($title);
 

@@ -90,9 +90,15 @@ class DistributorProposalController extends Controller
             'proposed_count' => ['nullable', 'integer', 'min:1'],
             'proposed_warehouse_sku' => ['nullable', 'string', 'max:191'],
             'note' => ['nullable', 'string', 'max:2000'],
+            // Which of brand/balloon_size/color/packaging the admin actually
+            // interacted with in the UI — gates learned-alias capture so an
+            // untouched field carried along in the form isn't taught as a
+            // deliberate correction. See DistributorProposalReviewService::edit().
+            'touched_fields' => ['nullable', 'array'],
+            'touched_fields.*' => [Rule::in(['brand', 'balloon_size', 'color', 'packaging'])],
         ]);
 
-        $this->service->edit($proposal, $data, $request->user()->id);
+        $this->service->edit($proposal, $data, $request->user()->id, $data['touched_fields'] ?? []);
 
         return back()->with('success', __('flash.distributor_proposals.updated'));
     }

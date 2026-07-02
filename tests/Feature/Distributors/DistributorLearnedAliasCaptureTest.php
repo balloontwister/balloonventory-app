@@ -9,6 +9,7 @@ use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorLearnedAlias;
 use App\Models\User;
+use App\Services\Distributors\DistributorLearnedAliasStore;
 use App\Services\Distributors\DistributorProposalReviewService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -66,7 +67,7 @@ class DistributorLearnedAliasCaptureTest extends TestCase
             'proposed_brand_id' => $this->kalisan->id,
             'proposed_color_id' => $fashionRed->id,
             'note' => 'Finish/colour word order is reversed here.',
-        ], $this->admin->id);
+        ], $this->admin->id, ['brand', 'color']);
 
         $alias = DistributorLearnedAlias::query()
             ->where('distributor_id', $this->distributor->id)
@@ -93,7 +94,7 @@ class DistributorLearnedAliasCaptureTest extends TestCase
         $this->service->edit($taught, [
             'proposed_brand_id' => $this->kalisan->id,
             'proposed_color_id' => $fashionRed->id,
-        ], $this->admin->id);
+        ], $this->admin->id, ['brand', 'color']);
 
         // A brand-new proposal carrying the same raw value, with no manual mapping.
         $later = DistributorCatalogProposal::factory()->create([
@@ -104,7 +105,10 @@ class DistributorLearnedAliasCaptureTest extends TestCase
             ->firstWhere('id', $later->id);
 
         $this->assertSame($fashionRed->id, $presented['guess']['color']['selected']['id']);
-        $this->assertSame('exact', $presented['guess']['color']['quality']);
+        // 'learned', not 'exact' — this title states no colour, so nothing overrides
+        // the alias, but its quality must stay distinguishable from a plain
+        // structured exact match (see the title-safety-net regression test below).
+        $this->assertSame('learned', $presented['guess']['color']['quality']);
     }
 
     public function test_capturing_an_alias_restamps_a_sibling_pending_proposals_facets(): void
@@ -131,7 +135,7 @@ class DistributorLearnedAliasCaptureTest extends TestCase
             'proposed_brand_id' => $this->kalisan->id,
             'proposed_balloon_size_id' => $size->id,
             'proposed_color_id' => $fashionRed->id,
-        ], $this->admin->id);
+        ], $this->admin->id, ['brand', 'balloon_size', 'color']);
 
         // The colour now resolves via the learned alias, so the sibling's stored
         // facet state flips to full without a re-cluster.
@@ -155,7 +159,7 @@ class DistributorLearnedAliasCaptureTest extends TestCase
         $this->service->edit($taught, [
             'proposed_brand_id' => $this->kalisan->id,
             'proposed_color_id' => $fashionRed->id,
-        ], $this->admin->id);
+        ], $this->admin->id, ['brand', 'color']);
 
         // A second proposal with no manual mapping — approval must re-resolve via
         // the learned alias, not the fuzzy "Red", when the promoter builds the SKU.
@@ -186,7 +190,7 @@ class DistributorLearnedAliasCaptureTest extends TestCase
         $this->service->edit($taught, [
             'proposed_brand_id' => $this->kalisan->id,
             'proposed_color_id' => $kalisanFashionRed->id,
-        ], $this->admin->id);
+        ], $this->admin->id, ['brand', 'color']);
 
         // Same raw colour, different brand — the Kalisan-scoped alias must not fire.
         $sempertexProposal = DistributorCatalogProposal::factory()->create([
@@ -197,5 +201,66 @@ class DistributorLearnedAliasCaptureTest extends TestCase
             ->firstWhere('id', $sempertexProposal->id);
 
         $this->assertNotSame($kalisanFashionRed->id, $presented['guess']['color']['selected']['id'] ?? null);
+    }
+
+    /**
+     * The exact production bug: the edit form pre-fills proposed_color_id with the
+     * matcher's own guess and submits the whole row on any save, so a proposal
+     * carries a non-null proposed_color_id even when the admin only touched an
+     * unrelated field (here, the note). Without the touched_fields gate that value
+     * would be learned as a confirmed correction; with it, nothing is captured.
+     */
+    public function test_editing_an_untouched_color_does_not_capture_an_alias(): void
+    {
+        $guessedColor = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Fashion Red']);
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [$this->member(['Brand' => ['Kalisan'], 'Color' => ['Red Fashion']])],
+        ]);
+
+        // The admin only added a note; proposed_color_id rides along at whatever the
+        // (pre-filled) form happened to hold — here the matcher's own guess.
+        $this->service->edit($proposal, [
+            'proposed_brand_id' => $this->kalisan->id,
+            'proposed_color_id' => $guessedColor->id,
+            'note' => 'Just leaving a note, did not touch the colour field.',
+        ], $this->admin->id, ['brand']);
+
+        $this->assertSame(
+            0,
+            DistributorLearnedAlias::where('attribute', 'color')->count(),
+        );
+    }
+
+    /**
+     * The reported bug, reproduced end to end: a learned alias exists for a coarse
+     * raw colour ("Blue" → the wrong specific shade), but THIS product's own title
+     * clearly names a different, specific shade. The learned tier must not silently
+     * win — its quality stays 'learned' (not 'exact') so the existing title-shade
+     * safety net still gets a chance to override it.
+     */
+    public function test_a_clear_title_shade_overrides_a_learned_alias_for_a_different_product(): void
+    {
+        $wrongTarget = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Fashion Navy']);
+        $correctShade = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Pastel Matte Blue']);
+
+        // Taught once, from a DIFFERENT product where "Blue" really did mean Navy.
+        app(DistributorLearnedAliasStore::class)
+            ->record($this->distributor->id, 'color', $this->kalisan->id, 'Blue', $wrongTarget->id, null, null);
+
+        // A different product: raw structured colour is the same coarse "Blue",
+        // but its OWN title clearly states a different, specific shade.
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [$this->member(
+                ['Brand' => ['Kalisan'], 'Color' => ['Blue']],
+                'Kalisan 260 Pastel Matte Blue modeling balloons',
+            )],
+        ]);
+
+        $presented = $this->service->paginate([])->getCollection()
+            ->firstWhere('id', $proposal->id);
+
+        $this->assertSame($correctShade->id, $presented['guess']['color']['selected']['id']);
+        $this->assertSame('title', $presented['guess']['color']['source']);
     }
 }

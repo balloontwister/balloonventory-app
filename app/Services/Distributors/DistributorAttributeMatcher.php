@@ -29,7 +29,7 @@ use Illuminate\Support\Collection;
  * @phpstan-type AttributeMatch array{
  *     model: \Illuminate\Database\Eloquent\Model|null,
  *     value: string|null,
- *     quality: 'exact'|'fuzzy'|'none',
+ *     quality: 'exact'|'learned'|'fuzzy'|'none',
  *     candidates: array<int, array{id: string, name: string, quality: string}>
  * }
  */
@@ -153,10 +153,17 @@ class DistributorAttributeMatcher
      * said this listing is really a specific shade. An alias pointing at a row
      * that's since been deleted is ignored, falling through to the heuristics.
      *
+     * `$resultQuality` lets a caller keep the result from short-circuiting a
+     * downstream safety net that only runs when quality isn't 'exact' (used by
+     * colour: see {@see matchColor}). A raw colour value is very often a coarse
+     * distributor category ("Blue", "Yellow / Gold") that legitimately means a
+     * DIFFERENT specific shade on every other product that shares it, so a single
+     * taught mapping must not be trusted as blindly as, say, a brand name is.
+     *
      * @param  Collection<string, Model>  $pool  the candidate reference rows for this attribute/brand
      * @return AttributeMatch|null
      */
-    private function learned(string $attribute, ?string $rawValue, ?string $brandId, Collection $pool): ?array
+    private function learned(string $attribute, ?string $rawValue, ?string $brandId, Collection $pool, string $resultQuality = 'exact'): ?array
     {
         if ($rawValue === null || $this->distributorId === null) {
             return null;
@@ -177,7 +184,7 @@ class DistributorAttributeMatcher
         return [
             'model' => $model,
             'value' => $rawValue,
-            'quality' => 'exact',
+            'quality' => $resultQuality,
             'candidates' => $this->candidates(collect([$model])),
         ];
     }
@@ -397,7 +404,12 @@ class DistributorAttributeMatcher
         // A learned alias is keyed on the raw colour value the distributor sent
         // (the same field the admin saw when correcting it), so it's consulted on
         // $value before the finish recompose / structured / title heuristics.
-        if (($learned = $this->learned('color', $value, $brand->id, $colors)) !== null) {
+        // Quality 'learned' (not 'exact') deliberately keeps the door open for the
+        // title-shade override below/upstream (ProposalResolver, presentColor) —
+        // a raw colour word is often a coarse category that means a different
+        // shade per product, so an unambiguous shade named in THIS product's own
+        // title is stronger evidence than a mapping taught from a different one.
+        if (($learned = $this->learned('color', $value, $brand->id, $colors, 'learned')) !== null) {
             return $learned;
         }
 

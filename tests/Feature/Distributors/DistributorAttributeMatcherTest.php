@@ -96,7 +96,10 @@ class DistributorAttributeMatcherTest extends TestCase
         );
 
         $this->assertSame($fashionRed->id, $result['color']['model']->id);
-        $this->assertSame('exact', $result['color']['quality']);
+        // 'learned', not 'exact' — a colour alias deliberately stays distinguishable
+        // so a downstream title-shade check can still override it for a different
+        // product that happens to share the same coarse raw value.
+        $this->assertSame('learned', $result['color']['quality']);
     }
 
     public function test_learned_alias_beats_an_exact_match_on_a_family_part(): void

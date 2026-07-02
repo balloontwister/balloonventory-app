@@ -222,6 +222,12 @@ class DistributorProposalReviewService
      * Approve a proposal and attempt to materialise it into a Sku. The proposal
      * is stamped approved regardless; the returned result says whether a Sku was
      * created or the admin still needs to map attributes.
+     *
+     * Does NOT capture learned aliases — any attribute the admin actually edited
+     * was already captured (correctly gated on touched fields) by the preceding
+     * {@see edit} call the UI makes before approving a dirty row. Re-scanning here
+     * would learn from whatever's currently on the model even when nothing about
+     * this approval was a deliberate attribute choice.
      */
     public function approve(DistributorCatalogProposal $proposal, string $reviewerId): ProposalPromotionResult
     {
@@ -230,10 +236,6 @@ class DistributorProposalReviewService
             'reviewed_by' => $reviewerId,
             'reviewed_at' => now(),
         ])->save();
-
-        // Bank any manual mappings carried on the proposal as learned aliases
-        // before promoting (a no-op when approval rode the matcher's own guess).
-        $this->learnFromProposal($proposal, $reviewerId);
 
         // promoteForReview reads the (now approved) proposal; the promoter keeps
         // the approved status when it creates the Sku.
@@ -299,9 +301,21 @@ class DistributorProposalReviewService
      * proposed_*_id marks the proposal human-touched, so a later re-cluster won't
      * overwrite it (see DistributorClusterEngine::isHumanTouched).
      *
+     * `$touchedFields` names which of brand/balloon_size/color/packaging the admin
+     * actually interacted with in the UI (not merely which ones are present/non-null
+     * in `$attributes`). The edit form pre-fills every proposed_*_id with the
+     * matcher's own live guess so the reviewer sees a coherent draft, and it submits
+     * the WHOLE form on any save — so a `proposed_color_id` can be non-null purely
+     * because some OTHER field (name, count, a note) was edited, not because the
+     * admin confirmed that colour. Learning an alias from that untouched value would
+     * teach the system its own unverified guess as if it were a human decision. Only
+     * attributes named here are eligible to become a learned alias; see
+     * {@see captureLearnedAliases}.
+     *
      * @param  array<string, mixed>  $attributes
+     * @param  array<int, string>  $touchedFields
      */
-    public function edit(DistributorCatalogProposal $proposal, array $attributes, string $reviewerId): void
+    public function edit(DistributorCatalogProposal $proposal, array $attributes, string $reviewerId, array $touchedFields = []): void
     {
         $proposal->forceFill([
             'proposed_name' => $attributes['proposed_name'] ?? $proposal->proposed_name,
@@ -315,7 +329,7 @@ class DistributorProposalReviewService
             'reviewed_by' => $reviewerId,
         ])->save();
 
-        $this->learnFromProposal($proposal, $reviewerId);
+        $this->learnFromProposal($proposal, $reviewerId, $touchedFields);
     }
 
     /**
@@ -323,11 +337,13 @@ class DistributorProposalReviewService
      * same raw distributor value resolves itself next time) and refresh the stored
      * resolution of every pending proposal those aliases now flip — keeping the
      * queue's facet counts honest without a re-cluster. A no-op when no reference
-     * attribute was mapped.
+     * attribute was BOTH mapped and explicitly touched.
+     *
+     * @param  array<int, string>  $touchedFields
      */
-    private function learnFromProposal(DistributorCatalogProposal $proposal, string $reviewerId): void
+    private function learnFromProposal(DistributorCatalogProposal $proposal, string $reviewerId, array $touchedFields): void
     {
-        $captures = $this->captureLearnedAliases($proposal, $reviewerId);
+        $captures = $this->captureLearnedAliases($proposal, $reviewerId, $touchedFields);
 
         if ($captures !== []) {
             $this->restampForCaptures($proposal, $captures);
@@ -335,16 +351,21 @@ class DistributorProposalReviewService
     }
 
     /**
-     * Record a learned alias for each reference attribute the admin mapped, scoped
-     * per-distributor (and per-brand for the brand-scoped size/colour). The raw
-     * value is read from each contributing evidence member with the same label
-     * resolution the matcher uses, so the alias is keyed exactly how the matcher
-     * will look it up.
+     * Record a learned alias for each reference attribute the admin BOTH mapped
+     * AND explicitly touched (see {@see edit}), scoped per-distributor (and
+     * per-brand for the brand-scoped size/colour). The raw value is read from
+     * each contributing evidence member with the same label resolution the
+     * matcher uses, so the alias is keyed exactly how the matcher will look it up.
      *
+     * @param  array<int, string>  $touchedFields
      * @return array<int, array{distributor_id: string, attribute: string, scope: ?string, raw: string}>
      */
-    private function captureLearnedAliases(DistributorCatalogProposal $proposal, string $reviewerId): array
+    private function captureLearnedAliases(DistributorCatalogProposal $proposal, string $reviewerId, array $touchedFields): array
     {
+        if ($touchedFields === []) {
+            return [];
+        }
+
         $brandId = $proposal->proposed_brand_id ?? $proposal->resolved_brand_id;
 
         $mappings = [
@@ -365,8 +386,14 @@ class DistributorProposalReviewService
         $captured = [];
 
         foreach ($mappings as $attribute => $spec) {
-            // Nothing mapped, or a brand-scoped attribute with no brand to scope it
-            // to — can't learn a key for it.
+            // Only an attribute the admin actually interacted with is eligible —
+            // never learn from a value that merely rode along in the submitted
+            // form. Also skip nothing-mapped, or a brand-scoped attribute with no
+            // brand to scope it to.
+            if (! in_array($attribute, $touchedFields, true)) {
+                continue;
+            }
+
             if ($spec['id'] === null || (in_array($attribute, ['size', 'color'], true) && $spec['scope'] === null)) {
                 continue;
             }

@@ -13,6 +13,7 @@ use App\Models\DistributorProduct;
 use App\Models\PackagingType;
 use App\Models\Sku;
 use App\Models\User;
+use App\Services\Distributors\DistributorLearnedAliasStore;
 use Database\Seeders\PackagingTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -125,6 +126,54 @@ class DistributorProposalControllerTest extends TestCase
             'brand_id' => $brand->id,
             'balloon_size_id' => $size->id,
             'color_id' => $color->id,
+        ]);
+    }
+
+    /**
+     * End-to-end reproduction of the production bug: a learned colour alias exists
+     * for a coarse raw value ("Mustard" for this distributor+brand really meant a
+     * specific unrelated shade on a DIFFERENT product once), but THIS product's own
+     * title clearly names its actual shade. Promotion must use the title, not
+     * silently trust the alias, because the alias's quality is 'learned' (not
+     * 'exact') and the promoter's colour resolution defers to a clear title shade
+     * whenever the structured guess isn't an unambiguous exact match.
+     */
+    public function test_approve_prefers_the_title_shade_over_a_mismatched_learned_alias(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '260K']);
+        $wrongTarget = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Pearl Blue']);
+        $correctShade = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Pastel Matte Yellow']);
+        $distributor = Distributor::factory()->create();
+
+        // Taught once, from an unrelated product where the coarse raw value really
+        // did mean Pearl Blue.
+        app(DistributorLearnedAliasStore::class)
+            ->record($distributor->id, 'color', $brand->id, 'Mustard', $wrongTarget->id, null, null);
+
+        // A different product: same coarse raw colour, but its own title clearly
+        // states its real shade.
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'proposed_name' => '5-inch Deluxe Mustard Kalisan',
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => '5-inch Pastel Matte Yellow Kalisan',
+                'attributes' => [
+                    'Brand' => ['Kalisan'], 'Size' => ['260'], 'Color' => ['Mustard'],
+                    'Quantity' => ['100 ct'],
+                ],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id))
+            ->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertNotNull($proposal->resulting_sku_id);
+        $this->assertDatabaseHas('skus', [
+            'id' => $proposal->resulting_sku_id,
+            'color_id' => $correctShade->id,
         ]);
     }
 
@@ -621,6 +670,7 @@ class DistributorProposalControllerTest extends TestCase
                 'proposed_brand_id' => $brand->id,
                 'proposed_color_id' => $color->id,
                 'note' => 'Word order is reversed for this distributor.',
+                'touched_fields' => ['brand', 'color'],
             ])
             ->assertSessionHas('success');
 
@@ -634,6 +684,45 @@ class DistributorProposalControllerTest extends TestCase
         $this->assertNotNull($alias);
         $this->assertSame($color->id, $alias->catalog_id);
         $this->assertSame('Word order is reversed for this distributor.', $alias->note);
+    }
+
+    /**
+     * The production bug this whole gate exists to prevent: the edit form
+     * pre-fills proposed_color_id with the matcher's own live guess and submits
+     * the whole row on any save, so a PATCH can carry a non-null proposed_color_id
+     * purely because some unrelated field (here, the note) was edited — never
+     * because the admin looked at or chose that colour. Omitting touched_fields
+     * (as an untouched select would) must not teach an alias from it.
+     */
+    public function test_update_does_not_learn_an_alias_for_an_untouched_color_field(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        $color = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Fashion Red']);
+        $distributor = Distributor::factory()->create();
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => 'Kalisan 260 modeling balloons',
+                'attributes' => ['Brand' => ['Kalisan'], 'Color' => ['Red Fashion']],
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), [
+                'proposed_brand_id' => $brand->id,
+                'proposed_color_id' => $color->id,
+                'note' => 'Just a note — the colour field was never touched.',
+                // No touched_fields: matches an untouched select carried along by
+                // the pre-filled form.
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame($color->id, $proposal->fresh()->proposed_color_id);
+        $this->assertSame(
+            0,
+            DistributorLearnedAlias::where('distributor_id', $distributor->id)->where('attribute', 'color')->count(),
+        );
     }
 
     public function test_non_admin_cannot_reach_the_review_queue(): void

@@ -80,7 +80,17 @@ watch([statusFilter, confidenceFilter], applyFilters);
 // from scratch. A row's Save enables once its form differs from that seed.
 const forms = reactive({});
 const snapshots = reactive({}); // id → JSON of the pristine form, for dirty detection
+// id → { brand: bool, balloon_size: bool, color: bool, packaging: bool }. The form
+// pre-fills every proposed_*_id from the matcher's own guess and submits the whole
+// row on any save, so "the field has a value" does NOT mean "the admin chose it" —
+// only a field the admin actually interacted with is eligible to become a learned
+// alias server-side. See markTouched() and DistributorProposalReviewService::edit().
+const touched = reactive({});
 const savingId = ref(null);
+
+function markTouched(id, field) {
+    (touched[id] ??= {})[field] = true;
+}
 
 function blankForm(item) {
     const g = item.guess?.available ? item.guess : null;
@@ -108,12 +118,14 @@ function syncForms() {
         if (!ids.has(id)) {
             delete forms[id];
             delete snapshots[id];
+            delete touched[id];
         }
     });
     for (const item of props.proposals.data) {
         const fresh = blankForm(item);
         forms[item.id] = fresh;
         snapshots[item.id] = JSON.stringify(fresh);
+        touched[item.id] = {};
     }
 }
 
@@ -139,6 +151,7 @@ function colorsFor(brandId) {
 
 // Changing the brand drops a size/colour that no longer belongs to it.
 function onBrandChange(id) {
+    markTouched(id, 'brand');
     const f = forms[id];
     if (
         f.proposed_balloon_size_id &&
@@ -159,12 +172,20 @@ function onBrandChange(id) {
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
+// Which of brand/balloon_size/color/packaging the admin actually touched on this
+// row, as an array — sent alongside the form so the backend only ever learns an
+// alias from a field the admin deliberately picked, never one that's merely
+// present because the whole form gets submitted on any save.
+function touchedFieldsFor(id) {
+    return Object.keys(touched[id] ?? {}).filter((k) => touched[id][k]);
+}
+
 function save(item) {
     if (!isDirty(item.id) || savingId.value) return;
     savingId.value = item.id;
     router.patch(
         route('admin.distributors.proposals.update', item.id),
-        forms[item.id],
+        { ...forms[item.id], touched_fields: touchedFieldsFor(item.id) },
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -185,7 +206,7 @@ function approve(item) {
         savingId.value = item.id;
         router.patch(
             route('admin.distributors.proposals.update', item.id),
-            forms[item.id],
+            { ...forms[item.id], touched_fields: touchedFieldsFor(item.id) },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -269,6 +290,10 @@ function dotClass(quality) {
             exact: 'bg-success',
             fuzzy: 'bg-warning',
             title: 'bg-warning',
+            // A learned colour alias that the title check didn't confirm/override —
+            // worth a second look, since a raw colour word can mean a different
+            // shade on a different product even for the same distributor+brand.
+            learned: 'bg-warning',
         }[quality] ?? 'bg-border-strong'
     );
 }
@@ -818,6 +843,9 @@ function confidenceClass(confidence) {
                                         forms[item.id].proposed_balloon_size_id
                                     "
                                     class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                    @change="
+                                        markTouched(item.id, 'balloon_size')
+                                    "
                                 >
                                     <option :value="null">—</option>
                                     <option
@@ -850,6 +878,7 @@ function confidenceClass(confidence) {
                                 <select
                                     v-model="forms[item.id].proposed_color_id"
                                     class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                    @change="markTouched(item.id, 'color')"
                                 >
                                     <option :value="null">—</option>
                                     <option
@@ -886,6 +915,7 @@ function confidenceClass(confidence) {
                                         forms[item.id].proposed_packaging_id
                                     "
                                     class="w-full rounded-md border border-border-strong bg-surface px-2 py-1.5 font-sans text-[13px] text-ink-primary focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
+                                    @change="markTouched(item.id, 'packaging')"
                                 >
                                     <option :value="null">—</option>
                                     <option

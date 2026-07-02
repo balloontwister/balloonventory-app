@@ -200,6 +200,56 @@ class DistributorAttributeMatcherTest extends TestCase
     }
 
     /**
+     * The reported bug: bargain-balloons' modeling/twisting balloons report
+     * "Size (inches)" as the balloon's LENGTH alone ("60.0"), which every
+     * Kalisan modeling size shares (160K/260K/360K are all 60" long) — the
+     * bare-decimal rule can't disambiguate a genuinely ambiguous value. The
+     * distributor also carries a dimensions field ("2" X 60"") ONLY on this
+     * product type; its diameter is what actually distinguishes them.
+     */
+    public function test_modeling_balloon_dimensions_disambiguates_a_shared_length(): void
+    {
+        BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '160K']);
+        $target = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '260K']);
+        BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '360K']);
+
+        $result = $this->matcher->match(
+            ['Brand' => ['Kalisan'], 'Size' => ['60.0'], 'Dimensions' => ['Inflated Size 2" X 60"']],
+        );
+
+        $this->assertSame($target->id, $result['balloon_size']['model']->id);
+        $this->assertSame('exact', $result['balloon_size']['quality']);
+    }
+
+    public function test_dimensions_label_is_configurable_via_label_map(): void
+    {
+        $target = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '160K']);
+
+        $result = $this->matcher->match(
+            ['Brand' => ['Kalisan'], 'Size (inches)' => ['60.0'], 'Manufacturer Provided Dimensions' => ['Inflated Size 1" X 60"']],
+            ['extraction' => ['label_map' => ['size' => 'Size (inches)', 'dimensions' => 'Manufacturer Provided Dimensions']]],
+        );
+
+        $this->assertSame($target->id, $result['balloon_size']['model']->id);
+    }
+
+    /**
+     * When dimensions don't compose to any catalog size (a brand we don't carry
+     * a modeling size for, or an unparseable value), matching must fall back to
+     * the ordinary tiers on the raw size value rather than giving up entirely.
+     */
+    public function test_unmatched_dimensions_falls_back_to_the_ordinary_size_tiers(): void
+    {
+        $size = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '5-inch (K)']);
+
+        $result = $this->matcher->match(
+            ['Brand' => ['Kalisan'], 'Size' => ['5.0'], 'Dimensions' => ['not a real dimension']],
+        );
+
+        $this->assertSame($size->id, $result['balloon_size']['model']->id);
+    }
+
+    /**
      * Kalisan's own "12-inch" (no "(K)" suffix) is a Heart, not a Round, despite
      * the bare-sounding name — its shape isn't spelled out in the name text at
      * all, so Tier 0's name-mention check alone would miss it. With a bare

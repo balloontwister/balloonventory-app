@@ -56,6 +56,10 @@ class DistributorAttributeMatcher
         // Yellow"), so when a distributor splits it out ("Manufacturer Color:
         // Yellow" + "Latex Finish: Fashion") we recompose it to match.
         'texture' => 'Latex Finish',
+        // A modeling/twisting balloon's diameter x length ("2" X 60""), present
+        // ONLY on that product type. Its own "Size" field reports the length
+        // alone, ambiguous across every modeling size sharing it — see matchSize().
+        'dimensions' => 'Dimensions',
     ];
 
     /**
@@ -102,11 +106,12 @@ class DistributorAttributeMatcher
         $sizeValue = $this->value($attributes, $labels['size']);
         $shapeValues = $this->valuesFor($attributes, $labels['shape']);
         $shapePrefix = $this->resolveShapePrefix($shapeValues, $sizeValue, $config);
+        $dimensionsValue = $this->value($attributes, $labels['dimensions']);
 
         return [
             'brand' => $brand,
             'balloon_size' => $brandModel instanceof Brand
-                ? $this->matchSize($sizeValue, $brandModel, $shapeValues[0] ?? null, $shapePrefix, $this->sizeNumberAliases($brandModel->name, $config))
+                ? $this->matchSize($sizeValue, $brandModel, $shapeValues[0] ?? null, $shapePrefix, $this->sizeNumberAliases($brandModel->name, $config), $dimensionsValue)
                 : $this->none(),
             'color' => $brandModel instanceof Brand
                 ? $this->matchColor(
@@ -245,16 +250,38 @@ class DistributorAttributeMatcher
      * @param  array<string, mixed>  $numberAliases  distributor size number → catalog number, for this brand
      * @return AttributeMatch
      */
-    private function matchSize(?string $value, Brand $brand, ?string $shapeWord = null, ?string $shapePrefix = null, array $numberAliases = []): array
+    private function matchSize(?string $value, Brand $brand, ?string $shapeWord = null, ?string $shapePrefix = null, array $numberAliases = [], ?string $dimensions = null): array
     {
-        if ($value === null) {
+        if ($value === null && $dimensions === null) {
             return $this->none();
         }
 
         $sizes = $this->data()['balloonSizes']->get($brand->id, collect());
 
-        if (($learned = $this->learned('size', $value, $brand->id, $sizes)) !== null) {
+        if ($value !== null && ($learned = $this->learned('size', $value, $brand->id, $sizes)) !== null) {
             return $learned;
+        }
+
+        // Tier -1 — modeling-balloon inflated dimensions ("2" X 60""). A
+        // distributor's raw "Size" field can report a modeling balloon's LENGTH
+        // ALONE ("60"), which every Kalisan modeling size shares (160K/260K/360K
+        // are all 60" long) — genuinely ambiguous, not just differently formatted.
+        // A dimensions field is present ONLY on this product type (a round
+        // balloon never carries one), and Kalisan's own code is the diameter and
+        // length concatenated ("2" + "60" = "260K") — compose it and match on the
+        // same core key as every other tier, ahead of the ambiguous bare length.
+        if ($dimensions !== null && preg_match('/(\d+)\D+(\d+)/', $dimensions, $dm)) {
+            $composed = $dm[1].$dm[2];
+            $key = $this->sizeKey($composed);
+            $matches = $sizes->filter(fn (BalloonSize $bs) => $this->sizeKey($bs->name) === $key)->values();
+
+            if ($matches->isNotEmpty()) {
+                return $this->sizeMatch($matches, $composed, $value ?? $composed);
+            }
+        }
+
+        if ($value === null) {
+            return $this->none();
         }
 
         // Tier 0 — shape+number named in the candidate itself. Several sizes can

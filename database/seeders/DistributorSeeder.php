@@ -33,6 +33,11 @@ class DistributorSeeder extends Seeder
                             'texture' => 'Latex Finish',
                             'count' => 'Package Count',
                             'packaging' => 'Packaging Type',
+                            // Only present on modeling/twisting balloons ("Inflated
+                            // Size 2" X 60""); "Size (inches)" reports the length
+                            // alone there, ambiguous across every modeling size
+                            // sharing it — see DistributorAttributeMatcher::matchSize().
+                            'dimensions' => 'Manufacturer Provided Dimensions',
                         ],
                     ],
                     'attribute_aliases' => [

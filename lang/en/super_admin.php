@@ -312,6 +312,11 @@ return [
                 'edit_note' => 'Reviewer note',
                 'edit_note_placeholder' => 'e.g. for this distributor, Color is a coarse family — prefer the title shade.',
                 'edit_note_hint' => 'Banked with this correction to teach future matches. Optional.',
+                'mark_as_printed' => '+ Mark as printed',
+                'printed_checkbox' => 'This is a printed item',
+                'themes_label' => 'Themes',
+                'print_colors_label' => 'Print colors',
+                'print_sides_label' => 'Print sides',
 
                 'unknown_brand' => 'Unknown',
                 'empty' => 'No proposals match your filters.',

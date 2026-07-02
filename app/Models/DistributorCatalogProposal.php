@@ -48,6 +48,10 @@ class DistributorCatalogProposal extends Model
         'proposed_balloon_size_id',
         'proposed_color_id',
         'proposed_packaging_id',
+        'proposed_is_printed',
+        'proposed_theme_ids',
+        'proposed_print_color_ids',
+        'proposed_print_side_ids',
         'proposed_count',
         'proposed_name',
         'proposed_warehouse_sku',
@@ -60,6 +64,10 @@ class DistributorCatalogProposal extends Model
 
     protected $casts = [
         'proposed_count' => 'integer',
+        'proposed_is_printed' => 'boolean',
+        'proposed_theme_ids' => 'array',
+        'proposed_print_color_ids' => 'array',
+        'proposed_print_side_ids' => 'array',
         'evidence' => 'array',
         'resolution' => 'array',
         'reviewed_at' => 'datetime',

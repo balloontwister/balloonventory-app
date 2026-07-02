@@ -9,10 +9,13 @@ use App\Models\ColorFamily;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\Material;
+use App\Models\PrintColor;
+use App\Models\PrintSide;
 use App\Models\Shape;
 use App\Models\Size;
 use App\Models\Sku;
 use App\Models\Texture;
+use App\Models\Theme;
 use App\Services\DistributorCatalogPromoter;
 use Database\Seeders\ColorFamilySeeder;
 use Database\Seeders\MaterialSeeder;
@@ -119,6 +122,50 @@ class DistributorCatalogPromoterTest extends TestCase
         $this->assertDatabaseHas('distributor_sku_urls', [
             'distributor_id' => $la->id, 'sku_id' => $sku->id, 'in_stock' => true,
         ]);
+    }
+
+    /**
+     * The proposal pipeline clusters solid latex only, so a printed cluster is
+     * deferred before it ever becomes a proposal — but an admin can hand-classify
+     * a mixed-evidence cluster that slipped through misclassified as solid (a
+     * distributor labelled it plainly, another flagged it printed). Approving with
+     * proposed_is_printed + theme/print-colour/print-side ids must create a
+     * printed Sku with those pivots attached, not the hardcoded solid default.
+     */
+    public function test_promotes_a_manually_classified_printed_proposal_with_its_details(): void
+    {
+        [, $balloonSize, $color] = $this->seedSempertex();
+        $theme = Theme::factory()->create(['name' => 'Emoji']);
+        $printColor = PrintColor::factory()->create(['name' => 'Multi']);
+        $printSide = PrintSide::factory()->create(['name' => 'Single Side']);
+
+        $proposal = $this->proposal([
+            'proposed_color_id' => $color->id,
+            'proposed_is_printed' => true,
+            'proposed_theme_ids' => [$theme->id],
+            'proposed_print_color_ids' => [$printColor->id],
+            'proposed_print_side_ids' => [$printSide->id],
+        ]);
+
+        $sku = $this->promoter->promote($proposal);
+
+        $this->assertNotNull($sku);
+        $this->assertTrue((bool) $sku->is_printed);
+        $this->assertSame($balloonSize->id, $sku->balloon_size_id);
+        $this->assertTrue($sku->themes()->where('themes.id', $theme->id)->exists());
+        $this->assertTrue($sku->printColors()->where('print_colors.id', $printColor->id)->exists());
+        $this->assertTrue($sku->printSides()->where('print_sides.id', $printSide->id)->exists());
+    }
+
+    public function test_promotes_a_default_unprinted_proposal_without_any_print_pivots(): void
+    {
+        $this->seedSempertex();
+
+        $sku = $this->promoter->promote($this->proposal());
+
+        $this->assertNotNull($sku);
+        $this->assertFalse((bool) $sku->is_printed);
+        $this->assertSame(0, $sku->themes()->count());
     }
 
     public function test_resolves_size_across_real_world_inch_notations(): void

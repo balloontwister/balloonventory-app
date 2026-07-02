@@ -108,6 +108,12 @@ function blankForm(item) {
             item.proposed_packaging_id ?? g?.packaging?.selected?.id ?? null,
         proposed_count: item.proposed_count ?? g?.count ?? null,
         proposed_warehouse_sku: item.proposed_warehouse_sku ?? '',
+        // Print classification — rare, so there's no matcher guess to fall back to;
+        // it's null/empty until an admin explicitly marks a proposal printed.
+        proposed_is_printed: item.proposed_is_printed ?? false,
+        proposed_theme_ids: item.proposed_theme_ids ?? [],
+        proposed_print_color_ids: item.proposed_print_color_ids ?? [],
+        proposed_print_side_ids: item.proposed_print_side_ids ?? [],
         note: item.note ?? '',
     };
 }
@@ -169,6 +175,23 @@ function onBrandChange(id) {
     ) {
         f.proposed_color_id = null;
     }
+}
+
+// ── Print classification (rare — themes/print colours/print sides) ─────────────
+function togglePrintIdIn(id, listKey, valueId) {
+    const list = forms[id][listKey];
+    const idx = list.indexOf(valueId);
+    if (idx === -1) list.push(valueId);
+    else list.splice(idx, 1);
+}
+function toggleTheme(id, themeId) {
+    togglePrintIdIn(id, 'proposed_theme_ids', themeId);
+}
+function togglePrintColor(id, colorId) {
+    togglePrintIdIn(id, 'proposed_print_color_ids', colorId);
+}
+function togglePrintSide(id, sideId) {
+    togglePrintIdIn(id, 'proposed_print_side_ids', sideId);
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -1004,6 +1027,163 @@ function confidenceClass(confidence) {
                                     }}
                                 </button>
                             </template>
+                        </div>
+
+                        <!-- Print classification (rare — collapsed unless already printed) -->
+                        <div class="mt-2 px-1.5">
+                            <button
+                                v-if="!forms[item.id].proposed_is_printed"
+                                type="button"
+                                class="font-sans text-[11px] text-ink-tertiary underline decoration-dotted underline-offset-2 hover:text-accent"
+                                @click="
+                                    forms[item.id].proposed_is_printed = true
+                                "
+                            >
+                                {{
+                                    $t(
+                                        'super_admin.dashboard.distributors.proposals.mark_as_printed',
+                                    )
+                                }}
+                            </button>
+
+                            <div
+                                v-else
+                                class="rounded-md border border-border-strong bg-background px-3 py-2"
+                            >
+                                <label
+                                    class="flex cursor-pointer items-center gap-2"
+                                >
+                                    <input
+                                        v-model="
+                                            forms[item.id].proposed_is_printed
+                                        "
+                                        type="checkbox"
+                                        class="h-3.5 w-3.5 accent-accent"
+                                    />
+                                    <span
+                                        class="font-sans text-[12px] font-medium text-ink-primary"
+                                    >
+                                        {{
+                                            $t(
+                                                'super_admin.dashboard.distributors.proposals.printed_checkbox',
+                                            )
+                                        }}
+                                    </span>
+                                </label>
+
+                                <div class="mt-2 space-y-2">
+                                    <div>
+                                        <div
+                                            class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.distributors.proposals.themes_label',
+                                                )
+                                            }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <button
+                                                v-for="theme in references.themes"
+                                                :key="theme.id"
+                                                type="button"
+                                                class="rounded-full border px-2 py-0.5 font-sans text-[11px] font-medium transition"
+                                                :class="
+                                                    forms[
+                                                        item.id
+                                                    ].proposed_theme_ids.includes(
+                                                        theme.id,
+                                                    )
+                                                        ? 'border-accent bg-accent-soft text-accent'
+                                                        : 'border-border-strong bg-surface text-ink-secondary hover:border-ink-tertiary'
+                                                "
+                                                @click="
+                                                    toggleTheme(
+                                                        item.id,
+                                                        theme.id,
+                                                    )
+                                                "
+                                            >
+                                                {{ theme.name }}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div
+                                            class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.distributors.proposals.print_colors_label',
+                                                )
+                                            }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <button
+                                                v-for="color in references.printColors"
+                                                :key="color.id"
+                                                type="button"
+                                                class="rounded-full border px-2 py-0.5 font-sans text-[11px] font-medium transition"
+                                                :class="
+                                                    forms[
+                                                        item.id
+                                                    ].proposed_print_color_ids.includes(
+                                                        color.id,
+                                                    )
+                                                        ? 'border-accent bg-accent-soft text-accent'
+                                                        : 'border-border-strong bg-surface text-ink-secondary hover:border-ink-tertiary'
+                                                "
+                                                @click="
+                                                    togglePrintColor(
+                                                        item.id,
+                                                        color.id,
+                                                    )
+                                                "
+                                            >
+                                                {{ color.name }}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div
+                                            class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary"
+                                        >
+                                            {{
+                                                $t(
+                                                    'super_admin.dashboard.distributors.proposals.print_sides_label',
+                                                )
+                                            }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <button
+                                                v-for="side in references.printSides"
+                                                :key="side.id"
+                                                type="button"
+                                                class="rounded-full border px-2 py-0.5 font-sans text-[11px] font-medium transition"
+                                                :class="
+                                                    forms[
+                                                        item.id
+                                                    ].proposed_print_side_ids.includes(
+                                                        side.id,
+                                                    )
+                                                        ? 'border-accent bg-accent-soft text-accent'
+                                                        : 'border-border-strong bg-surface text-ink-secondary hover:border-ink-tertiary'
+                                                "
+                                                @click="
+                                                    togglePrintSide(
+                                                        item.id,
+                                                        side.id,
+                                                    )
+                                                "
+                                            >
+                                                {{ side.name }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Note + actions -->

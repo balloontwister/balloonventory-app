@@ -234,11 +234,20 @@ class DistributorCatalogPromoter
                 'packaging_id' => $resolved['packaging']?->id,
                 'warehouse_sku' => $proposal->proposed_warehouse_sku,
                 'upc' => $this->originalUpc($proposal) ?? $proposal->upc,
-                // The proposal pipeline only materialises solid latex today;
-                // print state is part of the identity used for sibling linking.
-                'is_printed' => false,
+                // The pipeline clusters solid latex only — a printed cluster is
+                // deferred before it ever becomes a proposal — but an admin can
+                // hand-classify a mixed-evidence cluster that slipped through
+                // misclassified as solid. Print state is part of the identity used
+                // for sibling linking (see linkIdenticalSiblings below).
+                'is_printed' => (bool) $proposal->proposed_is_printed,
                 'is_active' => true,
             ]);
+
+            if ($proposal->proposed_is_printed) {
+                $sku->themes()->sync($proposal->proposed_theme_ids ?? []);
+                $sku->printColors()->sync($proposal->proposed_print_color_ids ?? []);
+                $sku->printSides()->sync($proposal->proposed_print_side_ids ?? []);
+            }
 
             $this->attachDistributorUrls($sku, $proposal);
             $this->linkIdenticalSiblings($sku);

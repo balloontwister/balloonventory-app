@@ -11,7 +11,10 @@ use App\Models\DistributorCatalogProposal;
 use App\Models\DistributorLearnedAlias;
 use App\Models\DistributorProduct;
 use App\Models\PackagingType;
+use App\Models\PrintColor;
+use App\Models\PrintSide;
 use App\Models\Sku;
+use App\Models\Theme;
 use App\Models\User;
 use App\Services\Distributors\DistributorLearnedAliasStore;
 use Database\Seeders\PackagingTypeSeeder;
@@ -623,6 +626,44 @@ class DistributorProposalControllerTest extends TestCase
         $this->assertSame($balloonSize->id, $proposal->proposed_balloon_size_id);
         $this->assertSame(100, $proposal->proposed_count);
         $this->assertSame($this->admin->id, $proposal->reviewed_by);
+    }
+
+    public function test_update_persists_print_classification_and_approve_creates_a_printed_sku(): void
+    {
+        $balloonSize = BalloonSize::factory()->create();
+        $color = Color::factory()->create(['brand_id' => $balloonSize->brand_id]);
+        $theme = Theme::factory()->create(['name' => 'Emoji']);
+        $printColor = PrintColor::factory()->create(['name' => 'Multi']);
+        $printSide = PrintSide::factory()->create(['name' => 'Single Side']);
+
+        $proposal = DistributorCatalogProposal::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.distributors.proposals.update', $proposal->id), [
+                'proposed_brand_id' => $balloonSize->brand_id,
+                'proposed_balloon_size_id' => $balloonSize->id,
+                'proposed_color_id' => $color->id,
+                'proposed_is_printed' => true,
+                'proposed_theme_ids' => [$theme->id],
+                'proposed_print_color_ids' => [$printColor->id],
+                'proposed_print_side_ids' => [$printSide->id],
+            ])
+            ->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertTrue($proposal->proposed_is_printed);
+        $this->assertSame([$theme->id], $proposal->proposed_theme_ids);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.approve', $proposal->id))
+            ->assertSessionHas('success');
+
+        $sku = Sku::find($proposal->refresh()->resulting_sku_id);
+        $this->assertNotNull($sku);
+        $this->assertTrue((bool) $sku->is_printed);
+        $this->assertTrue($sku->themes()->where('themes.id', $theme->id)->exists());
+        $this->assertTrue($sku->printColors()->where('print_colors.id', $printColor->id)->exists());
+        $this->assertTrue($sku->printSides()->where('print_sides.id', $printSide->id)->exists());
     }
 
     public function test_update_persists_an_edited_proposed_name(): void

@@ -8,7 +8,10 @@ use App\Models\Color;
 use App\Models\Distributor;
 use App\Models\DistributorCatalogProposal;
 use App\Models\PackagingType;
+use App\Models\PrintColor;
+use App\Models\PrintSide;
 use App\Models\Sku;
+use App\Models\Theme;
 use App\Services\BarcodeLinker;
 use App\Services\CatalogAttributeResolver;
 use App\Services\DistributorCatalogPromoter;
@@ -110,6 +113,13 @@ class DistributorProposalReviewService
             // Packaging is global (not brand-scoped).
             'packagingTypes' => PackagingType::orderBy('sort_order')->get(['id', 'name'])
                 ->map(fn (PackagingType $p) => ['id' => $p->id, 'name' => $p->name])->all(),
+            // Print classification — only shown once a proposal is marked printed.
+            'themes' => Theme::withTranslations()->orderBy('sort_order')->get(['id', 'name'])
+                ->map(fn (Theme $t) => ['id' => $t->id, 'name' => $t->translated('name')])->all(),
+            'printColors' => PrintColor::orderBy('sort_order')->get(['id', 'name'])
+                ->map(fn (PrintColor $c) => ['id' => $c->id, 'name' => $c->name])->all(),
+            'printSides' => PrintSide::orderBy('sort_order')->get(['id', 'name'])
+                ->map(fn (PrintSide $s) => ['id' => $s->id, 'name' => $s->name])->all(),
         ];
     }
 
@@ -323,6 +333,10 @@ class DistributorProposalReviewService
             'proposed_balloon_size_id' => $attributes['proposed_balloon_size_id'] ?? null,
             'proposed_color_id' => $attributes['proposed_color_id'] ?? null,
             'proposed_packaging_id' => $attributes['proposed_packaging_id'] ?? null,
+            'proposed_is_printed' => $attributes['proposed_is_printed'] ?? false,
+            'proposed_theme_ids' => $attributes['proposed_theme_ids'] ?? [],
+            'proposed_print_color_ids' => $attributes['proposed_print_color_ids'] ?? [],
+            'proposed_print_side_ids' => $attributes['proposed_print_side_ids'] ?? [],
             'proposed_count' => $attributes['proposed_count'] ?? null,
             'proposed_warehouse_sku' => $attributes['proposed_warehouse_sku'] ?? null,
             'note' => $attributes['note'] ?? null,
@@ -593,6 +607,10 @@ class DistributorProposalReviewService
             'proposed_balloon_size_id' => $proposal->proposed_balloon_size_id,
             'proposed_color_id' => $proposal->proposed_color_id,
             'proposed_packaging_id' => $proposal->proposed_packaging_id,
+            'proposed_is_printed' => $proposal->proposed_is_printed,
+            'proposed_theme_ids' => $proposal->proposed_theme_ids ?? [],
+            'proposed_print_color_ids' => $proposal->proposed_print_color_ids ?? [],
+            'proposed_print_side_ids' => $proposal->proposed_print_side_ids ?? [],
             'brand_name' => $references['brands']->get($proposal->proposed_brand_id)?->name,
             'balloon_size_name' => $references['balloonSizes']->get($proposal->proposed_balloon_size_id)?->name,
             'color_name' => $references['colors']->get($proposal->proposed_color_id)?->name,

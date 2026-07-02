@@ -59,6 +59,40 @@ class CatalogAttributeResolver
         return $this->firstMention($this->data()['colors']->get($brand->id, collect()), strtolower($text));
     }
 
+    /**
+     * Prefer a specific shade named in the title over the structured colour,
+     * shared by every promotion/presentation path so the guard below can't drift
+     * out of sync between them.
+     *
+     * A non-exact structured match (fuzzy/learned/none) always defers to the
+     * title, as before. An EXACT structured match is trusted UNLESS the title
+     * names a different, more specific colour that is itself a refinement of the
+     * exact match's name (e.g. distributor Color "Green" exactly matches our
+     * plain "Green", but the title says "Mirror Green Gold" — a distinct, real
+     * catalog colour whose name literally contains "Green"). That containment
+     * check is the load-bearing part: it lets a coarse-but-real exact match still
+     * be corrected by a clearly more specific title mention, while refusing to let
+     * an unrelated word in the title override a correct, specific exact match.
+     */
+    public function refineColorFromTitle(?Color $structuredColor, string $structuredQuality, string $text, Brand $brand): ?Color
+    {
+        $titleColor = $this->colorInText($text, $brand);
+
+        if ($titleColor === null || $titleColor->is($structuredColor)) {
+            return $structuredColor;
+        }
+
+        if ($structuredQuality !== 'exact') {
+            return $titleColor;
+        }
+
+        if ($structuredColor !== null && ProductText::mentions(strtolower($titleColor->name), strtolower($structuredColor->name))) {
+            return $titleColor;
+        }
+
+        return $structuredColor;
+    }
+
     private function firstMention(Collection $keyedByName, string $haystack)
     {
         return $keyedByName->first(fn ($model, string $name) => ProductText::mentions($haystack, $name));

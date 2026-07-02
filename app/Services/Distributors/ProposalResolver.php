@@ -40,10 +40,12 @@ class ProposalResolver
         $size = $match['balloon_size']['model'];
         $color = $match['color']['model'];
 
-        // Coarse structured colour ("Green") defers to the shade in the title.
-        if ($brand !== null && $match['color']['quality'] !== 'exact') {
+        // Coarse structured colour ("Green") defers to a more specific shade in
+        // the title — including a coarse-but-REAL exact match ("Green" IS a real
+        // colour, but "Mirror Green Gold" is a more specific one the title names).
+        if ($brand !== null) {
             $title = collect($members)->pluck('title')->filter()->implode(' ');
-            $color = $this->resolver->colorInText($title, $brand) ?? $color;
+            $color = $this->resolver->refineColorFromTitle($color, $match['color']['quality'], $title, $brand);
         }
 
         $state = match (true) {

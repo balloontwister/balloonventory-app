@@ -54,6 +54,31 @@ class DistributorLearnedAliasCaptureTest extends TestCase
         ];
     }
 
+    /**
+     * The live queue guess (what the reviewer actually sees before approving)
+     * must show the same corrected colour as promotion would create — a coarse
+     * but real EXACT structured match ("Green") must defer to a more specific
+     * title shade ("Mirror Green Gold"), not just at promotion time.
+     */
+    public function test_live_guess_prefers_a_specific_title_shade_over_a_coarse_exact_color(): void
+    {
+        Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Green']);
+        $mirrorGreenGold = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Mirror Green Gold']);
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'evidence' => [$this->member(
+                ['Brand' => ['Kalisan'], 'Color' => ['Green']],
+                '36 inch KALISAN MIRROR GREEN GOLD',
+            )],
+        ]);
+
+        $presented = $this->service->paginate([])->getCollection()
+            ->firstWhere('id', $proposal->id);
+
+        $this->assertSame($mirrorGreenGold->id, $presented['guess']['color']['selected']['id']);
+        $this->assertSame('title', $presented['guess']['color']['source']);
+    }
+
     public function test_editing_a_proposal_captures_a_learned_alias(): void
     {
         $fashionRed = Color::factory()->create(['brand_id' => $this->kalisan->id, 'name' => 'Fashion Red']);

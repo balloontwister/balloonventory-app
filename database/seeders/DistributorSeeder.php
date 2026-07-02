@@ -190,6 +190,14 @@ class DistributorSeeder extends Seeder
                             'default_shape' => 'Round',
                             'shape_keywords' => [
                                 'heart' => 'Heart',
+                                // "link" alone catches every real-world spelling
+                                // havinaparty titles actually use ("Link", "Linko",
+                                // "Link-O-Loon", "Linkoloon", "Linky" all contain it)
+                                // — the old list only had the longer spellings, so a
+                                // bare "Link"/"Linko" title fell through to the
+                                // Round default (found via the 12"K Link Macaron
+                                // Lilac + ~60 "Linko …" pending proposals, 2026-07-02).
+                                'link' => 'Link',
                                 'link-o-loon' => 'Link',
                                 'linkoloon' => 'Link',
                                 'linky' => 'Link',

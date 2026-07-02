@@ -33,7 +33,7 @@ class TitleAttributeExtractorTest extends TestCase
                     'printed_categories' => ['Printed', 'Special Occassion', 'Shop by Prints'],
                     'color_strip_words' => ['Nozzle Up', 'Pkg', 'Flat', 'Round', 'Air-Fill', 'Banner', 'Set'],
                     'default_shape' => 'Round',
-                    'shape_keywords' => ['heart' => 'Heart', 'link-o-loon' => 'Link'],
+                    'shape_keywords' => ['heart' => 'Heart', 'link' => 'Link', 'link-o-loon' => 'Link'],
                     'foil_keywords' => ['air-fill', 'foil', 'mylar', 'orbz', 'sphere'],
                     'latex_brands' => ['Sempertex', 'Kalisan', 'Tuftex', 'Qualatex', 'Brookloon', 'Gemar'],
                     'printed_keywords' => ['happy birthday', 'christmas'],
@@ -90,6 +90,21 @@ class TitleAttributeExtractorTest extends TestCase
         // Foil products get no shape (only latex needs the shape-prefix size).
         $foil = ['title' => 'Script Silver N Air-Fill Pkg (5 count)', 'brand' => 'Betallic', 'categories' => ['Foil Balloons']];
         $this->assertArrayNotHasKey('Balloon Type / Shape', $this->extract($foil)['attributes']);
+    }
+
+    /**
+     * The reported bug: havinaparty titles spell the shape as bare "Link" or
+     * "Linko", never the fuller "Link-O-Loon"/"Linky" the old keyword list
+     * required — so real Link products silently defaulted to Round. "link" alone
+     * (a substring of every real spelling) fixes it for all of them at once.
+     */
+    public function test_bare_link_and_linko_are_recognised_as_the_link_shape(): void
+    {
+        $bareLink = ['title' => '12"K Link Macaron Lilac (50 count)', 'brand' => 'Kalisan', 'categories' => ['Latex Balloons']];
+        $this->assertSame(['Link'], $this->extract($bareLink)['attributes']['Balloon Type / Shape']);
+
+        $linko = ['title' => '660S Linko Orange Fashion (50 count)', 'brand' => 'Sempertex', 'categories' => ['Latex Balloons']];
+        $this->assertSame(['Link'], $this->extract($linko)['attributes']['Balloon Type / Shape']);
     }
 
     public function test_colour_comes_from_the_title_not_a_junk_breadcrumb_leaf(): void

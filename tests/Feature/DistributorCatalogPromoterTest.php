@@ -227,6 +227,47 @@ class DistributorCatalogPromoterTest extends TestCase
     }
 
     /**
+     * The reported bug, at the promotion level: unlike the fuzzy case above, the
+     * catalog HAS a real colour literally named "Green" — so the distributor's
+     * coarse "Green" resolves EXACT, not fuzzy. Before the fix, an exact match
+     * short-circuited before the title was ever consulted, wrongly promoting the
+     * generic "Green" over the title's specific "Mirror Green Gold".
+     */
+    public function test_coarse_exact_structured_color_defers_to_a_more_specific_title_shade(): void
+    {
+        [$brand, $balloonSize] = $this->seedSempertex();
+        $family = ColorFamily::firstOrFail()->id;
+        $texture = Texture::factory()->create(['name' => 'Mirror (SMP)', 'brand_id' => $brand->id]);
+
+        $green = Color::factory()->create(['name' => 'Green', 'brand_id' => $brand->id, 'color_family_id' => $family, 'texture_id' => $texture->id]);
+        $mirrorGreenGold = Color::factory()->create(['name' => 'Mirror Green Gold', 'brand_id' => $brand->id, 'color_family_id' => $family, 'texture_id' => $texture->id]);
+
+        $distributor = Distributor::factory()->shopify()->create();
+        $proposal = $this->proposal([
+            'upc' => '00030625999995',
+            'proposed_name' => '36 inch Sempertex Mirror Green Gold',
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'url' => 'https://example.com/p/y',
+                'raw_upc' => '030625999995',
+                'title' => '36 inch Sempertex Mirror Green Gold',
+                'attributes' => [
+                    'Brand' => ['Sempertex'],
+                    'Size' => ['11 inch'],
+                    'Color' => ['Green'],
+                ],
+            ]],
+        ]);
+
+        $sku = $this->promoter->promote($proposal);
+
+        $this->assertNotNull($sku);
+        $this->assertSame($mirrorGreenGold->id, $sku->color_id, 'Should use the specific title shade, not the coarse (but real) exact match');
+        $this->assertNotSame($green->id, $sku->color_id);
+        $this->assertSame($balloonSize->id, $sku->balloon_size_id);
+    }
+
+    /**
      * The recompute path (used by the audit command) must ignore any stored
      * proposed_color_id — it might itself be the corrupted value, so it can't be
      * the baseline the audit compares against. It should reach the same title

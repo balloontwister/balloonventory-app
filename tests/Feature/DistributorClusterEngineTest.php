@@ -435,6 +435,31 @@ class DistributorClusterEngineTest extends TestCase
         $this->assertSame('Red', $proposal->resolution['color']['name']);
     }
 
+    public function test_stamped_resolution_prefers_a_specific_title_shade_over_a_coarse_exact_color(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Kalisan']);
+        BalloonSize::factory()->create(['brand_id' => $brand->id, 'name' => '36-inch (K)']);
+        Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Green']);
+        $mirrorGreenGold = Color::factory()->create(['brand_id' => $brand->id, 'name' => 'Mirror Green Gold']);
+
+        $this->stage($this->bargain, [
+            'external_id' => 'g-1', 'raw_sku' => '55090', 'normalized_sku' => '55090',
+            'upc' => '086932968546', 'title' => '36 inch KALISAN MIRROR GREEN GOLD',
+            'product_type' => 'solid_latex',
+            'raw_data' => ['attributes' => [
+                'Brand' => ['Kalisan'],
+                'Size' => ['36 inch'],
+                'Color' => ['Green'],
+            ]],
+        ]);
+
+        $this->engine->run(execute: true);
+
+        $proposal = DistributorCatalogProposal::sole();
+        $this->assertSame('Mirror Green Gold', $proposal->resolution['color']['name']);
+        $this->assertSame($mirrorGreenGold->id, $proposal->resolution['color']['id']);
+    }
+
     public function test_proposed_count_prefers_structured_quantity_over_the_title(): void
     {
         $this->stage($this->bargain, [

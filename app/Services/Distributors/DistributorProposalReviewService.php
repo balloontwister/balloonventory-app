@@ -718,18 +718,18 @@ class DistributorProposalReviewService
     {
         $base = $this->presentMatch($match) + ['source' => 'structured'];
 
-        if ($match['quality'] === 'exact' || $brand === null) {
+        if ($brand === null) {
             return $base;
         }
 
-        $titleColor = $this->resolver->colorInText($this->proposalTitleText($proposal), $brand);
+        $refined = $this->resolver->refineColorFromTitle($match['model'], $match['quality'], $this->proposalTitleText($proposal), $brand);
 
-        if ($titleColor === null) {
+        if ($refined === null || ($match['model'] !== null && $refined->is($match['model']))) {
             return $base;
         }
 
         return [
-            'selected' => ['id' => $titleColor->id, 'name' => $titleColor->name],
+            'selected' => ['id' => $refined->id, 'name' => $refined->name],
             'quality' => 'exact',
             'source' => 'title',
             // Keep the structured family guesses as alternates the admin can pick.

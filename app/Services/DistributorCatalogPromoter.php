@@ -316,10 +316,12 @@ class DistributorCatalogPromoter
         }
 
         // Colour is special: a distributor's structured "Color" is often a coarse
-        // family ("Green") while the real shade is in the title ("Pastel Dusk Green
-        // Tea"). So an EXACT structured colour wins, but anything less defers to the
-        // colour named in the title, falling back to the fuzzy structured guess only
-        // when the title yields nothing.
+        // family ("Green") while the real shade is in the title ("Mirror Green
+        // Gold"). A non-exact structured guess always defers to the title; an
+        // EXACT structured match is trusted too UNLESS the title names a more
+        // specific colour that's a refinement of it (see resolveColor/
+        // refineColorFromTitle) — a coarse label being technically a real,
+        // separate catalog colour doesn't make it the right one for THIS product.
         $resolved['color'] = $this->resolveColor($structured['color'], $resolved['brand'], $text);
 
         // A human review (Edit modal) can pin any attribute to an explicit
@@ -373,23 +375,21 @@ class DistributorCatalogPromoter
     }
 
     /**
-     * Resolve the effective colour: an exact structured match wins; otherwise the
-     * shade named in the title (scoped to the resolved brand) is preferred over a
-     * fuzzy structured family match.
+     * Resolve the effective colour: a specific shade named in the title (scoped
+     * to the resolved brand) is preferred over a fuzzy structured family match,
+     * and even over a coarse-but-real EXACT structured match when the title
+     * names a more specific refinement of it (see
+     * {@see CatalogAttributeResolver::refineColorFromTitle}).
      *
      * @param  array{model: ?Model, quality: string}  $structuredColor
      */
     private function resolveColor(array $structuredColor, ?Brand $brand, string $text): ?Color
     {
-        if (($structuredColor['quality'] ?? 'none') === 'exact') {
+        if ($brand === null) {
             return $structuredColor['model'];
         }
 
-        if ($brand !== null && ($titleColor = $this->resolver->colorInText($text, $brand)) !== null) {
-            return $titleColor;
-        }
-
-        return $structuredColor['model'];
+        return $this->resolver->refineColorFromTitle($structuredColor['model'], $structuredColor['quality'] ?? 'none', $text, $brand);
     }
 
     /**

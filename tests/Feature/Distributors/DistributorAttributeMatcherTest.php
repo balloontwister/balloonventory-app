@@ -143,6 +143,30 @@ class DistributorAttributeMatcherTest extends TestCase
         $this->assertSame('Red', $result['color']['model']->name);
     }
 
+    /**
+     * The reported bug: Kalisan names its link-shaped sizes with a SUFFIX
+     * ("12" K-Link"), not the "{prefix}-{number}" scheme Tier 2 understands
+     * (that's Sempertex's convention: "LOL-12"). Both "12-inch (K)" (round) and
+     * "12" K-Link" reduce to the same bare-number core key, so Tier 1 finds them
+     * as an ambiguous pair — it must use the shape word to pick "12" K-Link", not
+     * silently default to whichever round variant happens to come first.
+     */
+    public function test_ambiguous_size_resolves_to_the_shape_named_in_the_structured_field(): void
+    {
+        $round = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '12-inch (K)']);
+        $link = BalloonSize::factory()->create(['brand_id' => $this->kalisan->id, 'name' => '12" K-Link']);
+
+        $result = $this->matcher->match([
+            'Brand' => ['Kalisan'],
+            'Size' => ['12"'],
+            'Balloon Type / Shape' => ['Link'],
+        ]);
+
+        $this->assertSame($link->id, $result['balloon_size']['model']->id);
+        $this->assertSame('exact', $result['balloon_size']['quality']);
+        $this->assertNotSame($round->id, $result['balloon_size']['model']->id);
+    }
+
     public function test_ambiguous_size_returns_candidates_and_fuzzy_quality(): void
     {
         // Two sizes whose names share the same core key (the parenthetical brand

@@ -100,16 +100,13 @@ class DistributorAttributeMatcher
         $brandModel = $brand['model'];
 
         $sizeValue = $this->value($attributes, $labels['size']);
-        $shapePrefix = $this->resolveShapePrefix(
-            $this->valuesFor($attributes, $labels['shape']),
-            $sizeValue,
-            $config,
-        );
+        $shapeValues = $this->valuesFor($attributes, $labels['shape']);
+        $shapePrefix = $this->resolveShapePrefix($shapeValues, $sizeValue, $config);
 
         return [
             'brand' => $brand,
             'balloon_size' => $brandModel instanceof Brand
-                ? $this->matchSize($sizeValue, $brandModel, $shapePrefix, $this->sizeNumberAliases($brandModel->name, $config))
+                ? $this->matchSize($sizeValue, $brandModel, $shapeValues[0] ?? null, $shapePrefix, $this->sizeNumberAliases($brandModel->name, $config))
                 : $this->none(),
             'color' => $brandModel instanceof Brand
                 ? $this->matchColor(
@@ -248,7 +245,7 @@ class DistributorAttributeMatcher
      * @param  array<string, mixed>  $numberAliases  distributor size number → catalog number, for this brand
      * @return AttributeMatch
      */
-    private function matchSize(?string $value, Brand $brand, ?string $shapePrefix = null, array $numberAliases = []): array
+    private function matchSize(?string $value, Brand $brand, ?string $shapeWord = null, ?string $shapePrefix = null, array $numberAliases = []): array
     {
         if ($value === null) {
             return $this->none();
@@ -258,6 +255,36 @@ class DistributorAttributeMatcher
 
         if (($learned = $this->learned('size', $value, $brand->id, $sizes)) !== null) {
             return $learned;
+        }
+
+        // Tier 0 — shape+number named in the candidate itself. Several sizes can
+        // share a bare number across shapes (round/heart/link), but sizeKey()
+        // strips only KNOWN decorations (parentheticals, a trailing brand letter)
+        // — it doesn't know how to strip an arbitrary shape suffix like Kalisan's
+        // "12" K-Link", so Tier 1 below would find ONLY the (wrong) round variant
+        // as a confident, unambiguous match and never get a chance to reconsider.
+        // When the shape is known, look for a candidate whose OWN NAME mentions
+        // BOTH it and the raw number — this works for any brand's naming scheme
+        // (Sempertex's "{prefix}-{number}" convention, Kalisan's
+        // "{number}\" {letter}-{Shape}" convention, or anything else) without
+        // needing to teach sizeKey() every brand's decoration style.
+        if ($shapeWord !== null) {
+            foreach ($this->splitValue($value) as $part) {
+                if (! preg_match('/\d+/', $part, $m)) {
+                    continue;
+                }
+
+                $shapeMatches = $sizes->filter(function (BalloonSize $bs) use ($m, $shapeWord) {
+                    $name = strtolower($bs->name);
+
+                    return ProductText::mentions($name, strtolower($shapeWord))
+                        && ProductText::mentions($name, $m[0]);
+                })->values();
+
+                if ($shapeMatches->count() === 1) {
+                    return $this->sizeMatch($shapeMatches, $part, $value);
+                }
+            }
         }
 
         // Tier 1 — core-key equality. "350 / 360" style combined values: try each

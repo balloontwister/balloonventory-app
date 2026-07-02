@@ -179,6 +179,42 @@ class DistributorCatalogPromoterTest extends TestCase
         $this->assertSame($latex->id, $sku->material_id);
     }
 
+    /**
+     * The recompute path (used by the audit command) must ignore any stored
+     * proposed_color_id — it might itself be the corrupted value, so it can't be
+     * the baseline the audit compares against. It should reach the same title
+     * shade a fresh promotion would.
+     */
+    public function test_recompute_color_from_evidence_ignores_a_manual_override_and_uses_the_title_shade(): void
+    {
+        [$brand] = $this->seedSempertex();
+        $family = ColorFamily::firstOrFail()->id;
+        $texture = Texture::factory()->create(['name' => 'Pastel (SMP)', 'brand_id' => $brand->id]);
+
+        $wrongColor = Color::factory()->create(['name' => 'Neon Green', 'brand_id' => $brand->id, 'color_family_id' => $family, 'texture_id' => $texture->id]);
+        $correctShade = Color::factory()->create(['name' => 'Pastel Green Tea', 'brand_id' => $brand->id, 'color_family_id' => $family, 'texture_id' => $texture->id]);
+
+        $distributor = Distributor::factory()->shopify()->create();
+        $proposal = $this->proposal([
+            'upc' => '00030625999997',
+            'proposed_name' => '11 Inch Round Pastel Green Tea Sempertex 100ct',
+            // A stale/incidental override — the exact shape of the production bug.
+            'proposed_color_id' => $wrongColor->id,
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'title' => '11 Inch Round Pastel Green Tea Sempertex 100ct',
+                'attributes' => [
+                    'Brand' => ['Sempertex'],
+                    'Color' => ['Green'],
+                ],
+            ]],
+        ]);
+
+        $result = $this->promoter->recomputeColorFromEvidence($proposal);
+
+        $this->assertSame($correctShade->id, $result?->id);
+    }
+
     public function test_leaves_unresolvable_proposal_pending(): void
     {
         $this->seedSempertex();

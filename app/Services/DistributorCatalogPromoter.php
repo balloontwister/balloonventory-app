@@ -341,6 +341,29 @@ class DistributorCatalogPromoter
     }
 
     /**
+     * Re-derive the colour a promotion would assign TODAY, straight from the
+     * proposal's own evidence — deliberately ignoring any stored
+     * `proposed_color_id`. Used by the promoted-colour audit: a manual override on
+     * an already-promoted proposal may itself be the corrupted value under
+     * investigation (e.g. carried along by an edit to an unrelated field before the
+     * touched-fields capture gate existed), so it can't be trusted as the baseline
+     * to compare against.
+     */
+    public function recomputeColorFromEvidence(DistributorCatalogProposal $proposal): ?Color
+    {
+        $text = collect($proposal->evidence ?? [])
+            ->pluck('title')
+            ->push($proposal->proposed_name)
+            ->filter()
+            ->implode(' ');
+
+        $structured = $this->structuredMatch($proposal);
+        $brand = $structured['brand']['model'] ?? $this->resolver->resolve($text)['brand'];
+
+        return $this->resolveColor($structured['color'], $brand, $text);
+    }
+
+    /**
      * Resolve the effective colour: an exact structured match wins; otherwise the
      * shade named in the title (scoped to the resolved brand) is preferred over a
      * fuzzy structured family match.

@@ -1009,8 +1009,23 @@ function confidenceClass(confidence) {
                                 <span class="text-warning">
                                     {{
                                         $t(
-                                            'super_admin.dashboard.distributors.proposals.maybe_exists_detail',
-                                            { name: exactNoBarcode(item).name },
+                                            'super_admin.dashboard.distributors.proposals.maybe_exists_prefix',
+                                        )
+                                    }}
+                                    <Link
+                                        :href="
+                                            route(
+                                                'admin.catalog.skus.show',
+                                                exactNoBarcode(item).id,
+                                            )
+                                        "
+                                        target="_blank"
+                                        class="underline underline-offset-2 hover:opacity-80"
+                                        >{{ exactNoBarcode(item).name }}</Link
+                                    >.
+                                    {{
+                                        $t(
+                                            'super_admin.dashboard.distributors.proposals.maybe_exists_suffix',
                                         )
                                     }}
                                 </span>

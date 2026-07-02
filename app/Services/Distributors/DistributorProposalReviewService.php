@@ -256,8 +256,9 @@ class DistributorProposalReviewService
      * Map a proposal to an existing catalog SKU instead of creating a new one:
      * backfill the distributor's barcode onto that SKU (audited, as an admin
      * action on the shared catalog — null business), attach the distributor
-     * purchase URLs, and resolve the proposal to it. Used when we already carry
-     * the product but the existing SKU had no barcode (so it wasn't matched at
+     * purchase URLs, sync its warehouse SKU to the proposal's consensus (see
+     * below), and resolve the proposal to it. Used when we already carry the
+     * product but the existing SKU had no barcode (so it wasn't matched at
      * cluster time and surfaced as a proposal).
      */
     public function mapToExisting(DistributorCatalogProposal $proposal, Sku $target, string $reviewerId): void
@@ -272,6 +273,16 @@ class DistributorProposalReviewService
 
         $this->barcodeLinker->link($target, $barcode, null, $reviewerId, BarcodeLinker::SOURCE_ADMIN);
         $this->promoter->attachDistributorUrls($target, $proposal);
+
+        // The target predates this match (it was catalogued without a barcode, by
+        // hand or from an earlier import), so its warehouse SKU may be a stale
+        // internal code rather than the manufacturer item number. The proposal's
+        // own warehouse SKU is the multi-distributor consensus computed at cluster
+        // time (see DistributorClusterEngine::consensusWarehouseSku) — trust it the
+        // same way approving a brand-new proposal already does.
+        if ($proposal->proposed_warehouse_sku !== null && $proposal->proposed_warehouse_sku !== $target->warehouse_sku) {
+            $target->forceFill(['warehouse_sku' => $proposal->proposed_warehouse_sku])->save();
+        }
 
         $proposal->forceFill([
             'status' => DistributorCatalogProposal::STATUS_APPROVED,

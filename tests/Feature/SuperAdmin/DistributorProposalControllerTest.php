@@ -570,6 +570,54 @@ class DistributorProposalControllerTest extends TestCase
         $this->assertSame($existing->id, $proposal->resulting_sku_id);
     }
 
+    /**
+     * The target predates the barcode match, so it may still carry a stale
+     * internal warehouse SKU from before distributor evidence existed for it. The
+     * proposal's own warehouse SKU is the multi-distributor consensus (computed at
+     * cluster time) — mapping must sync it onto the target, not leave the old one.
+     */
+    public function test_map_to_existing_syncs_the_consensus_warehouse_sku_onto_the_target(): void
+    {
+        $existing = Sku::factory()->create(['upc' => null, 'ean' => null, 'warehouse_sku' => '20018141']);
+        $distributor = Distributor::factory()->bigcommerce()->create();
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'proposed_warehouse_sku' => '54529',
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'raw_upc' => '8693296838147',
+                'url' => 'https://larocks.com/p/1',
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.map-to-existing', $proposal->id), ['sku_id' => $existing->id])
+            ->assertSessionHas('success');
+
+        $this->assertSame('54529', $existing->fresh()->warehouse_sku);
+    }
+
+    public function test_map_to_existing_leaves_warehouse_sku_alone_when_the_proposal_has_none(): void
+    {
+        $existing = Sku::factory()->create(['upc' => null, 'ean' => null, 'warehouse_sku' => '20018141']);
+        $distributor = Distributor::factory()->bigcommerce()->create();
+
+        $proposal = DistributorCatalogProposal::factory()->create([
+            'proposed_warehouse_sku' => null,
+            'evidence' => [[
+                'distributor_id' => $distributor->id,
+                'raw_upc' => '8693296838147',
+                'url' => 'https://larocks.com/p/1',
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.distributors.proposals.map-to-existing', $proposal->id), ['sku_id' => $existing->id])
+            ->assertSessionHas('success');
+
+        $this->assertSame('20018141', $existing->fresh()->warehouse_sku);
+    }
+
     public function test_map_to_existing_refuses_a_barcode_already_on_another_sku(): void
     {
         Sku::factory()->create(['ean' => '8693296838147']); // barcode taken
